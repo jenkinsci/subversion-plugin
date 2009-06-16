@@ -68,9 +68,16 @@ THE SOFTWARE.
       <version>${hudson.version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <!-- work around a failed merge in Hudson core 1.310 that adds htmlunit -->
+      <groupId>org.jvnet.hudson</groupId>
+      <artifactId>htmlunit</artifactId>
+      <version>2.2-hudson-9</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <properties>
-    <hudson.version>1.310-SNAPSHOT</hudson.version>
+    <hudson.version>1.310</hudson.version>
   </properties>
 </project>
