@@ -30,6 +30,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.util.NullStream;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Cause;
@@ -49,8 +50,11 @@ import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
 import org.jvnet.hudson.test.HudsonTestCase;
 import org.jvnet.hudson.test.recipes.PresetData;
 import static org.jvnet.hudson.test.recipes.PresetData.DataSet.ANONYMOUS_READONLY;
+import org.tmatesoft.svn.core.SVNException;
 
 import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Map;
@@ -59,6 +63,14 @@ import java.util.Map;
  * @author Kohsuke Kawaguchi
  */
 public class SubversionSCMTest extends HudsonTestCase {
+    /**
+     * Sets guest credentials to access java.net Subversion repo.
+     */
+    protected void setJavaNetCredential() throws SVNException, IOException {
+        // set the credential to access svn.dev.java.net
+        hudson.getDescriptorByType(SubversionSCM.DescriptorImpl.class).postCredential("https://svn.dev.java.net/svn/hudson/","guest","",null,new PrintWriter(new NullStream()));
+    }
+
     @PresetData(ANONYMOUS_READONLY)
     @Bug(2380)
     public void testTaggingPermission() throws Exception {
