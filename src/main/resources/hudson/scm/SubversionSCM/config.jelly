@@ -24,15 +24,13 @@ THE SOFTWARE.
 
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
   <f:entry title="${%Modules}">
-    <f:repeatable var="loc" items="${scm.locations}" noAddButton="true" minimum="1">
+    <f:repeatable var="loc" name="locations" items="${instance.locations}" noAddButton="true" minimum="1">
       <table width="100%">
-        <f:entry title="${%Repository URL}" help="/scm/SubversionSCM/url-help">
-          <f:textbox name="svn.location_remote" value="${loc.remote}"
-            checkUrl="'${rootURL}/scm/SubversionSCM/svnRemoteLocationCheck?value='+encode(this.value)"/>
+        <f:entry title="${%Repository URL}" field="remote" help="/scm/SubversionSCM/url-help">
+          <f:textbox value="${loc.remote}" />
         </f:entry>
-        <f:entry title="${%Local module directory} (${%optional})" help="/help/subversion/local.html">
-          <f:textbox name="svn.location_local" value="${loc.local}"
-            checkUrl="'${rootURL}/scm/SubversionSCM/svnLocalLocationCheck?value='+escape(this.value)"/>
+        <f:entry title="${%Local module directory} (${%optional})" field="local">
+          <f:textbox value="${loc.local}" />
         </f:entry>
         <f:entry>
           <div align="right">
@@ -43,14 +41,14 @@ THE SOFTWARE.
       </table>
     </f:repeatable>
   </f:entry>
-  <f:entry title="${%Use update}" description="${%updateDescription}">
-    <f:checkbox name="svn_use_update" checked="${h.defaultToTrue(scm.useUpdate)}"/>
+  <f:entry title="${%Use update}" description="${%updateDescription}" field="useUpdate">
+    <f:checkbox default="true"/>
   </f:entry>
 
   <t:listScmBrowsers name="svn.browser" />
   <f:advanced>
-	 <f:entry title="${%Excluded Regions}" help="/help/subversion/excludedRegions.html">
-			<f:textarea name="svn.excludedRegions" value="${scm.excludedRegions}" checkUrl="'${rootURL}/scm/SubversionSCM/excludeRegionsCheck?value='+escape(this.value)"/>
+	 <f:entry title="${%Excluded Regions}" field="excludedRegions">
+			<f:textarea />
     </f:entry>
   </f:advanced>
 </j:jelly>

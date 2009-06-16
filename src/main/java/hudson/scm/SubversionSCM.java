@@ -58,6 +58,7 @@ import org.apache.tools.ant.taskdefs.Chmod;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.putty.PuTTYKey;
 import org.tmatesoft.svn.core.SVNDirEntry;
 import org.tmatesoft.svn.core.SVNErrorCode;
@@ -123,6 +124,7 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.StringTokenizer;
 import java.util.UUID;
+import java.util.Iterator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -177,24 +179,23 @@ public class SubversionSCM extends SCM implements Serializable {
         this(remoteLocations,localLocations, useUpdate, browser, null);
     }
 
+    /**
+     * @deprecated as of 1.311
+     */
     public SubversionSCM(String[] remoteLocations, String[] localLocations,
                          boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions) {
+        this(ModuleLocation.parse(remoteLocations,localLocations), useUpdate, browser, excludedRegions);
+    }
 
-        List<ModuleLocation> modules = new ArrayList<ModuleLocation>();
-        if (remoteLocations != null && localLocations != null) {
-            int entries = Math.min(remoteLocations.length, localLocations.length);
+    @DataBoundConstructor
+    public SubversionSCM(List<ModuleLocation> locations,
+                         boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions) {
 
-            for (int i = 0; i < entries; i++) {
-                // the remote (repository) location
-                String remoteLoc = nullify(remoteLocations[i]);
-
-                if (remoteLoc != null) {// null if skipped
-                    remoteLoc = Util.removeTrailingSlash(remoteLoc.trim());
-                    modules.add(new ModuleLocation(remoteLoc, nullify(localLocations[i])));
-                }
-            }
+        for (Iterator<ModuleLocation> itr = locations.iterator(); itr.hasNext();) {
+            ModuleLocation ml = itr.next();
+            if(ml.remote==null) itr.remove();
         }
-        locations = modules.toArray(new ModuleLocation[modules.size()]);
+        this.locations = locations.toArray(new ModuleLocation[locations.size()]);
 
         this.useUpdate = useUpdate;
         this.browser = browser;
@@ -1242,6 +1243,11 @@ public class SubversionSCM extends SCM implements Serializable {
             private static final long serialVersionUID = 1L;
         }
 
+        @Override
+        public SCM newInstance(StaplerRequest staplerRequest, JSONObject jsonObject) throws FormException {
+            return super.newInstance(staplerRequest, jsonObject);
+        }
+
         public DescriptorImpl() {
             super(SubversionRepositoryBrowser.class);
             load();
@@ -1253,15 +1259,6 @@ public class SubversionSCM extends SCM implements Serializable {
 
         public String getDisplayName() {
             return "Subversion";
-        }
-
-        public SCM newInstance(StaplerRequest req, JSONObject formData) throws FormException {
-            return new SubversionSCM(
-                req.getParameterValues("svn.location_remote"),
-                req.getParameterValues("svn.location_local"),
-                req.getParameter("svn_use_update") != null,
-                RepositoryBrowsers.createInstance(SubversionRepositoryBrowser.class, req, formData, "browser"),
-                req.getParameter("svn.excludedRegions"));
         }
 
         /**
@@ -1447,7 +1444,7 @@ public class SubversionSCM extends SCM implements Serializable {
         /**
          * validate the value for a remote (repository) location.
          */
-        public FormValidation doSvnRemoteLocationCheck(StaplerRequest req, @QueryParameter String value) {
+        public FormValidation doCheckRemote(StaplerRequest req, @QueryParameter String value) {
             // syntax check first
             String url = Util.nullify(value);
             if (url == null)
@@ -1564,7 +1561,7 @@ public class SubversionSCM extends SCM implements Serializable {
         /**
          * validate the value for a local location (local checkout directory).
          */
-        public FormValidation doSvnLocalLocationCheck(@QueryParameter String value) throws IOException, ServletException {
+        public FormValidation doCheckLocal(@QueryParameter String value) throws IOException, ServletException {
             String v = Util.nullify(value);
             if (v == null)
                 // local directory is optional so this is ok
@@ -1584,7 +1581,7 @@ public class SubversionSCM extends SCM implements Serializable {
         /**
          * Validates the excludeRegions Regex
          */
-        public FormValidation doExcludeRegionsCheck(@QueryParameter String value) throws IOException, ServletException {
+        public FormValidation doCheckExcludeRegions(@QueryParameter String value) throws IOException, ServletException {
             for (String region : Util.fixNull(value).trim().split("[\\r\\n]+"))
                 try {
                     Pattern.compile(region);
@@ -1684,8 +1681,9 @@ public class SubversionSCM extends SCM implements Serializable {
         private transient volatile UUID repositoryUUID;
         private transient volatile SVNURL repositoryRoot;
 
+        @DataBoundConstructor
         public ModuleLocation(String remote, String local) {
-            this.remote = remote.trim();
+            this.remote = Util.removeTrailingSlash(Util.fixNull(remote).trim());
             this.local = Util.fixEmptyAndTrim(local);
         }
 
@@ -1799,6 +1797,24 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         private static final long serialVersionUID = 1L;
+
+        public static List<ModuleLocation> parse(String[] remoteLocations, String[] localLocations) {
+            List<ModuleLocation> modules = new ArrayList<ModuleLocation>();
+            if (remoteLocations != null && localLocations != null) {
+                int entries = Math.min(remoteLocations.length, localLocations.length);
+
+                for (int i = 0; i < entries; i++) {
+                    // the remote (repository) location
+                    String remoteLoc = Util.nullify(remoteLocations[i]);
+
+                    if (remoteLoc != null) {// null if skipped
+                        remoteLoc = Util.removeTrailingSlash(remoteLoc.trim());
+                        modules.add(new ModuleLocation(remoteLoc, Util.nullify(localLocations[i])));
+                    }
+                }
+            }
+            return modules;
+        }
     }
 
     private static final Logger LOGGER = Logger.getLogger(SubversionSCM.class.getName());
