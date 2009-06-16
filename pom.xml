@@ -76,6 +76,6 @@ THE SOFTWARE.
   </dependencies>
 
   <properties>
-    <hudson.version>1.310-SNAPSHOT</hudson.version>
+    <hudson.version>1.310</hudson.version>
   </properties>
 </project>
