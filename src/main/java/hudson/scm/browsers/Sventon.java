@@ -31,7 +31,6 @@ import hudson.scm.EditType;
 import hudson.scm.RepositoryBrowser;
 import hudson.scm.SubversionChangeLogSet.LogEntry;
 import hudson.scm.SubversionChangeLogSet.Path;
-import hudson.scm.SubversionRepositoryBrowser;
 import hudson.util.FormValidation;
 import hudson.util.FormValidation.URLCheck;
 import org.kohsuke.stapler.AncestorInPath;
@@ -49,37 +48,10 @@ import java.net.URLEncoder;
  *
  * @author Stephen Connolly
  */
-public class Sventon extends SubversionRepositoryBrowser {
-    /**
-     * The URL of the Sventon 1.x repository.
-     *
-     * This is normally like <tt>http://somehost.com/svn/</tt>
-     * Normalized to have '/' at the tail.
-     */
-    public final URL url;
-
-    /**
-     * Repository instance. Cannot be empty
-     */
-    private final String repositoryInstance;
-
-    /**
-     * The charset to use when encoding paths in an URI (specified in RFC 3986).
-     */
-    private static final String URL_CHARSET = "UTF-8";
-
+public class Sventon extends AbstractSventon {
     @DataBoundConstructor
     public Sventon(URL url, String repositoryInstance) throws MalformedURLException {
-        this.url = normalizeToEndWithSlash(url);
-
-        // normalize
-        repositoryInstance = repositoryInstance.trim();
-
-        this.repositoryInstance = repositoryInstance == null ? "" : repositoryInstance;
-    }
-
-    public String getRepositoryInstance() {
-        return repositoryInstance;
+        super(url, repositoryInstance);
     }
 
     @Override

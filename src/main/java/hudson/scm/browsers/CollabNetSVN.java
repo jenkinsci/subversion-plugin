@@ -50,11 +50,6 @@ public class CollabNetSVN extends SubversionRepositoryBrowser
         public String getDisplayName() {
             return "CollabNet";
         }
-
-        @Override
-        public RepositoryBrowser<?> newInstance(StaplerRequest req, JSONObject formData) throws FormException {
-            return req.bindParameters(CollabNetSVN.class, "collabnet.svn.");
-        }
     }
 
 

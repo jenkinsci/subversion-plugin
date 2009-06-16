@@ -58,7 +58,6 @@ import java.io.PrintWriter;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.Collections;
 
 /**
  * @author Kohsuke Kawaguchi

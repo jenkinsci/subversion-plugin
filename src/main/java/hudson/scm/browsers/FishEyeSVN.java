@@ -130,7 +130,7 @@ public class FishEyeSVN extends SubversionRepositoryBrowser {
         /**
          * Performs on-the-fly validation of the URL.
          */
-        public FormValidation doCheck(@QueryParameter(fixEmpty=true) String value) throws IOException, ServletException {
+        public FormValidation doCheckUrl(@QueryParameter(fixEmpty=true) String value) throws IOException, ServletException {
             if(value==null) // nothing entered yet
                 return FormValidation.ok();
 
