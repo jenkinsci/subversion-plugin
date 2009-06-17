@@ -44,6 +44,10 @@ THE SOFTWARE.
   <f:entry title="${%Use update}" description="${%updateDescription}" field="useUpdate">
     <f:checkbox default="true"/>
   </f:entry>
+  <!-- Added field for if svn checkout fails it will retry the specified number of times -->
+  <f:entry title="Number of Retrys for SVN Check out" field="retryCount" description="${%svnCheckoutRetryDescription}">
+  	<f:textbox value="${scm.retryCount}" />
+  </f:entry>
 
   <t:listScmBrowsers name="svn.browser" />
   <f:advanced>
