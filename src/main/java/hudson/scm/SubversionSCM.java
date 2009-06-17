@@ -55,6 +55,7 @@ import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.io.FileUtils;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.taskdefs.Chmod;
+import org.codehaus.groovy.ast.stmt.ContinueStatement;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.QueryParameter;
@@ -166,30 +167,41 @@ public class SubversionSCM extends SCM implements Serializable {
     private boolean useUpdate;
     private final SubversionRepositoryBrowser browser;
     private String excludedRegions;
+    /**
+     * Number of Retrys if SVN Check out fail.
+     *
+     * This is {@link Integer} so that we can initialize it to '10' for upgrading users.
+     */
+    /*package*/ Integer retryCount;
+    
 
     // No longer in use but left for serialization compatibility.
     @Deprecated
     private String modules;
+    /**
+     * 
+     */
+    private int count;
 
     /**
      * @deprecated as of 1.286
      */
     public SubversionSCM(String[] remoteLocations, String[] localLocations,
-                         boolean useUpdate, SubversionRepositoryBrowser browser) {
-        this(remoteLocations,localLocations, useUpdate, browser, null);
+                         boolean useUpdate, SubversionRepositoryBrowser browser,int retryCount) {
+        this(remoteLocations,localLocations, useUpdate, browser, null,retryCount);
     }
 
     /**
      * @deprecated as of 1.311
      */
     public SubversionSCM(String[] remoteLocations, String[] localLocations,
-                         boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions) {
-        this(ModuleLocation.parse(remoteLocations,localLocations), useUpdate, browser, excludedRegions);
+                         boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions,int retryCount) {
+        this(ModuleLocation.parse(remoteLocations,localLocations), useUpdate, browser, excludedRegions,retryCount);
     }
 
     @DataBoundConstructor
     public SubversionSCM(List<ModuleLocation> locations,
-                         boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions) {
+                         boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions,int retryCount) {
 
         for (Iterator<ModuleLocation> itr = locations.iterator(); itr.hasNext();) {
             ModuleLocation ml = itr.next();
@@ -200,13 +212,14 @@ public class SubversionSCM extends SCM implements Serializable {
         this.useUpdate = useUpdate;
         this.browser = browser;
         this.excludedRegions = excludedRegions;
+        this.retryCount = retryCount;
     }
 
     /**
      * Convenience constructor, especially during testing.
      */
     public SubversionSCM(String svnUrl) {
-        this(new String[]{svnUrl},new String[]{null},true,null,null);
+        this(new String[]{svnUrl},new String[]{null},true,null,null,0);
     }
 
     /**
@@ -275,6 +288,10 @@ public class SubversionSCM extends SCM implements Serializable {
 
 	 public String getExcludedRegions() {
 		  return excludedRegions;
+	 }
+	 
+	 public int getRetryCount() {
+		 return retryCount!=null ? retryCount : 20;	
 	 }
 
 	 public String[] getExcludedRegionsNormalized() {
@@ -466,11 +483,16 @@ public class SubversionSCM extends SCM implements Serializable {
                 return null;
             }
         } catch (SVNException e) {
+        	if(retryCount >= count){
+        		listener.getLogger().println("Retrying...."+count);
+        		count++;
+        		return checkout(build,workspace,listener);
+        	}
             e.printStackTrace(listener.error(e.getMessage()));
             return null;
         }
         Boolean isUpdatable = useUpdate && workspace.act(new IsUpdatableTask(build, this, listener));
-        return workspace.act(new CheckOutTask(build, this, build.getTimestamp().getTime(), isUpdatable, listener));
+        return workspace.act(new CheckOutTask(build, this, build.getTimestamp().getTime(), isUpdatable, listener,retryCount));
     }
 
 
@@ -484,13 +506,18 @@ public class SubversionSCM extends SCM implements Serializable {
         private boolean update;
         private final TaskListener listener;
         private final ModuleLocation[] locations;
+        private List<ModuleLocation> checkoutSuccessLocation = new ArrayList<ModuleLocation>();
+        private int count;
+        private int retryCount;
 
-        public CheckOutTask(AbstractBuild<?, ?> build, SubversionSCM parent, Date timestamp, boolean update, TaskListener listener) {
+        public CheckOutTask(AbstractBuild<?, ?> build, SubversionSCM parent, Date timestamp, boolean update, TaskListener listener,int retryCount) {
             this.authProvider = parent.getDescriptor().createAuthenticationProvider();
             this.timestamp = timestamp;
             this.update = update;
             this.listener = listener;
             this.locations = parent.getLocations(build);
+            this.count = 0;
+            this.retryCount = retryCount;
         }
 
         public List<External> invoke(File ws, VirtualChannel channel) throws IOException {
@@ -501,13 +528,16 @@ public class SubversionSCM extends SCM implements Serializable {
                 final SVNRevision revision = SVNRevision.create(timestamp);
                 if(update) {
                     for (final ModuleLocation l : locations) {
+                    	if(checkoutSuccessLocation.contains(l))
+                    		continue;
                         try {
                             listener.getLogger().println("Updating "+ l.remote);
 
                             File local = new File(ws, l.getLocalDir());
                             svnuc.setEventHandler(new SubversionUpdateEventHandler(listener.getLogger(), externals,local,l.getLocalDir()));
                             svnuc.doUpdate(local.getCanonicalFile(), l.getRevision(revision), true);
-
+                            checkoutSuccessLocation.add(l);
+                            count=0;
                         } catch (final SVNException e) {
                             if(e.getErrorMessage().getErrorCode()== SVNErrorCode.WC_LOCKED) {
                                 // work space locked. try fresh check out
@@ -523,6 +553,12 @@ public class SubversionSCM extends SCM implements Serializable {
                                 update = false;
                                 return invoke(ws,channel);
                             }
+                            //
+                            //
+                            if(retryCount >= count){
+                        		count++;
+                        		return invoke(ws,channel);
+                        	}
 
                             e.printStackTrace(listener.error("Failed to update "+l.remote));
                             // trouble-shooting probe for #591
@@ -542,13 +578,22 @@ public class SubversionSCM extends SCM implements Serializable {
                     sct.start();
 
                     for (final ModuleLocation l : locations) {
+                    	if(checkoutSuccessLocation.contains(l))
+                    		continue;
+                    	
                         try {
                             listener.getLogger().println("Checking out "+l.remote);
 
                             File local = new File(ws, l.getLocalDir());
                             svnuc.setEventHandler(new SubversionUpdateEventHandler(new PrintStream(pos), externals, local, l.getLocalDir()));
                             svnuc.doCheckout(l.getSVNURL(), local.getCanonicalFile(), SVNRevision.HEAD, l.getRevision(revision), true);
+                            checkoutSuccessLocation.add(l);
+                            count=0;
                         } catch (SVNException e) {
+                        	 if(retryCount >= count){
+                         		count++;
+                         		return invoke(ws,channel);
+                         	}
                             e.printStackTrace(listener.error("Failed to check out "+l.remote));
                             return null;
                         }
@@ -1576,6 +1621,18 @@ public class SubversionSCM extends SCM implements Serializable {
 
             // all tests passed so far
             return FormValidation.ok();
+        }
+        /**
+         * Validates the retry count Regex
+         */
+        public FormValidation doCheckRetryCount(@QueryParameter String value)throws IOException,ServletException{
+        	// retry count is optional so this is ok
+        	if(value == null || value.trim().equals(""))
+            	return FormValidation.ok();
+        	if (!value.matches("[0-9]*")) {
+        		return FormValidation.error("Invalid retry count");
+        	} 
+        	return FormValidation.ok();
         }
 
         /**
