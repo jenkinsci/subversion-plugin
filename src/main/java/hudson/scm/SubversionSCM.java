@@ -40,6 +40,7 @@ import hudson.model.Hudson;
 import hudson.model.ParameterValue;
 import hudson.model.ParametersAction;
 import hudson.model.TaskListener;
+import hudson.model.Run;
 import hudson.remoting.Callable;
 import hudson.remoting.Channel;
 import hudson.remoting.VirtualChannel;
@@ -51,6 +52,7 @@ import hudson.util.Scrambler;
 import hudson.util.StreamCopyThread;
 import hudson.util.XStream2;
 import hudson.util.FormValidation;
+import hudson.util.TimeUnit2;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.io.FileUtils;
 import org.apache.tools.ant.Project;
@@ -456,14 +458,20 @@ public class SubversionSCM extends SCM implements Serializable {
     private List<External> checkout(AbstractBuild build, FilePath workspace, TaskListener listener) throws IOException, InterruptedException {
         try {
         	
-            if (!repositoryLocationsExist(build, listener) && build.getProject().getLastSuccessfulBuild()!=null) {
-                // Disable this project, see issue #763
-                // but only do so if there was at least some successful build,
-                // to make sure that initial configuration error won't disable the build. see issue #1567
-            	
-                listener.getLogger().println("One or more repository locations do not exist anymore for " + build.getProject().getName() + ", project will be disabled.");
-                build.getProject().makeDisabled(true);
-                return null;
+            if (!repositoryLocationsExist(build, listener)) {
+                Run lsb = build.getProject().getLastSuccessfulBuild();
+                if (lsb != null && build.getNumber()-lsb.getNumber()>10
+                && build.getTimestamp().getTimeInMillis()-lsb.getTimestamp().getTimeInMillis() > TimeUnit2.DAYS.toMillis(1)) {
+                    // Disable this project if the location doesn't exist any more, see issue #763
+                    // but only do so if there was at least some successful build,
+                    // to make sure that initial configuration error won't disable the build. see issue #1567
+                    // finally, only disable a build if the failure persists for some time.
+                    // see http://www.nabble.com/Should-Hudson-have-an-option-for-a-content-fingerprint--td24022683.html
+
+                    listener.getLogger().println("One or more repository locations do not exist anymore for " + build.getProject().getName() + ", project will be disabled.");
+                    build.getProject().makeDisabled(true);
+                    return null;
+                }
             }
         } catch (SVNException e) {
             e.printStackTrace(listener.error(e.getMessage()));
