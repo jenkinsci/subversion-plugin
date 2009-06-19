@@ -51,10 +51,14 @@ import org.jvnet.hudson.test.HudsonTestCase;
 import org.jvnet.hudson.test.recipes.PresetData;
 import static org.jvnet.hudson.test.recipes.PresetData.DataSet.ANONYMOUS_READONLY;
 import org.tmatesoft.svn.core.SVNException;
+import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminAreaFactory;
+import org.tmatesoft.svn.core.wc.SVNClientManager;
+import org.tmatesoft.svn.core.wc.SVNStatus;
 
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.File;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Map;
@@ -308,5 +312,21 @@ public class SubversionSCMTest extends HudsonTestCase {
 
     private void check(String url) {
         assertTrue(SubversionSCM.URL_PATTERN.matcher(url).matches());
+    }
+
+    /**
+     * Makes sure that Subversion doesn't check out workspace in 1.6
+     */
+    @Email("http://www.nabble.com/SVN-1.6-td24081571.html")
+    public void testWorkspaceVersion() throws Exception {
+        FreeStyleProject p = createFreeStyleProject();
+        p.setScm(loadSvnRepo());
+        p.scheduleBuild2(0).get();
+
+        SVNClientManager wc = SubversionSCM.createSvnClientManager();
+        SVNStatus st = wc.getStatusClient().doStatus(new File(p.getWorkspace().getRemote()+"/a"), false);
+        int wcf = st.getWorkingCopyFormat();
+        System.out.println(wcf);
+        assertEquals(SVNAdminAreaFactory.WC_FORMAT_14,wcf);
     }
 }
