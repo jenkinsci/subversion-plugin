@@ -1225,6 +1225,12 @@ public class SubversionSCM extends SCM implements Serializable {
                 Credential cred = source.getCredential(url,realm);
                 LOGGER.fine(String.format("requestClientAuthentication(%s,%s,%s)=>%s",kind,url,realm,cred));
 
+                if (previousAuth!=null) {
+                    // Hudson only allows one credential per realm, so previousAuth!=null means whatever we had failed. See HUDSON-2909
+                    LOGGER.fine("Previous authentication attempt failed, so aborting: "+previousAuth);
+                    return null;
+                }
+
                 try {
                     SVNAuthentication auth=null;
                     if(cred!=null)
