@@ -329,4 +329,21 @@ public class SubversionSCMTest extends HudsonTestCase {
         System.out.println(wcf);
         assertEquals(SVNAdminAreaFactory.WC_FORMAT_14,wcf);
     }
+
+    /**
+     * Makes sure the symbolic link is checked out correctly. There seems to be 
+     */
+    @Bug(3904)
+    public void testSymbolicLinkCheckout() throws Exception {
+        setJavaNetCredential();
+        FreeStyleProject p = createFreeStyleProject();
+        p.setScm(new SubversionSCM("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/issue-3904"));
+
+        p.scheduleBuild2(0, new Cause.UserCause()).get();
+        File source = new File(p.getWorkspace().getRemote() + "/issue-3904/source.txt");
+        File linked = new File(p.getWorkspace().getRemote() + "/issue-3904/linked.txt");
+        assertEquals("Files '" + source + "' and '" + linked + "' are not identical from user view.", source.length(), linked.length());
+    }
+
 }
+
