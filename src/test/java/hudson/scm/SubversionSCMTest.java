@@ -31,7 +31,6 @@ import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.util.NullStream;
-import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Cause;
 import hudson.model.FreeStyleBuild;
@@ -67,7 +66,10 @@ import java.util.Map;
  * @author Kohsuke Kawaguchi
  */
 public class SubversionSCMTest extends HudsonTestCase {
-    /**
+	
+    private static final int LOG_LIMIT = 1000;
+
+	/**
      * Sets guest credentials to access java.net Subversion repo.
      */
     protected void setJavaNetCredential() throws SVNException, IOException {
@@ -82,7 +84,7 @@ public class SubversionSCMTest extends HudsonTestCase {
         FreeStyleProject p = createFreeStyleProject();
         p.setScm(loadSvnRepo());
         FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause()).get();
-        System.out.println(b.getLog());
+        System.out.println(b.getLog(LOG_LIMIT));
         assertBuildStatus(Result.SUCCESS,b);
 
         SubversionTagAction action = b.getAction(SubversionTagAction.class);
@@ -133,14 +135,10 @@ public class SubversionSCMTest extends HudsonTestCase {
     public void testHttpsCheckOut() throws Exception {
         setJavaNetCredential();
         FreeStyleProject p = createFreeStyleProject();
-        p.setScm(new SubversionSCM(
-                new String[]{"https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant"},
-                new String[]{null},
-                true, null, null
-        ));
+        p.setScm(new SubversionSCM("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant"));
 
         FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause()).get();
-        System.out.println(b.getLog());
+        System.out.println(b.getLog(LOG_LIMIT));
         assertBuildStatus(Result.SUCCESS,b);
         assertTrue(p.getWorkspace().child("trivial-ant/build.xml").exists());
     }
@@ -148,14 +146,10 @@ public class SubversionSCMTest extends HudsonTestCase {
     @Email("http://www.nabble.com/Hudson-1.266-and-1.267%3A-Subversion-authentication-broken--td21156950.html")
     public void testHttpCheckOut() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
-        p.setScm(new SubversionSCM(
-                new String[]{"http://svn.codehaus.org/plexus/tags/JASF_INIT/plexus-avalon-components/jasf/"},
-                new String[]{null},
-                true, null, null
-        ));
+        p.setScm(new SubversionSCM("http://svn.codehaus.org/plexus/tags/JASF_INIT/plexus-avalon-components/jasf/"));
 
         FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause()).get();
-        System.out.println(b.getLog());
+        System.out.println(b.getLog(LOG_LIMIT));
         assertBuildStatus(Result.SUCCESS,b);
         assertTrue(p.getWorkspace().child("jasf/maven.xml").exists());
     }
@@ -167,20 +161,16 @@ public class SubversionSCMTest extends HudsonTestCase {
     public void testRevisionedCheckout() throws Exception {
         setJavaNetCredential();
         FreeStyleProject p = createFreeStyleProject();
-        p.setScm(new SubversionSCM(
-                new String[]{"https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant@13000"},
-                new String[]{null},
-                true, null, null
-        ));
+        p.setScm(new SubversionSCM("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant@13000"));
 
         FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause()).get();
-        System.out.println(b.getLog());
-        assertTrue(b.getLog().contains("At revision 13000"));
+        System.out.println(b.getLog(LOG_LIMIT));
+        assertTrue(b.getLog(LOG_LIMIT).contains("At revision 13000"));
         assertBuildStatus(Result.SUCCESS,b);
 
         b = p.scheduleBuild2(0, new Cause.UserCause()).get();
-        System.out.println(b.getLog());
-        assertTrue(b.getLog().contains("At revision 13000"));
+        System.out.println(b.getLog(LOG_LIMIT));
+        assertTrue(b.getLog(LOG_LIMIT).contains("At revision 13000"));
         assertBuildStatus(Result.SUCCESS,b);
     }
 
@@ -214,17 +204,13 @@ public class SubversionSCMTest extends HudsonTestCase {
     public void testURLWithVariable() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
         String url = "http://svn.codehaus.org/plexus/tags/JASF_INIT/plexus-avalon-components/jasf/";
-        p.setScm(new SubversionSCM(
-                new String[]{"$REPO" + url.substring(10)},
-                new String[]{null},
-                true, null, null
-        ));
+        p.setScm(new SubversionSCM("$REPO" + url.substring(10)));
 
         String var = url.substring(0, 10);
 
         FreeStyleBuild b = p.scheduleBuild2(0, new Cause.LegacyCodeCause(), 
                 new ParametersAction(new StringParameterValue("REPO", var))).get();
-        System.out.println(b.getLog());
+        System.out.println(b.getLog(LOG_LIMIT));
         assertBuildStatus(Result.SUCCESS,b);
         assertTrue(p.getWorkspace().child("jasf/maven.xml").exists());
     }
@@ -238,9 +224,9 @@ public class SubversionSCMTest extends HudsonTestCase {
         FreeStyleProject p = createFreeStyleProject();
         String svnBase = "file://" + new CopyExisting(getClass().getResource("/svn-repo.zip")).allocate().toURI().toURL().getPath();
         p.setScm(new SubversionSCM(
-            new String[] { svnBase + "trunk/a", svnBase + "branches" },
-            new String[] { null, null }, true, null, null));
-        AbstractBuild build = p.scheduleBuild2(0, new Cause.UserCause()).get();
+        		Arrays.asList(new ModuleLocation(svnBase + "trunk/a", null), new ModuleLocation(svnBase + "branches", null)), 
+        		false, null, null));
+        FreeStyleBuild build = p.scheduleBuild2(0, new Cause.UserCause()).get();
 
         // as a baseline, this shouldn't detect any change
         TaskListener listener = createTaskListener();
