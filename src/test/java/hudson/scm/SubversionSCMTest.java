@@ -175,6 +175,22 @@ public class SubversionSCMTest extends HudsonTestCase {
     }
 
     /**
+     * Tests a checkout with RevisionParameterAction
+     */
+    public void testRevisionParameter() throws Exception {
+        setJavaNetCredential();
+        FreeStyleProject p = createFreeStyleProject();
+        String url = "https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant";
+		p.setScm(new SubversionSCM(url));
+
+        FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause(), 
+        		new RevisionParameterAction(new SubversionSCM.SvnInfo(url, 13000))).get();
+        System.out.println(b.getLog(LOG_LIMIT));
+        assertTrue(b.getLog(LOG_LIMIT).contains("At revision 13000"));
+        assertBuildStatus(Result.SUCCESS,b);
+    }
+
+    /**
      * {@link SubversionSCM#pollChanges(AbstractProject, Launcher, FilePath, TaskListener)} should notice
      * if the workspace and the current configuration is inconsistent and schedule a new build.
      */

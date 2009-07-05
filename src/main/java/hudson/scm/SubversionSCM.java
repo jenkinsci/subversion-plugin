@@ -492,6 +492,7 @@ public class SubversionSCM extends SCM implements Serializable {
         private boolean update;
         private final TaskListener listener;
         private final ModuleLocation[] locations;
+        private final RevisionParameterAction revisions;
 
         public CheckOutTask(AbstractBuild<?, ?> build, SubversionSCM parent, Date timestamp, boolean update, TaskListener listener) {
             this.authProvider = parent.getDescriptor().createAuthenticationProvider();
@@ -499,6 +500,7 @@ public class SubversionSCM extends SCM implements Serializable {
             this.update = update;
             this.listener = listener;
             this.locations = parent.getLocations(build);
+            revisions = build.getAction(RevisionParameterAction.class);
         }
 
         public List<External> invoke(File ws, VirtualChannel channel) throws IOException {
@@ -506,7 +508,6 @@ public class SubversionSCM extends SCM implements Serializable {
             try {
                 final SVNUpdateClient svnuc = manager.getUpdateClient();
                 final List<External> externals = new ArrayList<External>(); // store discovered externals to here
-                final SVNRevision revision = SVNRevision.create(timestamp);
                 if(update) {
                     for (final ModuleLocation l : locations) {
                         try {
@@ -514,7 +515,10 @@ public class SubversionSCM extends SCM implements Serializable {
 
                             File local = new File(ws, l.getLocalDir());
                             svnuc.setEventHandler(new SubversionUpdateEventHandler(listener.getLogger(), externals,local,l.getLocalDir()));
-                            svnuc.doUpdate(local.getCanonicalFile(), l.getRevision(revision), true);
+                            
+                            SVNRevision r = getRevision(l);
+                            
+                            svnuc.doUpdate(local.getCanonicalFile(), r, true);
 
                         } catch (final SVNException e) {
                             if(e.getErrorMessage().getErrorCode()== SVNErrorCode.WC_LOCKED) {
@@ -554,7 +558,7 @@ public class SubversionSCM extends SCM implements Serializable {
                             File local = new File(ws, l.getLocalDir());
                             Util.deleteContentsRecursive(local);
                             svnuc.setEventHandler(new SubversionUpdateEventHandler(new PrintStream(pos), externals, local, l.getLocalDir()));
-                            svnuc.doCheckout(l.getSVNURL(), local.getCanonicalFile(), SVNRevision.HEAD, l.getRevision(revision), true);
+                            svnuc.doCheckout(l.getSVNURL(), local.getCanonicalFile(), SVNRevision.HEAD, getRevision(l), true);
                         } catch (SVNException e) {
                             e.printStackTrace(listener.error("Failed to check out "+l.remote));
                             return null;
@@ -586,6 +590,23 @@ public class SubversionSCM extends SCM implements Serializable {
                 manager.dispose();
             }
         }
+
+		private SVNRevision getRevision(ModuleLocation l) {
+			// for the SVN revision, we will use the first off:
+			// - a @NNN prefix of the SVN url
+			// - a value found in a RevisionParameterAction
+			// - the revision corresponding to the build timestamp
+			
+			SVNRevision r = null;
+			if (revisions != null) {
+				r = revisions.getRevision(l.getURL());
+			}
+			if (r == null) {
+                r = SVNRevision.create(timestamp);
+			}
+			r = l.getRevision(r);
+			return r;
+		}
 
         private static final long serialVersionUID = 1L;
     }
