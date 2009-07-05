@@ -68,7 +68,7 @@ THE SOFTWARE.
       <j:if test="${it.isTagged()}">
         <h2>${%Create more tags}</h2>
       </j:if>
-      <form action="submit" method="get" name="tag">
+      <form action="submit" method="post" name="tag">
         <table class="middle-align">
           <tr>
             <j:if test="${tags.size()!=1}">
