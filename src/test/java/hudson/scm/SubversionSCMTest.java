@@ -54,6 +54,8 @@ import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminAreaFactory;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNStatus;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -332,6 +334,19 @@ public class SubversionSCMTest extends HudsonTestCase {
         assertEquals(SVNAdminAreaFactory.WC_FORMAT_14,wcf);
     }
 
+    private static String readFileAsString(File file)
+    throws java.io.IOException{
+        StringBuffer fileData = new StringBuffer(1000);
+        BufferedReader reader = new BufferedReader(new FileReader(file));
+        char[] buf = new char[1024];
+        int numRead=0;
+        while((numRead=reader.read(buf)) != -1){
+            fileData.append(buf, 0, numRead);
+        }
+        reader.close();
+        return fileData.toString();
+    }
+
     /**
      * Makes sure the symbolic link is checked out correctly. There seems to be 
      */
@@ -342,9 +357,9 @@ public class SubversionSCMTest extends HudsonTestCase {
         p.setScm(new SubversionSCM("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/issue-3904"));
 
         p.scheduleBuild2(0, new Cause.UserCause()).get();
-        File source = new File(p.getWorkspace().getRemote() + "/issue-3904/source.txt");
+        File source = new File(p.getWorkspace().getRemote() + "/issue-3904/readme.txt");
         File linked = new File(p.getWorkspace().getRemote() + "/issue-3904/linked.txt");
-        assertEquals("Files '" + source + "' and '" + linked + "' are not identical from user view.", source.length(), linked.length());
+        assertEquals("Files '" + source + "' and '" + linked + "' are not identical from user view.", readFileAsString(source), readFileAsString(linked));
     }
 
 }
