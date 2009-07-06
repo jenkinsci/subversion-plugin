@@ -1674,10 +1674,6 @@ public class SubversionSCM extends SCM implements Serializable {
             SVNRepositoryFactoryImpl.setup();   // svn, svn+xxx
             FSRepositoryFactory.setup();    // file
 
-            // work around for http://www.nabble.com/Slow-SVN-Checkout-tf4486786.html
-            if(System.getProperty("svnkit.symlinks")==null)
-                System.setProperty("svnkit.symlinks","false");
-
             // disable the connection pooling, which causes problems like
             // http://www.nabble.com/SSH-connection-problems-p12028339.html
             if(System.getProperty("svnkit.ssh2.persistent")==null)
