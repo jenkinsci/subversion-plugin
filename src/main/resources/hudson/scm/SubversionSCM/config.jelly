@@ -1,7 +1,7 @@
 <!--
 The MIT License
 
-Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi, Tom Huybrechts, id:cactusman
+Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi, Tom Huybrechts, id:cactusman, Yahoo! Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +27,7 @@ THE SOFTWARE.
     <f:repeatable var="loc" name="locations" items="${instance.locations}" noAddButton="true" minimum="1">
       <table width="100%">
         <f:entry title="${%Repository URL}" field="remote" help="/scm/SubversionSCM/url-help">
-          <f:textbox value="${loc.remote}" />
+          <f:textbox value="${loc.remote}" id="svn.remote.loc" />
         </f:entry>
         <f:entry title="${%Local module directory} (${%optional})" field="local">
           <f:textbox value="${loc.local}" />
@@ -47,8 +47,14 @@ THE SOFTWARE.
 
   <t:listScmBrowsers name="svn.browser" />
   <f:advanced>
-	 <f:entry title="${%Excluded Regions}" field="excludedRegions">
-			<f:textarea />
+    <f:entry title="${%Excluded Regions}" field="excludedRegions">
+        <f:textarea />
+    </f:entry>
+    <f:entry title="${%Excluded Users}" field="excludedUsers">
+        <f:textarea />
+    </f:entry>
+    <f:entry title="${%Exclusion revprop name}" field="excludedRevprop">
+        <f:textbox checkUrl="'descriptorByName/hudson.scm.SubversionSCM/checkRevisionPropertiesSupported?value='+toValue(document.getElementById('svn.remote.loc'))"/>
     </f:entry>
   </f:advanced>
 </j:jelly>

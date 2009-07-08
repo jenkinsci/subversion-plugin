@@ -1,7 +1,7 @@
 /*
  * The MIT License
  * 
- * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi, Jean-Baptiste Quenot, Seiji Sogabe, Vojtech Habarta
+ * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi, Jean-Baptiste Quenot, Seiji Sogabe, Vojtech Habarta, Yahoo! Inc.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.Action;
 import hudson.model.TaskListener;
 import hudson.model.TaskThread;
+import hudson.scm.subversion.Messages;
 import hudson.scm.SubversionSCM.SvnInfo;
 import hudson.util.CopyOnWriteMap;
 import hudson.security.Permission;

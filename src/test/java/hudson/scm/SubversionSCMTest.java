@@ -273,12 +273,12 @@ public class SubversionSCMTest extends HudsonTestCase {
 
         SubversionSCM scm = new SubversionSCM(
                 Arrays.asList(new ModuleLocation("a","c"),new ModuleLocation("b","d")),
-                true,new Sventon(new URL("http://www.sun.com/"),"test"),"exclude");
+                true,new Sventon(new URL("http://www.sun.com/"),"test"),"exclude","user","revprop");
         p.setScm(scm);
         submit(new WebClient().getPage(p,"configure").getFormByName("config"));
         verify(scm,(SubversionSCM)p.getScm());
 
-        scm = new SubversionSCM(Arrays.asList(new ModuleLocation("a","c")),false,null,"");
+        scm = new SubversionSCM(Arrays.asList(new ModuleLocation("a","c")),false,null,"","","");
         p.setScm(scm);
         submit(new WebClient().getPage(p,"configure").getFormByName("config"));
         verify(scm,(SubversionSCM)p.getScm());
@@ -295,6 +295,8 @@ public class SubversionSCMTest extends HudsonTestCase {
 
         assertEquals(lhs.isUseUpdate(), rhs.isUseUpdate());
         assertEquals(lhs.getExcludedRegions(), rhs.getExcludedRegions());
+        assertEquals(lhs.getExcludedUsers(), rhs.getExcludedUsers());
+        assertEquals(lhs.getExcludedRevprop(), rhs.getExcludedRevprop());
     }
 
     public void test1() {
@@ -362,5 +364,39 @@ public class SubversionSCMTest extends HudsonTestCase {
         assertEquals("Files '" + source + "' and '" + linked + "' are not identical from user view.", readFileAsString(source), readFileAsString(linked));
     }
 
-}
+    public void testExcludeByUser() throws Exception {
+        setJavaNetCredential();
+        FreeStyleProject p = createFreeStyleProject( "testExcludeByUser" );
+        p.setScm(new SubversionSCM(
+                Arrays.asList( new ModuleLocation( "https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/testSubversionExclusions@19438", null )),
+                true, null, "", "dty", "")
+                );
+        // Do a build to force the creation of the workspace. This works around
+        // pollChanges returning true when the workspace does not exist.
+        p.scheduleBuild2(0).get();
 
+        boolean foundChanges = p.pollSCMChanges(createTaskListener());
+        assertFalse("Polling found changes that should have been ignored", foundChanges);
+    }
+
+    /**
+     * svn.dev.java.net doesn't support revision properties, so this test always
+     * fails. :(
+     *
+    public void testExcludeByRevprop() throws Exception {
+        setJavaNetCredential();
+        FreeStyleProject p = createFreeStyleProject( "testExcludeByRevprop" );
+        SubversionSCM scm = new SubversionSCM(
+                Arrays.asList( new ModuleLocation( "https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/testSubversionExclusions@19439", null )),
+                true, null, "", "", "ignored_by_hudson_polling");
+        p.setScm(scm);
+
+        // Do a build to force the creation of the workspace. This works around
+        // pollChanges returning true when the workspace does not exist.
+        p.scheduleBuild2(0).get();
+
+        boolean foundChanges = p.pollSCMChanges(createTaskListener());
+        assertFalse("Polling found changes that should have been ignored", foundChanges);
+    }
+     */
+}
