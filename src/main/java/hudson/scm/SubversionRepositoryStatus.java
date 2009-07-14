@@ -54,8 +54,10 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
         // compute the affected paths
         Set<String> affectedPath = new HashSet<String>();
         String line;
-        while((line=new BufferedReader(req.getReader()).readLine())!=null)
+        while((line=new BufferedReader(req.getReader()).readLine())!=null) {
+            LOGGER.finer("Reading line: "+line);
             affectedPath.add(line.substring(4));
+        }
         if(LOGGER.isLoggable(FINE))
             LOGGER.fine("Change reported to Subversion repository "+uuid+" on "+affectedPath);
 
