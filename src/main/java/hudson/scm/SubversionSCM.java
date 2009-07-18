@@ -35,6 +35,7 @@ import hudson.Util;
 import hudson.XmlFile;
 import hudson.Functions;
 import hudson.Extension;
+import hudson.security.csrf.CrumbIssuer;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
@@ -1448,8 +1449,10 @@ public class SubversionSCM extends SCM implements Serializable {
 
             MultipartFormDataParser parser = new MultipartFormDataParser(req);
 
-            if(Hudson.getInstance().isUseCrumbs() && !Hudson.getInstance().getCrumbIssuer().validateCrumb(req, parser)) {
-                rsp.sendError(HttpServletResponse.SC_FORBIDDEN,"No crumb found");                
+            CrumbIssuer crumbIssuer = Hudson.getInstance().getCrumbIssuer();
+            if (crumbIssuer!=null && !crumbIssuer.validateCrumb(req, parser)) {
+                rsp.sendError(HttpServletResponse.SC_FORBIDDEN,"No crumb found");
+                return;
             }
             
             String url = parser.get("url");
