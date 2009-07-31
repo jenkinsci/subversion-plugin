@@ -61,7 +61,7 @@ public class Sventon2 extends AbstractSventon {
             return null;    // no diff if this is not an edit change
         int r = path.getLogEntry().getRevision();
         return new URL(url, String.format("repos/%s/diff/%s?revision=%d",
-                repositoryInstance,encodePath(getPath(path)), r));
+                encodePath(repositoryInstance),encodePath(getPath(path)), r));
     }
 
     @Override
@@ -70,7 +70,7 @@ public class Sventon2 extends AbstractSventon {
            return null; // no file if it's gone
         int r = path.getLogEntry().getRevision();
         return new URL(url, String.format("repos/%s/goto/%s?revision=%d",
-                repositoryInstance,encodePath(getPath(path)), r));
+                encodePath(repositoryInstance),encodePath(getPath(path)), r));
     }
 
     /**
@@ -78,8 +78,6 @@ public class Sventon2 extends AbstractSventon {
      */
     private String getPath(Path path) {
         String s = trimHeadSlash(path.getValue());
-        if(s.startsWith(repositoryInstance)) // this should be always true, but be defensive
-            s = trimHeadSlash(s.substring(repositoryInstance.length()));
         return s;
     }
 
@@ -102,13 +100,13 @@ public class Sventon2 extends AbstractSventon {
         if (path.endsWith("/")) {
            buf.append('/');
         }
-        return buf.toString();
+        return buf.toString().replace("%20", "+");
     }
     
     @Override
     public URL getChangeSetLink(LogEntry changeSet) throws IOException {
         return new URL(url, String.format("repos/%s/info?revision=%d",
-                repositoryInstance,changeSet.getRevision()));
+                encodePath(repositoryInstance),changeSet.getRevision()));
     }
 
     @Extension
