@@ -146,7 +146,7 @@ public class SubversionTagAction extends AbstractScmTagAction {
         if(!m.find())
             return null;    // doesn't have 'trunk' nor 'branches'
 
-        return si.url.substring(0,m.start())+"/tags/"+build.getProject().getName()+"-"+build.getNumber();
+        return si.url.substring(0,m.start())+"/tags/"+getBuild().getProject().getName()+"-"+getBuild().getNumber();
     }
 
     /**
@@ -204,7 +204,7 @@ public class SubversionTagAction extends AbstractScmTagAction {
                             SVNCopySource csrc = new SVNCopySource(sourceRevision, sourceRevision, src);
                             svncc.doCopy(
                                     new SVNCopySource[]{csrc},
-                                    dst, false, true, false, "Tagged from "+build, null );
+                                    dst, false, true, false, "Tagged from "+getBuild(), null );
                         } catch (SVNException x) {
                             x.printStackTrace(listener.error("Failed to tag"));
                             return;
@@ -214,7 +214,7 @@ public class SubversionTagAction extends AbstractScmTagAction {
                     // completed successfully
                     for (Entry<SvnInfo,String> e : tagSet.entrySet())
                         SubversionTagAction.this.tags.get(e.getKey()).add(e.getValue());
-                    build.save();
+                    getBuild().save();
                     workerThread = null;
                 } finally {
                     cm.dispose();
