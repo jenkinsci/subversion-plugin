@@ -1320,10 +1320,15 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         /**
-         * There's no point in exporting multiple {@link RemotableSVNAuthenticationProviderImpl} instances,
-         * so let's just use one instance.
+         * There's no point in exporting multiple {@link RemotableSVNAuthenticationProviderImpl}
+         * instances for a single executor thread, so we use a thread-local.
          */
-        private transient final RemotableSVNAuthenticationProviderImpl remotableProvider = new RemotableSVNAuthenticationProviderImpl();
+        private transient final ThreadLocal<RemotableSVNAuthenticationProvider> remotableProvider =
+            new ThreadLocal<RemotableSVNAuthenticationProvider>() {
+                protected RemotableSVNAuthenticationProvider initialValue() {
+                    return new RemotableSVNAuthenticationProviderImpl();
+                }
+            };
 
         private final class RemotableSVNAuthenticationProviderImpl implements RemotableSVNAuthenticationProvider, Serializable {
             public Credential getCredential(SVNURL url, String realm) {
@@ -1437,7 +1442,7 @@ public class SubversionSCM extends SCM implements Serializable {
          * @see SubversionSCM#createSvnClientManager(ISVNAuthenticationProvider)
          */
         public ISVNAuthenticationProvider createAuthenticationProvider() {
-            return new SVNAuthenticationProviderImpl(remotableProvider);
+            return new SVNAuthenticationProviderImpl(remotableProvider.get());
         }
 
         /**
