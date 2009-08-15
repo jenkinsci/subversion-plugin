@@ -935,18 +935,14 @@ public class SubversionSCM extends SCM implements Serializable {
             InterruptedException {
         AbstractBuild lastBuild = (AbstractBuild) project.getLastBuild();
         if (lastBuild == null) {
-            listener.getLogger().println(
-                    "No existing build. Starting a new one");
+            listener.getLogger().println(Messages.SubversionSCM_NoExistingBuild());
             return true;
         }
 
         try {
             if (!repositoryLocationsExist(lastBuild, listener)) {
                 // Disable this project, see issue #763
-
-                listener.getLogger().println(
-                        "One or more repository locations do not exist anymore for "
-                                + project + ", project will be disabled.");
+                listener.getLogger().println(Messages.SubversionSCM_RepoNoLongerExists(project));
                 project.makeDisabled(true);
                 return false;
             }
@@ -962,7 +958,7 @@ public class SubversionSCM extends SCM implements Serializable {
         // are the locations checked out in the workspace consistent with the current configuration?
         for( ModuleLocation loc : getLocations(lastBuild) ) {
             if(!wsRev.containsKey(loc.getURL())) {
-                listener.getLogger().println("Workspace doesn't contain "+loc.getURL()+". Need a new build");
+                listener.getLogger().println(Messages.SubversionSCM_WorkspaceDoesntContainLocation(loc.getURL()));
                 return true;
             }
         }
@@ -988,7 +984,7 @@ public class SubversionSCM extends SCM implements Serializable {
                     Pattern[] excludedPatterns = getExcludedRegionsPatterns();
                     String[] excludedUsers = getExcludedUsersNormalized();
 
-                    String excludeRevprop = Util.fixEmptyAndTrim(getExcludedRevprop());
+                    String excludedRevprop = Util.fixEmptyAndTrim(getExcludedRevprop());
                     if (excludedRevprop == null) {
                         // Fall back to global setting
                         excludedRevprop = getDescriptor().getGlobalExcludedRevprop();
@@ -1021,7 +1017,7 @@ public class SubversionSCM extends SCM implements Serializable {
                     }
                 }
             } catch (SVNException e) {
-                e.printStackTrace(listener.error("Failed to check repository revision for "+ url));
+                e.printStackTrace(listener.error(Messages.SubversionSCM_FailedToCheckRevision(url)));
             }
         }
 
