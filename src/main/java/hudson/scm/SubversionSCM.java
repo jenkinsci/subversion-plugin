@@ -41,10 +41,12 @@ import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Hudson;
 import hudson.model.ModelObject;
-import hudson.model.ParameterValue;
 import hudson.model.ParametersAction;
 import hudson.model.TaskListener;
 import hudson.model.Run;
+import hudson.model.Node;
+import hudson.model.Computer;
+import hudson.model.Hudson.MasterComputer;
 import hudson.remoting.Callable;
 import hudson.remoting.Channel;
 import hudson.remoting.VirtualChannel;
@@ -136,6 +138,7 @@ import java.util.UUID;
 import java.util.Iterator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import static java.util.logging.Level.FINE;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -502,27 +505,22 @@ public class SubversionSCM extends SCM implements Serializable {
      *      (relative to the workspace root) that has loaded due to svn:external.
      */
     private List<External> checkout(AbstractBuild build, FilePath workspace, TaskListener listener) throws IOException, InterruptedException {
-        try {
-        	
-            if (!repositoryLocationsExist(build, listener)) {
-                Run lsb = build.getProject().getLastSuccessfulBuild();
-                if (lsb != null && build.getNumber()-lsb.getNumber()>10
-                && build.getTimestamp().getTimeInMillis()-lsb.getTimestamp().getTimeInMillis() > TimeUnit2.DAYS.toMillis(1)) {
-                    // Disable this project if the location doesn't exist any more, see issue #763
-                    // but only do so if there was at least some successful build,
-                    // to make sure that initial configuration error won't disable the build. see issue #1567
-                    // finally, only disable a build if the failure persists for some time.
-                    // see http://www.nabble.com/Should-Hudson-have-an-option-for-a-content-fingerprint--td24022683.html
+        if (repositoryLocationsNoLongerExist(build, listener)) {
+            Run lsb = build.getProject().getLastSuccessfulBuild();
+            if (lsb != null && build.getNumber()-lsb.getNumber()>10
+            && build.getTimestamp().getTimeInMillis()-lsb.getTimestamp().getTimeInMillis() > TimeUnit2.DAYS.toMillis(1)) {
+                // Disable this project if the location doesn't exist any more, see issue #763
+                // but only do so if there was at least some successful build,
+                // to make sure that initial configuration error won't disable the build. see issue #1567
+                // finally, only disable a build if the failure persists for some time.
+                // see http://www.nabble.com/Should-Hudson-have-an-option-for-a-content-fingerprint--td24022683.html
 
-                    listener.getLogger().println("One or more repository locations do not exist anymore for " + build.getProject().getName() + ", project will be disabled.");
-                    build.getProject().makeDisabled(true);
-                    return null;
-                }
+                listener.getLogger().println("One or more repository locations do not exist anymore for " + build.getProject().getName() + ", project will be disabled.");
+                build.getProject().makeDisabled(true);
+                return null;
             }
-        } catch (SVNException e) {
-            e.printStackTrace(listener.error(e.getMessage()));
-            return null;
         }
+
         Boolean isUpdatable = useUpdate && workspace.act(new IsUpdatableTask(build, this, listener));
         return workspace.act(new CheckOutTask(build, this, build.getTimestamp().getTime(), isUpdatable, listener));
     }
@@ -931,7 +929,7 @@ public class SubversionSCM extends SCM implements Serializable {
     }
 
     public boolean pollChanges(AbstractProject project, Launcher launcher,
-            FilePath workspace, TaskListener listener) throws IOException,
+            FilePath workspace, final TaskListener listener) throws IOException,
             InterruptedException {
         AbstractBuild lastBuild = (AbstractBuild) project.getLastBuild();
         if (lastBuild == null) {
@@ -940,24 +938,19 @@ public class SubversionSCM extends SCM implements Serializable {
             return true;
         }
 
-        try {
-            if (!repositoryLocationsExist(lastBuild, listener)) {
-                // Disable this project, see issue #763
+        if (repositoryLocationsNoLongerExist(lastBuild, listener)) {
+            // Disable this project, see issue #763
 
-                listener.getLogger().println(
-                        "One or more repository locations do not exist anymore for "
-                                + project + ", project will be disabled.");
-                project.makeDisabled(true);
-                return false;
-            }
-        } catch (SVNException e) {
-            e.printStackTrace(listener.error(e.getMessage()));
+            listener.getLogger().println(
+                    "One or more repository locations do not exist anymore for "
+                            + project + ", project will be disabled.");
+            project.makeDisabled(true);
             return false;
         }
 
         // current workspace revision
-        Map<String,Long> wsRev = parseRevisionFile(lastBuild);
-        List<External> externals = parseExternalsFile(project);
+        final Map<String,Long> wsRev = parseRevisionFile(lastBuild);
+        final List<External> externals = parseExternalsFile(project);
 
         // are the locations checked out in the workspace consistent with the current configuration?
         for( ModuleLocation loc : getLocations(lastBuild) ) {
@@ -967,65 +960,78 @@ public class SubversionSCM extends SCM implements Serializable {
             }
         }
 
-        ISVNAuthenticationProvider authProvider = getDescriptor().createAuthenticationProvider();
-
+        // determine where to perform polling. prefer the node where the build happened,
+        // in case a cluster is non-uniform. see http://www.nabble.com/svn-connection-from-slave-only-td24970587.html
+        VirtualChannel ch=null;
+        Node n = lastBuild.getBuiltOn();
+        if (n!=null) {
+            Computer c = n.toComputer();
+            if (c!=null)    ch = c.getChannel();
+        }
+        if (ch==null)   ch= MasterComputer.localChannel;
+        
         // check the corresponding remote revision
-        OUTER:
-        for (Map.Entry<String,Long> localInfo : wsRev.entrySet()) {
-            // skip if this is an external reference to a fixed revision
-            String url = localInfo.getKey();
+        return ch.call(new Callable<Boolean,IOException>() {
+            final ISVNAuthenticationProvider authProvider = getDescriptor().createAuthenticationProvider();
 
-            for (External ext : externals)
-                if(ext.url.equals(url) && ext.isRevisionFixed())
-                    continue OUTER;
+            public Boolean call() throws IOException {
+                OUTER:
+                for (Map.Entry<String,Long> localInfo : wsRev.entrySet()) {
+                    // skip if this is an external reference to a fixed revision
+                    String url = localInfo.getKey();
 
-            try {
-                final SVNURL decodedURL = SVNURL.parseURIDecoded(url);
-                SvnInfo remoteInfo = new SvnInfo(parseSvnInfo(decodedURL,authProvider));
-                listener.getLogger().println(Messages.SubversionSCM_pollChanges_remoteRevisionAt(url,remoteInfo.revision));
-                if(remoteInfo.revision > localInfo.getValue()) {
-                    boolean changesFound = true;
-                    Pattern[] excludedPatterns = getExcludedRegionsPatterns();
-                    String[] excludedUsers = getExcludedUsersNormalized();
+                    for (External ext : externals)
+                        if(ext.url.equals(url) && ext.isRevisionFixed())
+                            continue OUTER;
 
-                    String excludeRevprop = Util.fixEmptyAndTrim(getExcludedRevprop());
-                    if (excludedRevprop == null) {
-                        // Fall back to global setting
-                        excludedRevprop = getDescriptor().getGlobalExcludedRevprop();
-                    }
- 	  	  	
-                    if (excludedPatterns != null || excludedUsers != null || excludedRevprop != null) {
-                        SVNLogHandler handler = new SVNLogHandler(listener, excludedPatterns, excludedUsers, excludedRevprop);
-                        final SVNClientManager manager = createSvnClientManager(authProvider);
-                        try {
-                            final SVNLogClient svnlc = manager.getLogClient();
-                            svnlc.doLog(decodedURL, null, SVNRevision.UNDEFINED,
-                                    SVNRevision.create(localInfo.getValue() + 1), // get log entries from the local revision + 1
-                                    SVNRevision.create(remoteInfo.revision), // to the remote revision
-                                    false, // Don't stop on copy.
-                                    true, // Report paths.
-                                    false, // Don't included merged revisions
-                                    0, // Retrieve log entries for unlimited number of revisions.
-                                    null, // Retrieve all revprops
-                                    handler);
-                        } finally {
-                            manager.dispose();
+                    try {
+                        final SVNURL decodedURL = SVNURL.parseURIDecoded(url);
+                        SvnInfo remoteInfo = new SvnInfo(parseSvnInfo(decodedURL,authProvider));
+                        listener.getLogger().println(Messages.SubversionSCM_pollChanges_remoteRevisionAt(url,remoteInfo.revision));
+                        if(remoteInfo.revision > localInfo.getValue()) {
+                            boolean changesFound = true;
+                            Pattern[] excludedPatterns = getExcludedRegionsPatterns();
+                            String[] excludedUsers = getExcludedUsersNormalized();
+
+                            String excludedRevprop = Util.fixEmptyAndTrim(getExcludedRevprop());
+                            if (excludedRevprop == null) {
+                                // Fall back to global setting
+                                excludedRevprop = getDescriptor().getGlobalExcludedRevprop();
+                            }
+
+                            if (excludedPatterns != null || excludedUsers != null || excludedRevprop != null) {
+                                SVNLogHandler handler = new SVNLogHandler(listener, excludedPatterns, excludedUsers, excludedRevprop);
+                                final SVNClientManager manager = createSvnClientManager(authProvider);
+                                try {
+                                    final SVNLogClient svnlc = manager.getLogClient();
+                                    svnlc.doLog(decodedURL, null, SVNRevision.UNDEFINED,
+                                            SVNRevision.create(localInfo.getValue() + 1), // get log entries from the local revision + 1
+                                            SVNRevision.create(remoteInfo.revision), // to the remote revision
+                                            false, // Don't stop on copy.
+                                            true, // Report paths.
+                                            false, // Don't included merged revisions
+                                            0, // Retrieve log entries for unlimited number of revisions.
+                                            null, // Retrieve all revprops
+                                            handler);
+                                } finally {
+                                    manager.dispose();
+                                }
+
+                                changesFound = handler.isChangesFound();
+                            }
+
+                            if (changesFound) {
+                                listener.getLogger().println(Messages.SubversionSCM_pollChanges_changedFrom(localInfo.getValue()));
+                                return true;
+                            }
                         }
-
-                        changesFound = handler.isChangesFound();
-                    }
-
-                    if (changesFound) {
-                        listener.getLogger().println(Messages.SubversionSCM_pollChanges_changedFrom(localInfo.getValue()));
-                        return true;
+                    } catch (SVNException e) {
+                        e.printStackTrace(listener.error("Failed to check repository revision for "+ url));
                     }
                 }
-            } catch (SVNException e) {
-                e.printStackTrace(listener.error("Failed to check repository revision for "+ url));
+                return false; // no change
             }
-        }
-
-        return false; // no change
+        });
     }
 
     private final class SVNLogHandler implements ISVNLogEntryHandler {
@@ -1820,28 +1826,29 @@ public class SubversionSCM extends SCM implements Serializable {
         }
     }
 
-    public boolean repositoryLocationsExist(AbstractBuild<?, ?> build,
-            TaskListener listener) throws SVNException {
-
+    public boolean repositoryLocationsNoLongerExist(AbstractBuild<?,?> build, TaskListener listener) {
         PrintStream out = listener.getLogger();
 
         for (ModuleLocation l : getLocations(build))
-            if (getDescriptor().checkRepositoryPath(l.getSVNURL()) == SVNNodeKind.NONE) {
-                out.println("Location '" + l.remote + "' does not exist");
+            try {
+                if (getDescriptor().checkRepositoryPath(l.getSVNURL()) == SVNNodeKind.NONE) {
+                    out.println("Location '" + l.remote + "' does not exist");
 
-                ParametersAction params = build
-                        .getAction(ParametersAction.class);
-                if (params != null) {
-                    out.println("Location could be expanded on build '" + build
-                            + "' parameters values:");
-
-                    for (ParameterValue paramValue : params) {
-                        out.println("  " + paramValue);
+                    ParametersAction params = build.getAction(ParametersAction.class);
+                    if (params != null) {
+                        // since this is used to disable projects, be conservative
+                        LOGGER.fine("Location could be expanded on build '" + build
+                                + "' parameters values:");
+                        return false;
                     }
+                    return true;
                 }
-                return false;
+            } catch (SVNException e) {
+                // be conservative, since we are just trying to be helpful in detecting
+                // non existent locations. If we can't detect that, we'll do nothing
+                LOGGER.log(FINE, "Location check failed",e);
             }
-        return true;
+        return false;
     }
 
     static final Pattern URL_PATTERN = Pattern.compile("(https?|svn(\\+[a-z0-9]+)?|file)://.+");
