@@ -30,7 +30,6 @@ import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.util.NullStream;
 import hudson.model.AbstractProject;
 import hudson.model.Cause;
 import hudson.model.FreeStyleBuild;
@@ -41,6 +40,8 @@ import hudson.model.StringParameterValue;
 import hudson.model.TaskListener;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.scm.browsers.Sventon;
+import hudson.util.NullStream;
+import hudson.util.StreamTaskListener;
 import org.dom4j.Document;
 import org.dom4j.io.DOMReader;
 import org.jvnet.hudson.test.Bug;
@@ -49,17 +50,19 @@ import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
 import org.jvnet.hudson.test.HudsonTestCase;
 import org.jvnet.hudson.test.recipes.PresetData;
 import static org.jvnet.hudson.test.recipes.PresetData.DataSet.ANONYMOUS_READONLY;
+import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminAreaFactory;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
+import org.tmatesoft.svn.core.wc.SVNCommitClient;
 import org.tmatesoft.svn.core.wc.SVNStatus;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.io.File;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Map;
@@ -142,7 +145,7 @@ public class SubversionSCMTest extends HudsonTestCase {
         FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause()).get();
         System.out.println(b.getLog(LOG_LIMIT));
         assertBuildStatus(Result.SUCCESS,b);
-        assertTrue(p.getWorkspace().child("trivial-ant/build.xml").exists());
+        assertTrue(b.getWorkspace().child("trivial-ant/build.xml").exists());
     }
 
     @Email("http://www.nabble.com/Hudson-1.266-and-1.267%3A-Subversion-authentication-broken--td21156950.html")
@@ -153,7 +156,7 @@ public class SubversionSCMTest extends HudsonTestCase {
         FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause()).get();
         System.out.println(b.getLog(LOG_LIMIT));
         assertBuildStatus(Result.SUCCESS,b);
-        assertTrue(p.getWorkspace().child("jasf/maven.xml").exists());
+        assertTrue(b.getWorkspace().child("jasf/maven.xml").exists());
     }
 
     /**
@@ -230,7 +233,7 @@ public class SubversionSCMTest extends HudsonTestCase {
                 new ParametersAction(new StringParameterValue("REPO", var))).get();
         System.out.println(b.getLog(LOG_LIMIT));
         assertBuildStatus(Result.SUCCESS,b);
-        assertTrue(p.getWorkspace().child("jasf/maven.xml").exists());
+        assertTrue(b.getWorkspace().child("jasf/maven.xml").exists());
     }
 
     /**
@@ -243,7 +246,7 @@ public class SubversionSCMTest extends HudsonTestCase {
         String svnBase = "file://" + new CopyExisting(getClass().getResource("/svn-repo.zip")).allocate().toURI().toURL().getPath();
         p.setScm(new SubversionSCM(
         		Arrays.asList(new ModuleLocation(svnBase + "trunk/a", null), new ModuleLocation(svnBase + "branches", null)), 
-        		false, null, null));
+        		false, null, null, null, null));
         FreeStyleBuild build = p.scheduleBuild2(0, new Cause.UserCause()).get();
 
         // as a baseline, this shouldn't detect any change
@@ -327,10 +330,10 @@ public class SubversionSCMTest extends HudsonTestCase {
     public void testWorkspaceVersion() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
         p.setScm(loadSvnRepo());
-        p.scheduleBuild2(0).get();
+        FreeStyleBuild b = p.scheduleBuild2(0).get();
 
         SVNClientManager wc = SubversionSCM.createSvnClientManager();
-        SVNStatus st = wc.getStatusClient().doStatus(new File(p.getWorkspace().getRemote()+"/a"), false);
+        SVNStatus st = wc.getStatusClient().doStatus(new File(b.getWorkspace().getRemote()+"/a"), false);
         int wcf = st.getWorkingCopyFormat();
         System.out.println(wcf);
         assertEquals(SVNAdminAreaFactory.WC_FORMAT_14,wcf);
@@ -380,23 +383,34 @@ public class SubversionSCMTest extends HudsonTestCase {
     }
 
     /**
-     * svn.dev.java.net doesn't support revision properties, so this test always
-     * fails. :(
-     *
-    public void testExcludeByRevprop() throws Exception {
-        setJavaNetCredential();
-        FreeStyleProject p = createFreeStyleProject( "testExcludeByRevprop" );
-        SubversionSCM scm = new SubversionSCM(
-                Arrays.asList( new ModuleLocation( "https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/testSubversionExclusions@19439", null )),
-                true, null, "", "", "ignored_by_hudson_polling");
-        p.setScm(scm);
-
-        // Do a build to force the creation of the workspace. This works around
-        // pollChanges returning true when the workspace does not exist.
-        p.scheduleBuild2(0).get();
-
-        boolean foundChanges = p.pollSCMChanges(createTaskListener());
-        assertFalse("Polling found changes that should have been ignored", foundChanges);
-    }
+     * Do the polling on the slave and make sure it works.
      */
+    @Bug(4299)
+    public void testPolling() throws Exception {
+        File repo = new CopyExisting(getClass().getResource("two-revisions.zip")).allocate();
+        SubversionSCM scm = new SubversionSCM("file://" + repo.getPath());
+
+        FreeStyleProject p = createFreeStyleProject();
+        p.setScm(scm);
+        p.setAssignedLabel(createSlave().getSelfLabel());
+        assertBuildStatusSuccess(p.scheduleBuild2(2).get());
+
+        // initial polling on the slave for the code path that doesn't find any change
+        assertFalse(p.pollSCMChanges(new StreamTaskListener(System.out)));
+
+        // create a commit
+        FreeStyleProject forCommit = createFreeStyleProject();
+        forCommit.setScm(scm);
+        forCommit.setAssignedLabel(hudson.getSelfLabel());
+        FreeStyleBuild b = assertBuildStatusSuccess(forCommit.scheduleBuild2(0).get());
+        FilePath newFile = b.getWorkspace().child("foo");
+        newFile.touch(System.currentTimeMillis());
+        SVNClientManager svnm = SubversionSCM.createSvnClientManager();
+        svnm.getWCClient().doAdd(new File(newFile.getRemote()),false,false,false, SVNDepth.INFINITY, false,false);
+        SVNCommitClient cc = svnm.getCommitClient();
+        cc.doCommit(new File[]{new File(newFile.getRemote())},false,"added",false,false);
+
+        // polling on the slave for the code path that doesn't find any change
+        assertTrue(p.pollSCMChanges(new StreamTaskListener(System.out)));
+    }
 }

@@ -238,7 +238,7 @@ public class SubversionSCM extends SCM implements Serializable {
      * Convenience constructor, especially during testing.
      */
     public SubversionSCM(String svnUrl) {
-        this(new String[]{svnUrl},new String[]{null},true,null,null,null,null);
+        this(new String[]{svnUrl},new String[]{"."},true,null,null,null,null);
     }
 
     /**
@@ -973,6 +973,7 @@ public class SubversionSCM extends SCM implements Serializable {
         // check the corresponding remote revision
         return ch.call(new Callable<Boolean,IOException>() {
             final ISVNAuthenticationProvider authProvider = getDescriptor().createAuthenticationProvider();
+            final String globalExcludedRevprop = getDescriptor().getGlobalExcludedRevprop();
 
             public Boolean call() throws IOException {
                 OUTER:
@@ -996,7 +997,7 @@ public class SubversionSCM extends SCM implements Serializable {
                             String excludedRevprop = Util.fixEmptyAndTrim(getExcludedRevprop());
                             if (excludedRevprop == null) {
                                 // Fall back to global setting
-                                excludedRevprop = getDescriptor().getGlobalExcludedRevprop();
+                                excludedRevprop = globalExcludedRevprop;
                             }
 
                             if (excludedPatterns != null || excludedUsers != null || excludedRevprop != null) {
