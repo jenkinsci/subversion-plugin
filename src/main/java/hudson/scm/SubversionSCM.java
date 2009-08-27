@@ -107,7 +107,6 @@ import org.tmatesoft.svn.core.wc.SVNUpdateClient;
 import org.tmatesoft.svn.core.wc.SVNWCClient;
 import org.tmatesoft.svn.core.wc.SVNWCUtil;
 import org.tmatesoft.svn.core.wc.SVNLogClient;
-import org.jcp.xml.dsig.internal.dom.DOMXMLSignature.DOMSignatureValue;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
