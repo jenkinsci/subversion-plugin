@@ -62,6 +62,7 @@ import hudson.util.FormValidation;
 import hudson.util.TimeUnit2;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.taskdefs.Chmod;
 import org.kohsuke.stapler.StaplerRequest;
@@ -106,6 +107,7 @@ import org.tmatesoft.svn.core.wc.SVNUpdateClient;
 import org.tmatesoft.svn.core.wc.SVNWCClient;
 import org.tmatesoft.svn.core.wc.SVNWCUtil;
 import org.tmatesoft.svn.core.wc.SVNLogClient;
+import org.jcp.xml.dsig.internal.dom.DOMXMLSignature.DOMSignatureValue;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
@@ -141,6 +143,7 @@ import java.util.logging.Logger;
 import static java.util.logging.Level.FINE;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import java.lang.reflect.InvocationTargetException;
 
 import net.sf.json.JSONObject;
 
@@ -1367,16 +1370,19 @@ public class SubversionSCM extends SCM implements Serializable {
                 Credential cred = source.getCredential(url,realm);
                 LOGGER.fine(String.format("requestClientAuthentication(%s,%s,%s)=>%s",kind,url,realm,cred));
 
-                if (previousAuth!=null) {
-                    // Hudson only allows one credential per realm, so previousAuth!=null means whatever we had failed. See HUDSON-2909
-                    LOGGER.fine("Previous authentication attempt failed, so aborting: "+previousAuth);
-                    return null;
-                }
-
                 try {
                     SVNAuthentication auth=null;
                     if(cred!=null)
                         auth = cred.createSVNAuthentication(kind);
+
+                    if(previousAuth!=null && compareSVNAuthentications(auth,previousAuth)) {
+                        // See HUDSON-2909
+                        // this comparison is necessary, unlike the original fix of HUDSON-2909, since SVNKit may use
+                        // other ISVNAuthenticationProviders and their failed auth might be passed to us.
+                        // see HUDSON-3936
+                        LOGGER.fine("Previous authentication attempt failed, so aborting: "+previousAuth);
+                        return null;
+                    }
 
                     if(auth==null && ISVNAuthenticationManager.USERNAME.equals(kind)) {
                         // this happens with file:// URL and svn+ssh (in this case this method gets invoked twice.)
@@ -2071,5 +2077,36 @@ public class SubversionSCM extends SCM implements Serializable {
                 LOGGER.log(lv,className+' '+message);
             }
         };
+    }
+
+    /*package*/ static boolean compareSVNAuthentications(SVNAuthentication a1, SVNAuthentication a2) {
+        if (a1==null && a2==null)       return true;
+        if (a1==null || a2==null)       return false;
+        if (a1.getClass()!=a2.getClass())    return false;
+
+        try {
+            return describeBean(a1).equals(describeBean(a2));
+        } catch (IllegalAccessException e) {
+            return false;
+        } catch (InvocationTargetException e) {
+            return false;
+        } catch (NoSuchMethodException e) {
+            return false;
+        }
+    }
+
+    /**
+     * In preparation for a comparison, char[] needs to be converted that supports value equality.
+     */
+    private static Map describeBean(Object o) throws InvocationTargetException, NoSuchMethodException, IllegalAccessException {
+        Map<?,?> m = PropertyUtils.describe(o);
+        for (Entry e : m.entrySet()) {
+            Object v = e.getValue();
+            if (v instanceof char[]) {
+                char[] chars = (char[]) v;
+                e.setValue(new String(chars));
+            }
+        }
+        return m;
     }
 }

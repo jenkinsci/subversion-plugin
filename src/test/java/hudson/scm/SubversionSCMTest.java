@@ -39,6 +39,7 @@ import hudson.model.Result;
 import hudson.model.StringParameterValue;
 import hudson.model.TaskListener;
 import hudson.scm.SubversionSCM.ModuleLocation;
+import static hudson.scm.SubversionSCM.compareSVNAuthentications;
 import hudson.scm.browsers.Sventon;
 import hudson.util.NullStream;
 import hudson.util.StreamTaskListener;
@@ -52,6 +53,11 @@ import org.jvnet.hudson.test.recipes.PresetData;
 import static org.jvnet.hudson.test.recipes.PresetData.DataSet.ANONYMOUS_READONLY;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNException;
+import org.tmatesoft.svn.core.auth.SVNUserNameAuthentication;
+import org.tmatesoft.svn.core.auth.SVNSSHAuthentication;
+import org.tmatesoft.svn.core.auth.SVNAuthentication;
+import org.tmatesoft.svn.core.auth.SVNPasswordAuthentication;
+import org.tmatesoft.svn.core.auth.SVNSSLAuthentication;
 import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminAreaFactory;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNCommitClient;
@@ -412,5 +418,37 @@ public class SubversionSCMTest extends HudsonTestCase {
 
         // polling on the slave for the code path that doesn't find any change
         assertTrue(p.pollSCMChanges(new StreamTaskListener(System.out)));
+    }
+
+    public void testCompareSVNAuthentications() {
+        assertFalse(compareSVNAuthentications(new SVNUserNameAuthentication("me",true),new SVNSSHAuthentication("me","me",22,true)));
+        // same object should compare equal
+        _idem(new SVNUserNameAuthentication("me",true));
+        _idem(new SVNSSHAuthentication("me","pass",22,true));
+        _idem(new SVNSSHAuthentication("me",new File("./some.key"),null,23,false));
+        _idem(new SVNSSHAuthentication("me","key".toCharArray(),"phrase",0,false));
+        _idem(new SVNPasswordAuthentication("me","pass",true));
+        _idem(new SVNSSLAuthentication(new File("./my.cert"),null,true));
+
+        // make sure two Files and char[]s compare the same 
+        assertTrue(compareSVNAuthentications(
+                new SVNSSHAuthentication("me",new File("./some.key"),null,23,false),
+                new SVNSSHAuthentication("me",new File("./some.key"),null,23,false)));
+        assertTrue(compareSVNAuthentications(
+                new SVNSSHAuthentication("me","key".toCharArray(),"phrase",0,false),
+                new SVNSSHAuthentication("me","key".toCharArray(),"phrase",0,false)));
+
+        // negative cases
+        assertFalse(compareSVNAuthentications(
+                new SVNSSHAuthentication("me",new File("./some1.key"),null,23,false),
+                new SVNSSHAuthentication("me",new File("./some2.key"),null,23,false)));
+        assertFalse(compareSVNAuthentications(
+                new SVNSSHAuthentication("me","key".toCharArray(),"phrase",0,false),
+                new SVNSSHAuthentication("yo","key".toCharArray(),"phrase",0,false)));
+
+    }
+
+    private void _idem(SVNAuthentication a) {
+        assertTrue(compareSVNAuthentications(a,a));
     }
 }
