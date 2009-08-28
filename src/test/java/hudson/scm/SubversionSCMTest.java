@@ -38,8 +38,10 @@ import hudson.model.ParametersAction;
 import hudson.model.Result;
 import hudson.model.StringParameterValue;
 import hudson.model.TaskListener;
+import hudson.model.Hudson;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import static hudson.scm.SubversionSCM.compareSVNAuthentications;
+import hudson.scm.SubversionSCM.DescriptorImpl;
 import hudson.scm.browsers.Sventon;
 import hudson.util.NullStream;
 import hudson.util.StreamTaskListener;
@@ -53,15 +55,23 @@ import org.jvnet.hudson.test.recipes.PresetData;
 import static org.jvnet.hudson.test.recipes.PresetData.DataSet.ANONYMOUS_READONLY;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNException;
+import org.tmatesoft.svn.core.SVNURL;
+import org.tmatesoft.svn.core.SVNErrorMessage;
+import org.tmatesoft.svn.core.SVNErrorCode;
+import org.tmatesoft.svn.core.SVNCancelException;
+import org.tmatesoft.svn.core.io.SVNRepository;
+import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
 import org.tmatesoft.svn.core.auth.SVNUserNameAuthentication;
 import org.tmatesoft.svn.core.auth.SVNSSHAuthentication;
 import org.tmatesoft.svn.core.auth.SVNAuthentication;
 import org.tmatesoft.svn.core.auth.SVNPasswordAuthentication;
 import org.tmatesoft.svn.core.auth.SVNSSLAuthentication;
+import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminAreaFactory;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNCommitClient;
 import org.tmatesoft.svn.core.wc.SVNStatus;
+import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -72,6 +82,8 @@ import java.io.PrintWriter;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -79,13 +91,26 @@ import java.util.Map;
 public class SubversionSCMTest extends HudsonTestCase {
 	
     private static final int LOG_LIMIT = 1000;
+    private DescriptorImpl descriptor;
 
-	/**
+    // in some tests we play authentication games with this repo
+    String realm = "<https://hudson.dev.java.net:443> CollabNet Subversion Repository";
+    String kind = ISVNAuthenticationManager.PASSWORD;
+    SVNURL repo;
+
+    @Override
+    protected void setUp() throws Exception {
+        super.setUp();
+        descriptor = hudson.getDescriptorByType(DescriptorImpl.class);
+        repo = SVNURL.parseURIDecoded("https://hudson.dev.java.net/svn/hudson");
+    }
+
+    /**
      * Sets guest credentials to access java.net Subversion repo.
      */
     protected void setJavaNetCredential() throws SVNException, IOException {
         // set the credential to access svn.dev.java.net
-        hudson.getDescriptorByType(SubversionSCM.DescriptorImpl.class).postCredential("https://svn.dev.java.net/svn/hudson/","guest","",null,new PrintWriter(new NullStream()));
+        descriptor.postCredential("https://svn.dev.java.net/svn/hudson/","guest","",null,new PrintWriter(new NullStream()));
     }
 
     @PresetData(ANONYMOUS_READONLY)
@@ -450,5 +475,98 @@ public class SubversionSCMTest extends HudsonTestCase {
 
     private void _idem(SVNAuthentication a) {
         assertTrue(compareSVNAuthentications(a,a));
+    }
+
+    /**
+     * Make sure that a failed credential doesn't result in an infinite loop
+     */
+    @Bug(2909)
+    public void testInfiniteLoop() throws Exception {
+        // creates a purely in memory auth manager
+        ISVNAuthenticationManager m = createInMemoryManager();
+
+        // double check that it really knows nothing about the fake repo
+        try {
+            m.getFirstAuthentication(kind, realm, repo);
+            fail();
+        } catch (SVNCancelException e) {
+            // yep
+        }
+
+        // let Hudson have the credential
+        descriptor.postCredential(repo.toDecodedString(),"guest","",null,new PrintWriter(System.out));
+
+        // emulate the call flow where the credential fails
+        List<SVNAuthentication> attempted = new ArrayList<SVNAuthentication>();
+        SVNAuthentication a = m.getFirstAuthentication(kind, realm, repo);
+        assertNotNull(a);
+        attempted.add(a);
+        for (int i=0; i<10; i++) {
+            m.acknowledgeAuthentication(false,kind,realm,SVNErrorMessage.create(SVNErrorCode.RA_NOT_AUTHORIZED),a);
+            try {
+                a = m.getNextAuthentication(kind,realm,repo);
+                assertNotNull(a);
+                attempted.add(a);
+            } catch (SVNCancelException e) {
+                // make sure we've tried our fake credential
+                for (SVNAuthentication aa : attempted) {
+                    if (aa instanceof SVNPasswordAuthentication) {
+                        SVNPasswordAuthentication pa = (SVNPasswordAuthentication) aa;
+                        if(pa.getUserName().equals("guest") && pa.getPassword().equals(""))
+                            return; // yep
+                    }
+                }
+                fail("Hudson didn't try authentication");
+            }
+        }
+        fail("Looks like we went into an infinite loop");
+    }
+
+    /**
+     * Even if the default providers remember bogus passwords, Hudson should still attempt what it knows.
+     */
+    @Bug(3936)
+    public void test3936()  throws Exception {
+        // creates a purely in memory auth manager
+        ISVNAuthenticationManager m = createInMemoryManager();
+
+        // double check that it really knows nothing about the fake repo
+        try {
+            m.getFirstAuthentication(kind, realm, repo);
+            fail();
+        } catch (SVNCancelException e) {
+            // yep
+        }
+
+        // teach a bogus credential and have SVNKit store it.
+        SVNPasswordAuthentication bogus = new SVNPasswordAuthentication("bogus", "bogus", true);
+        m.acknowledgeAuthentication(true,kind,realm,null, bogus);
+        assertTrue(compareSVNAuthentications(m.getFirstAuthentication(kind, realm, repo),bogus));
+        try {
+            attemptAccess(m);
+            fail("SVNKit shouldn't yet know how to access");
+        } catch (SVNCancelException e) {
+        }
+
+        // make sure the failure didn't clean up the cache,
+        // since what we want to test here is Hudson trying to supply its credential, despite the failed cache
+        assertTrue(compareSVNAuthentications(m.getFirstAuthentication(kind, realm, repo),bogus));
+
+        // now let Hudson have the real credential
+        // can we now access the repo?
+        descriptor.postCredential(repo.toDecodedString(),"guest","",null,new PrintWriter(System.out));
+        attemptAccess(m);
+    }
+
+    private void attemptAccess(ISVNAuthenticationManager m) throws SVNException {
+        SVNRepository repository = SVNRepositoryFactory.create(repo);
+        repository.setAuthenticationManager(m);
+        repository.testConnection();
+    }
+
+    private ISVNAuthenticationManager createInMemoryManager() {
+        ISVNAuthenticationManager m = SVNWCUtil.createDefaultAuthenticationManager(hudson.root,null,null,false);
+        m.setAuthenticationProvider(descriptor.createAuthenticationProvider());
+        return m;
     }
 }
