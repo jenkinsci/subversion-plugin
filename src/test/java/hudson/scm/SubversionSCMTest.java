@@ -139,7 +139,7 @@ public class SubversionSCMTest extends HudsonTestCase {
      * Loads a test Subversion repository into a temporary directory, and creates {@link SubversionSCM} for it.
      */
     private SubversionSCM loadSvnRepo() throws Exception {
-        return new SubversionSCM("file://" + new CopyExisting(getClass().getResource("/svn-repo.zip")).allocate().toURI().toURL().getPath() + "trunk/a");
+        return new SubversionSCM("file://" + new CopyExisting(getClass().getResource("/svn-repo.zip")).allocate().toURI().toURL().getPath() + "trunk/a","a");
     }
 
     @Email("http://www.nabble.com/Hudson-1.266-and-1.267%3A-Subversion-authentication-broken--td21156950.html")
@@ -151,7 +151,7 @@ public class SubversionSCMTest extends HudsonTestCase {
         FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause()).get();
         System.out.println(b.getLog(LOG_LIMIT));
         assertBuildStatus(Result.SUCCESS,b);
-        assertTrue(b.getWorkspace().child("trivial-ant/build.xml").exists());
+        assertTrue(b.getWorkspace().child("build.xml").exists());
     }
 
     @Email("http://www.nabble.com/Hudson-1.266-and-1.267%3A-Subversion-authentication-broken--td21156950.html")
@@ -162,7 +162,7 @@ public class SubversionSCMTest extends HudsonTestCase {
         FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause()).get();
         System.out.println(b.getLog(LOG_LIMIT));
         assertBuildStatus(Result.SUCCESS,b);
-        assertTrue(b.getWorkspace().child("jasf/maven.xml").exists());
+        assertTrue(b.getWorkspace().child("maven.xml").exists());
     }
 
     /**
@@ -239,7 +239,7 @@ public class SubversionSCMTest extends HudsonTestCase {
                 new ParametersAction(new StringParameterValue("REPO", var))).get();
         System.out.println(b.getLog(LOG_LIMIT));
         assertBuildStatus(Result.SUCCESS,b);
-        assertTrue(b.getWorkspace().child("jasf/maven.xml").exists());
+        assertTrue(b.getWorkspace().child("maven.xml").exists());
     }
 
     /**
@@ -367,9 +367,9 @@ public class SubversionSCMTest extends HudsonTestCase {
         FreeStyleProject p = createFreeStyleProject();
         p.setScm(new SubversionSCM("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/issue-3904"));
 
-        p.scheduleBuild2(0, new Cause.UserCause()).get();
-        File source = new File(p.getWorkspace().getRemote() + "/issue-3904/readme.txt");
-        File linked = new File(p.getWorkspace().getRemote() + "/issue-3904/linked.txt");
+        FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause()).get();
+        File source = new File(b.getWorkspace().getRemote() + "/readme.txt");
+        File linked = new File(b.getWorkspace().getRemote() + "/linked.txt");
         assertEquals("Files '" + source + "' and '" + linked + "' are not identical from user view.", readFileAsString(source), readFileAsString(linked));
     }
 
