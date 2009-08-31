@@ -79,7 +79,6 @@ import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.ISVNLogEntryHandler;
 import org.tmatesoft.svn.core.SVNLogEntry;
-import org.tmatesoft.svn.core.SVNLogEntryPath;
 import org.tmatesoft.svn.core.SVNProperties;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
@@ -129,11 +128,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.UUID;
 import java.util.Iterator;
@@ -1049,13 +1050,13 @@ public class SubversionSCM extends SCM implements Serializable {
 
          private TaskListener listener;
 	 private Pattern[] excludedPatterns;
-         private String[] excludedUsers;
+         private HashSet<String> excludedUsers;
          private String excludedRevprop;
 
          private SVNLogHandler(TaskListener listener, Pattern[] excludedPatterns, String[] excludedUsers, String excludedRevprop) {
              this.listener = listener;
              this.excludedPatterns = excludedPatterns == null ? new Pattern[0] : excludedPatterns;
-             this.excludedUsers = excludedUsers == null ? new String[0] : excludedUsers;
+             this.excludedUsers = new HashSet<String>(Arrays.asList(excludedUsers == null ? new String[0] : excludedUsers));
              this.excludedRevprop = excludedRevprop;
          }
 
@@ -1063,16 +1064,16 @@ public class SubversionSCM extends SCM implements Serializable {
             return changesFound;
 	}
 
-		 /**
-		  * Handles a log entry passed.
+         /**
+          * Handles a log entry passed.
           * Check for log entries that should be excluded from triggering a build.
           * If an entry is not an entry that should be excluded, set changesFound to true
-		  *
-		  * @param logEntry an {@link org.tmatesoft.svn.core.SVNLogEntry} object
-		  *                 that represents per revision information
-		  *                 (committed paths, log message, etc.)
-		  * @throws org.tmatesoft.svn.core.SVNException
-		  */
+          *
+          * @param logEntry an {@link org.tmatesoft.svn.core.SVNLogEntry} object
+          *                 that represents per revision information
+          *                 (committed paths, log message, etc.)
+          * @throws org.tmatesoft.svn.core.SVNException
+          */
         public void handleLogEntry(SVNLogEntry logEntry) throws SVNException {
             if (checkLogEntry(logEntry)) {
                 changesFound = true;
@@ -1087,8 +1088,7 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         private boolean checkLogEntry(SVNLogEntry logEntry) {
             if (excludedRevprop != null) {
-                // If the entry includes the exclusion revprop, don't count it
-                // as a change
+                // If the entry includes the exclusion revprop, don't count it as a change
                 SVNProperties revprops = logEntry.getRevisionProperties();
                 if (revprops != null && revprops.containsName(excludedRevprop)) {
                     listener.getLogger().println(Messages.SubversionSCM_pollChanges_ignoredRevision(
@@ -1099,15 +1099,12 @@ public class SubversionSCM extends SCM implements Serializable {
             }
 
             String author = logEntry.getAuthor();
-            for (String user : excludedUsers) {
-                // If the author is an excluded user, don't count this entry as
-                // a change
-                if (author.equals(user)) {
-                    listener.getLogger().println(Messages.SubversionSCM_pollChanges_ignoredRevision(
-                            logEntry.getRevision(),
-                            Messages.SubversionSCM_pollChanges_ignoredRevision_author(author)));
-                    return false;
-                }
+            if (excludedUsers.contains(author)) {
+                // If the author is an excluded user, don't count this entry as a change
+                listener.getLogger().println(Messages.SubversionSCM_pollChanges_ignoredRevision(
+                        logEntry.getRevision(),
+                        Messages.SubversionSCM_pollChanges_ignoredRevision_author(author)));
+                return false;
             }
 
             // If there were no changes, don't count this entry as a change
@@ -1118,19 +1115,16 @@ public class SubversionSCM extends SCM implements Serializable {
 
             // Else, check each changed path
             List<String> excludedPaths = new ArrayList<String>();
-            for (Object paths : changedPaths.values()) {
-                SVNLogEntryPath logEntryPath = (SVNLogEntryPath) paths;
-                String path = logEntryPath.getPath();
-
+            for (String path : (Set<String>)changedPaths.keySet()) {
                 for (Pattern pattern : excludedPatterns) {
                     if (pattern.matcher(path).matches()) {
                         excludedPaths.add(path);
+                        break;
                     }
                 }
             }
 
-            // If all paths are in an excluded region, don't count this entry
-            // as a change
+            // If all paths are in an excluded region, don't count this entry as a change
             if (changedPaths.size() == excludedPaths.size()) {
                 listener.getLogger().println(Messages.SubversionSCM_pollChanges_ignoredRevision(
                         logEntry.getRevision(),
