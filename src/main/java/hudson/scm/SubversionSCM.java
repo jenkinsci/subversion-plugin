@@ -48,6 +48,7 @@ import hudson.model.Node;
 import hudson.model.Computer;
 import hudson.model.Hudson.MasterComputer;
 import hudson.remoting.Callable;
+import hudson.remoting.DelegatingCallable;
 import hudson.remoting.Channel;
 import hudson.remoting.VirtualChannel;
 import hudson.scm.subversion.Messages;
@@ -981,10 +982,14 @@ public class SubversionSCM extends SCM implements Serializable {
         if (ch==null)   ch= MasterComputer.localChannel;
         
         // check the corresponding remote revision
-        return ch.call(new Callable<Boolean,IOException>() {
+        return ch.call(new DelegatingCallable<Boolean,IOException> () {
             final ISVNAuthenticationProvider authProvider = getDescriptor().createAuthenticationProvider();
             final String globalExcludedRevprop = getDescriptor().getGlobalExcludedRevprop();
-
+            
+            public ClassLoader getClassLoader() {
+                return Hudson.getInstance().getPluginManager().uberClassLoader;
+            }
+        	
             public Boolean call() throws IOException {
                 OUTER:
                 for (Map.Entry<String,Long> localInfo : wsRev.entrySet()) {
