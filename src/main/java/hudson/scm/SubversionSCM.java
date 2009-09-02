@@ -963,13 +963,17 @@ public class SubversionSCM extends SCM implements Serializable {
         final Map<String,Long> wsRev = parseRevisionFile(lastBuild);
         final List<External> externals = parseExternalsFile(project);
 
-        // are the locations checked out in the workspace consistent with the current configuration?
-        for( ModuleLocation loc : getLocations(lastBuild) ) {
-            if(!wsRev.containsKey(loc.getURL())) {
-                listener.getLogger().println("Workspace doesn't contain "+loc.getURL()+". Need a new build");
-                return true;
-            }
-        }
+	// First check to see if the lastBuild is still running - if it is, we skip this next section,
+        // to deal with https://hudson.dev.java.net/issues/show_bug.cgi?id=4270.
+	if (!lastBuild.isBuilding()) {
+	    // are the locations checked out in the workspace consistent with the current configuration?
+	    for( ModuleLocation loc : getLocations(lastBuild) ) {
+		if(!wsRev.containsKey(loc.getURL())) {
+		    listener.getLogger().println("Workspace doesn't contain "+loc.getURL()+". Need a new build");
+		    return true;
+		}
+	    }
+	}
 
         // determine where to perform polling. prefer the node where the build happened,
         // in case a cluster is non-uniform. see http://www.nabble.com/svn-connection-from-slave-only-td24970587.html
