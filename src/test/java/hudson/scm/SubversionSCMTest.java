@@ -30,6 +30,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.slaves.DumbSlave;
 import hudson.model.AbstractProject;
 import hudson.model.Cause;
 import hudson.model.FreeStyleBuild;
@@ -38,7 +39,6 @@ import hudson.model.ParametersAction;
 import hudson.model.Result;
 import hudson.model.StringParameterValue;
 import hudson.model.TaskListener;
-import hudson.model.Hudson;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import static hudson.scm.SubversionSCM.compareSVNAuthentications;
 import hudson.scm.SubversionSCM.DescriptorImpl;
@@ -51,6 +51,7 @@ import org.jvnet.hudson.test.Bug;
 import org.jvnet.hudson.test.Email;
 import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
 import org.jvnet.hudson.test.HudsonTestCase;
+import org.jvnet.hudson.test.Url;
 import org.jvnet.hudson.test.recipes.PresetData;
 import static org.jvnet.hudson.test.recipes.PresetData.DataSet.ANONYMOUS_READONLY;
 import org.tmatesoft.svn.core.SVNDepth;
@@ -173,9 +174,7 @@ public class SubversionSCMTest extends HudsonTestCase {
         FreeStyleProject p = createFreeStyleProject();
         p.setScm(new SubversionSCM("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant"));
 
-        FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause()).get();
-        System.out.println(b.getLog(LOG_LIMIT));
-        assertBuildStatus(Result.SUCCESS,b);
+        FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserCause()).get());
         assertTrue(b.getWorkspace().child("build.xml").exists());
     }
 
@@ -184,10 +183,21 @@ public class SubversionSCMTest extends HudsonTestCase {
         FreeStyleProject p = createFreeStyleProject();
         p.setScm(new SubversionSCM("http://svn.codehaus.org/plexus/tags/JASF_INIT/plexus-avalon-components/jasf/"));
 
-        FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause()).get();
-        System.out.println(b.getLog(LOG_LIMIT));
-        assertBuildStatus(Result.SUCCESS,b);
+        FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserCause()).get());
         assertTrue(b.getWorkspace().child("maven.xml").exists());
+    }
+
+    @Url("http://hudson.pastebin.com/m3ea34eea")
+    public void testRemoteCheckOut() throws Exception {
+        setJavaNetCredential();
+        DumbSlave s = createSlave();
+        FreeStyleProject p = createFreeStyleProject();
+        p.setAssignedLabel(s.getSelfLabel());
+        p.setScm(new SubversionSCM("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant"));
+
+        FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserCause()).get());
+        assertTrue(b.getWorkspace().child("build.xml").exists());
+        b = assertBuildStatusSuccess(p.scheduleBuild2(0).get());
     }
 
     /**
