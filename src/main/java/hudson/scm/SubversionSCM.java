@@ -929,9 +929,13 @@ public class SubversionSCM extends SCM implements Serializable {
                         return false;
                     }
                 } catch (SVNException e) {
-                    listener.getLogger().println("Checking out a fresh workspace because Hudson failed to detect the current workspace "+module);
-                    e.printStackTrace(listener.error(e.getMessage()));
-                    return false;
+                    if (e.getErrorMessage().getErrorCode()==SVNErrorCode.WC_NOT_DIRECTORY) {
+                        listener.getLogger().println("Checking out a fresh workspace because there's no workspace at "+module);
+                    } else {
+                        listener.getLogger().println("Checking out a fresh workspace because Hudson failed to detect the current workspace "+module);
+                        e.printStackTrace(listener.error(e.getMessage()));
+                        return false;
+                    }
                 }
             }
             return true;
