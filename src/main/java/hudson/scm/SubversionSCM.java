@@ -35,6 +35,8 @@ import hudson.Util;
 import hudson.XmlFile;
 import hudson.Functions;
 import hudson.Extension;
+import static hudson.Functions.defaulted;
+import static hudson.Util.fixEmptyAndTrim;
 import hudson.security.csrf.CrumbIssuer;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
@@ -184,6 +186,7 @@ public class SubversionSCM extends SCM implements Serializable {
     private String excludedRegions;
     private String excludedUsers;
     private String excludedRevprop;
+    private String excludedCommitMessages;
 
     // No longer in use but left for serialization compatibility.
     @Deprecated
@@ -202,7 +205,7 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     public SubversionSCM(String[] remoteLocations, String[] localLocations,
                          boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions) {
-        this(ModuleLocation.parse(remoteLocations,localLocations), useUpdate, browser, excludedRegions, null, null);
+        this(ModuleLocation.parse(remoteLocations,localLocations), useUpdate, browser, excludedRegions, null, null, null);
     }
 
     /**
@@ -210,7 +213,7 @@ public class SubversionSCM extends SCM implements Serializable {
      */
      public SubversionSCM(String[] remoteLocations, String[] localLocations,
                          boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop) {
-        this(ModuleLocation.parse(remoteLocations,localLocations), useUpdate, browser, excludedRegions, excludedUsers, excludedRevprop);
+        this(ModuleLocation.parse(remoteLocations,localLocations), useUpdate, browser, excludedRegions, excludedUsers, excludedRevprop, null);
     }
 
    /**
@@ -218,12 +221,20 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     public SubversionSCM(List<ModuleLocation> locations,
                          boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions) {
-        this(locations, useUpdate, browser, excludedRegions, null, null);
+        this(locations, useUpdate, browser, excludedRegions, null, null, null);
+    }
+    
+    /**
+     * @deprecated as of 1.324
+     */
+    public SubversionSCM(List<ModuleLocation> locations,
+            boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop) {
+        this(locations, useUpdate, browser, excludedRegions, excludedUsers, excludedRevprop, null);
     }
 
     @DataBoundConstructor
     public SubversionSCM(List<ModuleLocation> locations,
-                         boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop) {
+                         boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages) {
 
         for (Iterator<ModuleLocation> itr = locations.iterator(); itr.hasNext();) {
             ModuleLocation ml = itr.next();
@@ -236,6 +247,7 @@ public class SubversionSCM extends SCM implements Serializable {
         this.excludedRegions = excludedRegions;
         this.excludedUsers = excludedUsers;
         this.excludedRevprop = excludedRevprop;
+        this.excludedCommitMessages = excludedCommitMessages;
     }
 
     /**
@@ -357,6 +369,26 @@ public class SubversionSCM extends SCM implements Serializable {
 
     public String getExcludedRevprop() {
         return excludedRevprop;
+    }
+
+    public String getExcludedCommitMessages() {
+        return excludedCommitMessages;
+    }
+
+    public String[] getExcludedCommitMessagesNormalized() {
+        return excludedCommitMessages == null ? new String[0] : excludedCommitMessages.split("[\\r\\n]+");
+    }
+
+    private Pattern[] getExcludedCommitMessagesPatterns() {
+        String[] excludedCommitMessages = getExcludedCommitMessagesNormalized();
+        Pattern[] patterns = new Pattern[excludedCommitMessages.length];
+
+        int i = 0;
+        for (String excludedCommitMessage : excludedCommitMessages) {
+            patterns[i++] = Pattern.compile(excludedCommitMessage);
+        }
+
+        return patterns;
     }
 
     /**
@@ -967,17 +999,17 @@ public class SubversionSCM extends SCM implements Serializable {
         final Map<String,Long> wsRev = parseRevisionFile(lastBuild);
         final List<External> externals = parseExternalsFile(project);
 
-	// First check to see if the lastBuild is still running - if it is, we skip this next section,
+        // First check to see if the lastBuild is still running - if it is, we skip this next section,
         // to deal with https://hudson.dev.java.net/issues/show_bug.cgi?id=4270.
-	if (!lastBuild.isBuilding()) {
-	    // are the locations checked out in the workspace consistent with the current configuration?
-	    for( ModuleLocation loc : getLocations(lastBuild) ) {
-		if(!wsRev.containsKey(loc.getURL())) {
-		    listener.getLogger().println("Workspace doesn't contain "+loc.getURL()+". Need a new build");
-		    return true;
-		}
-	    }
-	}
+        if (!lastBuild.isBuilding()) {
+            // are the locations checked out in the workspace consistent with the current configuration?
+            for (ModuleLocation loc : getLocations(lastBuild)) {
+                if (!wsRev.containsKey(loc.getURL())) {
+                    listener.getLogger().println("Workspace doesn't contain " + loc.getURL() + ". Need a new build");
+                    return true;
+                }
+            }
+        }
 
         // determine where to perform polling. prefer the node where the build happened,
         // in case a cluster is non-uniform. see http://www.nabble.com/svn-connection-from-slave-only-td24970587.html
@@ -1016,15 +1048,11 @@ public class SubversionSCM extends SCM implements Serializable {
                             boolean changesFound = true;
                             Pattern[] excludedPatterns = getExcludedRegionsPatterns();
                             String[] excludedUsers = getExcludedUsersNormalized();
+                            String excludedRevprop = defaulted(fixEmptyAndTrim(getExcludedRevprop()),globalExcludedRevprop);
+                            Pattern[] excludedCommitMessages = getExcludedCommitMessagesPatterns();
 
-                            String excludedRevprop = Util.fixEmptyAndTrim(getExcludedRevprop());
-                            if (excludedRevprop == null) {
-                                // Fall back to global setting
-                                excludedRevprop = globalExcludedRevprop;
-                            }
-
-                            if (excludedPatterns != null || excludedUsers != null || excludedRevprop != null) {
-                                SVNLogHandler handler = new SVNLogHandler(listener, excludedPatterns, excludedUsers, excludedRevprop);
+                            if (excludedPatterns != null || excludedUsers != null || excludedRevprop != null || excludedCommitMessages.length>0) {
+                                SVNLogHandler handler = new SVNLogHandler(listener, excludedPatterns, excludedUsers, excludedRevprop, excludedCommitMessages);
                                 final SVNClientManager manager = createSvnClientManager(authProvider);
                                 try {
                                     final SVNLogClient svnlc = manager.getLogClient();
@@ -1065,12 +1093,14 @@ public class SubversionSCM extends SCM implements Serializable {
 	 private Pattern[] excludedPatterns;
          private HashSet<String> excludedUsers;
          private String excludedRevprop;
+         private Pattern[] excludedCommitMessages;
 
-         private SVNLogHandler(TaskListener listener, Pattern[] excludedPatterns, String[] excludedUsers, String excludedRevprop) {
+         private SVNLogHandler(TaskListener listener, Pattern[] excludedPatterns, String[] excludedUsers, String excludedRevprop, Pattern[] excludedCommitMessages) {
              this.listener = listener;
              this.excludedPatterns = excludedPatterns == null ? new Pattern[0] : excludedPatterns;
              this.excludedUsers = new HashSet<String>(Arrays.asList(excludedUsers == null ? new String[0] : excludedUsers));
              this.excludedRevprop = excludedRevprop;
+             this.excludedCommitMessages = excludedCommitMessages == null ? new Pattern[0] : excludedCommitMessages;
          }
 
          public boolean isChangesFound() {
@@ -1118,6 +1148,16 @@ public class SubversionSCM extends SCM implements Serializable {
                         logEntry.getRevision(),
                         Messages.SubversionSCM_pollChanges_ignoredRevision_author(author)));
                 return false;
+            }
+
+            if (excludedCommitMessages != null) {
+                // If the commit message contains one of the excluded messages, don't count it as a change
+                String commitMessage = logEntry.getMessage();
+                for (Pattern pattern : excludedCommitMessages) {
+                    if (pattern.matcher(commitMessage).find()) {
+                        return false;
+                    }
+                }
             }
 
             // If there were no changes, don't count this entry as a change
@@ -1442,7 +1482,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
         @Override
         public boolean configure(StaplerRequest req) throws FormException {
-            globalExcludedRevprop = Util.fixEmptyAndTrim(
+            globalExcludedRevprop = fixEmptyAndTrim(
                     req.getParameter("svn.global_excluded_revprop"));
 
             // Save configuration
@@ -1805,6 +1845,20 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         /**
+         * Validates the excludeCommitMessages field
+         */
+        public FormValidation doCheckExcludedCommitMessages(@QueryParameter String value) throws IOException, ServletException {
+            for (String message : Util.fixNull(value).trim().split("[\\r\\n]+")) {
+                try {
+                    Pattern.compile(message);
+                } catch (PatternSyntaxException e) {
+                    return FormValidation.error("Invalid regular expression. " + e.getMessage());
+                }
+            }
+            return FormValidation.ok();
+        }
+
+        /**
          * Validates the remote server supports custom revision properties
          */
         public FormValidation doCheckRevisionPropertiesSupported(@QueryParameter String value) throws IOException, ServletException {
@@ -1931,7 +1985,7 @@ public class SubversionSCM extends SCM implements Serializable {
         @DataBoundConstructor
         public ModuleLocation(String remote, String local) {
             this.remote = Util.removeTrailingSlash(Util.fixNull(remote).trim());
-            this.local = Util.fixEmptyAndTrim(local);
+            this.local = fixEmptyAndTrim(local);
         }
 
         /**

@@ -53,6 +53,9 @@ THE SOFTWARE.
     <f:entry title="${%Excluded Users}" field="excludedUsers">
         <f:textarea />
     </f:entry>
+    <f:entry title="${%Excluded Commit Messages}" field="excludedCommitMessages">
+        <f:textarea />
+    </f:entry>
     <f:entry title="${%Exclusion revprop name}" field="excludedRevprop">
         <f:textbox checkUrl="'descriptorByName/hudson.scm.SubversionSCM/checkRevisionPropertiesSupported?value='+toValue(document.getElementById('svn.remote.loc'))"/>
     </f:entry>

@@ -317,12 +317,12 @@ public class SubversionSCMTest extends HudsonTestCase {
 
         SubversionSCM scm = new SubversionSCM(
                 Arrays.asList(new ModuleLocation("a","c"),new ModuleLocation("b","d")),
-                true,new Sventon(new URL("http://www.sun.com/"),"test"),"exclude","user","revprop");
+                true,new Sventon(new URL("http://www.sun.com/"),"test"),"exclude","user","revprop","excludeMessage");
         p.setScm(scm);
         submit(new WebClient().getPage(p,"configure").getFormByName("config"));
         verify(scm,(SubversionSCM)p.getScm());
 
-        scm = new SubversionSCM(Arrays.asList(new ModuleLocation("a","c")),false,null,"","","");
+        scm = new SubversionSCM(Arrays.asList(new ModuleLocation("a","c")),false,null,"","","","");
         p.setScm(scm);
         submit(new WebClient().getPage(p,"configure").getFormByName("config"));
         verify(scm,(SubversionSCM)p.getScm());
@@ -341,6 +341,7 @@ public class SubversionSCMTest extends HudsonTestCase {
         assertEquals(lhs.getExcludedRegions(), rhs.getExcludedRegions());
         assertEquals(lhs.getExcludedUsers(), rhs.getExcludedUsers());
         assertEquals(lhs.getExcludedRevprop(), rhs.getExcludedRevprop());
+        assertEquals(lhs.getExcludedCommitMessages(), rhs.getExcludedCommitMessages());
     }
 
     public void test1() {
