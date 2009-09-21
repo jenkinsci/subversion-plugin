@@ -212,7 +212,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
 
         @Exported
         public String getUser() {// digester wants read/write property, even though it never reads. Duh.
-            return author.getDisplayName();
+            return author!=null ? author.getDisplayName() : "unknown";
         }
 
         @Exported
