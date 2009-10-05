@@ -79,14 +79,11 @@ public class SubversionTagAction extends AbstractScmTagAction {
      * Was any tag created by the user already?
      */
     public boolean hasTags() {
-        for (Entry<SvnInfo, List<String>> e : tags.entrySet())
-            if(!e.getValue().isEmpty())
-                return true;
-        return false;
+        return isTagged();
     }
 
     public String getIconFileName() {
-        if(!hasTags() && !getACL().hasPermission(getPermission()))
+        if(!isTagged() && !getACL().hasPermission(getPermission()))
             return null;
         return "save.gif";
     }
@@ -128,8 +125,15 @@ public class SubversionTagAction extends AbstractScmTagAction {
 
     @Override
     public String getTooltip() {
-        if(isTagged())  return Messages.SubversionTagAction_Tooltip();
-        else            return null;
+        String tag = null;
+        for (List<String> v : tags.values()) {
+            for (String s : v) {
+                if (tag != null) return Messages.SubversionTagAction_Tooltip(); // Multiple tags
+                tag = s;
+            }
+        }
+        if(tag!=null)  return Messages.SubversionTagAction_Tooltip_OneTag(tag);
+        else           return null;
     }
 
     private static final Pattern TRUNK_BRANCH_MARKER = Pattern.compile("/(trunk|branches)(/|$)");
