@@ -73,6 +73,7 @@ import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.putty.PuTTYKey;
+import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNDirEntry;
 import org.tmatesoft.svn.core.SVNErrorCode;
 import org.tmatesoft.svn.core.SVNErrorMessage;
@@ -605,7 +606,7 @@ public class SubversionSCM extends SCM implements Serializable {
                             
                             SVNRevision r = getRevision(l);
                             
-                            svnuc.doUpdate(local.getCanonicalFile(), r, true);
+                            svnuc.doUpdate(local.getCanonicalFile(), r, SVNDepth.INFINITY, true, false);
 
                         } catch (final SVNException e) {
                             if(e.getErrorMessage().getErrorCode()== SVNErrorCode.WC_LOCKED) {
@@ -646,7 +647,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
                             File local = new File(ws, l.getLocalDir());
                             svnuc.setEventHandler(new SubversionUpdateEventHandler(new PrintStream(pos), externals, local, l.getLocalDir()));
-                            svnuc.doCheckout(l.getSVNURL(), local.getCanonicalFile(), SVNRevision.HEAD, getRevision(l), true);
+                            svnuc.doCheckout(l.getSVNURL(), local.getCanonicalFile(), SVNRevision.HEAD, getRevision(l), SVNDepth.INFINITY, true);
                         } catch (SVNException e) {
                             e.printStackTrace(listener.error("Failed to check out "+l.remote));
                             return null;
@@ -756,6 +757,7 @@ public class SubversionSCM extends SCM implements Serializable {
             return 0;
         }
 
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -767,6 +769,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
         }
 
+        @Override
         public int hashCode() {
             int result;
             result = url.hashCode();
@@ -774,6 +777,7 @@ public class SubversionSCM extends SCM implements Serializable {
             return result;
         }
 
+        @Override
         public String toString() {
             return String.format("%s (rev.%s)",url,revision);
         }
@@ -1195,16 +1199,19 @@ public class SubversionSCM extends SCM implements Serializable {
     }
 
 
+    @Override
     public DescriptorImpl getDescriptor() {
         return (DescriptorImpl)super.getDescriptor();
     }
 
+    @Override
     public FilePath getModuleRoot(FilePath workspace) {
         if (getLocations().length > 0)
             return workspace.child(getLocations()[0].getLocalDir());
         return workspace;
     }
 
+    @Override
     public FilePath[] getModuleRoots(FilePath workspace) {
         final ModuleLocation[] moduleLocations = getLocations();
         if (moduleLocations.length > 0) {
@@ -1481,14 +1488,14 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         @Override
-        public boolean configure(StaplerRequest req) throws FormException {
+        public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
             globalExcludedRevprop = fixEmptyAndTrim(
                     req.getParameter("svn.global_excluded_revprop"));
 
             // Save configuration
             save();
 
-            return super.configure(req);
+            return super.configure(req, formData);
         }
 
         /**
@@ -2093,6 +2100,7 @@ public class SubversionSCM extends SCM implements Serializable {
             return new ModuleLocation(getExpandedRemote(build), getLocalDir());
         }
         
+        @Override
         public String toString() {
             return remote;
         }

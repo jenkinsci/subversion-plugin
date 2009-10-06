@@ -29,9 +29,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import hudson.FilePath;
-import hudson.Launcher;
 import hudson.slaves.DumbSlave;
-import hudson.model.AbstractProject;
 import hudson.model.Cause;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
@@ -270,7 +268,7 @@ public class SubversionSCMTest extends HudsonTestCase {
 
         String var = url.substring(0, 10);
 
-        FreeStyleBuild b = p.scheduleBuild2(0, new Cause.LegacyCodeCause(), 
+        FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause(),
                 new ParametersAction(new StringParameterValue("REPO", var))).get();
         System.out.println(b.getLog(LOG_LIMIT));
         assertBuildStatus(Result.SUCCESS,b);
@@ -287,7 +285,7 @@ public class SubversionSCMTest extends HudsonTestCase {
         String svnBase = "file://" + new CopyExisting(getClass().getResource("/svn-repo.zip")).allocate().toURI().toURL().getPath();
         p.setScm(new SubversionSCM(
         		Arrays.asList(new ModuleLocation(svnBase + "trunk/a", null), new ModuleLocation(svnBase + "branches", null)), 
-        		false, null, null, null, null));
+        		false, null, null, null, null, null));
         FreeStyleBuild build = p.scheduleBuild2(0, new Cause.UserCause()).get();
 
         // as a baseline, this shouldn't detect any change
@@ -414,7 +412,7 @@ public class SubversionSCMTest extends HudsonTestCase {
         FreeStyleProject p = createFreeStyleProject( "testExcludeByUser" );
         p.setScm(new SubversionSCM(
                 Arrays.asList( new ModuleLocation( "https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/testSubversionExclusions@19438", null )),
-                true, null, "", "dty", "")
+                true, null, "", "dty", "", "")
                 );
         // Do a build to force the creation of the workspace. This works around
         // pollChanges returning true when the workspace does not exist.
@@ -450,7 +448,7 @@ public class SubversionSCMTest extends HudsonTestCase {
         SVNClientManager svnm = SubversionSCM.createSvnClientManager();
         svnm.getWCClient().doAdd(new File(newFile.getRemote()),false,false,false, SVNDepth.INFINITY, false,false);
         SVNCommitClient cc = svnm.getCommitClient();
-        cc.doCommit(new File[]{new File(newFile.getRemote())},false,"added",false,false);
+        cc.doCommit(new File[]{new File(newFile.getRemote())},false,"added",null,null,false,false,SVNDepth.EMPTY);
 
         // polling on the slave for the code path that doesn't find any change
         assertTrue(p.pollSCMChanges(new StreamTaskListener(System.out)));

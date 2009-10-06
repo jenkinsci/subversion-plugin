@@ -100,7 +100,7 @@ public final class SubversionChangeLogBuilder {
             }
             for(SubversionSCM.External ext : externals) {
                 changelogFileCreated |= buildModule(
-                        getUrlForPath(build.getProject().getWorkspace().child(ext.path)), svnlc, logHandler);
+                        getUrlForPath(build.getWorkspace().child(ext.path)), svnlc, logHandler);
             }
 
             if(changelogFileCreated) {
