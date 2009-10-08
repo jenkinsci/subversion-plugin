@@ -44,6 +44,10 @@ THE SOFTWARE.
   <f:entry title="${%Use update}" description="${%updateDescription}" field="useUpdate">
     <f:checkbox default="true"/>
   </f:entry>
+  <f:entry title="${%Revert}" description="${%revertDescription}" field="doRevert">
+    <f:checkbox default="false"/>
+  </f:entry>
+
 
   <t:listScmBrowsers name="svn.browser" />
   <f:advanced>

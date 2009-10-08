@@ -183,6 +183,7 @@ public class SubversionSCM extends SCM implements Serializable {
     private ModuleLocation[] locations = new ModuleLocation[0];
 
     private boolean useUpdate;
+    private boolean doRevert;
     private final SubversionRepositoryBrowser browser;
     private String excludedRegions;
     private String excludedUsers;
@@ -206,7 +207,7 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     public SubversionSCM(String[] remoteLocations, String[] localLocations,
                          boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions) {
-        this(ModuleLocation.parse(remoteLocations,localLocations), useUpdate, browser, excludedRegions, null, null, null);
+        this(ModuleLocation.parse(remoteLocations,localLocations), useUpdate, false, browser, excludedRegions, null, null, null);
     }
 
     /**
@@ -214,7 +215,7 @@ public class SubversionSCM extends SCM implements Serializable {
      */
      public SubversionSCM(String[] remoteLocations, String[] localLocations,
                          boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop) {
-        this(ModuleLocation.parse(remoteLocations,localLocations), useUpdate, browser, excludedRegions, excludedUsers, excludedRevprop, null);
+        this(ModuleLocation.parse(remoteLocations,localLocations), useUpdate, false, browser, excludedRegions, excludedUsers, excludedRevprop, null);
     }
 
    /**
@@ -222,7 +223,7 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     public SubversionSCM(List<ModuleLocation> locations,
                          boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions) {
-        this(locations, useUpdate, browser, excludedRegions, null, null, null);
+        this(locations, useUpdate, false, browser, excludedRegions, null, null, null);
     }
     
     /**
@@ -230,12 +231,22 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     public SubversionSCM(List<ModuleLocation> locations,
             boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop) {
-        this(locations, useUpdate, browser, excludedRegions, excludedUsers, excludedRevprop, null);
+        this(locations, useUpdate, false, browser, excludedRegions, excludedUsers, excludedRevprop, null);
     }
 
+    /**
+     * @deprecated as of 1.328
+     */
+    public SubversionSCM(List<ModuleLocation> locations,
+            boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages) {
+    	this(locations, useUpdate, false, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages);
+    }
+
+    
+    
     @DataBoundConstructor
     public SubversionSCM(List<ModuleLocation> locations,
-                         boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages) {
+                         boolean useUpdate, boolean doRevert, SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages) {
 
         for (Iterator<ModuleLocation> itr = locations.iterator(); itr.hasNext();) {
             ModuleLocation ml = itr.next();
@@ -244,11 +255,13 @@ public class SubversionSCM extends SCM implements Serializable {
         this.locations = locations.toArray(new ModuleLocation[locations.size()]);
 
         this.useUpdate = useUpdate;
+        this.doRevert = doRevert;
         this.browser = browser;
         this.excludedRegions = excludedRegions;
         this.excludedUsers = excludedUsers;
         this.excludedRevprop = excludedRevprop;
         this.excludedCommitMessages = excludedCommitMessages;
+        
     }
 
     /**
@@ -323,6 +336,10 @@ public class SubversionSCM extends SCM implements Serializable {
     public boolean isUseUpdate() {
         return useUpdate;
     }
+    
+    public boolean isDoRevert() {
+    	return doRevert;
+    }
 
     @Override
     public SubversionRepositoryBrowser getBrowser() {
@@ -334,7 +351,8 @@ public class SubversionSCM extends SCM implements Serializable {
     }
 
     public String[] getExcludedRegionsNormalized() {
-        return excludedRegions == null ? null : excludedRegions.split("[\\r\\n]+");
+        return (excludedRegions == null || excludedRegions.trim().equals(""))
+                ? null : excludedRegions.split("[\\r\\n]+");
     }
 
     private Pattern[] getExcludedRegionsPatterns() {
@@ -358,7 +376,7 @@ public class SubversionSCM extends SCM implements Serializable {
     }
 
     public String[] getExcludedUsersNormalized() {
-        if (excludedUsers == null) {
+        if (excludedUsers == null || excludedUsers.trim().equals("")) {
             return null;
         }
         ArrayList<String> users = new ArrayList<String>();
@@ -377,7 +395,8 @@ public class SubversionSCM extends SCM implements Serializable {
     }
 
     public String[] getExcludedCommitMessagesNormalized() {
-        return excludedCommitMessages == null ? new String[0] : excludedCommitMessages.split("[\\r\\n]+");
+        return (excludedCommitMessages == null || excludedCommitMessages.trim().equals("")) 
+            ? new String[0] : excludedCommitMessages.split("[\\r\\n]+");
     }
 
     private Pattern[] getExcludedCommitMessagesPatterns() {
@@ -566,7 +585,7 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         Boolean isUpdatable = useUpdate && workspace.act(new IsUpdatableTask(build, this, listener));
-        return workspace.act(new CheckOutTask(build, this, build.getTimestamp().getTime(), isUpdatable, listener));
+        return workspace.act(new CheckOutTask(build, this, build.getTimestamp().getTime(), isUpdatable, doRevert, listener));
     }
 
 
@@ -578,34 +597,40 @@ public class SubversionSCM extends SCM implements Serializable {
         private final Date timestamp;
         // true to "svn update", false to "svn checkout".
         private boolean update;
+        private boolean revert;
         private final TaskListener listener;
         private final ModuleLocation[] locations;
         private final RevisionParameterAction revisions;
 
-        public CheckOutTask(AbstractBuild<?, ?> build, SubversionSCM parent, Date timestamp, boolean update, TaskListener listener) {
+        public CheckOutTask(AbstractBuild<?, ?> build, SubversionSCM parent, Date timestamp, boolean update, boolean revert, TaskListener listener) {
             this.authProvider = parent.getDescriptor().createAuthenticationProvider();
             this.timestamp = timestamp;
             this.update = update;
+            this.revert = revert;
             this.listener = listener;
             this.locations = parent.getLocations(build);
             revisions = build.getAction(RevisionParameterAction.class);
         }
 
         public List<External> invoke(File ws, VirtualChannel channel) throws IOException {
-            final SVNClientManager manager = createSvnClientManager(authProvider);
-            try {
+           final SVNClientManager manager = createSvnClientManager(authProvider);
+           try {
                 final SVNUpdateClient svnuc = manager.getUpdateClient();
+                final SVNWCClient svnwc = manager.getWCClient();
                 final List<External> externals = new ArrayList<External>(); // store discovered externals to here
                 if(update) {
                     for (final ModuleLocation l : locations) {
                         try {
-                            listener.getLogger().println("Updating "+ l.remote);
-
                             File local = new File(ws, l.getLocalDir());
                             svnuc.setEventHandler(new SubversionUpdateEventHandler(listener.getLogger(), externals,local,l.getLocalDir()));
                             
                             SVNRevision r = getRevision(l);
                             
+                            if (revert) {
+                                listener.getLogger().println("Reverting "+ l.remote);
+                            	svnwc.doRevert(new File [] { local.getCanonicalFile()}, SVNDepth.INFINITY, null);
+                            }
+                            listener.getLogger().println("Updating "+ l.remote);                            
                             svnuc.doUpdate(local.getCanonicalFile(), r, SVNDepth.INFINITY, true, false);
 
                         } catch (final SVNException e) {
