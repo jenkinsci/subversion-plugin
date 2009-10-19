@@ -131,7 +131,7 @@ public final class SubversionChangeLogBuilder {
         Long thisRev = thisRevisions.get(url);
         if (thisRev == null) {
             listener.error("No revision found for URL: " + url + " in " + SubversionSCM.getRevisionFile(build) + ". Revision file contains: " + thisRevisions.keySet());
-            return true;
+            return false;
         }
         if(thisRev.equals(prevRev)) {
             logger.println("no change for "+url+" since the previous build");
