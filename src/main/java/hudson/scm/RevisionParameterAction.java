@@ -3,6 +3,7 @@ package hudson.scm;
 import hudson.model.InvisibleAction;
 import hudson.scm.SubversionSCM.SvnInfo;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -14,7 +15,7 @@ import org.tmatesoft.svn.core.wc.SVNRevision;
  * 
  * @author Tom Huybrechts
  */
-public class RevisionParameterAction extends InvisibleAction {
+public class RevisionParameterAction extends InvisibleAction implements Serializable {
 	
 	private final List<SvnInfo> revisions;
 
