@@ -23,8 +23,9 @@
  */
 package hudson.scm;
 
+import hudson.Extension;
 import hudson.model.AbstractModelObject;
-import hudson.model.Action;
+import hudson.model.RootAction;
 
 import java.util.regex.Pattern;
 import java.util.UUID;
@@ -34,9 +35,8 @@ import java.util.UUID;
  *
  * @author Kohsuke Kawaguchi
  */
-// TODO: resurrect this and implement RootAction once 1.311 is released
-// @Extension
-public class SubversionStatus extends AbstractModelObject implements Action {
+@Extension
+public class SubversionStatus extends AbstractModelObject implements RootAction {
     public String getDisplayName() {
         return "Subversion";
     }
