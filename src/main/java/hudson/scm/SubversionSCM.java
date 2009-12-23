@@ -172,7 +172,7 @@ import net.sf.json.JSONObject;
 public class SubversionSCM extends SCM implements Serializable {
     /**
      * the locations field is used to store all configured SVN locations (with
-     * their local and remote part). Direct access to this filed should be
+     * their local and remote part). Direct access to this field should be
      * avoided and the getLocations() method should be used instead. This is
      * needed to make importing of old hudson-configurations possible as
      * getLocations() will check if the modules field has been set and import
@@ -1521,6 +1521,15 @@ public class SubversionSCM extends SCM implements Serializable {
             save();
 
             return super.configure(req, formData);
+        }
+
+        @Override
+        public boolean isBrowserReusable(SubversionSCM x, SubversionSCM y) {
+            ModuleLocation[] xl = x.getLocations(), yl = y.getLocations();
+            if (xl.length != yl.length) return false;
+            for (int i = 0; i < xl.length; i++)
+                if (!xl[i].getURL().equals(yl[i].getURL())) return false;
+            return true;
         }
 
         /**
