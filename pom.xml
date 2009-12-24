@@ -49,4 +49,10 @@ THE SOFTWARE.
       <version>1.3.0-hudson-2</version>
     </dependency>
   </dependencies>
+
+  <developers>
+    <developer>
+      <name>Many, including: kohsuke, abayer, dodok1, dty, huybrechts, mindless, pgweiss, stephenconnolly</name>
+    </developer>
+  </developers>
 </project>
