@@ -33,7 +33,7 @@ THE SOFTWARE.
   <artifactId>subversion</artifactId>
   <packaging>hpi</packaging>
   <name>Hudson Subversion Plug-in</name>
-  <version>1.8</version>
+  <version>1.9-SNAPSHOT</version>
   <url>http://wiki.hudson-ci.org/display/HUDSON/Subversion+Plugin</url>
   <licenses>
     <license>
@@ -55,10 +55,4 @@ THE SOFTWARE.
       <name>Many, including: kohsuke, abayer, dodok1, dty, huybrechts, mindless, pgweiss, stephenconnolly</name>
     </developer>
   </developers>
-
-  <scm>
-    <connection>scm:svn:https://guest@svn.dev.java.net/svn/hudson/tags/subversion-1.8</connection>
-    <developerConnection>scm:svn:https://svn.dev.java.net/svn/hudson/tags/subversion-1.8</developerConnection>
-    <url>https://hudson.dev.java.net/source/browse/hudson/hudson/plugins/subversion/tags/subversion-1.8</url>
-  </scm>
 </project>
