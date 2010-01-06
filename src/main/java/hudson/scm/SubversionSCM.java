@@ -1820,6 +1820,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 }
             };
             sam.setAuthenticationProvider(createAuthenticationProvider());
+            repository.setTunnelProvider(SVNWCUtil.createDefaultOptions(true));
             repository.setAuthenticationManager(sam);
 
             return repository;
