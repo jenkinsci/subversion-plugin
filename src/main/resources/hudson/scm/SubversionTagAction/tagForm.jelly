@@ -38,6 +38,8 @@ THE SOFTWARE.
     </d:tag>
   </d:taglib>
 
+  <j:set var="descriptor" value="${it.descriptor}" />
+
   <l:layout norefresh="true" xmlns:local="local">
     <st:include it="${it.build}" page="sidepanel.jelly" />
     <l:main-panel>
@@ -64,43 +66,57 @@ THE SOFTWARE.
           </j:otherwise>
         </j:choose>
       </j:if>
+      
       <j:if test="${h.hasPermission(it.build,it.permission)}">
-      <j:if test="${it.isTagged()}">
-        <h2>${%Create more tags}</h2>
-      </j:if>
-      <form action="submit" method="post" name="tag">
-        <table class="middle-align">
-          <tr>
-            <j:if test="${tags.size()!=1}">
-              <th></th>
-            </j:if>
-            <th>${%Module URL}</th>
-            <th>${%Tag URL}</th>
-          </tr>
-          <j:forEach var="m" items="${tags.keySet()}" varStatus="loop">
+        <j:if test="${it.isTagged()}">
+          <h2>${%Create more tags}</h2>
+        </j:if>
+        <form action="submit" method="post" enctype="multipart/form-data" name="tag">
+          <table class="middle-align">
             <tr>
               <j:if test="${tags.size()!=1}">
-                <td><input type="checkbox" name="tag${loop.index}" checked="true" id="tag${loop.index}" onchange="updateRow(this,${loop.index})" /></td>
+                <th />
               </j:if>
-              <td style="white-space:nowrap;"><label for="tag${loop.index}">
-                ${m.url} (rev.${m.revision})
-              </label></td>
-              <td width="100%">
-                <input type="text" name="name${loop.index}"
-                       value="${it.makeTagURL(m)}" style="width:100%" id="name${loop.index}" />
+              <th>${%Module URL}</th>
+              <th>${%Tag URL}</th>
+            </tr>
+            <j:forEach var="m" items="${tags.keySet()}" varStatus="loop">
+              <tr>
+                <j:if test="${tags.size()!=1}">
+                  <td><input type="checkbox" name="tag${loop.index}" checked="true" id="tag${loop.index}" onchange="updateRow(this,${loop.index})" /></td>
+                </j:if>
+                <td style="white-space:nowrap;"><label for="tag${loop.index}">
+                  ${m.url} (rev.${m.revision})
+                </label></td>
+                <td width="100%">
+                  <input type="text" name="name${loop.index}"
+                         value="${it.makeTagURL(m)}" style="width:100%" id="name${loop.index}" />
+                </td>
+              </tr>
+            </j:forEach>
+            <tr>
+              <td colspan="3">
+                <table style="width:100%">
+                  <f:optionalBlock field="credential" title="${%Use alternate credential for tagging}">
+                    <f:block>
+                      <table style="width:100%">
+                        <x:enterCredential xmlns:x="/hudson/scm/subversion" />
+                      </table>
+                    </f:block>
+                  </f:optionalBlock>
+                </table>
               </td>
             </tr>
-          </j:forEach>
-        </table>
-        <f:submit value="${%Tag}" />
-        <script>
-          <!-- update the visual feedback depending on the checkbox state -->
-          function updateRow(e,i) {
-            e.parentNode.parentNode.style.color = e.checked ? "inherit" : "grey";
-            $("name"+i).disabled = !e.checked;
-          }
-        </script>
-      </form>
+          </table>
+          <f:submit value="${%Tag}" />
+          <script>
+            <!-- update the visual feedback depending on the checkbox state -->
+            function updateRow(e,i) {
+              e.parentNode.parentNode.style.color = e.checked ? "inherit" : "grey";
+              $("name"+i).disabled = !e.checked;
+            }
+          </script>
+        </form>
       </j:if>
     </l:main-panel>
   </l:layout>

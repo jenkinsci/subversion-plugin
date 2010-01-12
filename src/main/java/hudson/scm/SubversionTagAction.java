@@ -23,14 +23,20 @@
  */
 package hudson.scm;
 
+import hudson.Extension;
 import hudson.model.AbstractBuild;
 import hudson.model.Action;
+import hudson.model.Describable;
+import hudson.model.Descriptor;
+import hudson.model.Hudson;
 import hudson.model.TaskListener;
 import hudson.model.TaskThread;
 import hudson.scm.subversion.Messages;
 import hudson.scm.SubversionSCM.SvnInfo;
 import hudson.util.CopyOnWriteMap;
 import hudson.security.Permission;
+import hudson.util.MultipartFormDataParser;
+import org.apache.commons.io.output.NullWriter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.tmatesoft.svn.core.SVNException;
@@ -39,6 +45,7 @@ import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNCopyClient;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 import org.tmatesoft.svn.core.wc.SVNCopySource;
+import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
@@ -53,12 +60,14 @@ import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.apache.commons.io.output.NullWriter.NULL_WRITER;
+
 /**
  * {@link Action} that lets people create tag for the given build.
  * 
  * @author Kohsuke Kawaguchi
  */
-public class SubversionTagAction extends AbstractScmTagAction {
+public class SubversionTagAction extends AbstractScmTagAction implements Describable<SubversionTagAction> {
 
     /**
      * Map is from the repository URL to the URLs of tags.
@@ -159,17 +168,23 @@ public class SubversionTagAction extends AbstractScmTagAction {
     public synchronized void doSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
         getACL().checkPermission(getPermission());
 
+        MultipartFormDataParser parser = new MultipartFormDataParser(req);
+
         Map<SvnInfo,String> newTags = new HashMap<SvnInfo,String>();
 
         int i=-1;
         for (SvnInfo e : tags.keySet()) {
             i++;
-            if(tags.size()>1 && req.getParameter("tag"+i)==null)
+            if(tags.size()>1 && parser.get("tag"+i)==null)
                 continue; // when tags.size()==1, UI won't show the checkbox.
-            newTags.put(e,req.getParameter("name" + i));
+            newTags.put(e,parser.get("name" + i));
         }
 
-        new TagWorkerThread(newTags).start();
+        UserProvidedCredential upc=null;
+        if (parser.get("credential")!=null)
+            upc = UserProvidedCredential.fromForm(req,parser);
+
+        new TagWorkerThread(newTags,upc).start();
 
         rsp.sendRedirect(".");
     }
@@ -184,16 +199,23 @@ public class SubversionTagAction extends AbstractScmTagAction {
      */
     public final class TagWorkerThread extends TaskThread {
         private final Map<SvnInfo,String> tagSet;
+        /**
+         * If the user provided a separate credential, this object represents that.
+         */
+        private final UserProvidedCredential upc;
 
-        public TagWorkerThread(Map<SvnInfo,String> tagSet) {
+        public TagWorkerThread(Map<SvnInfo,String> tagSet, UserProvidedCredential upc) {
             super(SubversionTagAction.this,ListenerAndText.forMemory());
             this.tagSet = tagSet;
+            this.upc = upc;
         }
 
         @Override
         protected void perform(TaskListener listener) {
             try {
-                final SVNClientManager cm = SubversionSCM.createSvnClientManager();
+                final SVNClientManager cm = upc!=null
+                        ? SVNClientManager.newInstance(SVNWCUtil.createDefaultOptions(true),upc.new AuthenticationManagerImpl(listener))
+                        : SubversionSCM.createSvnClientManager();
                 try {
                     for (Entry<SvnInfo, String> e : tagSet.entrySet()) {
                         PrintStream logger = listener.getLogger();
@@ -226,6 +248,20 @@ public class SubversionTagAction extends AbstractScmTagAction {
            } catch (Throwable e) {
                e.printStackTrace(listener.fatalError(e.getMessage()));
            }
+        }
+    }
+
+    public Descriptor<SubversionTagAction> getDescriptor() {
+        return Hudson.getInstance().getDescriptorOrDie(getClass());
+    }
+
+    /**
+     * Just for assisting form related stuff.
+     */
+    @Extension
+    public static class DescriptorImpl extends Descriptor<SubversionTagAction> {
+        public String getDisplayName() {
+            return null;
         }
     }
 }

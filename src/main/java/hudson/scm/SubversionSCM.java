@@ -37,7 +37,8 @@ import hudson.Functions;
 import hudson.Extension;
 import static hudson.Functions.defaulted;
 import static hudson.Util.fixEmptyAndTrim;
-import hudson.security.csrf.CrumbIssuer;
+
+import hudson.scm.UserProvidedCredential.AuthenticationManagerImpl;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
@@ -63,7 +64,6 @@ import hudson.util.StreamCopyThread;
 import hudson.util.XStream2;
 import hudson.util.FormValidation;
 import hudson.util.TimeUnit2;
-import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.tools.ant.Project;
@@ -72,7 +72,6 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.putty.PuTTYKey;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNDirEntry;
 import org.tmatesoft.svn.core.SVNErrorCode;
@@ -80,7 +79,6 @@ import org.tmatesoft.svn.core.SVNErrorMessage;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNNodeKind;
 import org.tmatesoft.svn.core.SVNURL;
-import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.ISVNLogEntryHandler;
 import org.tmatesoft.svn.core.SVNLogEntry;
 import org.tmatesoft.svn.core.SVNProperties;
@@ -96,8 +94,6 @@ import org.tmatesoft.svn.core.internal.io.dav.http.DefaultHTTPConnectionFactory;
 import org.tmatesoft.svn.core.internal.io.fs.FSRepositoryFactory;
 import org.tmatesoft.svn.core.internal.io.svn.SVNRepositoryFactoryImpl;
 import org.tmatesoft.svn.core.internal.util.SVNPathUtil;
-import org.tmatesoft.svn.core.internal.wc.DefaultSVNAuthenticationManager;
-import org.tmatesoft.svn.core.internal.wc.SVNErrorManager;
 import org.tmatesoft.svn.core.internal.wc.SVNExternal;
 import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminAreaFactory;
 import org.tmatesoft.svn.core.io.SVNCapability;
@@ -112,7 +108,6 @@ import org.tmatesoft.svn.core.wc.SVNWCUtil;
 import org.tmatesoft.svn.core.wc.SVNLogClient;
 
 import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletResponse;
 import javax.xml.transform.stream.StreamResult;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -1255,7 +1250,7 @@ public class SubversionSCM extends SCM implements Serializable {
     }
 
     @Extension
-    public static class DescriptorImpl extends SCMDescriptor<SubversionSCM> implements ModelObject {
+    public static class DescriptorImpl extends SCMDescriptor<SubversionSCM> implements hudson.model.ModelObject {
         /**
          * SVN authentication realm to its associated credentials.
          */
@@ -1291,7 +1286,7 @@ public class SubversionSCM extends SCM implements Serializable {
         /**
          * Username/password based authentication.
          */
-        private static final class PasswordCredential extends Credential {
+        public static final class PasswordCredential extends Credential {
             private final String userName;
             private final String password; // scrambled by base64
 
@@ -1312,7 +1307,7 @@ public class SubversionSCM extends SCM implements Serializable {
         /**
          * Publickey authentication for Subversion over SSH.
          */
-        private static final class SshPublicKeyCredential extends Credential {
+        public static final class SshPublicKeyCredential extends Credential {
             private final String userName;
             private final String passphrase; // scrambled by base64
             private final String id;
@@ -1390,7 +1385,7 @@ public class SubversionSCM extends SCM implements Serializable {
         /**
          * SSL client certificate based authentication.
          */
-        private static final class SslClientCertificateCredential extends Credential {
+        public static final class SslClientCertificateCredential extends Credential {
             private final String password; // scrambled by base64
 
             public SslClientCertificateCredential(File certificate, String password) {
@@ -1556,49 +1551,14 @@ public class SubversionSCM extends SCM implements Serializable {
 
             MultipartFormDataParser parser = new MultipartFormDataParser(req);
 
-            CrumbIssuer crumbIssuer = Hudson.getInstance().getCrumbIssuer();
-            if (crumbIssuer!=null && !crumbIssuer.validateCrumb(req, parser)) {
-                rsp.sendError(HttpServletResponse.SC_FORBIDDEN,"No crumb found");
-                return;
-            }
-            
-            String url = parser.get("url");
-
-            String kind = parser.get("kind");
-            int idx = Arrays.asList("","password","publickey","certificate").indexOf(kind);
-
-            final String username = parser.get("username"+idx);
-            final String password = parser.get("password"+idx);
-
-
-            // SVNKit wants a key in a file
-            final File keyFile;
-            FileItem item=null;
-            if(idx <= 1) {
-                keyFile = null;
-            } else {
-                item = parser.getFileItem(kind.equals("publickey")?"privateKey":"certificate");
-                keyFile = File.createTempFile("hudson","key");
-                if(item!=null) {
-                    try {
-                        item.write(keyFile);
-                    } catch (Exception e) {
-                        throw new IOException2(e);
-                    }
-                    if(PuTTYKey.isPuTTYKeyFile(keyFile)) {
-                        // TODO: we need a passphrase support
-                        LOGGER.info("Converting "+keyFile+" from PuTTY format to OpenSSH format");
-                        new PuTTYKey(keyFile,null).toOpenSSH(keyFile);
-                    }
-                }
-            }
-
             // we'll record what credential we are trying here.
             StringWriter log = new StringWriter();
-            final PrintWriter logWriter = new PrintWriter(log);
+            PrintWriter logWriter = new PrintWriter(log);
+
+            UserProvidedCredential upc = UserProvidedCredential.fromForm(req,parser);
 
             try {
-                postCredential(url, username, password, keyFile, logWriter);
+                postCredential(parser.get("url"), upc, logWriter);
                 rsp.sendRedirect("credentialOK");
             } catch (SVNException e) {
                 logWriter.println("FAILED: "+e.getErrorMessage());
@@ -1607,11 +1567,12 @@ public class SubversionSCM extends SCM implements Serializable {
                 req.setAttribute("exception",e);
                 rsp.forward(Hudson.getInstance(),"error",req);
             } finally {
-                if(keyFile!=null)
-                    keyFile.delete();
-                if(item!=null)
-                    item.delete();
+                upc.close();
             }
+        }
+
+        public void postCredential(String url, String username, String password, File keyFile, PrintWriter logWriter) throws SVNException, IOException {
+            postCredential(url,new UserProvidedCredential(username,password,keyFile),logWriter);
         }
 
         /**
@@ -1619,13 +1580,10 @@ public class SubversionSCM extends SCM implements Serializable {
          *
          * This code is fairly ugly because of the way SVNKit handles credentials.
          */
-        public void postCredential(String url, final String username, final String password, final File keyFile, final PrintWriter logWriter) throws SVNException, IOException {
+        public void postCredential(String url, UserProvidedCredential upc, PrintWriter logWriter) throws SVNException, IOException {
             SVNRepository repository = null;
 
             try {
-                final boolean[] authenticationAttemped = new boolean[1];
-                final boolean[] authenticationAcknowled = new boolean[1];
-
                 // the way it works with SVNKit is that
                 // 1) svnkit calls AuthenticationManager asking for a credential.
                 //    this is when we can see the 'realm', which identifies the user domain.
@@ -1634,80 +1592,16 @@ public class SubversionSCM extends SCM implements Serializable {
                 //    (so we store the password info here)
                 repository = SVNRepositoryFactory.create(SVNURL.parseURIDecoded(url));
                 repository.setTunnelProvider(SVNWCUtil.createDefaultOptions(true));
-                repository.setAuthenticationManager(new DefaultSVNAuthenticationManager(SVNWCUtil.getDefaultConfigurationDirectory(), true, username, password, keyFile, password) {
-                    Credential cred = null;
-
+                AuthenticationManagerImpl authManager = upc.new AuthenticationManagerImpl(logWriter) {
                     @Override
-                    public SVNAuthentication getFirstAuthentication(String kind, String realm, SVNURL url) throws SVNException {
-                        authenticationAttemped[0] = true;
-                        if (kind.equals(ISVNAuthenticationManager.USERNAME))
-                            // when using svn+ssh, svnkit first asks for ISVNAuthenticationManager.SSH
-                            // authentication to connect via SSH, then calls this method one more time
-                            // to get the user name. Perhaps svn takes user name on its own, separate
-                            // from OS user name? In any case, we need to return the same user name.
-                            // I don't set the cred field here, so that the 1st credential for ssh
-                            // won't get clobbered.
-                            return new SVNUserNameAuthentication(username, false);
-                        if (kind.equals(ISVNAuthenticationManager.PASSWORD)) {
-                            logWriter.println("Passing user name " + username + " and password you entered");
-                            cred = new PasswordCredential(username, password);
-                        }
-                        if (kind.equals(ISVNAuthenticationManager.SSH)) {
-                            if (keyFile == null) {
-                                logWriter.println("Passing user name " + username + " and password you entered to SSH");
-                                cred = new PasswordCredential(username, password);
-                            } else {
-                                logWriter.println("Attempting a public key authentication with username " + username);
-                                cred = new SshPublicKeyCredential(username, password, keyFile);
-                            }
-                        }
-                        if (kind.equals(ISVNAuthenticationManager.SSL)) {
-                            logWriter.println("Attempting an SSL client certificate authentcation");
-                            cred = new SslClientCertificateCredential(keyFile, password);
-                        }
-
-                        if (cred == null) {
-                            logWriter.println("Unknown authentication method: " + kind);
-                            return null;
-                        }
-                        return cred.createSVNAuthentication(kind);
+                    protected void onSuccess(String realm, Credential cred) {
+                        credentials.put(realm, cred);
+                        save();
                     }
-
-                    /**
-                     * Getting here means the authentication tried in {@link #getFirstAuthentication(String, String, SVNURL)}
-                     * didn't work.
-                     */
-                    @Override
-                    public SVNAuthentication getNextAuthentication(String kind, String realm, SVNURL url) throws SVNException {
-                        SVNErrorManager.authenticationFailed("Authentication failed for " + url, null);
-                        return null;
-                    }
-
-                    @Override
-                    public void acknowledgeAuthentication(boolean accepted, String kind, String realm, SVNErrorMessage errorMessage, SVNAuthentication authentication) throws SVNException {
-                        authenticationAcknowled[0] = true;
-                        if (accepted) {
-                            assert cred != null;
-                            credentials.put(realm, cred);
-                            save();
-                        } else {
-                            logWriter.println("Failed to authenticate: " + errorMessage);
-                            if (errorMessage.getCause() != null)
-                                errorMessage.getCause().printStackTrace(logWriter);
-                        }
-                        super.acknowledgeAuthentication(accepted, kind, realm, errorMessage, authentication);
-                    }
-                });
+                };
+                repository.setAuthenticationManager(authManager);
                 repository.testConnection();
-
-                if(!authenticationAttemped[0]) {
-                    logWriter.println("No authentication was attemped.");
-                    throw new SVNCancelException();
-                }
-                if (!authenticationAcknowled[0]) {
-                    logWriter.println("Authentication was not acknowledged.");
-                    throw new SVNCancelException();
-                }
+                authManager.checkIfProtocolCompleted();
             } finally {
                 if (repository != null)
                     repository.closeSession();
@@ -1940,6 +1834,7 @@ public class SubversionSCM extends SCM implements Serializable {
         static {
             new Initializer();
         }
+
     }
 
     public boolean repositoryLocationsNoLongerExist(AbstractBuild<?,?> build, TaskListener listener) {
@@ -2219,4 +2114,5 @@ public class SubversionSCM extends SCM implements Serializable {
         }
         return m;
     }
+
 }
