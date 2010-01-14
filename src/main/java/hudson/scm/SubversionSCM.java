@@ -28,6 +28,7 @@ package hudson.scm;
 import com.thoughtworks.xstream.XStream;
 import com.trilead.ssh2.DebugLogger;
 import com.trilead.ssh2.SCPClient;
+import com.trilead.ssh2.crypto.Base64;
 import hudson.FilePath;
 import hudson.FilePath.FileCallable;
 import hudson.Launcher;
@@ -58,8 +59,10 @@ import hudson.scm.subversion.Messages;
 import hudson.triggers.SCMTrigger;
 import hudson.util.EditDistance;
 import hudson.util.IOException2;
+import hudson.util.IOUtils;
 import hudson.util.MultipartFormDataParser;
 import hudson.util.Scrambler;
+import hudson.util.Secret;
 import hudson.util.StreamCopyThread;
 import hudson.util.XStream2;
 import hudson.util.FormValidation;
@@ -1386,16 +1389,24 @@ public class SubversionSCM extends SCM implements Serializable {
          * SSL client certificate based authentication.
          */
         public static final class SslClientCertificateCredential extends Credential {
+            private final Secret certificate;
             private final String password; // scrambled by base64
 
-            public SslClientCertificateCredential(File certificate, String password) {
+            public SslClientCertificateCredential(File certificate, String password) throws IOException {
                 this.password = Scrambler.scramble(password);
+                this.certificate = Secret.fromString(new String(Base64.encode(FileUtils.readFileToByteArray(certificate))));
             }
 
             @Override
             public SVNAuthentication createSVNAuthentication(String kind) {
                 if(kind.equals(ISVNAuthenticationManager.SSL))
-                    return new SVNSSLAuthentication(null,Scrambler.descramble(password),false);
+                    try {
+                        return new SVNSSLAuthentication(
+                                Base64.decode(certificate.toString().toCharArray()),
+                                Scrambler.descramble(password),false);
+                    } catch (IOException e) {
+                        throw new Error(e); // can't happen
+                    }
                 else
                     return null; // unexpected authentication type
             }
