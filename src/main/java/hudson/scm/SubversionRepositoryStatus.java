@@ -54,7 +54,8 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
         // compute the affected paths
         Set<String> affectedPath = new HashSet<String>();
         String line;
-        while((line=new BufferedReader(req.getReader()).readLine())!=null) {
+        BufferedReader r = new BufferedReader(req.getReader());
+        while((line=r.readLine())!=null) {
             LOGGER.finer("Reading line: "+line);
             affectedPath.add(line.substring(4));
         }
