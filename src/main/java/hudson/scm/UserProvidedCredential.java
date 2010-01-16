@@ -35,7 +35,6 @@ import hudson.security.csrf.CrumbIssuer;
 import hudson.util.IOException2;
 import hudson.util.MultipartFormDataParser;
 import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.io.output.NullWriter;
 import org.kohsuke.putty.PuTTYKey;
 import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.StaplerRequest;
@@ -50,7 +49,6 @@ import org.tmatesoft.svn.core.internal.wc.DefaultSVNAuthenticationManager;
 import org.tmatesoft.svn.core.internal.wc.SVNErrorManager;
 import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
-import javax.servlet.http.HttpServletResponse;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -58,6 +56,8 @@ import java.io.PrintWriter;
 import java.io.Writer;
 import java.util.Arrays;
 import java.util.logging.Logger;
+
+import static javax.servlet.http.HttpServletResponse.SC_FORBIDDEN;
 
 /**
  * Represents the SVN authentication credential given by the user via the &lt;enterCredential> form fragment.
@@ -81,7 +81,7 @@ public class UserProvidedCredential implements Closeable {
     public static UserProvidedCredential fromForm(StaplerRequest req, MultipartFormDataParser parser) throws IOException {
         CrumbIssuer crumbIssuer = Hudson.getInstance().getCrumbIssuer();
         if (crumbIssuer!=null && !crumbIssuer.validateCrumb(req, parser))
-            throw HttpResponses.error(HttpServletResponse.SC_FORBIDDEN,new IOException("No crumb found"));
+            throw HttpResponses.error(SC_FORBIDDEN,new IOException("No crumb found"));
 
         String kind = parser.get("kind");
         int idx = Arrays.asList("","password","publickey","certificate").indexOf(kind);
@@ -183,7 +183,12 @@ public class UserProvidedCredential implements Closeable {
             }
             if (kind.equals(ISVNAuthenticationManager.SSL)) {
                 logWriter.println("Attempting an SSL client certificate authentcation");
-                cred = new SslClientCertificateCredential(keyFile, password);
+                try {
+                    cred = new SslClientCertificateCredential(keyFile, password);
+                } catch (IOException e) {
+                    e.printStackTrace(logWriter);
+                    return null;
+                }
             }
 
             if (cred == null) {
