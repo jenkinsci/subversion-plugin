@@ -29,6 +29,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import hudson.FilePath;
+import hudson.model.AbstractProject;
 import hudson.slaves.DumbSlave;
 import hudson.model.Cause;
 import hudson.model.FreeStyleBuild;
@@ -71,6 +72,7 @@ import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNCommitClient;
 import org.tmatesoft.svn.core.wc.SVNStatus;
 import org.tmatesoft.svn.core.wc.SVNWCUtil;
+import sun.misc.Launcher;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -235,7 +237,7 @@ public class SubversionSCMTest extends HudsonTestCase {
     }
 
     /**
-     * {@link SubversionSCM#pollChanges(AbstractProject, Launcher, FilePath, TaskListener)} should notice
+     * {@link SubversionSCM#pollChanges(AbstractProject , Launcher , FilePath, TaskListener)} should notice
      * if the workspace and the current configuration is inconsistent and schedule a new build.
      */
     @Email("http://www.nabble.com/Proper-way-to-switch---relocate-SVN-tree---tt21173306.html")
@@ -454,7 +456,7 @@ public class SubversionSCMTest extends HudsonTestCase {
         assertTrue(p.pollSCMChanges(new StreamTaskListener(System.out)));
     }
 
-    public void testCompareSVNAuthentications() {
+    public void testCompareSVNAuthentications() throws Exception {
         assertFalse(compareSVNAuthentications(new SVNUserNameAuthentication("me",true),new SVNSSHAuthentication("me","me",22,true)));
         // same object should compare equal
         _idem(new SVNUserNameAuthentication("me",true));
@@ -462,7 +464,7 @@ public class SubversionSCMTest extends HudsonTestCase {
         _idem(new SVNSSHAuthentication("me",new File("./some.key"),null,23,false));
         _idem(new SVNSSHAuthentication("me","key".toCharArray(),"phrase",0,false));
         _idem(new SVNPasswordAuthentication("me","pass",true));
-        _idem(new SVNSSLAuthentication(new File("./my.cert"),null,true));
+        _idem(new SVNSSLAuthentication("certificate".getBytes(),null,true));
 
         // make sure two Files and char[]s compare the same 
         assertTrue(compareSVNAuthentications(
