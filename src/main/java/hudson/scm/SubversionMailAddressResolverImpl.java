@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.regex.Pattern;
 
 /**
+ * {@link MailAddressResolver} that checks for well-known repositories that and computes user e-mail address.
+ *
  * @author Kohsuke Kawaguchi
  */
 @Extension
