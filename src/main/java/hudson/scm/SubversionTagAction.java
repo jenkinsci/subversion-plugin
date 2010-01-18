@@ -39,6 +39,8 @@ import hudson.util.MultipartFormDataParser;
 import org.apache.commons.io.output.NullWriter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.export.Exported;
+import org.kohsuke.stapler.export.ExportedBean;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
@@ -67,6 +69,7 @@ import static org.apache.commons.io.output.NullWriter.NULL_WRITER;
  * 
  * @author Kohsuke Kawaguchi
  */
+@ExportedBean
 public class SubversionTagAction extends AbstractScmTagAction implements Describable<SubversionTagAction> {
 
     /**
@@ -119,6 +122,34 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
      */
     public Map<SvnInfo,List<String>> getTags() {
         return Collections.unmodifiableMap(tags);
+    }
+
+    @Exported(name="tags")
+    public List<TagInfo> getTagInfo() {
+        List<TagInfo> data = new ArrayList<TagInfo>();
+        for (Entry<SvnInfo,List<String>> e : tags.entrySet()) {
+            String module = e.getKey().toString();
+            for (String url : e.getValue())
+                data.add(new TagInfo(module, url));
+        }
+        return data;
+    }
+
+    @ExportedBean
+    public static class TagInfo {
+        private String module, url;
+        private TagInfo(String module, String url) {
+            this.module = module;
+            this.url = url;
+        }
+        @Exported
+        public String getModule() {
+            return module;
+        }
+        @Exported
+        public String getUrl() {
+            return url;
+        }
     }
 
     /**
