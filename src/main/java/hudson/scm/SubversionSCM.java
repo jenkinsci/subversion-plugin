@@ -1606,6 +1606,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 AuthenticationManagerImpl authManager = upc.new AuthenticationManagerImpl(logWriter) {
                     @Override
                     protected void onSuccess(String realm, Credential cred) {
+                        LOGGER.info("Persisted "+cred+" for "+realm);
                         credentials.put(realm, cred);
                         save();
                     }
