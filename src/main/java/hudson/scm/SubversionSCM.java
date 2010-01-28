@@ -1632,9 +1632,8 @@ public class SubversionSCM extends SCM implements Serializable {
             // remove unneeded whitespaces
             url = url.trim();
             if(!URL_PATTERN.matcher(url).matches())
-                return FormValidation.errorWithMarkup("Invalid URL syntax. See "
-                    + "<a href=\"http://svnbook.red-bean.com/en/1.2/svn-book.html#svn.basic.in-action.wc.tbl-1\">this</a> "
-                    + "for information about valid URLs.");
+                return FormValidation.errorWithMarkup(
+                    Messages.SubversionSCM_doCheckRemote_invalidUrl());
 
             // Test the connection only if we have admin permission
             if (!Hudson.getInstance().hasPermission(Hudson.ADMINISTER))
@@ -1669,27 +1668,29 @@ public class SubversionSCM extends SCM implements Serializable {
                             String head = SVNPathUtil.head(repoPath.substring(p.length() + 1));
                             String candidate = EditDistance.findNearest(head,paths);
 
-                            return FormValidation.error("'%1$s/%2$s' doesn't exist in the repository. Maybe you meant '%1$s/%3$s'?",
-                                    p, head, candidate);
+                            return FormValidation.error(
+                                Messages.SubversionSCM_doCheckRemote_badPathSuggest(p, head,
+                                    candidate != null ? "/" + candidate : ""));
                         }
                     }
 
-                    return FormValidation.error(repoPath+" doesn't exist in the repository");
+                    return FormValidation.error(
+                        Messages.SubversionSCM_doCheckRemote_badPath(repoPath));
                 } finally {
                     if (repository != null)
                         repository.closeSession();
                 }
             } catch (SVNException e) {
-                String message="";
-                message += "Unable to access "+Util.escape(url)+" : "+Util.escape( e.getErrorMessage().getFullMessage());
-                message += " <a href='#' id=svnerrorlink onclick='javascript:" +
-                    "document.getElementById(\"svnerror\").style.display=\"block\";" +
-                    "document.getElementById(\"svnerrorlink\").style.display=\"none\";" +
-                    "return false;'>(show details)</a>";
-                message += "<pre id=svnerror style='display:none'>"+Functions.printThrowable(e)+"</pre>";
-                message += " (Maybe you need to <a target='_new' href='"+req.getContextPath()+"/scm/SubversionSCM/enterCredential?"+url+"'>enter credential</a>?)";
-                message += "<br>";
                 LOGGER.log(Level.INFO, "Failed to access subversion repository "+url,e);
+                String message = Messages.SubversionSCM_doCheckRemote_exceptionMsg1(
+                    Util.escape(url), Util.escape(e.getErrorMessage().getFullMessage()),
+                    "javascript:document.getElementById('svnerror').style.display='block';"
+                      + "document.getElementById('svnerrorlink').style.display='none';"
+                      + "return false;")
+                  + "<br/><pre id=\"svnerror\" style=\"display:none\">"
+                  + Functions.printThrowable(e) + "</pre>"
+                  + Messages.SubversionSCM_doCheckRemote_exceptionMsg2(req.getContextPath()
+                      + "/scm/SubversionSCM/enterCredential?" + url);
                 return FormValidation.errorWithMarkup(message);
             }
         }
