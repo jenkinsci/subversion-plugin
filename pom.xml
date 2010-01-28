@@ -53,7 +53,8 @@ THE SOFTWARE.
 
   <developers>
     <developer>
-      <name>Many: kohsuke abayer dodok1 dty huybrechts mindless pgweiss stephenconnolly etc</name>
+      <name>Many</name>
+      <id>kohsuke abayer dodok1 dty huybrechts mindless pgweiss stephenconnolly etc</id>
     </developer>
   </developers>
 </project>
