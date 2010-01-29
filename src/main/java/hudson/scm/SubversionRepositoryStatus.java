@@ -5,6 +5,7 @@ import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.triggers.SCMTrigger;
+import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.tmatesoft.svn.core.SVNException;
@@ -58,6 +59,11 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
         while((line=r.readLine())!=null) {
             LOGGER.finer("Reading line: "+line);
             affectedPath.add(line.substring(4));
+            if (line.startsWith("svnlook changed --revision ")) {
+                String msg = "Expecting the output from the svnlook command but instead you just sent me the svnlook invocation command line: " + line;
+                LOGGER.warning(msg);
+                throw new IllegalArgumentException(msg);
+            }
         }
         if(LOGGER.isLoggable(FINE))
             LOGGER.fine("Change reported to Subversion repository "+uuid+" on "+affectedPath);
