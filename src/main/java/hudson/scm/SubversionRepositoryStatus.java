@@ -5,7 +5,6 @@ import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.triggers.SCMTrigger;
-import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.tmatesoft.svn.core.SVNException;
@@ -67,19 +66,20 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
         }
         if(LOGGER.isLoggable(FINE))
             LOGGER.fine("Change reported to Subversion repository "+uuid+" on "+affectedPath);
+        boolean scmFound = false, triggerFound = false, uuidFound = false, pathFound = false;
 
         OUTER:
         for (AbstractProject<?,?> p : Hudson.getInstance().getItems(AbstractProject.class)) {
             try {
                 SCM scm = p.getScm();
-                if (!(scm instanceof SubversionSCM)) continue;
+                if (scm instanceof SubversionSCM) scmFound = true; else continue;
 
                 SCMTrigger trigger = p.getTrigger(SCMTrigger.class);
-                if(trigger==null)   continue;
+                if (trigger!=null) triggerFound = true; else continue;
 
                 SubversionSCM sscm = (SubversionSCM) scm;
                 for (ModuleLocation loc : sscm.getLocations()) {
-                    if(!loc.getUUID().equals(uuid)) continue;   // different repository
+                    if (loc.getUUID().equals(uuid)) uuidFound = true; else continue;
 
                     String m = loc.getSVNURL().getPath();
                     String n = loc.getRepositoryRoot().getPath();
@@ -95,6 +95,7 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                             // if any of the data we used was bogus, the trigger will not detect a chaange
                             LOGGER.fine("Scheduling the immediate polling of "+p);
                             trigger.run();
+                            pathFound = true;
 
                             continue OUTER;
                         }
@@ -104,6 +105,11 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                 LOGGER.log(WARNING,"Failed to handle Subversion commit notification",e);
             }
         }
+
+        if (!scmFound)          LOGGER.warning("No subversion jobs found");
+        else if (!triggerFound) LOGGER.warning("No subversion jobs using SCM polling");
+        else if (!uuidFound)    LOGGER.warning("No subversion jobs using repository: " + uuid);
+        else if (!pathFound)    LOGGER.fine("No jobs found matching the modified files");
 
         rsp.setStatus(SC_OK);
     }
