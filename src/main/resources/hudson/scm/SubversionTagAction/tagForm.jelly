@@ -56,7 +56,7 @@ THE SOFTWARE.
           </j:when>
           <j:otherwise>
             <ul>
-              <j:forEach var="m" items="${tags.entrySet}">
+              <j:forEach var="m" items="${tags.entrySet()}">
                 <li>
                   ${m.key.url}
                   <local:listTags tags="${m.value}"/>
