@@ -1,7 +1,7 @@
 <!--
 The MIT License
 
-Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi, Seiji Sogabe
+Copyright (c) 2004-2010, Sun Microsystems, Inc., Kohsuke Kawaguchi, Seiji Sogabe, Alan Harder
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -74,17 +74,16 @@ THE SOFTWARE.
         <form action="submit" method="post" enctype="multipart/form-data" name="tag">
           <table class="middle-align">
             <tr>
-              <j:if test="${tags.size()!=1}">
-                <th />
-              </j:if>
+              <th />
               <th>${%Module URL}</th>
               <th>${%Tag URL}</th>
             </tr>
             <j:forEach var="m" items="${tags.keySet()}" varStatus="loop">
               <tr>
-                <j:if test="${tags.size()!=1}">
-                  <td><input type="checkbox" name="tag${loop.index}" checked="true" id="tag${loop.index}" onchange="updateRow(this,${loop.index})" /></td>
-                </j:if>
+                <td><j:if test="${tags.size()!=1}">
+                  <input type="checkbox" name="tag${loop.index}" checked="true"
+                         id="tag${loop.index}" onchange="updateRow(this,${loop.index})" />
+                </j:if></td>
                 <td style="white-space:nowrap;"><label for="tag${loop.index}">
                   ${m.url} (rev.${m.revision})
                 </label></td>
@@ -96,17 +95,19 @@ THE SOFTWARE.
             </j:forEach>
             <tr>
               <td colspan="3">
-                <table style="width:100%">
-                  <f:optionalBlock field="credential" title="${%Use alternate credential for tagging}">
-                    <f:block>
-                      <table style="width:100%">
-                        <x:enterCredential xmlns:x="/hudson/scm/subversion" />
-                      </table>
-                    </f:block>
-                  </f:optionalBlock>
-                </table>
+                ${%Commit comment:}
+                <textarea name="comment" rows="1" class="setting-input"><st:out
+                 value="Tagged from ${it.build}"/></textarea>
+                <div class="textarea-handle"/>
               </td>
             </tr>
+            <f:optionalBlock field="credential" title="${%Use alternate credential for tagging}">
+              <f:block>
+                <table style="width:100%">
+                  <x:enterCredential xmlns:x="/hudson/scm/subversion" />
+                </table>
+              </f:block>
+            </f:optionalBlock>
           </table>
           <f:submit value="${%Tag}" />
           <script>

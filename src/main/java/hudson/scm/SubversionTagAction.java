@@ -1,7 +1,8 @@
 /*
  * The MIT License
  * 
- * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi, Jean-Baptiste Quenot, Seiji Sogabe, Vojtech Habarta, Yahoo! Inc.
+ * Copyright (c) 2004-2010, Sun Microsystems, Inc., Kohsuke Kawaguchi, Jean-Baptiste Quenot,
+ * Seiji Sogabe, Alan Harder, Vojtech Habarta, Yahoo! Inc.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +37,6 @@ import hudson.scm.SubversionSCM.SvnInfo;
 import hudson.util.CopyOnWriteMap;
 import hudson.security.Permission;
 import hudson.util.MultipartFormDataParser;
-import org.apache.commons.io.output.NullWriter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.export.Exported;
@@ -61,8 +61,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static org.apache.commons.io.output.NullWriter.NULL_WRITER;
 
 /**
  * {@link Action} that lets people create tag for the given build.
@@ -215,7 +213,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
         if (parser.get("credential")!=null)
             upc = UserProvidedCredential.fromForm(req,parser);
 
-        new TagWorkerThread(newTags,upc).start();
+        new TagWorkerThread(newTags,upc,parser.get("comment")).start();
 
         rsp.sendRedirect(".");
     }
@@ -234,11 +232,13 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
          * If the user provided a separate credential, this object represents that.
          */
         private final UserProvidedCredential upc;
+        private final String comment;
 
-        public TagWorkerThread(Map<SvnInfo,String> tagSet, UserProvidedCredential upc) {
+        public TagWorkerThread(Map<SvnInfo,String> tagSet, UserProvidedCredential upc, String comment) {
             super(SubversionTagAction.this,ListenerAndText.forMemory());
             this.tagSet = tagSet;
             this.upc = upc;
+            this.comment = comment;
         }
 
         @Override
@@ -261,7 +261,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
                             SVNCopySource csrc = new SVNCopySource(sourceRevision, sourceRevision, src);
                             svncc.doCopy(
                                     new SVNCopySource[]{csrc},
-                                    dst, false, true, false, "Tagged from "+getBuild(), null );
+                                    dst, false, true, false, comment, null);
                         } catch (SVNException x) {
                             x.printStackTrace(listener.error("Failed to tag"));
                             return;
