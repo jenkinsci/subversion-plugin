@@ -36,10 +36,11 @@ import hudson.Util;
 import hudson.XmlFile;
 import hudson.Functions;
 import hudson.Extension;
-import static hudson.Functions.defaulted;
 import static hudson.Util.fixEmptyAndTrim;
 
 import hudson.scm.UserProvidedCredential.AuthenticationManagerImpl;
+import hudson.scm.PollingResult.Change;
+import hudson.security.csrf.CrumbIssuer;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
@@ -108,7 +109,6 @@ import org.tmatesoft.svn.core.wc.SVNRevision;
 import org.tmatesoft.svn.core.wc.SVNUpdateClient;
 import org.tmatesoft.svn.core.wc.SVNWCClient;
 import org.tmatesoft.svn.core.wc.SVNWCUtil;
-import org.tmatesoft.svn.core.wc.SVNLogClient;
 
 import javax.servlet.ServletException;
 import javax.xml.transform.stream.StreamResult;
@@ -142,6 +142,9 @@ import java.util.UUID;
 import java.util.Iterator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static hudson.scm.PollingResult.BUILD_NOW;
+import static hudson.scm.PollingResult.NO_CHANGES;
 import static java.util.logging.Level.FINE;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -185,6 +188,9 @@ public class SubversionSCM extends SCM implements Serializable {
     private final SubversionRepositoryBrowser browser;
     private String excludedRegions;
     private String excludedUsers;
+    /**
+     * Revision property names that are ignored for the sake of polling. Whitespace separated, possibly null. 
+     */
     private String excludedRevprop;
     private String excludedCommitMessages;
 
@@ -366,26 +372,32 @@ public class SubversionSCM extends SCM implements Serializable {
             return patterns;
         }
 
-        return null;
+        return new Pattern[0];
     }
 
     public String getExcludedUsers() {
         return excludedUsers;
     }
 
-    public String[] getExcludedUsersNormalized() {
-        if (excludedUsers == null || excludedUsers.trim().equals("")) {
-            return null;
-        }
-        ArrayList<String> users = new ArrayList<String>();
-        for (String user : excludedUsers.split("[\\r\\n]+")) {
+    public Set<String> getExcludedUsersNormalized() {
+        String s = fixEmptyAndTrim(excludedUsers);
+        if (s==null)
+            return Collections.emptySet();
+
+        Set<String> users = new HashSet<String>();
+        for (String user : s.split("[\\r\\n]+"))
             users.add(user.trim());
-        }
-        return users.toArray(new String[users.size()]);
+        return users;
     }
 
     public String getExcludedRevprop() {
         return excludedRevprop;
+    }
+
+    private String getExcludedRevpropNormalized() {
+        String s = fixEmptyAndTrim(getExcludedRevprop());
+        if (s!=null)        return s;
+        return getDescriptor().getGlobalExcludedRevprop();
     }
 
     public String getExcludedCommitMessages() {
@@ -393,8 +405,8 @@ public class SubversionSCM extends SCM implements Serializable {
     }
 
     public String[] getExcludedCommitMessagesNormalized() {
-        return (excludedCommitMessages == null || excludedCommitMessages.trim().equals("")) 
-            ? new String[0] : excludedCommitMessages.split("[\\r\\n]+");
+        String s = fixEmptyAndTrim(excludedCommitMessages);
+        return s == null ? new String[0] : s.split("[\\r\\n]+");
     }
 
     private Pattern[] getExcludedCommitMessagesPatterns() {
@@ -462,15 +474,32 @@ public class SubversionSCM extends SCM implements Serializable {
     }
 
 
+    /*package*/ static Map<String,Long> parseRevisionFile(AbstractBuild<?,?> build) throws IOException {
+        return parseRevisionFile(build,false);
+    }
+
     /**
-     * Reads the revision file of the specified build.
+     * Reads the revision file of the specified build (or the closest, if the flag is so specified.)
      *
+     * @param findClosest
+     *      If true, this method will go back the build history until it finds a revision file.
+     *      A build may not have a revision file for any number of reasons (such as failure, interruption, etc.)
      * @return
      *      map from {@link SvnInfo#url Subversion URL} to its revision.
      */
-    /*package*/ static Map<String,Long> parseRevisionFile(AbstractBuild build) throws IOException {
+    /*package*/ static Map<String,Long> parseRevisionFile(AbstractBuild<?,?> build, boolean findClosest) throws IOException {
         Map<String,Long> revisions = new HashMap<String,Long>(); // module -> revision
-        {// read the revision file of the last build
+
+        if (findClosest) {
+            for (AbstractBuild<?,?> b=build; b!=null; b=b.getPreviousBuild()) {
+                if(getRevisionFile(b).exists()) {
+                    build = b;
+                    break;
+                }
+            }
+        }
+
+        {// read the revision file of the build
             File file = getRevisionFile(build);
             if(!file.exists())
                 // nothing to compare against
@@ -786,9 +815,7 @@ public class SubversionSCM extends SCM implements Serializable {
             if (o == null || getClass() != o.getClass()) return false;
 
             SvnInfo svnInfo = (SvnInfo) o;
-
-            if (revision != svnInfo.revision) return false;
-            return url.equals(svnInfo.url);
+            return revision==svnInfo.revision && url.equals(svnInfo.url);
 
         }
 
@@ -1002,38 +1029,41 @@ public class SubversionSCM extends SCM implements Serializable {
         private static final long serialVersionUID = 1L;
     }
 
-    public boolean pollChanges(AbstractProject project, Launcher launcher,
-            FilePath workspace, final TaskListener listener) throws IOException,
-            InterruptedException {
-        AbstractBuild lastBuild = (AbstractBuild) project.getLastBuild();
-        if (lastBuild == null) {
-            listener.getLogger().println(
-                    "No existing build. Starting a new one");
-            return true;
+    @Override
+    public SCMRevisionState calcRevisionsFromBuild(AbstractBuild<?, ?> build, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+        // exclude locations that are svn:external-ed with a fixed revision.
+        Map<String,Long> wsRev = parseRevisionFile(build,true);
+        for (External e : parseExternalsFile(build.getProject()))
+            if (e.isRevisionFixed())
+                wsRev.remove(e.url);
+
+        return new SVNRevisionState(wsRev);
+    }
+
+    @Override
+    protected PollingResult compareRemoteRevisionWith(AbstractProject<?,?> project, Launcher launcher, FilePath workspace, final TaskListener listener, SCMRevisionState _baseline) throws IOException, InterruptedException {
+        final SVNRevisionState baseline = (SVNRevisionState)_baseline;
+        if (project.getLastBuild() == null) {
+            listener.getLogger().println("No existing build. Starting a new one");
+            return BUILD_NOW;
         }
 
-        if (repositoryLocationsNoLongerExist(lastBuild, listener)) {
-            // Disable this project, see issue #763
+        AbstractBuild<?,?> lastCompletedBuild = project.getLastCompletedBuild();
+        if (lastCompletedBuild!=null) {
+            if (repositoryLocationsNoLongerExist(lastCompletedBuild, listener)) {
+                // Disable this project, see HUDSON-763
+                listener.getLogger().println(
+                        "One or more repository locations do not exist anymore for "
+                                + project + ", project will be disabled.");
+                project.makeDisabled(true);
+                return NO_CHANGES;
+            }
 
-            listener.getLogger().println(
-                    "One or more repository locations do not exist anymore for "
-                            + project + ", project will be disabled.");
-            project.makeDisabled(true);
-            return false;
-        }
-
-        // current workspace revision
-        final Map<String,Long> wsRev = parseRevisionFile(lastBuild);
-        final List<External> externals = parseExternalsFile(project);
-
-        // First check to see if the lastBuild is still running - if it is, we skip this next section,
-        // to deal with https://hudson.dev.java.net/issues/show_bug.cgi?id=4270.
-        if (!lastBuild.isBuilding()) {
             // are the locations checked out in the workspace consistent with the current configuration?
-            for (ModuleLocation loc : getLocations(lastBuild)) {
-                if (!wsRev.containsKey(loc.getURL())) {
+            for (ModuleLocation loc : getLocations(lastCompletedBuild)) {
+                if (!baseline.revisions.containsKey(loc.getURL())) {
                     listener.getLogger().println("Workspace doesn't contain " + loc.getURL() + ". Need a new build");
-                    return true;
+                    return BUILD_NOW;
                 }
             }
         }
@@ -1041,109 +1071,125 @@ public class SubversionSCM extends SCM implements Serializable {
         // determine where to perform polling. prefer the node where the build happened,
         // in case a cluster is non-uniform. see http://www.nabble.com/svn-connection-from-slave-only-td24970587.html
         VirtualChannel ch=null;
-        Node n = lastBuild.getBuiltOn();
+        Node n = lastCompletedBuild!=null ? lastCompletedBuild.getBuiltOn() : null;
         if (n!=null) {
             Computer c = n.toComputer();
             if (c!=null)    ch = c.getChannel();
         }
         if (ch==null)   ch= MasterComputer.localChannel;
-        
-        // check the corresponding remote revision
-        return ch.call(new DelegatingCallable<Boolean,IOException> () {
+
+        final SVNLogHandler logHandler = new SVNLogHandler(listener);
+        // figure out the remote revisions
+        return ch.call(new DelegatingCallable<PollingResult,IOException> () {
             final ISVNAuthenticationProvider authProvider = getDescriptor().createAuthenticationProvider();
-            final String globalExcludedRevprop = getDescriptor().getGlobalExcludedRevprop();
-            
+
             public ClassLoader getClassLoader() {
                 return Hudson.getInstance().getPluginManager().uberClassLoader;
             }
-        	
-            public Boolean call() throws IOException {
-                OUTER:
-                for (Map.Entry<String,Long> localInfo : wsRev.entrySet()) {
-                    // skip if this is an external reference to a fixed revision
-                    String url = localInfo.getKey();
 
-                    for (External ext : externals)
-                        if(ext.url.equals(url) && ext.isRevisionFixed())
-                            continue OUTER;
+            /**
+             * Computes {@link PollingResult}. Note that we allow changes that match the certain paths to be excluded,
+             * so  
+             */
+            public PollingResult call() throws IOException {
+                final Map<String,Long> revs = new HashMap<String,Long>();
+                boolean changes = false;
+                boolean significantChanges = false;
+
+                for (Map.Entry<String,Long> baselineInfo : baseline.revisions.entrySet()) {
+                    String url = baselineInfo.getKey();
+                    long baseRev = baselineInfo.getValue();
 
                     try {
-                        final SVNURL decodedURL = SVNURL.parseURIDecoded(url);
-                        SvnInfo remoteInfo = new SvnInfo(parseSvnInfo(decodedURL,authProvider));
-                        listener.getLogger().println(Messages.SubversionSCM_pollChanges_remoteRevisionAt(url,remoteInfo.revision));
-                        if(remoteInfo.revision > localInfo.getValue()) {
-                            boolean changesFound = true;
-                            Pattern[] excludedPatterns = getExcludedRegionsPatterns();
-                            String[] excludedUsers = getExcludedUsersNormalized();
-                            String excludedRevprop = defaulted(fixEmptyAndTrim(getExcludedRevprop()),globalExcludedRevprop);
-                            Pattern[] excludedCommitMessages = getExcludedCommitMessagesPatterns();
+                        final SVNURL svnurl = SVNURL.parseURIDecoded(url);
+                        long nowRev = new SvnInfo(parseSvnInfo(svnurl,authProvider)).revision;
 
-                            if (excludedPatterns != null || excludedUsers != null || excludedRevprop != null || excludedCommitMessages.length>0) {
-                                SVNLogHandler handler = new SVNLogHandler(listener, excludedPatterns, excludedUsers, excludedRevprop, excludedCommitMessages);
-                                final SVNClientManager manager = createSvnClientManager(authProvider);
-                                try {
-                                    final SVNLogClient svnlc = manager.getLogClient();
-                                    svnlc.doLog(decodedURL, null, SVNRevision.UNDEFINED,
-                                            SVNRevision.create(localInfo.getValue() + 1), // get log entries from the local revision + 1
-                                            SVNRevision.create(remoteInfo.revision), // to the remote revision
-                                            false, // Don't stop on copy.
-                                            true, // Report paths.
-                                            false, // Don't included merged revisions
-                                            0, // Retrieve log entries for unlimited number of revisions.
-                                            null, // Retrieve all revprops
-                                            handler);
-                                } finally {
-                                    manager.dispose();
-                                }
+                        changes |= (nowRev>baseRev);
 
-                                changesFound = handler.isChangesFound();
-                            }
-
-                            if (changesFound) {
-                                listener.getLogger().println(Messages.SubversionSCM_pollChanges_changedFrom(localInfo.getValue()));
-                                return true;
-                            }
+                        listener.getLogger().println(Messages.SubversionSCM_pollChanges_remoteRevisionAt(url, nowRev));
+                        revs.put(url, nowRev);
+                        // make sure there's a change and it isn't excluded
+                        if (logHandler.findNonExcludedChanges(svnurl,
+                                baseRev+1, nowRev, authProvider)) {
+                            listener.getLogger().println(Messages.SubversionSCM_pollChanges_changedFrom(baseRev));
+                            significantChanges = true;
                         }
                     } catch (SVNException e) {
                         e.printStackTrace(listener.error("Failed to check repository revision for "+ url));
                     }
                 }
-                return false; // no change
+                assert revs.size()== baseline.revisions.size();
+                return new PollingResult(baseline,new SVNRevisionState(revs),
+                        significantChanges ? Change.SIGNIFICANT : changes ? Change.INSIGNIFICANT : Change.NONE);
             }
         });
     }
 
-    private final class SVNLogHandler implements ISVNLogEntryHandler {
-         private boolean changesFound = false;
+    /**
+     * Goes through the changes between two revisions and see if all the changes
+     * are excluded.
+     */
+    private final class SVNLogHandler implements ISVNLogEntryHandler, Serializable {
+        private boolean changesFound = false;
 
-         private TaskListener listener;
-	 private Pattern[] excludedPatterns;
-         private HashSet<String> excludedUsers;
-         private String excludedRevprop;
-         private Pattern[] excludedCommitMessages;
+        private final TaskListener listener;
+        private final Pattern[] excludedPatterns = getExcludedRegionsPatterns();
+        private final Set<String> excludedUsers = getExcludedUsersNormalized();
+        private final String excludedRevprop = getExcludedRevpropNormalized();
+        private final Pattern[] excludedCommitMessages = getExcludedCommitMessagesPatterns();
 
-         private SVNLogHandler(TaskListener listener, Pattern[] excludedPatterns, String[] excludedUsers, String excludedRevprop, Pattern[] excludedCommitMessages) {
-             this.listener = listener;
-             this.excludedPatterns = excludedPatterns == null ? new Pattern[0] : excludedPatterns;
-             this.excludedUsers = new HashSet<String>(Arrays.asList(excludedUsers == null ? new String[0] : excludedUsers));
-             this.excludedRevprop = excludedRevprop;
-             this.excludedCommitMessages = excludedCommitMessages == null ? new Pattern[0] : excludedCommitMessages;
-         }
+        private SVNLogHandler(TaskListener listener) {
+            this.listener = listener;
+        }
 
-         public boolean isChangesFound() {
+        public boolean isChangesFound() {
             return changesFound;
-	}
+        }
 
-         /**
-          * Handles a log entry passed.
-          * Check for log entries that should be excluded from triggering a build.
-          * If an entry is not an entry that should be excluded, set changesFound to true
-          *
-          * @param logEntry an {@link org.tmatesoft.svn.core.SVNLogEntry} object
-          *                 that represents per revision information
-          *                 (committed paths, log message, etc.)
-          * @throws org.tmatesoft.svn.core.SVNException
-          */
+        /**
+         * Checks it the revision range [from,to] has any changes that are not excluded via exclusions.
+         */
+        public boolean findNonExcludedChanges(SVNURL url, long from, long to, ISVNAuthenticationProvider authProvider) throws SVNException {
+            if (from>to)        return false; // empty revision range, meaning no change
+
+            // if no exclusion rules are defined, don't waste time going through "svn log".
+            if (!hasExclusionRule())    return true;
+
+            final SVNClientManager manager = createSvnClientManager(authProvider);
+            try {
+                manager.getLogClient().doLog(url, null, SVNRevision.UNDEFINED,
+                        SVNRevision.create(from), // get log entries from the local revision + 1
+                        SVNRevision.create(to), // to the remote revision
+                        false, // Don't stop on copy.
+                        true, // Report paths.
+                        false, // Don't included merged revisions
+                        0, // Retrieve log entries for unlimited number of revisions.
+                        null, // Retrieve all revprops
+                        this);
+            } finally {
+                manager.dispose();
+            }
+
+            return isChangesFound();
+        }
+
+        /**
+         * Is there any exclusion rule?
+         */
+        private boolean hasExclusionRule() {
+            return excludedPatterns.length>0 || !excludedUsers.isEmpty() || excludedRevprop != null || excludedCommitMessages.length>0;
+        }
+
+        /**
+         * Handles a log entry passed.
+         * Check for log entries that should be excluded from triggering a build.
+         * If an entry is not an entry that should be excluded, set changesFound to true
+         *
+         * @param logEntry an {@link org.tmatesoft.svn.core.SVNLogEntry} object
+         *                 that represents per revision information
+         *                 (committed paths, log message, etc.)
+         * @throws org.tmatesoft.svn.core.SVNException
+         */
         public void handleLogEntry(SVNLogEntry logEntry) throws SVNException {
             if (checkLogEntry(logEntry)) {
                 changesFound = true;
@@ -1215,6 +1261,8 @@ public class SubversionSCM extends SCM implements Serializable {
             // Otherwise, a change is a change
             return true;
         }
+
+        private static final long serialVersionUID = 1L;
     }
 
     public ChangeLogParser createChangeLogParser() {
@@ -1264,11 +1312,6 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         private String globalExcludedRevprop = null;
 
-        /**
-         * Stores whether a realm supports revision properties
-         */
-        private final Map<String,Boolean> revPropSupport = new Hashtable<String,Boolean>();
-        
         /**
          * Stores {@link SVNAuthentication} for a single realm.
          *
