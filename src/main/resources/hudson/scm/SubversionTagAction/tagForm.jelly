@@ -43,7 +43,7 @@ THE SOFTWARE.
   <l:layout norefresh="true" xmlns:local="local">
     <st:include it="${it.build}" page="sidepanel.jelly" />
     <l:main-panel>
-      <h1>Build #${it.build.number}</h1>
+      <h1>${%Build} #${it.build.number}</h1>
 
       <j:set var="tags" value="${it.tags}" />
       <j:if test="${it.isTagged()}">
