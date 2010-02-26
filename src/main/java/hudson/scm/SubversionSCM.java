@@ -40,12 +40,10 @@ import static hudson.Util.fixEmptyAndTrim;
 
 import hudson.scm.UserProvidedCredential.AuthenticationManagerImpl;
 import hudson.scm.PollingResult.Change;
-import hudson.security.csrf.CrumbIssuer;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Hudson;
-import hudson.model.ModelObject;
 import hudson.model.ParametersAction;
 import hudson.model.TaskListener;
 import hudson.model.Run;
@@ -60,7 +58,6 @@ import hudson.scm.subversion.Messages;
 import hudson.triggers.SCMTrigger;
 import hudson.util.EditDistance;
 import hudson.util.IOException2;
-import hudson.util.IOUtils;
 import hudson.util.MultipartFormDataParser;
 import hudson.util.Scrambler;
 import hudson.util.Secret;
@@ -76,6 +73,8 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.export.Exported;
+import org.kohsuke.stapler.export.ExportedBean;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNDirEntry;
 import org.tmatesoft.svn.core.SVNErrorCode;
@@ -126,7 +125,6 @@ import java.io.StringWriter;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -295,6 +293,7 @@ public class SubversionSCM extends SCM implements Serializable {
      *
      * @since 1.91
      */
+    @Exported
     public ModuleLocation[] getLocations() {
     	return getLocations(null);
     }
@@ -337,19 +336,23 @@ public class SubversionSCM extends SCM implements Serializable {
         return outLocations;
     }
 
+    @Exported
     public boolean isUseUpdate() {
         return useUpdate;
     }
     
+    @Exported
     public boolean isDoRevert() {
     	return doRevert;
     }
 
     @Override
+    @Exported
     public SubversionRepositoryBrowser getBrowser() {
         return browser;
     }
 
+    @Exported
     public String getExcludedRegions() {
         return excludedRegions;
     }
@@ -375,6 +378,7 @@ public class SubversionSCM extends SCM implements Serializable {
         return new Pattern[0];
     }
 
+    @Exported
     public String getExcludedUsers() {
         return excludedUsers;
     }
@@ -390,6 +394,7 @@ public class SubversionSCM extends SCM implements Serializable {
         return users;
     }
 
+    @Exported
     public String getExcludedRevprop() {
         return excludedRevprop;
     }
@@ -400,6 +405,7 @@ public class SubversionSCM extends SCM implements Serializable {
         return getDescriptor().getGlobalExcludedRevprop();
     }
 
+    @Exported
     public String getExcludedCommitMessages() {
         return excludedCommitMessages;
     }
@@ -1953,13 +1959,16 @@ public class SubversionSCM extends SCM implements Serializable {
      * information of the repository. As a addition it holds the invalid field
      * to make failure messages when doing a checkout possible
      */
+    @ExportedBean
     public static final class ModuleLocation implements Serializable {
         /**
          * Subversion URL to check out.
          *
          * This may include "@NNN" at the end to indicate a fixed revision.
          */
+        @Exported
         public final String remote;
+
         /**
          * Remembers the user-given value.
          * Can be null.
@@ -1967,6 +1976,7 @@ public class SubversionSCM extends SCM implements Serializable {
          * @deprecated
          *      Code should use {@link #getLocalDir()}. This field is only intended for form binding.
          */
+        @Exported
         public final String local;
 
         /**
