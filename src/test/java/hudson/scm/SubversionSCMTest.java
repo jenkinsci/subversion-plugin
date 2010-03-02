@@ -43,6 +43,7 @@ import hudson.scm.SubversionSCM.ModuleLocation;
 import static hudson.scm.SubversionSCM.compareSVNAuthentications;
 import hudson.scm.SubversionSCM.DescriptorImpl;
 import hudson.scm.browsers.Sventon;
+import hudson.util.FormValidation;
 import hudson.util.NullStream;
 import hudson.util.StreamTaskListener;
 import org.dom4j.Document;
@@ -314,6 +315,39 @@ public class SubversionSCMTest extends HudsonTestCase {
         p.setScm(scm);
         submit(new WebClient().getPage(p,"configure").getFormByName("config"));
         verify(scm,(SubversionSCM)p.getScm());
+    }
+
+    @Bug(5684)
+    public void testDoCheckExcludedUsers() throws Exception {
+        String[] validUsernames = new String[] {
+            "DOMAIN\\user",
+            "user",
+            "us_er",
+            "user123",
+            "User",
+            "", // this one is ignored
+            "DOmain12\\User34"};
+
+        for (String validUsername : validUsernames) {
+            assertEquals(
+                "User " + validUsername + " isn't OK (but it's valid).", 
+                FormValidation.Kind.OK, 
+                new SubversionSCM.DescriptorImpl().doCheckExcludedUsers(validUsername).kind);
+        }
+
+        String[] invalidUsernames = new String[] {
+            "\\user",
+            "DOMAIN\\",
+            "DOMAIN@user",
+            "DOMAIN.user" };
+
+        for (String invalidUsername : invalidUsernames) {
+            assertEquals(
+                "User " + invalidUsername + " isn't ERROR (but it's not valid).", 
+                FormValidation.Kind.ERROR, 
+                new SubversionSCM.DescriptorImpl().doCheckExcludedUsers(invalidUsername).kind);
+        }
+
     }
 
     private void verify(SubversionSCM lhs, SubversionSCM rhs) {

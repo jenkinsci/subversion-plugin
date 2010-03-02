@@ -1821,7 +1821,11 @@ public class SubversionSCM extends SCM implements Serializable {
             return FormValidation.ok();
         }
 
-        private static final Pattern USERNAME_PATTERN = Pattern.compile("\\w+");
+        /**
+         * Regular expression for matching one username. Matches 'windows' names ('DOMAIN&#92;user') and
+         * 'normal' names ('user'). Where user (and DOMAIN) has one or more characters in 'a-zA-Z_0-9')
+         */
+        private static final Pattern USERNAME_PATTERN = Pattern.compile("(\\w+\\\\)?+(\\w+)");
 
         /**
          * Validates the excludeUsers field
