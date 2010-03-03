@@ -172,8 +172,9 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         }
         
         private String preparePath(String path) {
-            SubversionSCM scm = (SubversionSCM) getParent().build.getProject().getScm();
-            ModuleLocation[] locations = scm.getLocations();
+            SCM scm = getParent().build.getProject().getScm();
+            if (!(scm instanceof SubversionSCM)) return path;
+            ModuleLocation[] locations = ((SubversionSCM)scm).getLocations();
             for (int i = 0; i < locations.length; i++) {
                 String commonPart = findCommonPart(locations[i].remote, path);
                 if (commonPart != null) {
