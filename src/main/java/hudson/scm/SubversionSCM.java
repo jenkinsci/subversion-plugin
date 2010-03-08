@@ -1,7 +1,7 @@
 /*
  * The MIT License
  * 
- * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi, Fulvio Cavarretta,
+ * Copyright (c) 2004-2010, Sun Microsystems, Inc., Kohsuke Kawaguchi, Fulvio Cavarretta,
  * Jean-Baptiste Quenot, Luca Domenico Milanesio, Renaud Bruyeron, Stephen Connolly,
  * Tom Huybrechts, Yahoo! Inc.
  * 
@@ -40,6 +40,8 @@ import static hudson.Util.fixEmptyAndTrim;
 
 import hudson.scm.UserProvidedCredential.AuthenticationManagerImpl;
 import hudson.scm.PollingResult.Change;
+import static hudson.scm.PollingResult.BUILD_NOW;
+import static hudson.scm.PollingResult.NO_CHANGES;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
@@ -65,6 +67,7 @@ import hudson.util.StreamCopyThread;
 import hudson.util.XStream2;
 import hudson.util.FormValidation;
 import hudson.util.TimeUnit2;
+import net.sf.json.JSONObject;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.tools.ant.Project;
@@ -139,16 +142,11 @@ import java.util.StringTokenizer;
 import java.util.UUID;
 import java.util.Iterator;
 import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import static hudson.scm.PollingResult.BUILD_NOW;
-import static hudson.scm.PollingResult.NO_CHANGES;
 import static java.util.logging.Level.FINE;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.lang.reflect.InvocationTargetException;
-
-import net.sf.json.JSONObject;
 
 /**
  * Subversion SCM.
@@ -363,12 +361,12 @@ public class SubversionSCM extends SCM implements Serializable {
     }
 
     private Pattern[] getExcludedRegionsPatterns() {
-        String[] excludedRegions = getExcludedRegionsNormalized();
-        if (excludedRegions != null) {
-            Pattern[] patterns = new Pattern[excludedRegions.length];
+        String[] excluded = getExcludedRegionsNormalized();
+        if (excluded != null) {
+            Pattern[] patterns = new Pattern[excluded.length];
 
             int i = 0;
-            for (String excludedRegion : excludedRegions) {
+            for (String excludedRegion : excluded) {
                 patterns[i++] = Pattern.compile(excludedRegion);
             }
 
@@ -416,11 +414,11 @@ public class SubversionSCM extends SCM implements Serializable {
     }
 
     private Pattern[] getExcludedCommitMessagesPatterns() {
-        String[] excludedCommitMessages = getExcludedCommitMessagesNormalized();
-        Pattern[] patterns = new Pattern[excludedCommitMessages.length];
+        String[] excluded = getExcludedCommitMessagesNormalized();
+        Pattern[] patterns = new Pattern[excluded.length];
 
         int i = 0;
-        for (String excludedCommitMessage : excludedCommitMessages) {
+        for (String excludedCommitMessage : excluded) {
             patterns[i++] = Pattern.compile(excludedCommitMessage);
         }
 
@@ -434,12 +432,12 @@ public class SubversionSCM extends SCM implements Serializable {
     public void buildEnvVars(AbstractBuild build, Map<String, String> env) {
         super.buildEnvVars(build, env);
         
-        ModuleLocation[] locations = getLocations(build);
+        ModuleLocation[] svnLocations = getLocations(build);
 
         try {
             Map<String,Long> revisions = parseRevisionFile(build);
-            if(locations.length==1) {
-                Long rev = revisions.get(locations[0].remote);
+            if(svnLocations.length==1) {
+                Long rev = revisions.get(svnLocations[0].remote);
                 if(rev!=null)
                     env.put("SVN_REVISION",rev.toString());
             }
@@ -1060,7 +1058,7 @@ public class SubversionSCM extends SCM implements Serializable {
         }
         
         if (project.getLastBuild() == null) {
-            listener.getLogger().println("No existing build. Starting a new one");
+            listener.getLogger().println(Messages.SubversionSCM_pollChanges_noBuilds());
             return BUILD_NOW;
         }
 
@@ -1069,8 +1067,7 @@ public class SubversionSCM extends SCM implements Serializable {
             if (repositoryLocationsNoLongerExist(lastCompletedBuild, listener)) {
                 // Disable this project, see HUDSON-763
                 listener.getLogger().println(
-                        "One or more repository locations do not exist anymore for "
-                                + project + ", project will be disabled.");
+                        Messages.SubversionSCM_pollChanges_locationsNoLongerExist(project));
                 project.makeDisabled(true);
                 return NO_CHANGES;
             }
@@ -1078,7 +1075,8 @@ public class SubversionSCM extends SCM implements Serializable {
             // are the locations checked out in the workspace consistent with the current configuration?
             for (ModuleLocation loc : getLocations(lastCompletedBuild)) {
                 if (!baseline.revisions.containsKey(loc.getURL())) {
-                    listener.getLogger().println("Workspace doesn't contain " + loc.getURL() + ". Need a new build");
+                    listener.getLogger().println(
+                            Messages.SubversionSCM_pollChanges_locationNotInWorkspace(loc.getURL()));
                     return BUILD_NOW;
                 }
             }
@@ -1092,7 +1090,7 @@ public class SubversionSCM extends SCM implements Serializable {
             Computer c = n.toComputer();
             if (c!=null)    ch = c.getChannel();
         }
-        if (ch==null)   ch= MasterComputer.localChannel;
+        if (ch==null)   ch = MasterComputer.localChannel;
 
         final SVNLogHandler logHandler = new SVNLogHandler(listener);
         // figure out the remote revisions
@@ -1131,7 +1129,7 @@ public class SubversionSCM extends SCM implements Serializable {
                             significantChanges = true;
                         }
                     } catch (SVNException e) {
-                        e.printStackTrace(listener.error("Failed to check repository revision for "+ url));
+                        e.printStackTrace(listener.error(Messages.SubversionSCM_pollChanges_exception(url)));
                     }
                 }
                 assert revs.size()== baseline.revisions.size();
