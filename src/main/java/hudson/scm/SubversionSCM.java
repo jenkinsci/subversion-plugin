@@ -1048,7 +1048,17 @@ public class SubversionSCM extends SCM implements Serializable {
 
     @Override
     protected PollingResult compareRemoteRevisionWith(AbstractProject<?,?> project, Launcher launcher, FilePath workspace, final TaskListener listener, SCMRevisionState _baseline) throws IOException, InterruptedException {
-        final SVNRevisionState baseline = (SVNRevisionState)_baseline;
+        final SVNRevisionState baseline;
+        if (_baseline instanceof SVNRevisionState) {
+            baseline = (SVNRevisionState)_baseline;
+        }
+        else if (project.getLastBuild()!=null) {
+            baseline = (SVNRevisionState)calcRevisionsFromBuild(project.getLastBuild(), launcher, listener);
+        }
+        else {
+            baseline = new SVNRevisionState(null);
+        }
+        
         if (project.getLastBuild() == null) {
             listener.getLogger().println("No existing build. Starting a new one");
             return BUILD_NOW;
