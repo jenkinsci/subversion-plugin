@@ -183,6 +183,7 @@ public class SubversionSCM extends SCM implements Serializable {
     private boolean doRevert;
     private final SubversionRepositoryBrowser browser;
     private String excludedRegions;
+    private String includedRegions;
     private String excludedUsers;
     /**
      * Revision property names that are ignored for the sake of polling. Whitespace separated, possibly null. 
@@ -242,11 +243,18 @@ public class SubversionSCM extends SCM implements Serializable {
     	this(locations, useUpdate, false, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages);
     }
 
-    
+    /**
+     * @deprecated as of 1.xxx
+     */
+    public SubversionSCM(List<ModuleLocation> locations,
+                         boolean useUpdate, boolean doRevert, SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages) {
+        this(locations, useUpdate, doRevert, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages, null);
+    }
     
     @DataBoundConstructor
     public SubversionSCM(List<ModuleLocation> locations,
-                         boolean useUpdate, boolean doRevert, SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages) {
+                         boolean useUpdate, boolean doRevert, SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages,
+                         String includedRegions) {
 
         for (Iterator<ModuleLocation> itr = locations.iterator(); itr.hasNext();) {
             ModuleLocation ml = itr.next();
@@ -261,7 +269,7 @@ public class SubversionSCM extends SCM implements Serializable {
         this.excludedUsers = excludedUsers;
         this.excludedRevprop = excludedRevprop;
         this.excludedCommitMessages = excludedCommitMessages;
-        
+        this.includedRegions = includedRegions;
     }
 
     /**
@@ -368,6 +376,32 @@ public class SubversionSCM extends SCM implements Serializable {
             int i = 0;
             for (String excludedRegion : excluded) {
                 patterns[i++] = Pattern.compile(excludedRegion);
+            }
+
+            return patterns;
+        }
+
+        return new Pattern[0];
+    }
+
+    @Exported
+    public String getIncludedRegions() {
+        return includedRegions;
+    }
+
+    public String[] getIncludedRegionsNormalized() {
+        return (includedRegions == null || includedRegions.trim().equals(""))
+                ? null : includedRegions.split("[\\r\\n]+");
+    }
+
+    private Pattern[] getIncludedRegionsPatterns() {
+        String[] included = getIncludedRegionsNormalized();
+        if (included != null) {
+            Pattern[] patterns = new Pattern[included.length];
+
+            int i = 0;
+            for (String includedRegion : included) {
+                patterns[i++] = Pattern.compile(includedRegion);
             }
 
             return patterns;
@@ -1148,6 +1182,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
         private final TaskListener listener;
         private final Pattern[] excludedPatterns = getExcludedRegionsPatterns();
+        private final Pattern[] includedPatterns = getIncludedRegionsPatterns();
         private final Set<String> excludedUsers = getExcludedUsersNormalized();
         private final String excludedRevprop = getExcludedRevpropNormalized();
         private final Pattern[] excludedCommitMessages = getExcludedCommitMessagesPatterns();
@@ -1191,7 +1226,7 @@ public class SubversionSCM extends SCM implements Serializable {
          * Is there any exclusion rule?
          */
         private boolean hasExclusionRule() {
-            return excludedPatterns.length>0 || !excludedUsers.isEmpty() || excludedRevprop != null || excludedCommitMessages.length>0;
+            return excludedPatterns.length>0 || !excludedUsers.isEmpty() || excludedRevprop != null || excludedCommitMessages.length>0 || includedPatterns.length>0;
         }
 
         /**
@@ -1253,19 +1288,44 @@ public class SubversionSCM extends SCM implements Serializable {
                 return false;
             }
 
+            // If there are included patterns, see which paths are included
+            List<String> includedPaths = new ArrayList<String>();
+            if (includedPatterns.length > 0) {
+                for (String path : (Set<String>)changedPaths.keySet()) {
+                    for (Pattern pattern : includedPatterns) {
+                        if (pattern.matcher(path).matches()) {
+                            includedPaths.add(path);
+                            break;
+                        }
+                    }
+                }
+            } else {
+                includedPaths = new ArrayList<String>(changedPaths.keySet());
+            }
+
+            // If no paths are included don't count this entry as a change
+            if (includedPaths.size() == 0) {
+                listener.getLogger().println(Messages.SubversionSCM_pollChanges_ignoredRevision(
+                        logEntry.getRevision(),
+                        Messages.SubversionSCM_pollChanges_ignoredRevision_noincpath()));
+                return false;
+            }
+
             // Else, check each changed path
             List<String> excludedPaths = new ArrayList<String>();
-            for (String path : (Set<String>)changedPaths.keySet()) {
-                for (Pattern pattern : excludedPatterns) {
-                    if (pattern.matcher(path).matches()) {
-                        excludedPaths.add(path);
-                        break;
+            if (includedPatterns.length > 0) {
+                for (String path : includedPaths) {
+                    for (Pattern pattern : excludedPatterns) {
+                        if (pattern.matcher(path).matches()) {
+                            excludedPaths.add(path);
+                            break;
+                        }
                     }
                 }
             }
 
-            // If all paths are in an excluded region, don't count this entry as a change
-            if (changedPaths.size() == excludedPaths.size()) {
+            // If all included paths are in an excluded region, don't count this entry as a change
+            if (includedPaths.size() == excludedPaths.size()) {
                 listener.getLogger().println(Messages.SubversionSCM_pollChanges_ignoredRevision(
                         logEntry.getRevision(),
                         Messages.SubversionSCM_pollChanges_ignoredRevision_path(Util.join(excludedPaths, ", "))));
@@ -1827,6 +1887,13 @@ public class SubversionSCM extends SCM implements Serializable {
                     return FormValidation.error("Invalid regular expression. " + e.getMessage());
                 }
             return FormValidation.ok();
+        }
+
+        /**
+         * Validates the includedRegions Regex
+         */
+        public FormValidation doCheckIncludedRegions(@QueryParameter String value) throws IOException, ServletException {
+            return  doCheckExcludedRegions(value);
         }
 
         /**

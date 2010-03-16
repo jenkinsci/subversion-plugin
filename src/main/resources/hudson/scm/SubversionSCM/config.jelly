@@ -54,6 +54,9 @@ THE SOFTWARE.
     <f:entry title="${%Excluded Regions}" field="excludedRegions">
         <f:textarea />
     </f:entry>
+    <f:entry title="${%Included Regions}" field="includedRegions">
+        <f:textarea />
+    </f:entry>
     <f:entry title="${%Excluded Users}" field="excludedUsers">
         <f:textarea />
     </f:entry>
