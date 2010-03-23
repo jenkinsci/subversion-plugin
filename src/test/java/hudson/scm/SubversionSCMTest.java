@@ -452,7 +452,7 @@ public class SubversionSCMTest extends HudsonTestCase {
     @Bug(6030)
     public void testExcludedRegions() throws Exception {
 //        SLAVE_DEBUG_PORT = 8001;
-        File repo = new CopyExisting(getClass().getResource("two-revisions-mk2.zip")).allocate();
+        File repo = new CopyExisting(getClass().getResource("HUDSON-6030.zip")).allocate();
         SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.getPath()},
                                                                    new String[]{"."}),
                                               true, false, null, "bar", "", "", "", "");
