@@ -302,16 +302,22 @@ public class SubversionSCMTest extends HudsonTestCase {
     }
 
     public void testConfigRoundtrip() throws Exception {
+        setJavaNetCredential();
         FreeStyleProject p = createFreeStyleProject();
 
         SubversionSCM scm = new SubversionSCM(
-                Arrays.asList(new ModuleLocation("a","c"),new ModuleLocation("b","d")),
+                Arrays.asList(
+                		new ModuleLocation("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/testSubversionExclusion", "c"),
+                		new ModuleLocation("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/testSubversionExclusion", "d")),
                 true,new Sventon(new URL("http://www.sun.com/"),"test"),"exclude","user","revprop","excludeMessage");
         p.setScm(scm);
         submit(new WebClient().getPage(p,"configure").getFormByName("config"));
         verify(scm,(SubversionSCM)p.getScm());
 
-        scm = new SubversionSCM(Arrays.asList(new ModuleLocation("a","c")),false,null,"","","","");
+        scm = new SubversionSCM(
+        		Arrays.asList(
+                		new ModuleLocation("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/testSubversionExclusion", "c")),
+        		false,null,"","","","");
         p.setScm(scm);
         submit(new WebClient().getPage(p,"configure").getFormByName("config"));
         verify(scm,(SubversionSCM)p.getScm());
@@ -360,12 +366,21 @@ public class SubversionSCMTest extends HudsonTestCase {
         }
 
         assertEquals(lhs.isUseUpdate(), rhs.isUseUpdate());
-        assertEquals(lhs.getExcludedRegions(), rhs.getExcludedRegions());
-        assertEquals(lhs.getExcludedUsers(), rhs.getExcludedUsers());
-        assertEquals(lhs.getExcludedRevprop(), rhs.getExcludedRevprop());
-        assertEquals(lhs.getExcludedCommitMessages(), rhs.getExcludedCommitMessages());
+        assertNullEquals(lhs.getExcludedRegions(), rhs.getExcludedRegions());
+        assertNullEquals(lhs.getExcludedUsers(), rhs.getExcludedUsers());
+        assertNullEquals(lhs.getExcludedRevprop(), rhs.getExcludedRevprop());
+        assertNullEquals(lhs.getExcludedCommitMessages(), rhs.getExcludedCommitMessages());
+    	assertNullEquals(lhs.getIncludedRegions(), rhs.getIncludedRegions());
     }
-
+    
+    private void assertNullEquals (String left, String right) {
+    	if (left == null)
+    		left = "";
+    	if (right == null)
+    		right = "";
+    	assertEquals(left, right);
+    }
+    
     public void test1() {
         check("http://foobar/");
         check("https://foobar/");
@@ -455,7 +470,39 @@ public class SubversionSCMTest extends HudsonTestCase {
         File repo = new CopyExisting(getClass().getResource("HUDSON-6030.zip")).allocate();
         SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.getPath()},
                                                                    new String[]{"."}),
-                                              true, false, null, "bar", "", "", "", "");
+                                              true, false, null, ".*/bar", "", "", "", "");
+
+        FreeStyleProject p = createFreeStyleProject("testExcludedRegions");
+        p.setScm(scm);
+        assertBuildStatusSuccess(p.scheduleBuild2(0).get());
+
+        // initial polling on the slave for the code path that doesn't find any change
+        assertFalse(p.pollSCMChanges(createTaskListener()));
+
+        createCommit(scm, "bar");
+
+        // polling on the slave for the code path that does have a change but should be excluded.
+        assertFalse("Polling found changes that should have been ignored",
+                    p.pollSCMChanges(createTaskListener()));
+
+        createCommit(scm, "foo");
+
+        // polling on the slave for the code path that doesn't find any change
+        assertTrue("Polling didn't find a change it should have found.",
+                   p.pollSCMChanges(createTaskListener()));
+
+    }
+    
+    /**
+     * Test included regions
+     */
+    @Bug(6030)
+    public void testIncludedRegions() throws Exception {
+//        SLAVE_DEBUG_PORT = 8001;
+        File repo = new CopyExisting(getClass().getResource("HUDSON-6030.zip")).allocate();
+        SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.getPath()},
+                                                                   new String[]{"."}),
+                                              true, false, null, "", "", "", "", ".*/foo");
 
         FreeStyleProject p = createFreeStyleProject("testExcludedRegions");
         p.setScm(scm);
