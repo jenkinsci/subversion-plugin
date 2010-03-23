@@ -1313,7 +1313,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
             // Else, check each changed path
             List<String> excludedPaths = new ArrayList<String>();
-            if (includedPatterns.length > 0) {
+            if (excludedPatterns.length > 0) {
                 for (String path : includedPaths) {
                     for (Pattern pattern : excludedPatterns) {
                         if (pattern.matcher(path).matches()) {
