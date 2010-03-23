@@ -456,7 +456,7 @@ public class SubversionSCMTest extends HudsonTestCase {
         // Using 1.14+ SVN plugin constructor
         p.setScm(new SubversionSCM(
                                    Arrays.asList( new ModuleLocation( "https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-maven/", null)),
-                                   true, false, null, "*", "", "", "", "")
+                                   true, false, null, ".*", "", "", "", "")
                  );
         // Do a build to force the creation of the workspace. This works around
         // pollChanges returning true when the workspace does not exist.
