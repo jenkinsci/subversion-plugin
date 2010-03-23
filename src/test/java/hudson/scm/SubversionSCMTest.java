@@ -447,6 +447,26 @@ public class SubversionSCMTest extends HudsonTestCase {
     }
 
     /**
+     * Test excluded regions
+     */
+    @Bug(6030)
+    public void testExcludeByRegion() throws Exception {
+        setJavaNetCredential();
+        FreeStyleProject p = createFreeStyleProject( "testExcludeByRegion" );
+        // Using 1.14+ SVN plugin constructor
+        p.setScm(new SubversionSCM(
+                                   Arrays.asList( new ModuleLocation( "https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-maven/", null)),
+                                   true, false, null, "*", "", "", "", "")
+                 );
+        // Do a build to force the creation of the workspace. This works around
+        // pollChanges returning true when the workspace does not exist.
+        p.scheduleBuild2(0).get();
+
+        boolean foundChanges = p.pollSCMChanges(createTaskListener());
+        assertFalse("Polling found changes that should have been ignored", foundChanges);
+    }
+
+    /**
      * Do the polling on the slave and make sure it works.
      */
     @Bug(4299)
