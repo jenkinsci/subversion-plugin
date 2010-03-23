@@ -450,22 +450,34 @@ public class SubversionSCMTest extends HudsonTestCase {
      * Test excluded regions
      */
     @Bug(6030)
-    public void testExcludeByRegion() throws Exception {
-        setJavaNetCredential();
-        FreeStyleProject p = createFreeStyleProject( "testExcludeByRegion" );
-        // Using 1.14+ SVN plugin constructor
-        p.setScm(new SubversionSCM(
-                                   Arrays.asList( new ModuleLocation( "https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-maven@18074", null)),
-                                   true, false, null, ".*", "", "", "", "")
-                 );
-        // Do a build to force the creation of the workspace. This works around
-        // pollChanges returning true when the workspace does not exist.
-        p.scheduleBuild2(0).get();
+    public void testExcludedRegions() throws Exception {
+//        SLAVE_DEBUG_PORT = 8001;
+        File repo = new CopyExisting(getClass().getResource("two-revisions-mk2.zip")).allocate();
+        SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.getPath()},
+                                                                   new String[]{"."}),
+                                              true, false, null, "bar", "", "", "", "");
 
-        boolean foundChanges = p.pollSCMChanges(createTaskListener());
-        assertFalse("Polling found changes that should have been ignored", foundChanges);
+        FreeStyleProject p = createFreeStyleProject("testExcludedRegions");
+        p.setScm(scm);
+        assertBuildStatusSuccess(p.scheduleBuild2(0).get());
+
+        // initial polling on the slave for the code path that doesn't find any change
+        assertFalse(p.pollSCMChanges(createTaskListener()));
+
+        createCommit(scm, "bar");
+
+        // polling on the slave for the code path that does have a change but should be excluded.
+        assertFalse("Polling found changes that should have been ignored",
+                    p.pollSCMChanges(createTaskListener()));
+
+        createCommit(scm, "foo");
+
+        // polling on the slave for the code path that doesn't find any change
+        assertTrue("Polling didn't find a change it should have found.",
+                   p.pollSCMChanges(createTaskListener()));
+
     }
-
+    
     /**
      * Do the polling on the slave and make sure it works.
      */
