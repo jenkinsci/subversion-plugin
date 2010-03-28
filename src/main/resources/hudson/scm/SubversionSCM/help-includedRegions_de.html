@@ -1,0 +1,30 @@
+<div>
+  Ist dieses Feld nicht leer und das Projekt so konfiguriert, dass Hudson regelmäßig
+  ein SVN-Repository nach Änderungen befragt, so werden dabei alle Dateien
+  und/oder Verzeichnisse bei der Bestimmung, ob ein neuer Build ausgelöst werden soll,
+  ignoriert, die <b><i>nicht</i></b> in den hier angegebenen Bereichen liegen.
+  <p/>
+  Jeder Einschluß kann reguläre Ausdrücke verwenden und muss ein einer eigenen Zeile stehen.
+  
+  <p/>
+  Diese Option ist nützlich, wenn zwar ein ganzer Zweig aus dem Repository zum Bauen
+  ausgecheckt werden soll, aber nur Änderungen in einem Unterbereich davon neue Builds
+  auslösen sollen.
+  
+  <p/>
+  Beispiel: Ihr Projekt checkt zum Bauen /trunk/myapp aus. Neue Builds sollen aber nur
+  bei Änderungen unterhalb von /trunk/myapp/c/library1 oder /trunk/myapp/c/library2
+  ausgelöst werden. Sie würden in diesem Fall hier angeben:
+  
+  <pre>
+  /trunk/myapp/c/library1/.*
+  /trunk/myapp/c/library2/.*
+  </pre>
+  
+  <p/>Diese Option kann auch gemeinsam mit der Option "Ausgeschlossene Bereiche" verwendet werden.
+  In diesem Fall sind nur Dateien und/oder Verzeichnisse relevant, die zwar in den Einschlüssen enthalten,
+  aber in den Ausschlüssen <em>nicht</em> enthalten sind.
+  
+  <p/>
+  <a href="http://www.regular-expressions.info/" target="_blank">Mehr zu regulären Ausdrücken...</a>.
+</div>

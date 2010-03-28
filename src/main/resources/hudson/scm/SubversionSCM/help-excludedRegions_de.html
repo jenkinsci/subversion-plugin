@@ -1,5 +1,5 @@
 <div>
-  Ist diese Option angewählt und das Projekt so konfiguriert, dass Hudson regelmäßig
+  Ist dieses Feld nicht leer und das Projekt so konfiguriert, dass Hudson regelmäßig
   ein SVN-Repository nach Änderungen befragt, so werden dabei die hier angegebenen Dateien
   und/oder Verzeichnisse bei der Bestimmung, ob ein neuer Build ausgelöst werden soll,
   ignoriert.
@@ -10,5 +10,10 @@
    /trunk/myapp/src/main/web/.*\.jpeg
    /trunk/myapp/src/main/web/.*\.gif
   </pre>
+  
+  <p/>Diese Option kann auch gemeinsam mit der Option "Eingeschlossene Bereiche" verwendet werden.
+  In diesem Fall sind nur Dateien und/oder Verzeichnisse relevant, die zwar in den Einschlüssen enthalten,
+  aber in den Ausschlüssen <em>nicht</em> enthalten sind.
+  
   <p/><a href="http://www.regular-expressions.info/" target="_blank">Mehr zu regulären Ausdrücken...</a>.
 </div>
