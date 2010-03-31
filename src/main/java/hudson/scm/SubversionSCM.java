@@ -1147,7 +1147,13 @@ public class SubversionSCM extends SCM implements Serializable {
                 for (Map.Entry<String,Long> baselineInfo : baseline.revisions.entrySet()) {
                     String url = baselineInfo.getKey();
                     long baseRev = baselineInfo.getValue();
-
+                    /*
+                        If we fail to check the remote revision, assume there's no change.
+                        In this way, a temporary SVN server problem won't result in bogus builds,
+                        which will fail anyway. So our policy in the error handling in the polling
+                        is not to fire off builds. see HUDSON-6136.
+                     */
+                    revs.put(url, baseRev);
                     try {
                         final SVNURL svnurl = SVNURL.parseURIDecoded(url);
                         long nowRev = new SvnInfo(parseSvnInfo(svnurl,authProvider)).revision;
