@@ -463,7 +463,7 @@ public class SubversionSCM extends SCM implements Serializable {
      * Sets the <tt>SVN_REVISION</tt> environment variable during the build.
      */
     @Override
-    public void buildEnvVars(AbstractBuild build, Map<String, String> env) {
+    public void buildEnvVars(AbstractBuild<?, ?> build, Map<String, String> env) {
         super.buildEnvVars(build, env);
         
         ModuleLocation[] svnLocations = getLocations(build);
@@ -731,24 +731,29 @@ public class SubversionSCM extends SCM implements Serializable {
                     StreamCopyThread sct = new StreamCopyThread("svn log copier", new PipedInputStream(pos), listener.getLogger());
                     sct.start();
 
-                    for (final ModuleLocation l : locations) {
-                        try {
-                            listener.getLogger().println("Checking out "+l.remote);
+                    ModuleLocation location = null;
+                    try {
+                        for (final ModuleLocation l : locations) {
+                            location = l;
+                            listener.getLogger().println("Checking out " + l.remote);
 
                             File local = new File(ws, l.getLocalDir());
                             svnuc.setEventHandler(new SubversionUpdateEventHandler(new PrintStream(pos), externals, local, l.getLocalDir()));
                             svnuc.doCheckout(l.getSVNURL(), local.getCanonicalFile(), SVNRevision.HEAD, getRevision(l), SVNDepth.INFINITY, true);
-                        } catch (SVNException e) {
-                            e.printStackTrace(listener.error("Failed to check out "+l.remote));
-                            return null;
                         }
-                    }
-                    
-                    pos.close();
-                    try {
-						sct.join(); // wait for all data to be piped.
-					} catch (InterruptedException e) {
-                        throw new IOException2("interrupted",e);
+                    } catch (SVNException e) {
+                        e.printStackTrace(listener.error("Failed to check out " + location.remote));
+                        return null;
+                    } finally {
+                        try {
+                            pos.close();
+                        } finally {
+                            try {
+                                sct.join(); // wait for all data to be piped.
+                            } catch (InterruptedException e) {
+                                throw new IOException2("interrupted", e);
+                            }
+                        }
                     }
                 }
 
