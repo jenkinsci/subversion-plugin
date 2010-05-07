@@ -246,7 +246,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
             try {
                 final SVNClientManager cm = upc!=null
                         ? SVNClientManager.newInstance(SVNWCUtil.createDefaultOptions(true),upc.new AuthenticationManagerImpl(listener))
-                        : SubversionSCM.createSvnClientManager();
+                        : SubversionSCM.createSvnClientManager(getBuild().getProject());
                 try {
                     for (Entry<SvnInfo, String> e : tagSet.entrySet()) {
                         PrintStream logger = listener.getLogger();

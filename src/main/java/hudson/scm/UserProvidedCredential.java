@@ -25,6 +25,7 @@
  */
 package hudson.scm;
 
+import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import hudson.model.TaskListener;
 import hudson.scm.SubversionSCM.DescriptorImpl.Credential;
@@ -61,6 +62,7 @@ import static javax.servlet.http.HttpServletResponse.SC_FORBIDDEN;
 
 /**
  * Represents the SVN authentication credential given by the user via the &lt;enterCredential> form fragment.
+ * This is just a value object.
  *
  * @author Kohsuke Kawaguchi
  */
@@ -68,11 +70,25 @@ public class UserProvidedCredential implements Closeable {
     private final String username;
     private final String password;
     private final File keyFile;
+    /**
+     * If non-null, this credential is submitted primarily to be used with this project.
+     * This actually doesn't prevent Hudson from trying it with other projects.
+     */
+    public final AbstractProject inContextOf;
 
+    /**
+     * @deprecated as of 1.18
+     *      Use {@link #UserProvidedCredential(String, String, File, AbstractProject)}
+     */
     public UserProvidedCredential(String username, String password, File keyFile) {
+        this(username,password,keyFile,null);
+    }
+
+    public UserProvidedCredential(String username, String password, File keyFile, AbstractProject inContextOf) {
         this.username = username;
         this.password = password;
         this.keyFile = keyFile;
+        this.inContextOf = inContextOf;
     }
 
     /**
@@ -113,7 +129,7 @@ public class UserProvidedCredential implements Closeable {
             }
         }
 
-        return new UserProvidedCredential(username,password,keyFile) {
+        return new UserProvidedCredential(username,password,keyFile,req.findAncestorObject(AbstractProject.class)) {
             @Override
             public void close() throws IOException {
                 if(keyFile!=null)

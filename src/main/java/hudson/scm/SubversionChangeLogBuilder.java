@@ -24,6 +24,7 @@
 package hudson.scm;
 
 import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Hudson;
 import hudson.scm.SubversionSCM.ModuleLocation;
@@ -85,7 +86,7 @@ public final class SubversionChangeLogBuilder {
     public boolean run(Collection<SubversionSCM.External> externals, Result changeLog) throws IOException, InterruptedException {
         boolean changelogFileCreated = false;
 
-        final SVNClientManager manager = SubversionSCM.createSvnClientManager();
+        final SVNClientManager manager = SubversionSCM.createSvnClientManager(build.getProject());
         try {
             SVNLogClient svnlc = manager.getLogClient();
             TransformerHandler th = createTransformerHandler();
@@ -114,11 +115,11 @@ public final class SubversionChangeLogBuilder {
     }
 
     private String getUrlForPath(FilePath path) throws IOException, InterruptedException {
-        return path.act(new GetUrlForPath(createAuthenticationProvider()));
+        return path.act(new GetUrlForPath(createAuthenticationProvider(build.getProject())));
     }
 
-    private ISVNAuthenticationProvider createAuthenticationProvider() {
-        return Hudson.getInstance().getDescriptorByType(SubversionSCM.DescriptorImpl.class).createAuthenticationProvider();
+    private ISVNAuthenticationProvider createAuthenticationProvider(AbstractProject context) {
+        return Hudson.getInstance().getDescriptorByType(SubversionSCM.DescriptorImpl.class).createAuthenticationProvider(context);
     }
 
     private boolean buildModule(String url, SVNLogClient svnlc, SVNXMLLogHandler logHandler) throws IOException2 {

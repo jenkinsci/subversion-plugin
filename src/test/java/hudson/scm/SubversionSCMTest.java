@@ -28,8 +28,11 @@ import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import hudson.ClassicPluginStrategy;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.Launcher.LocalLauncher;
+import hudson.Proc;
 import hudson.model.AbstractProject;
 import hudson.slaves.DumbSlave;
 import hudson.model.Cause;
@@ -81,6 +84,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
@@ -110,7 +114,7 @@ public class SubversionSCMTest extends HudsonTestCase {
      */
     protected void setJavaNetCredential() throws SVNException, IOException {
         // set the credential to access svn.dev.java.net
-        descriptor.postCredential("https://svn.dev.java.net/svn/hudson/","guest","",null,new PrintWriter(new NullStream()));
+        descriptor.postCredential(null,"https://svn.dev.java.net/svn/hudson/","guest","",null,new PrintWriter(new NullStream()));
     }
 
     @PresetData(ANONYMOUS_READONLY)
@@ -411,7 +415,7 @@ public class SubversionSCMTest extends HudsonTestCase {
         p.setScm(loadSvnRepo());
         FreeStyleBuild b = p.scheduleBuild2(0).get();
 
-        SVNClientManager wc = SubversionSCM.createSvnClientManager();
+        SVNClientManager wc = SubversionSCM.createSvnClientManager((AbstractProject)null);
         SVNStatus st = wc.getStatusClient().doStatus(new File(b.getWorkspace().getRemote()+"/a"), false);
         int wcf = st.getWorkingCopyFormat();
         System.out.println(wcf);
@@ -540,12 +544,12 @@ public class SubversionSCMTest extends HudsonTestCase {
         assertBuildStatusSuccess(p.scheduleBuild2(0).get());
 
         // initial polling on the slave for the code path that doesn't find any change
-        assertFalse(p.pollSCMChanges(new StreamTaskListener(System.out)));
+        assertFalse(p.pollSCMChanges(new StreamTaskListener(System.out, Charset.defaultCharset())));
 
         createCommit(scm, "foo");
 
         // polling on the slave for the code path that doesn't find any change
-        assertTrue(p.pollSCMChanges(new StreamTaskListener(System.out)));
+        assertTrue(p.pollSCMChanges(new StreamTaskListener(System.out, Charset.defaultCharset())));
     }
 
     /**
@@ -556,7 +560,7 @@ public class SubversionSCMTest extends HudsonTestCase {
         forCommit.setScm(scm);
         forCommit.setAssignedLabel(hudson.getSelfLabel());
         FreeStyleBuild b = assertBuildStatusSuccess(forCommit.scheduleBuild2(0).get());
-        SVNClientManager svnm = SubversionSCM.createSvnClientManager();
+        SVNClientManager svnm = SubversionSCM.createSvnClientManager((AbstractProject)null);
 
         List<File> added = new ArrayList<File>();
         for (String path : paths) {
@@ -621,7 +625,7 @@ public class SubversionSCMTest extends HudsonTestCase {
         }
 
         // let Hudson have the credential
-        descriptor.postCredential(repo.toDecodedString(),"guest","",null,new PrintWriter(System.out));
+        descriptor.postCredential(null,repo.toDecodedString(),"guest","",null,new PrintWriter(System.out));
 
         // emulate the call flow where the credential fails
         List<SVNAuthentication> attempted = new ArrayList<SVNAuthentication>();
@@ -681,7 +685,7 @@ public class SubversionSCMTest extends HudsonTestCase {
 
         // now let Hudson have the real credential
         // can we now access the repo?
-        descriptor.postCredential(repo.toDecodedString(),"guest","",null,new PrintWriter(System.out));
+        descriptor.postCredential(null,repo.toDecodedString(),"guest","",null,new PrintWriter(System.out));
         attemptAccess(m);
     }
 
@@ -693,7 +697,79 @@ public class SubversionSCMTest extends HudsonTestCase {
 
     private ISVNAuthenticationManager createInMemoryManager() {
         ISVNAuthenticationManager m = SVNWCUtil.createDefaultAuthenticationManager(hudson.root,null,null,false);
-        m.setAuthenticationProvider(descriptor.createAuthenticationProvider());
+        m.setAuthenticationProvider(descriptor.createAuthenticationProvider(null));
         return m;
+    }
+
+    @Bug(1379)
+    public void testMultipleCredentialsPerRepo() throws Exception {
+        Proc p = runSvnServe(getClass().getResource("HUDSON-1379.zip"));
+        try {
+            FreeStyleProject b = createFreeStyleProject();
+            b.setScm(new SubversionSCM("svn://localhost/bob"));
+
+            FreeStyleProject c = createFreeStyleProject();
+            c.setScm(new SubversionSCM("svn://localhost/charlie"));
+
+            // should fail without a credential
+            assertBuildStatus(Result.FAILURE,b.scheduleBuild2(0).get());
+            descriptor.postCredential(b,"svn://localhost/bob","bob","bob",null,new PrintWriter(System.out));
+            buildAndAssertSuccess(b);
+
+            assertBuildStatus(Result.FAILURE,c.scheduleBuild2(0).get());
+            descriptor.postCredential(c,"svn://localhost/charlie","charlie","charlie",null,new PrintWriter(System.out));
+            buildAndAssertSuccess(c);
+
+            // b should still build fine.
+            buildAndAssertSuccess(b);
+        } finally {
+            p.kill();
+        }
+    }
+
+    @Bug(1379)
+    public void testSuperUserForAllRepos() throws Exception {
+        Proc p = runSvnServe(getClass().getResource("HUDSON-1379.zip"));
+        try {
+            FreeStyleProject b = createFreeStyleProject();
+            b.setScm(new SubversionSCM("svn://localhost/bob"));
+
+            FreeStyleProject c = createFreeStyleProject();
+            c.setScm(new SubversionSCM("svn://localhost/charlie"));
+
+            // should fail without a credential
+            assertBuildStatus(Result.FAILURE,b.scheduleBuild2(0).get());
+            assertBuildStatus(Result.FAILURE,c.scheduleBuild2(0).get());
+
+            // but with the super user credential both should work now
+            descriptor.postCredential(b,"svn://localhost/bob","alice","alice",null,new PrintWriter(System.out));
+            buildAndAssertSuccess(b);
+            buildAndAssertSuccess(c);
+        } finally {
+            p.kill();
+        }
+    }
+
+    private Proc runSvnServe(URL zip) throws Exception {
+        return runSvnServe(new CopyExisting(zip).allocate());
+    }
+
+    /**
+     * Runs svnserve to serve the specified directory as a subversion repository.
+     */
+    private Proc runSvnServe(File repo) throws Exception {
+        LocalLauncher launcher = new LocalLauncher(new StreamTaskListener(System.out));
+        try {
+            launcher.launch().cmds("svnserve","--help").start().join();
+        } catch (IOException e) {
+            // if we fail to launch svnserve, skip the test
+            return null;
+        }
+        return launcher.launch().cmds(
+                "svnserve","-d","--foreground","-r",repo.getAbsolutePath()).pwd(repo).start();
+    }
+
+    static {
+        ClassicPluginStrategy.useAntClassLoader = true;
     }
 }

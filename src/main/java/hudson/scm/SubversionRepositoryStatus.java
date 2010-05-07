@@ -79,10 +79,10 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
 
                 SubversionSCM sscm = (SubversionSCM) scm;
                 for (ModuleLocation loc : sscm.getLocations()) {
-                    if (loc.getUUID().equals(uuid)) uuidFound = true; else continue;
+                    if (loc.getUUID(p).equals(uuid)) uuidFound = true; else continue;
 
                     String m = loc.getSVNURL().getPath();
-                    String n = loc.getRepositoryRoot().getPath();
+                    String n = loc.getRepositoryRoot(p).getPath();
                     if(!m.startsWith(n))    continue;   // repository root should be a subpath of the module path, but be defensive
 
                     String remaining = m.substring(n.length());
