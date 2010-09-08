@@ -1,7 +1,7 @@
 /*
  * The MIT License
  * 
- * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi, Bruce Chapman, Yahoo! Inc.
+ * Copyright (c) 2004-2010, Sun Microsystems, Inc., Kohsuke Kawaguchi, Bruce Chapman, Yahoo! Inc.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,10 @@ package hudson.scm;
 
 import com.gargoylesoftware.htmlunit.ElementNotFoundException;
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
+import com.gargoylesoftware.htmlunit.HttpMethod;
+import com.gargoylesoftware.htmlunit.WebConnection;
+import com.gargoylesoftware.htmlunit.WebRequestSettings;
+import com.gargoylesoftware.htmlunit.WebResponse;
 import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
@@ -46,6 +50,7 @@ import hudson.scm.SubversionSCM.ModuleLocation;
 import static hudson.scm.SubversionSCM.compareSVNAuthentications;
 import hudson.scm.SubversionSCM.DescriptorImpl;
 import hudson.scm.browsers.Sventon;
+import hudson.triggers.SCMTrigger;
 import hudson.util.FormValidation;
 import hudson.util.NullStream;
 import hudson.util.StreamTaskListener;
@@ -230,13 +235,84 @@ public class SubversionSCMTest extends HudsonTestCase {
         setJavaNetCredential();
         FreeStyleProject p = createFreeStyleProject();
         String url = "https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant";
-		p.setScm(new SubversionSCM(url));
+	p.setScm(new SubversionSCM(url));
 
         FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause(), 
         		new RevisionParameterAction(new SubversionSCM.SvnInfo(url, 13000))).get();
         System.out.println(b.getLog(LOG_LIMIT));
         assertTrue(b.getLog(LOG_LIMIT).contains("At revision 13000"));
         assertBuildStatus(Result.SUCCESS,b);
+    }
+
+    private FreeStyleProject createPostCommitTriggerJob() throws Exception {
+        // Disable crumbs because HTMLUnit refuses to mix request bodies with
+        // request parameters
+        hudson.setCrumbIssuer(null);
+
+        setJavaNetCredential();
+        FreeStyleProject p = createFreeStyleProject();
+        String url = "https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant";
+        SCMTrigger trigger = new SCMTrigger("0 */6 * * *");
+
+        p.setScm(new SubversionSCM(url));
+        p.addTrigger(trigger);
+        trigger.start(p, true);
+
+        return p;
+    }
+
+    private FreeStyleBuild sendCommitTrigger(FreeStyleProject p, boolean includeRevision) throws Exception {
+        String repoUUID = "71c3de6d-444a-0410-be80-ed276b4c234a";
+
+        WebClient wc = new WebClient();
+        WebRequestSettings wr = new WebRequestSettings(new URL(getURL() + "subversion/" + repoUUID + "/notifyCommit"), HttpMethod.POST);
+        wr.setRequestBody("A   trunk/hudson/test-projects/trivial-ant/build.xml");
+        wr.setAdditionalHeader("Content-Type", "text/plain;charset=UTF-8");
+
+        if (includeRevision) {
+            wr.setAdditionalHeader("X-Hudson-Subversion-Revision", "13000");
+        }
+        
+        WebConnection conn = wc.getWebConnection();
+        WebResponse resp = conn.getResponse(wr);
+        assertTrue(isGoodHttpStatus(resp.getStatusCode()));
+
+        waitUntilNoActivity();
+        FreeStyleBuild b = p.getLastBuild();
+        assertNotNull(b);
+        assertBuildStatus(Result.SUCCESS,b);
+
+        return b;
+    }
+
+    public long getActualRevision(FreeStyleBuild b) throws Exception {
+        SVNRevisionState revisionState = b.getAction(SVNRevisionState.class);
+        if (revisionState == null) {
+            throw new Exception("No revision found!");
+        }
+
+        return revisionState.revisions.get("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant").longValue();
+
+    }
+    /**
+     * Tests a checkout triggered from the post-commit hook
+     */
+    public void testPostCommitTrigger() throws Exception {
+        FreeStyleProject p = createPostCommitTriggerJob();
+        FreeStyleBuild b = sendCommitTrigger(p, true);
+
+        assertTrue(getActualRevision(b) <= 13000);
+    }
+    
+    /**
+     * Tests a checkout triggered from the post-commit hook without revision
+     * information.
+     */
+    public void testPostCommitTriggerNoRevision() throws Exception {
+        FreeStyleProject p = createPostCommitTriggerJob();
+        FreeStyleBuild b = sendCommitTrigger(p, false);
+
+        assertTrue(getActualRevision(b) > 13000);
     }
 
     /**
@@ -436,10 +512,15 @@ public class SubversionSCMTest extends HudsonTestCase {
     }
 
     /**
-     * Makes sure the symbolic link is checked out correctly. There seems to be 
+     * Makes sure the symbolic link is checked out correctly. There seems to be
      */
     @Bug(3904)
     public void testSymbolicLinkCheckout() throws Exception {
+        // Only perform if symlink behavior is enabled
+        if (!"true".equals(System.getProperty("svnkit.symlinks"))) {
+            return;
+        }
+
         setJavaNetCredential();
         FreeStyleProject p = createFreeStyleProject();
         p.setScm(new SubversionSCM("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/issue-3904"));
@@ -724,7 +805,7 @@ public class SubversionSCMTest extends HudsonTestCase {
             buildAndAssertSuccess(b);
         } finally {
             p.kill();
-        }
+}
     }
 
     @Bug(1379)

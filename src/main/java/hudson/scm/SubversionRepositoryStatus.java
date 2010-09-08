@@ -2,8 +2,10 @@ package hudson.scm;
 
 import hudson.model.AbstractModelObject;
 import hudson.model.AbstractProject;
+import hudson.model.Action;
 import hudson.model.Hudson;
 import hudson.scm.SubversionSCM.ModuleLocation;
+import hudson.scm.SubversionSCM.SvnInfo;
 import hudson.triggers.SCMTrigger;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
@@ -13,7 +15,9 @@ import javax.servlet.ServletException;
 import static javax.servlet.http.HttpServletResponse.SC_OK;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import static java.util.logging.Level.FINE;
@@ -68,6 +72,17 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
             LOGGER.fine("Change reported to Subversion repository "+uuid+" on "+affectedPath);
         boolean scmFound = false, triggerFound = false, uuidFound = false, pathFound = false;
 
+        String revParam = req.getParameter("rev");
+        long rev = -1;
+        if (revParam != null) {
+            rev = Long.parseLong(revParam);
+        } else {
+            revParam = req.getHeader("X-Hudson-Subversion-Revision");
+            if (revParam != null) {
+                rev = Long.parseLong(revParam);
+            }
+        }
+
         OUTER:
         for (AbstractProject<?,?> p : Hudson.getInstance().getItems(AbstractProject.class)) {
             try {
@@ -89,12 +104,22 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                     if(remaining.startsWith("/"))   remaining=remaining.substring(1);
                     String remainingSlash = remaining + '/';
 
+                    List<RevisionParameterAction> actions = null;
+                    if ( rev != -1 ) {
+                        SvnInfo info[] = { new SvnInfo(loc.getURL(), rev) };
+                        RevisionParameterAction action = new RevisionParameterAction(info);
+                        actions = Collections.singletonList(action);
+
+                    } else {
+                        actions = Collections.EMPTY_LIST;
+                    }
+
                     for (String path : affectedPath) {
                         if(path.equals(remaining) /*for files*/ || path.startsWith(remainingSlash) /*for dirs*/) {
                             // this project is possibly changed. poll now.
                             // if any of the data we used was bogus, the trigger will not detect a chaange
                             LOGGER.fine("Scheduling the immediate polling of "+p);
-                            trigger.run();
+                            trigger.run(actions.toArray(new Action[0]));
                             pathFound = true;
 
                             continue OUTER;
