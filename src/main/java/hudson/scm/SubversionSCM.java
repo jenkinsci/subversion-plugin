@@ -1881,7 +1881,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
             // check if a absolute path has been supplied
             // (the last check with the regex will match windows drives)
-            if (v.startsWith("/") || v.startsWith("\\") || v.startsWith("..") || v.matches("^[A-Za-z]:"))
+            if (v.startsWith("/") || v.startsWith("\\") || v.startsWith("..") || v.matches("^[A-Za-z]:.*"))
                 return FormValidation.error("absolute path is not allowed");
 
             // all tests passed so far
