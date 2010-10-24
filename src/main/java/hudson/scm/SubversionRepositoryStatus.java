@@ -2,11 +2,12 @@ package hudson.scm;
 
 import hudson.model.AbstractModelObject;
 import hudson.model.AbstractProject;
-import hudson.model.Action;
 import hudson.model.Hudson;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.scm.SubversionSCM.SvnInfo;
 import hudson.triggers.SCMTrigger;
+
+import org.apache.commons.io.IOUtils;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.tmatesoft.svn.core.SVNException;
@@ -15,13 +16,13 @@ import javax.servlet.ServletException;
 import static javax.servlet.http.HttpServletResponse.SC_OK;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.FINER;
 import static java.util.logging.Level.WARNING;
+
 import java.util.logging.Logger;
 
 /**
@@ -59,15 +60,23 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
         Set<String> affectedPath = new HashSet<String>();
         String line;
         BufferedReader r = new BufferedReader(req.getReader());
-        while((line=r.readLine())!=null) {
-            LOGGER.finer("Reading line: "+line);
-            affectedPath.add(line.substring(4));
-            if (line.startsWith("svnlook changed --revision ")) {
-                String msg = "Expecting the output from the svnlook command but instead you just sent me the svnlook invocation command line: " + line;
-                LOGGER.warning(msg);
-                throw new IllegalArgumentException(msg);
-            }
+        
+        try {
+	        while((line=r.readLine())!=null) {
+	        	if (LOGGER.isLoggable(FINER)) {
+	        		LOGGER.finer("Reading line: "+line);
+	        	}
+	            affectedPath.add(line.substring(4));
+	            if (line.startsWith("svnlook changed --revision ")) {
+	                String msg = "Expecting the output from the svnlook command but instead you just sent me the svnlook invocation command line: " + line;
+	                LOGGER.warning(msg);
+	                throw new IllegalArgumentException(msg);
+	            }
+	        }
+        } finally {
+        	IOUtils.closeQuietly(r);
         }
+
         if(LOGGER.isLoggable(FINE))
             LOGGER.fine("Change reported to Subversion repository "+uuid+" on "+affectedPath);
         boolean scmFound = false, triggerFound = false, uuidFound = false, pathFound = false;
@@ -104,22 +113,22 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                     if(remaining.startsWith("/"))   remaining=remaining.substring(1);
                     String remainingSlash = remaining + '/';
 
-                    List<RevisionParameterAction> actions = null;
+                    final RevisionParameterAction[] actions;
                     if ( rev != -1 ) {
                         SvnInfo info[] = { new SvnInfo(loc.getURL(), rev) };
                         RevisionParameterAction action = new RevisionParameterAction(info);
-                        actions = Collections.singletonList(action);
+                        actions = new RevisionParameterAction[] {action};
 
                     } else {
-                        actions = Collections.EMPTY_LIST;
+                        actions = new RevisionParameterAction[0];
                     }
 
                     for (String path : affectedPath) {
                         if(path.equals(remaining) /*for files*/ || path.startsWith(remainingSlash) /*for dirs*/) {
                             // this project is possibly changed. poll now.
-                            // if any of the data we used was bogus, the trigger will not detect a chaange
+                            // if any of the data we used was bogus, the trigger will not detect a change
                             LOGGER.fine("Scheduling the immediate polling of "+p);
-                            trigger.run(actions.toArray(new Action[0]));
+                            trigger.run(actions);
                             pathFound = true;
 
                             continue OUTER;
