@@ -1359,19 +1359,20 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         public static final class PasswordCredential extends Credential {
             private final String userName;
-            private final String password; // scrambled by base64
+            // for historical reasons, this password is stored in base64 encoded format.
+            private final Secret password;
 
             public PasswordCredential(String userName, String password) {
                 this.userName = userName;
-                this.password = Scrambler.scramble(password);
+                this.password = Secret.fromString(Scrambler.scramble(password));
             }
 
             @Override
             public SVNAuthentication createSVNAuthentication(String kind) {
                 if(kind.equals(ISVNAuthenticationManager.SSH))
-                    return new SVNSSHAuthentication(userName,Scrambler.descramble(password),-1,false);
+                    return new SVNSSHAuthentication(userName,Scrambler.descramble(Secret.toString(password)),-1,false);
                 else
-                    return new SVNPasswordAuthentication(userName,Scrambler.descramble(password),false);
+                    return new SVNPasswordAuthentication(userName,Scrambler.descramble(Secret.toString(password)),false);
             }
         }
 
@@ -1380,7 +1381,8 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         public static final class SshPublicKeyCredential extends Credential {
             private final String userName;
-            private final String passphrase; // scrambled by base64
+            // for historical reasons, this password is stored in base64 encoded format.
+            private final Secret passphrase;
             private final String id;
 
             /**
@@ -1389,7 +1391,7 @@ public class SubversionSCM extends SCM implements Serializable {
              */
             public SshPublicKeyCredential(String userName, String passphrase, File keyFile) throws SVNException {
                 this.userName = userName;
-                this.passphrase = Scrambler.scramble(passphrase);
+                this.passphrase = Secret.fromString(Scrambler.scramble(passphrase));
 
                 Random r = new Random();
                 StringBuilder buf = new StringBuilder();
@@ -1442,7 +1444,7 @@ public class SubversionSCM extends SCM implements Serializable {
                         } else {
                             privateKey = FileUtils.readFileToString(getKeyFile(),"iso-8859-1");
                         }
-                        return new SVNSSHAuthentication(userName, privateKey.toCharArray(), Scrambler.descramble(passphrase),-1,false);
+                        return new SVNSSHAuthentication(userName, privateKey.toCharArray(), Scrambler.descramble(Secret.toString(passphrase)),-1,false);
                     } catch (IOException e) {
                         throw new SVNException(SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,"Unable to load private key"),e);
                     } catch (InterruptedException e) {
@@ -1458,10 +1460,11 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         public static final class SslClientCertificateCredential extends Credential {
             private final Secret certificate;
-            private final String password; // scrambled by base64
+            // for historical reasons, this password is stored in base64 encoded format.
+            private final Secret password;
 
             public SslClientCertificateCredential(File certificate, String password) throws IOException {
-                this.password = Scrambler.scramble(password);
+                this.password = Secret.fromString(Scrambler.scramble(password));
                 this.certificate = Secret.fromString(new String(Base64.encode(FileUtils.readFileToByteArray(certificate))));
             }
 
@@ -1470,8 +1473,8 @@ public class SubversionSCM extends SCM implements Serializable {
                 if(kind.equals(ISVNAuthenticationManager.SSL))
                     try {
                         return new SVNSSLAuthentication(
-                                Base64.decode(certificate.toString().toCharArray()),
-                                Scrambler.descramble(password),false);
+                                Base64.decode(certificate.getPlainText().toCharArray()),
+                                Scrambler.descramble(Secret.toString(password)),false);
                     } catch (IOException e) {
                         throw new Error(e); // can't happen
                     }
