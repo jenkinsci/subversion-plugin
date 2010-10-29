@@ -30,7 +30,7 @@ THE SOFTWARE.
           <f:textbox value="${loc.remote}" id="svn.remote.loc" />
         </f:entry>
         <f:entry title="${%Local module directory} (${%optional})" field="local">
-          <f:textbox value="${loc.local}" default="." />
+          <f:textbox value="${loc!=null?loc.local:'.'}" />
         </f:entry>
         <f:entry>
           <div align="right">

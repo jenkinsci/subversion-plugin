@@ -403,6 +403,19 @@ public class SubversionSCMTest extends HudsonTestCase {
         verify(scm,(SubversionSCM)p.getScm());
     }
 
+    @Bug(7944)
+    public void testConfigRoundtrip2() throws Exception {
+        FreeStyleProject p = createFreeStyleProject();
+
+        SubversionSCM scm = new SubversionSCM(
+                Arrays.asList(
+                		new ModuleLocation("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/testSubversionExclusion", "")),
+                true,null,null,null,null,null);
+        p.setScm(scm);
+        configRoundtrip(p);
+        verify(scm,(SubversionSCM)p.getScm());
+    }
+
     @Bug(5684)
     public void testDoCheckExcludedUsers() throws Exception {
         String[] validUsernames = new String[] {
@@ -441,7 +454,7 @@ public class SubversionSCMTest extends HudsonTestCase {
         ModuleLocation[] rl = rhs.getLocations();
         assertEquals(ll.length, rl.length);
         for(int i=0; i<ll.length; i++) {
-            assertEquals(ll[i].getLocalDir(), rl[i].getLocalDir());
+            assertEquals(ll[i].local, rl[i].local);
             assertEquals(ll[i].remote, rl[i].remote);
         }
 
