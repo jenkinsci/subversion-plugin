@@ -746,6 +746,7 @@ public class SubversionSCM extends SCM implements Serializable {
      *      (and properly remoted, if the svn operations run on slaves.)
      */
     public static SVNClientManager createSvnClientManager(ISVNAuthenticationProvider authProvider) {
+        SubversionWorkspaceSelector.syncWorkspaceFormatFromMaster();
         ISVNAuthenticationManager sam = SVNWCUtil.createDefaultAuthenticationManager();
         sam.setAuthenticationProvider(authProvider);
         return SVNClientManager.newInstance(SVNWCUtil.createDefaultOptions(true),sam);
