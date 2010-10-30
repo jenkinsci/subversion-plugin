@@ -249,7 +249,7 @@ public class UserProvidedCredential implements Closeable {
          */
         public void checkIfProtocolCompleted() throws SVNCancelException {
             if(!authenticationAttempted) {
-                logWriter.println("No authentication was attemped.");
+                logWriter.println("No authentication was attempted.");
                 throw new SVNCancelException();
             }
             if (!authenticationAcknowledged) {
