@@ -23,9 +23,11 @@
  */
 package hudson.scm;
 
+import hudson.model.Hudson;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.internal.wc.admin.ISVNAdminAreaFactorySelector;
 import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminArea14;
+import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminArea16;
 import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminAreaFactory;
 
 import java.io.File;
@@ -62,7 +64,7 @@ public class SubversionWorkspaceSelector implements ISVNAdminAreaFactorySelector
         // for writing, use 1.4
         Collection<SVNAdminAreaFactory> enabledFactories = new ArrayList<SVNAdminAreaFactory>();
         for (SVNAdminAreaFactory factory : (Collection<SVNAdminAreaFactory>)factories)
-            if (factory.getSupportedVersion() == SVNAdminArea14.WC_FORMAT)
+            if (factory.getSupportedVersion() == Hudson.getInstance().getDescriptorByType(SubversionSCM.DescriptorImpl.class).getWorkspaceFormat())
                 enabledFactories.add(factory);
 
         return enabledFactories;

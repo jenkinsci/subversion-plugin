@@ -1,7 +1,7 @@
 <!--
 The MIT License
 
-Copyright (c) 2009, Yahoo! Inc.
+Copyright (c) 2009, Yahoo! Inc., InfraDNA, Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,14 @@ THE SOFTWARE.
 
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
     <f:section title="${%Subversion}">
+        <f:entry title="${%Subversion Workspace Version}" help="/descriptor/hudson.scm.SubversionSCM/help/workspaceFormat">
+          <select name="svn.workspaceFormat">
+            <f:option value="8"  selected="${descriptor.workspaceFormat==8}" >1.4</f:option>
+            <f:option value="9"  selected="${descriptor.workspaceFormat==9}" >1.5</f:option>
+            <f:option value="10" selected="${descriptor.workspaceFormat==10}">1.6 (svn:externals to file)</f:option>
+          </select>
+            <f:textbox name="svn.global_excluded_revprop" value="${descriptor.globalExcludedRevprop}"/>
+        </f:entry>
         <f:entry title="${%Exclusion revprop name}" help="/descriptor/hudson.scm.SubversionSCM/help/excludedRevprop">
             <f:textbox name="svn.global_excluded_revprop" value="${descriptor.globalExcludedRevprop}"/>
         </f:entry>

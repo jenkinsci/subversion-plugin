@@ -1337,6 +1337,8 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         private String globalExcludedRevprop = null;
 
+        private int workspaceFormat = SVNAdminAreaFactory.WC_FORMAT_14;
+
         /**
          * Stores {@link SVNAuthentication} for a single realm.
          *
@@ -1627,10 +1629,17 @@ public class SubversionSCM extends SCM implements Serializable {
             return globalExcludedRevprop;
         }
 
+        public int getWorkspaceFormat() {
+            if (workspaceFormat==0)
+                return SVNAdminAreaFactory.WC_FORMAT_14; // default
+            return workspaceFormat;
+        }
+
         @Override
         public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
             globalExcludedRevprop = fixEmptyAndTrim(
                     req.getParameter("svn.global_excluded_revprop"));
+            workspaceFormat = Integer.parseInt(req.getParameter("svn.workspaceFormat"));
 
             // Save configuration
             save();

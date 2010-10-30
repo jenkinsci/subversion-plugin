@@ -29,6 +29,7 @@ import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNErrorCode;
 import org.tmatesoft.svn.core.SVNErrorMessage;
 import org.tmatesoft.svn.core.SVNException;
+import org.tmatesoft.svn.core.SVNNodeKind;
 import org.tmatesoft.svn.core.internal.wc.SVNExternal;
 import org.tmatesoft.svn.core.wc.SVNEvent;
 import org.tmatesoft.svn.core.wc.SVNEventAction;
@@ -102,6 +103,10 @@ final class SubversionUpdateEventHandler extends SubversionEventHandlerImpl {
                 		,ext));
             }
             return;
+        }
+        if (action==SVNEventAction.SKIP && event.getExpectedAction()==SVNEventAction.UPDATE_EXTERNAL && event.getNodeKind()== SVNNodeKind.FILE) {
+            // svn:externals file support requires 1.6 workspace
+            out.println("svn:externals to a file requires Subversion 1.6 workspace support. Use the system configuration to enable that.");
         }
 
         super.handleEvent(event,progress);

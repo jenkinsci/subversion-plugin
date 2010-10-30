@@ -818,7 +818,34 @@ public class SubversionSCMTest extends HudsonTestCase {
             buildAndAssertSuccess(b);
         } finally {
             p.kill();
-}
+        }
+    }
+
+    /**
+     * Subversion externals to a file. Requires 1.6 workspace.
+     */
+    @Bug(7539)
+    public void testExternalsToFile() throws Exception {
+        Proc server = runSvnServe(getClass().getResource("HUDSON-7539.zip"));
+        try {
+            // enable 1.6 mode
+            HtmlForm f = createWebClient().goTo("configure").getFormByName("config");
+            f.getSelectByName("svn.workspaceFormat").setSelectedAttribute("10",true);
+            submit(f);
+
+            FreeStyleProject p = createFreeStyleProject();
+            p.setScm(new SubversionSCM("svn://localhost/dir1"));
+            FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0));
+            System.out.println(b.getLog());
+
+            assertTrue(b.getWorkspace().child("2").exists());
+            assertTrue(b.getWorkspace().child("3").exists());
+            assertTrue(b.getWorkspace().child("test.x").exists());
+
+            assertBuildStatusSuccess(p.scheduleBuild2(0));
+        } finally {
+            server.kill();
+        }
     }
 
     @Bug(1379)
