@@ -3,7 +3,8 @@
  * 
  * Copyright (c) 2004-2010, Sun Microsystems, Inc., Kohsuke Kawaguchi, Fulvio Cavarretta,
  * Jean-Baptiste Quenot, Luca Domenico Milanesio, Renaud Bruyeron, Stephen Connolly,
- * Tom Huybrechts, Yahoo! Inc.
+ * Tom Huybrechts, Yahoo! Inc., Manufacture Francaise des Pneumatiques Michelin,
+ * Romain Seguy
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -1341,6 +1342,12 @@ public class SubversionSCM extends SCM implements Serializable {
         private int workspaceFormat = SVNAdminAreaFactory.WC_FORMAT_14;
 
         /**
+         * When set to true, repository URLs will be validated up to the first
+         * dollar sign which is encountered.
+         */
+        private boolean validateRemoteUpToVar = false;
+
+        /**
          * Stores {@link SVNAuthentication} for a single realm.
          *
          * <p>
@@ -1575,7 +1582,7 @@ public class SubversionSCM extends SCM implements Serializable {
                         // this comparison is necessary, unlike the original fix of HUDSON-2909, since SVNKit may use
                         // other ISVNAuthenticationProviders and their failed auth might be passed to us.
                         // see HUDSON-3936
-                        LOGGER.fine("Previous authentication attempt failed, so aborting: "+previousAuth);
+                        LOGGER.log(FINE, "Previous authentication attempt failed, so aborting: {0}", previousAuth);
                         return null;
                     }
 
@@ -1633,11 +1640,16 @@ public class SubversionSCM extends SCM implements Serializable {
             return workspaceFormat;
         }
 
+        public boolean isValidateRemoteUpToVar() {
+            return validateRemoteUpToVar;
+        }
+
         @Override
         public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
             globalExcludedRevprop = fixEmptyAndTrim(
                     req.getParameter("svn.global_excluded_revprop"));
             workspaceFormat = Integer.parseInt(req.getParameter("svn.workspaceFormat"));
+            validateRemoteUpToVar = formData.containsKey("validateRemoteUpToVar");
 
             // Save configuration
             save();
@@ -1770,6 +1782,11 @@ public class SubversionSCM extends SCM implements Serializable {
 
             // remove unneeded whitespaces
             url = url.trim();
+
+            if(isValidateRemoteUpToVar()) {
+                url = url.substring(0, url.indexOf('$'));
+            }
+
             if(!URL_PATTERN.matcher(url).matches())
                 return FormValidation.errorWithMarkup(
                     Messages.SubversionSCM_doCheckRemote_invalidUrl());
