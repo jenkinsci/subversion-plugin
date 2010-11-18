@@ -46,6 +46,7 @@ import hudson.util.*;
 import net.sf.json.JSONObject;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.taskdefs.Chmod;
 import org.kohsuke.stapler.AncestorInPath;
@@ -73,6 +74,7 @@ import javax.servlet.ServletException;
 import javax.xml.transform.stream.StreamResult;
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
+import java.text.DateFormat;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.logging.Level;
@@ -409,15 +411,20 @@ public class SubversionSCM extends SCM implements Serializable {
             Map<String,Long> revisions = parseRevisionFile(build);
             if(svnLocations.length==1) {
                 Long rev = revisions.get(svnLocations[0].remote);
-                if(rev!=null)
+                if(rev!=null) {
                     env.put("SVN_REVISION",rev.toString());
+                    env.put("SVN_URL",svnLocations[0].getURL());
+                }
+            } else if(svnLocations.length>1) {
+                for(int i=0;i<svnLocations.length;i++) {
+                    Long rev = revisions.get(svnLocations[i].remote);
+                    if(rev!=null) {
+                        env.put("SVN_REVISION_"+(i+1),rev.toString());
+                        env.put("SVN_URL_"+(i+1),svnLocations[i].getURL());
+                    }
+                }
             }
-            // it's not clear what to do if there are more than one modules.
-            // if we always return locations[0].remote, it'll be difficult
-            // to change this later (to something more sensible, such as
-            // choosing the "root module" or whatever), so let's not set
-            // anything for now.
-            // besides, one can always use 'svnversion' to obtain the revision more explicitly.
+
         } catch (IOException e) {
             // ignore this error
         }
@@ -660,6 +667,7 @@ public class SubversionSCM extends SCM implements Serializable {
                         }
                     }
                 } else {
+                    listener.getLogger().println("Cleaning workspace " + ws.getCanonicalPath());
                     Util.deleteContentsRecursive(ws);
 
                     // buffer the output by a separate thread so that the update operation
@@ -1066,12 +1074,17 @@ public class SubversionSCM extends SCM implements Serializable {
         // in case a cluster is non-uniform. see http://www.nabble.com/svn-connection-from-slave-only-td24970587.html
         VirtualChannel ch=null;
         Node n = lastCompletedBuild!=null ? lastCompletedBuild.getBuiltOn() : null;
+        if (POLL_FROM_MASTER) {
+            n = null;
+        }
         if (n!=null) {
             Computer c = n.toComputer();
             if (c!=null)    ch = c.getChannel();
         }
-        if (ch==null)   ch = MasterComputer.localChannel;
-
+        if (ch==null)   ch= MasterComputer.localChannel;
+        final String nodeName = n!=null ? n.getNodeName() : "master";
+        final String projectName = project.getName();
+        
         final SVNLogHandler logHandler = new SVNLogHandler(listener);
         // figure out the remote revisions
         final ISVNAuthenticationProvider authProvider = getDescriptor().createAuthenticationProvider(project);
@@ -1086,6 +1099,7 @@ public class SubversionSCM extends SCM implements Serializable {
              * so  
              */
             public PollingResult call() throws IOException {
+                listener.getLogger().println("Received SCM poll call on " + nodeName + " for " + projectName + " on " + DateFormat.getDateTimeInstance().format(new Date()) );
                 final Map<String,Long> revs = new HashMap<String,Long>();
                 boolean changes = false;
                 boolean significantChanges = false;
@@ -1408,7 +1422,9 @@ public class SubversionSCM extends SCM implements Serializable {
                 this.id = buf.toString();
 
                 try {
-                    FileUtils.copyFile(keyFile,getKeyFile());
+                    File savedKeyFile = getKeyFile();
+                    FileUtils.copyFile(keyFile,savedKeyFile);
+                    setFilePermissions(savedKeyFile, "600");
                 } catch (IOException e) {
                     throw new SVNException(SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,"Unable to save private key"),e);
                 }
@@ -1422,18 +1438,28 @@ public class SubversionSCM extends SCM implements Serializable {
                 if(dir.mkdirs()) {
                     // make sure the directory exists. if we created it, try to set the permission to 600
                     // since this is sensitive information
-                    try {
-                        Chmod chmod = new Chmod();
-                        chmod.setProject(new Project());
-                        chmod.setFile(dir);
-                        chmod.setPerm("600");
-                        chmod.execute();
-                    } catch (Throwable e) {
-                        // if we failed to set the permission, that's fine.
-                        LOGGER.log(Level.WARNING, "Failed to set directory permission of "+dir,e);
-                    }
+                    setFilePermissions(dir, "600");
                 }
                 return new File(dir,id);
+            }
+
+            /**
+             * Set the file permissions
+             */
+            private boolean setFilePermissions(File file, String perms) {
+                try {
+                    Chmod chmod = new Chmod();
+                    chmod.setProject(new Project());
+                    chmod.setFile(file);
+                    chmod.setPerm(perms);
+                    chmod.execute();
+                } catch (BuildException e) {
+                    // if we failed to set the permission, that's fine.
+                    LOGGER.log(Level.WARNING, "Failed to set permission of "+file,e);
+                    return false;
+                }
+
+                return true;
             }
 
             @Override
@@ -2249,6 +2275,11 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     public static int DEFAULT_TIMEOUT = Integer.getInteger(SubversionSCM.class.getName()+".timeout",3600*1000);
 
+    /**
+     * Property to control whether SCM polling happens from the slave or master
+     */
+    public static boolean POLL_FROM_MASTER = Boolean.getBoolean(SubversionSCM.class.getName()+".pollFromMaster");
+    
     /**
      * Enables trace logging of Ganymed SSH library.
      * <p>

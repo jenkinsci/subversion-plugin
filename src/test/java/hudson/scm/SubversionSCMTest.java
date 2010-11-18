@@ -57,6 +57,7 @@ import hudson.util.StreamTaskListener;
 import org.dom4j.Document;
 import org.dom4j.io.DOMReader;
 import org.jvnet.hudson.test.Bug;
+import org.jvnet.hudson.test.CaptureEnvironmentBuilder;
 import org.jvnet.hudson.test.Email;
 import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
 import org.jvnet.hudson.test.HudsonTestCase;
@@ -285,13 +286,13 @@ public class SubversionSCMTest extends HudsonTestCase {
         return b;
     }
 
-    public long getActualRevision(FreeStyleBuild b) throws Exception {
+    public Long getActualRevision(FreeStyleBuild b, String url) throws Exception {
         SVNRevisionState revisionState = b.getAction(SVNRevisionState.class);
         if (revisionState == null) {
             throw new Exception("No revision found!");
         }
 
-        return revisionState.revisions.get("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant").longValue();
+        return revisionState.revisions.get(url).longValue();
 
     }
     /**
@@ -301,7 +302,7 @@ public class SubversionSCMTest extends HudsonTestCase {
         FreeStyleProject p = createPostCommitTriggerJob();
         FreeStyleBuild b = sendCommitTrigger(p, true);
 
-        assertTrue(getActualRevision(b) <= 13000);
+        assertTrue(getActualRevision(b, "https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant") <= 13000);
     }
     
     /**
@@ -312,7 +313,7 @@ public class SubversionSCMTest extends HudsonTestCase {
         FreeStyleProject p = createPostCommitTriggerJob();
         FreeStyleBuild b = sendCommitTrigger(p, false);
 
-        assertTrue(getActualRevision(b) > 13000);
+        assertTrue(getActualRevision(b, "https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant") > 13000);
     }
 
     /**
@@ -670,6 +671,36 @@ public class SubversionSCMTest extends HudsonTestCase {
         cc.doCommit(added.toArray(new File[added.size()]),false,"added",null,null,false,false,SVNDepth.EMPTY);
     }
 
+    public void testMasterPolling() throws Exception {
+        File repo = new CopyExisting(getClass().getResource("two-revisions.zip")).allocate();
+        SubversionSCM scm = new SubversionSCM("file://" + repo.getPath());
+        SubversionSCM.POLL_FROM_MASTER = true;
+
+        FreeStyleProject p = createFreeStyleProject();
+        p.setScm(scm);
+        p.setAssignedLabel(createSlave().getSelfLabel());
+        assertBuildStatusSuccess(p.scheduleBuild2(2).get());
+
+        // initial polling on the master for the code path that doesn't find any change
+        assertFalse(p.pollSCMChanges(new StreamTaskListener(System.out)));
+
+        // create a commit
+        FreeStyleProject forCommit = createFreeStyleProject();
+        forCommit.setScm(scm);
+        forCommit.setAssignedLabel(hudson.getSelfLabel());
+        FreeStyleBuild b = assertBuildStatusSuccess(forCommit.scheduleBuild2(0).get());
+        FilePath newFile = b.getWorkspace().child("foo");
+        newFile.touch(System.currentTimeMillis());
+        SVNClientManager svnm = SubversionSCM.createSvnClientManager(p);
+        svnm.getWCClient().doAdd(new File(newFile.getRemote()),false,false,false, SVNDepth.INFINITY, false,false);
+        SVNCommitClient cc = svnm.getCommitClient();
+        cc.doCommit(new File[]{new File(newFile.getRemote())},false,"added",false,false);
+
+        // polling on the master for the code path that doesn't find any change
+        assertTrue(p.pollSCMChanges(new StreamTaskListener(System.out)));
+    }
+
+
     public void testCompareSVNAuthentications() throws Exception {
         assertFalse(compareSVNAuthentications(new SVNUserNameAuthentication("me",true),new SVNSSHAuthentication("me","me",22,true)));
         // same object should compare equal
@@ -782,6 +813,41 @@ public class SubversionSCMTest extends HudsonTestCase {
         descriptor.postCredential(null,repo.toDecodedString(),"guest","",null,new PrintWriter(System.out));
         attemptAccess(m);
     }
+
+    public void testMultiModuleEnvironmentVariables() throws Exception {
+        setJavaNetCredential();
+        FreeStyleProject p = createFreeStyleProject();
+        ModuleLocation[] locations = {
+            new ModuleLocation("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant", null),
+            new ModuleLocation("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-maven", null)
+        };
+        p.setScm(new SubversionSCM(Arrays.asList(locations), false, false, null, null, null, null, null, null));
+
+        CaptureEnvironmentBuilder builder = new CaptureEnvironmentBuilder();
+        p.getBuildersList().add(builder);
+
+        assertBuildStatusSuccess(p.scheduleBuild2(0).get());
+
+        assertEquals("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant", builder.getEnvVars().get("SVN_URL_1"));
+        assertEquals("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-maven", builder.getEnvVars().get("SVN_URL_2"));
+        assertEquals(getActualRevision(p.getLastBuild(), "https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant").toString(), builder.getEnvVars().get("SVN_REVISION_1"));
+        assertEquals(getActualRevision(p.getLastBuild(), "https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-maven").toString(), builder.getEnvVars().get("SVN_REVISION_2"));
+
+    }
+
+    public void testSingleModuleEnvironmentVariables() throws Exception {
+        setJavaNetCredential();
+        FreeStyleProject p = createFreeStyleProject();
+        p.setScm(new SubversionSCM("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant"));
+
+        CaptureEnvironmentBuilder builder = new CaptureEnvironmentBuilder();
+        p.getBuildersList().add(builder);
+
+        assertBuildStatusSuccess(p.scheduleBuild2(0).get());
+        assertEquals("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant", builder.getEnvVars().get("SVN_URL"));
+        assertEquals(getActualRevision(p.getLastBuild(), "https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant").toString(), builder.getEnvVars().get("SVN_REVISION"));
+    }
+
 
     private void attemptAccess(ISVNAuthenticationManager m) throws SVNException {
         SVNRepository repository = SVNRepositoryFactory.create(repo);

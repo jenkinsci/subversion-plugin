@@ -31,6 +31,7 @@ THE SOFTWARE.
     ${%description.2(rootURL)}
     <br />
     ${%description.3}
+    ${%description.4}
     </div>
   </l:ajax>
 </j:jelly>
