@@ -31,7 +31,6 @@ THE SOFTWARE.
             <f:option value="9"  selected="${descriptor.workspaceFormat==9}" >1.5</f:option>
             <f:option value="10" selected="${descriptor.workspaceFormat==10}">1.6 (svn:externals to file)</f:option>
           </select>
-            <f:textbox name="svn.global_excluded_revprop" value="${descriptor.globalExcludedRevprop}"/>
         </f:entry>
         <f:entry title="${%Exclusion revprop name}" help="/descriptor/hudson.scm.SubversionSCM/help/excludedRevprop">
             <f:textbox name="svn.global_excluded_revprop" value="${descriptor.globalExcludedRevprop}"/>
