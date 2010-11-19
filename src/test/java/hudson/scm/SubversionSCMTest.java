@@ -81,6 +81,7 @@ import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminAreaFactory;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNCommitClient;
+import org.tmatesoft.svn.core.wc.SVNRevision;
 import org.tmatesoft.svn.core.wc.SVNStatus;
 import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
@@ -227,6 +228,44 @@ public class SubversionSCMTest extends HudsonTestCase {
         System.out.println(b.getLog(LOG_LIMIT));
         assertTrue(b.getLog(LOG_LIMIT).contains("At revision 13000"));
         assertBuildStatus(Result.SUCCESS,b);
+    }
+
+    /**
+     * Tests the "URL@HEAD" format in the SVN URL
+     */
+    public void testHeadRevisionCheckout() throws Exception {
+        File testRepo = new CopyExisting(getClass().getResource("two-revisions.zip")).allocate();
+        SubversionSCM scm = new SubversionSCM("file://" + testRepo.getPath() + "@HEAD");
+
+        FreeStyleProject p = createFreeStyleProject();
+        p.setScm(scm);
+
+        FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause()).get();
+        System.out.println(b.getLog(LOG_LIMIT));
+        assertTrue(b.getLog(LOG_LIMIT).contains("At revision 2"));
+        assertBuildStatus(Result.SUCCESS,b);
+    }
+
+    /**
+     * Test parsing of @revision information from the tail of the URL
+     */
+    public void testModuleLocationRevisions() throws Exception {
+        SubversionSCM.ModuleLocation m = new SubversionSCM.ModuleLocation("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant@13000", null);
+        SVNRevision r = m.getRevision(null);
+        assertTrue(r.isValid());
+        assertEquals(13000, r.getNumber());
+        assertEquals("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant", m.getURL());
+
+        m = new SubversionSCM.ModuleLocation("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant@HEAD", null);
+        r = m.getRevision(null);
+        assertTrue(r.isValid());
+        assertTrue(r == SVNRevision.HEAD);
+        assertEquals("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant", m.getURL());
+
+        m = new SubversionSCM.ModuleLocation("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant@FAKE", null);
+        r = m.getRevision(null);
+        assertFalse(r.isValid());
+        assertEquals("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant@FAKE", m.getURL());
     }
 
     /**

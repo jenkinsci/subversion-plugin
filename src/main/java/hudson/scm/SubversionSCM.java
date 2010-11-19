@@ -2152,12 +2152,10 @@ public class SubversionSCM extends SCM implements Serializable {
         public String getURL() {
             int idx = remote.lastIndexOf('@');
             if(idx>0) {
-                try {
                     String n = remote.substring(idx+1);
-                    Long.parseLong(n);
+                SVNRevision r = SVNRevision.parse(n);
+                if ((r != null) && (r.isValid())) {
                     return remote.substring(0,idx);
-                } catch (NumberFormatException e) {
-                    // not a revision number
                 }
             }
             return remote;
@@ -2207,13 +2205,9 @@ public class SubversionSCM extends SCM implements Serializable {
         public SVNRevision getRevision(SVNRevision defaultValue) {
             int idx = remote.lastIndexOf('@');
             if(idx>0) {
-                try {
                     String n = remote.substring(idx+1);
-                    return SVNRevision.create(Long.parseLong(n));
-                } catch (NumberFormatException e) {
-                    // not a revision number
+                return SVNRevision.parse(n);
                 }
-            }
             return defaultValue;
         }
 
