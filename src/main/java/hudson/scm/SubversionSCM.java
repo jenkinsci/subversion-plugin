@@ -1810,7 +1810,7 @@ public class SubversionSCM extends SCM implements Serializable {
             url = url.trim();
 
             if(isValidateRemoteUpToVar()) {
-                url = url.substring(0, url.indexOf('$'));
+                url = (url.indexOf('$') != -1) ? url.substring(0, url.indexOf('$')) : url;
             }
 
             if(!URL_PATTERN.matcher(url).matches())
