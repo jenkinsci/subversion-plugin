@@ -104,7 +104,7 @@ public class SubversionSCMTest extends HudsonTestCase {
     private DescriptorImpl descriptor;
 
     // in some tests we play authentication games with this repo
-    String realm = "<https://svn.java.net:443> CollabNet Subversion Repository";
+    String realm = "<https://svn.dev.java.net:443> CollabNet Subversion Repository";
     String kind = ISVNAuthenticationManager.PASSWORD;
     SVNURL repo;
 
@@ -112,15 +112,15 @@ public class SubversionSCMTest extends HudsonTestCase {
     protected void setUp() throws Exception {
         super.setUp();
         descriptor = hudson.getDescriptorByType(DescriptorImpl.class);
-        repo = SVNURL.parseURIDecoded("https://svn.java.net/svn/hudson~svn");
+        repo = SVNURL.parseURIDecoded("https://svn.dev.java.net/svn/hudson");
     }
 
     /**
      * Sets guest credentials to access java.net Subversion repo.
      */
     protected void setJavaNetCredential() throws SVNException, IOException {
-        // set the credential to access svn.java.net
-        descriptor.postCredential(null,"https://svn.java.net/svn/hudson~svn/","guest","",null,new PrintWriter(new NullStream()));
+        // old svn.dev.java.net needed "guest" credential for read access.. new svn.java.net does not:
+        //descriptor.postCredential(null,"https://svn.java.net/svn/hudson~svn/","guest","",null,new PrintWriter(new NullStream()));
     }
 
     @PresetData(ANONYMOUS_READONLY)
@@ -852,6 +852,18 @@ public class SubversionSCMTest extends HudsonTestCase {
         attemptAccess(m);
     }
 
+    private void attemptAccess(ISVNAuthenticationManager m) throws SVNException {
+        SVNRepository repository = SVNRepositoryFactory.create(repo);
+        repository.setAuthenticationManager(m);
+        repository.testConnection();
+    }
+
+    private ISVNAuthenticationManager createInMemoryManager() {
+        ISVNAuthenticationManager m = SVNWCUtil.createDefaultAuthenticationManager(hudson.root,null,null,false);
+        m.setAuthenticationProvider(descriptor.createAuthenticationProvider(null));
+        return m;
+    }
+
     public void testMultiModuleEnvironmentVariables() throws Exception {
         setJavaNetCredential();
         FreeStyleProject p = createFreeStyleProject();
@@ -884,19 +896,6 @@ public class SubversionSCMTest extends HudsonTestCase {
         assertBuildStatusSuccess(p.scheduleBuild2(0).get());
         assertEquals("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant", builder.getEnvVars().get("SVN_URL"));
         assertEquals(getActualRevision(p.getLastBuild(), "https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant").toString(), builder.getEnvVars().get("SVN_REVISION"));
-    }
-
-
-    private void attemptAccess(ISVNAuthenticationManager m) throws SVNException {
-        SVNRepository repository = SVNRepositoryFactory.create(repo);
-        repository.setAuthenticationManager(m);
-        repository.testConnection();
-    }
-
-    private ISVNAuthenticationManager createInMemoryManager() {
-        ISVNAuthenticationManager m = SVNWCUtil.createDefaultAuthenticationManager(hudson.root,null,null,false);
-        m.setAuthenticationProvider(descriptor.createAuthenticationProvider(null));
-        return m;
     }
 
     @Bug(1379)
