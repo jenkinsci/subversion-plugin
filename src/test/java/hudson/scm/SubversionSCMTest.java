@@ -34,7 +34,6 @@ import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import hudson.ClassicPluginStrategy;
 import hudson.FilePath;
-import hudson.Launcher;
 import hudson.Launcher.LocalLauncher;
 import hudson.Proc;
 import hudson.model.AbstractProject;
@@ -105,7 +104,7 @@ public class SubversionSCMTest extends HudsonTestCase {
     private DescriptorImpl descriptor;
 
     // in some tests we play authentication games with this repo
-    String realm = "<https://hudson.dev.java.net:443> CollabNet Subversion Repository";
+    String realm = "<https://svn.java.net:443> CollabNet Subversion Repository";
     String kind = ISVNAuthenticationManager.PASSWORD;
     SVNURL repo;
 
@@ -113,15 +112,15 @@ public class SubversionSCMTest extends HudsonTestCase {
     protected void setUp() throws Exception {
         super.setUp();
         descriptor = hudson.getDescriptorByType(DescriptorImpl.class);
-        repo = SVNURL.parseURIDecoded("https://hudson.dev.java.net/svn/hudson");
+        repo = SVNURL.parseURIDecoded("https://svn.java.net/svn/hudson~svn");
     }
 
     /**
      * Sets guest credentials to access java.net Subversion repo.
      */
     protected void setJavaNetCredential() throws SVNException, IOException {
-        // set the credential to access svn.dev.java.net
-        descriptor.postCredential(null,"https://svn.dev.java.net/svn/hudson/","guest","",null,new PrintWriter(new NullStream()));
+        // set the credential to access svn.java.net
+        descriptor.postCredential(null,"https://svn.java.net/svn/hudson~svn/","guest","",null,new PrintWriter(new NullStream()));
     }
 
     @PresetData(ANONYMOUS_READONLY)
@@ -182,7 +181,7 @@ public class SubversionSCMTest extends HudsonTestCase {
     public void testHttpsCheckOut() throws Exception {
         setJavaNetCredential();
         FreeStyleProject p = createFreeStyleProject();
-        p.setScm(new SubversionSCM("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant"));
+        p.setScm(new SubversionSCM("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant"));
 
         FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserCause()).get());
         assertTrue(b.getWorkspace().child("build.xml").exists());
@@ -203,7 +202,7 @@ public class SubversionSCMTest extends HudsonTestCase {
         DumbSlave s = createSlave();
         FreeStyleProject p = createFreeStyleProject();
         p.setAssignedLabel(s.getSelfLabel());
-        p.setScm(new SubversionSCM("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant"));
+        p.setScm(new SubversionSCM("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant"));
 
         FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserCause()).get());
         assertTrue(b.getWorkspace().child("build.xml").exists());
@@ -217,7 +216,7 @@ public class SubversionSCMTest extends HudsonTestCase {
     public void testRevisionedCheckout() throws Exception {
         setJavaNetCredential();
         FreeStyleProject p = createFreeStyleProject();
-        p.setScm(new SubversionSCM("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant@13000"));
+        p.setScm(new SubversionSCM("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant@13000"));
 
         FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause()).get();
         System.out.println(b.getLog(LOG_LIMIT));
@@ -250,22 +249,22 @@ public class SubversionSCMTest extends HudsonTestCase {
      * Test parsing of @revision information from the tail of the URL
      */
     public void testModuleLocationRevisions() throws Exception {
-        SubversionSCM.ModuleLocation m = new SubversionSCM.ModuleLocation("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant@13000", null);
+        SubversionSCM.ModuleLocation m = new SubversionSCM.ModuleLocation("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant@13000", null);
         SVNRevision r = m.getRevision(null);
         assertTrue(r.isValid());
         assertEquals(13000, r.getNumber());
-        assertEquals("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant", m.getURL());
+        assertEquals("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant", m.getURL());
 
-        m = new SubversionSCM.ModuleLocation("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant@HEAD", null);
+        m = new SubversionSCM.ModuleLocation("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant@HEAD", null);
         r = m.getRevision(null);
         assertTrue(r.isValid());
         assertTrue(r == SVNRevision.HEAD);
-        assertEquals("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant", m.getURL());
+        assertEquals("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant", m.getURL());
 
-        m = new SubversionSCM.ModuleLocation("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant@FAKE", null);
+        m = new SubversionSCM.ModuleLocation("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant@FAKE", null);
         r = m.getRevision(null);
         assertFalse(r.isValid());
-        assertEquals("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant@FAKE", m.getURL());
+        assertEquals("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant@FAKE", m.getURL());
     }
 
     /**
@@ -274,7 +273,7 @@ public class SubversionSCMTest extends HudsonTestCase {
     public void testRevisionParameter() throws Exception {
         setJavaNetCredential();
         FreeStyleProject p = createFreeStyleProject();
-        String url = "https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant";
+        String url = "https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant";
 	p.setScm(new SubversionSCM(url));
 
         FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause(), 
@@ -291,7 +290,7 @@ public class SubversionSCMTest extends HudsonTestCase {
 
         setJavaNetCredential();
         FreeStyleProject p = createFreeStyleProject();
-        String url = "https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant";
+        String url = "https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant";
         SCMTrigger trigger = new SCMTrigger("0 */6 * * *");
 
         p.setScm(new SubversionSCM(url));
@@ -341,7 +340,7 @@ public class SubversionSCMTest extends HudsonTestCase {
         FreeStyleProject p = createPostCommitTriggerJob();
         FreeStyleBuild b = sendCommitTrigger(p, true);
 
-        assertTrue(getActualRevision(b, "https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant") <= 13000);
+        assertTrue(getActualRevision(b, "https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant") <= 13000);
     }
     
     /**
@@ -352,7 +351,7 @@ public class SubversionSCMTest extends HudsonTestCase {
         FreeStyleProject p = createPostCommitTriggerJob();
         FreeStyleBuild b = sendCommitTrigger(p, false);
 
-        assertTrue(getActualRevision(b, "https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant") > 13000);
+        assertTrue(getActualRevision(b, "https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant") > 13000);
     }
 
     /**
@@ -427,8 +426,8 @@ public class SubversionSCMTest extends HudsonTestCase {
 
         SubversionSCM scm = new SubversionSCM(
                 Arrays.asList(
-                		new ModuleLocation("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/testSubversionExclusion", "c"),
-                		new ModuleLocation("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/testSubversionExclusion", "d")),
+                		new ModuleLocation("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/testSubversionExclusion", "c"),
+                		new ModuleLocation("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/testSubversionExclusion", "d")),
                 true,new Sventon(new URL("http://www.sun.com/"),"test"),"exclude","user","revprop","excludeMessage");
         p.setScm(scm);
         submit(new WebClient().getPage(p,"configure").getFormByName("config"));
@@ -436,7 +435,7 @@ public class SubversionSCMTest extends HudsonTestCase {
 
         scm = new SubversionSCM(
         		Arrays.asList(
-                		new ModuleLocation("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/testSubversionExclusion", "c")),
+                		new ModuleLocation("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/testSubversionExclusion", "c")),
         		false,null,"","","","");
         p.setScm(scm);
         submit(new WebClient().getPage(p,"configure").getFormByName("config"));
@@ -449,7 +448,7 @@ public class SubversionSCMTest extends HudsonTestCase {
 
         SubversionSCM scm = new SubversionSCM(
                 Arrays.asList(
-                		new ModuleLocation("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/testSubversionExclusion", "")),
+                		new ModuleLocation("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/testSubversionExclusion", "")),
                 true,null,null,null,null,null);
         p.setScm(scm);
         configRoundtrip(p);
@@ -553,7 +552,7 @@ public class SubversionSCMTest extends HudsonTestCase {
 
     private static String readFileAsString(File file)
     throws java.io.IOException{
-        StringBuffer fileData = new StringBuffer(1000);
+        StringBuilder fileData = new StringBuilder(1000);
         BufferedReader reader = new BufferedReader(new FileReader(file));
         char[] buf = new char[1024];
         int numRead=0;
@@ -576,7 +575,7 @@ public class SubversionSCMTest extends HudsonTestCase {
 
         setJavaNetCredential();
         FreeStyleProject p = createFreeStyleProject();
-        p.setScm(new SubversionSCM("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/issue-3904"));
+        p.setScm(new SubversionSCM("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/issue-3904"));
 
         FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause()).get();
         File source = new File(b.getWorkspace().getRemote() + "/readme.txt");
@@ -588,7 +587,7 @@ public class SubversionSCMTest extends HudsonTestCase {
         setJavaNetCredential();
         FreeStyleProject p = createFreeStyleProject( "testExcludeByUser" );
         p.setScm(new SubversionSCM(
-                Arrays.asList( new ModuleLocation( "https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/testSubversionExclusions@19438", null )),
+                Arrays.asList( new ModuleLocation( "https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/testSubversionExclusions@19438", null )),
                 true, null, "", "dty", "", "")
                 );
         // Do a build to force the creation of the workspace. This works around
@@ -857,8 +856,8 @@ public class SubversionSCMTest extends HudsonTestCase {
         setJavaNetCredential();
         FreeStyleProject p = createFreeStyleProject();
         ModuleLocation[] locations = {
-            new ModuleLocation("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant", null),
-            new ModuleLocation("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-maven", null)
+            new ModuleLocation("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant", null),
+            new ModuleLocation("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-maven", null)
         };
         p.setScm(new SubversionSCM(Arrays.asList(locations), false, false, null, null, null, null, null, null));
 
@@ -867,24 +866,24 @@ public class SubversionSCMTest extends HudsonTestCase {
 
         assertBuildStatusSuccess(p.scheduleBuild2(0).get());
 
-        assertEquals("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant", builder.getEnvVars().get("SVN_URL_1"));
-        assertEquals("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-maven", builder.getEnvVars().get("SVN_URL_2"));
-        assertEquals(getActualRevision(p.getLastBuild(), "https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant").toString(), builder.getEnvVars().get("SVN_REVISION_1"));
-        assertEquals(getActualRevision(p.getLastBuild(), "https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-maven").toString(), builder.getEnvVars().get("SVN_REVISION_2"));
+        assertEquals("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant", builder.getEnvVars().get("SVN_URL_1"));
+        assertEquals("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-maven", builder.getEnvVars().get("SVN_URL_2"));
+        assertEquals(getActualRevision(p.getLastBuild(), "https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant").toString(), builder.getEnvVars().get("SVN_REVISION_1"));
+        assertEquals(getActualRevision(p.getLastBuild(), "https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-maven").toString(), builder.getEnvVars().get("SVN_REVISION_2"));
 
     }
 
     public void testSingleModuleEnvironmentVariables() throws Exception {
         setJavaNetCredential();
         FreeStyleProject p = createFreeStyleProject();
-        p.setScm(new SubversionSCM("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant"));
+        p.setScm(new SubversionSCM("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant"));
 
         CaptureEnvironmentBuilder builder = new CaptureEnvironmentBuilder();
         p.getBuildersList().add(builder);
 
         assertBuildStatusSuccess(p.scheduleBuild2(0).get());
-        assertEquals("https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant", builder.getEnvVars().get("SVN_URL"));
-        assertEquals(getActualRevision(p.getLastBuild(), "https://svn.dev.java.net/svn/hudson/trunk/hudson/test-projects/trivial-ant").toString(), builder.getEnvVars().get("SVN_REVISION"));
+        assertEquals("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant", builder.getEnvVars().get("SVN_URL"));
+        assertEquals(getActualRevision(p.getLastBuild(), "https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant").toString(), builder.getEnvVars().get("SVN_REVISION"));
     }
 
 
@@ -941,7 +940,7 @@ public class SubversionSCMTest extends HudsonTestCase {
             FreeStyleProject p = createFreeStyleProject();
             p.setScm(new SubversionSCM("svn://localhost/dir1"));
             FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0));
-            System.out.println(b.getLog());
+            System.out.println(getLog(b));
 
             assertTrue(b.getWorkspace().child("2").exists());
             assertTrue(b.getWorkspace().child("3").exists());
