@@ -1270,7 +1270,7 @@ public class SubversionSCM extends SCM implements Serializable {
             }
 
             // If no paths are included don't count this entry as a change
-            if (includedPaths.size() == 0) {
+            if (includedPaths.isEmpty()) {
                 listener.getLogger().println(Messages.SubversionSCM_pollChanges_ignoredRevision(
                         logEntry.getRevision(),
                         Messages.SubversionSCM_pollChanges_ignoredRevision_noincpath()));
@@ -1373,7 +1373,7 @@ public class SubversionSCM extends SCM implements Serializable {
             /**
              * @param kind
              *      One of the constants defined in {@link ISVNAuthenticationManager},
-             *      indicating what subype of {@link SVNAuthentication} is expected.
+             *      indicating what subtype of {@link SVNAuthentication} is expected.
              */
             public abstract SVNAuthentication createSVNAuthentication(String kind) throws SVNException;
         }
@@ -1400,7 +1400,7 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         /**
-         * Publickey authentication for Subversion over SSH.
+         * Public key authentication for Subversion over SSH.
          */
         public static final class SshPublicKeyCredential extends Credential {
             private final String userName;
@@ -1506,7 +1506,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 if(kind.equals(ISVNAuthenticationManager.SSL))
                     try {
                         return new SVNSSLAuthentication(
-                                Base64.decode(certificate.toString().toCharArray()),
+                                Base64.decode(certificate.getPlainText().toCharArray()),
                                 Scrambler.descramble(password),false);
                     } catch (IOException e) {
                         throw new Error(e); // can't happen
