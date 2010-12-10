@@ -2093,6 +2093,11 @@ public class SubversionSCM extends SCM implements Serializable {
             if(System.getProperty("svnkit.ssh2.persistent")==null)
                 System.setProperty("svnkit.ssh2.persistent","false");
 
+            // push Negotiate to the end because it requires a valid Kerberos configuration.
+            // see HUDSON-8153
+            if(System.getProperty("svnkit.http.methods")==null)
+                System.setProperty("svnkit.http.methods","Digest,Basic,NTLM,Negotiate");
+
             // use SVN1.4 compatible workspace by default.
             SVNAdminAreaFactory.setSelector(new SubversionWorkspaceSelector());
         }
