@@ -37,6 +37,10 @@ import hudson.FilePath;
 import hudson.Launcher.LocalLauncher;
 import hudson.Proc;
 import hudson.model.AbstractProject;
+import hudson.scm.subversion.CheckoutUpdater;
+import hudson.scm.subversion.UpdateUpdater;
+import hudson.scm.subversion.UpdateWithRevertUpdater;
+import hudson.scm.subversion.WorkspaceUpdater;
 import hudson.slaves.DumbSlave;
 import hudson.model.Cause;
 import hudson.model.FreeStyleBuild;
@@ -51,7 +55,6 @@ import hudson.scm.SubversionSCM.DescriptorImpl;
 import hudson.scm.browsers.Sventon;
 import hudson.triggers.SCMTrigger;
 import hudson.util.FormValidation;
-import hudson.util.NullStream;
 import hudson.util.StreamTaskListener;
 import org.dom4j.Document;
 import org.dom4j.io.DOMReader;
@@ -187,7 +190,7 @@ public class SubversionSCMTest extends HudsonTestCase {
         assertTrue(b.getWorkspace().child("build.xml").exists());
     }
 
-    @Email("http://www.nabble.com/Hudson-1.266-and-1.267%3A-Subversion-authentication-broken--td21156950.html")
+    @Email("http://hudson.361315.n4.nabble.com/Hudson-1-266-and-1-267-Subversion-authentication-broken-td375737.html")
     public void testHttpCheckOut() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
         p.setScm(new SubversionSCM("http://svn.codehaus.org/plexus/tags/JASF_INIT/plexus-avalon-components/jasf/"));
@@ -497,12 +500,12 @@ public class SubversionSCMTest extends HudsonTestCase {
             assertEquals(ll[i].remote, rl[i].remote);
         }
 
-        assertEquals(lhs.isUseUpdate(), rhs.isUseUpdate());
         assertNullEquals(lhs.getExcludedRegions(), rhs.getExcludedRegions());
         assertNullEquals(lhs.getExcludedUsers(), rhs.getExcludedUsers());
         assertNullEquals(lhs.getExcludedRevprop(), rhs.getExcludedRevprop());
         assertNullEquals(lhs.getExcludedCommitMessages(), rhs.getExcludedCommitMessages());
     	assertNullEquals(lhs.getIncludedRegions(), rhs.getIncludedRegions());
+        assertEquals(lhs.getWorkspaceUpdater().getClass(), rhs.getWorkspaceUpdater().getClass());
     }
     
     private void assertNullEquals (String left, String right) {
@@ -972,6 +975,26 @@ public class SubversionSCMTest extends HudsonTestCase {
         } finally {
             p.kill();
         }
+    }
+
+    /**
+     * Ensures that the introduction of {@link WorkspaceUpdater} maintains backward compatibility with
+     * existing data.
+     */
+    public void testWorkspaceUpdaterCompatibility() throws Exception {
+        Proc p = runSvnServe(getClass().getResource("small.zip"));
+        try {
+            verifyCompatibility("legacy-update.xml", UpdateUpdater.class);
+            verifyCompatibility("legacy-checkout.xml", CheckoutUpdater.class);
+            verifyCompatibility("legacy-revert.xml", UpdateWithRevertUpdater.class);
+        } finally {
+            p.kill();
+        }
+    }
+
+    private void verifyCompatibility(String resourceName, Class<? extends WorkspaceUpdater> expected) throws IOException {
+        AbstractProject job = (AbstractProject) hudson.createProjectFromXML("update", getClass().getResourceAsStream(resourceName));
+        assertEquals(expected, ((SubversionSCM)job.getScm()).getWorkspaceUpdater().getClass());
     }
 
     private Proc runSvnServe(URL zip) throws Exception {

@@ -21,9 +21,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package hudson.scm;
+package hudson.scm.subversion;
 
 import hudson.remoting.Which;
+import hudson.scm.SubversionEventHandlerImpl;
+import hudson.scm.SubversionSCM.External;
 import hudson.scm.subversion.Messages;
 import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNErrorCode;
@@ -52,13 +54,13 @@ final class SubversionUpdateEventHandler extends SubversionEventHandlerImpl {
      * External urls that are fetched through svn:externals.
      * We add to this collection as we find them.
      */
-    private final List<SubversionSCM.External> externals;
+    private final List<External> externals;
     /**
      * Relative path from the workspace root to the module root. 
      */
     private final String modulePath;
     
-    public SubversionUpdateEventHandler(PrintStream out, List<SubversionSCM.External> externals, File moduleDir, String modulePath) {
+    public SubversionUpdateEventHandler(PrintStream out, List<External> externals, File moduleDir, String modulePath) {
         super(out,moduleDir);
         this.externals = externals;
         this.modulePath = modulePath;
@@ -98,7 +100,7 @@ final class SubversionUpdateEventHandler extends SubversionEventHandlerImpl {
                 out.println(Messages.SubversionUpdateEventHandler_FetchExternal(
                         ext.getResolvedURL(), ext.getRevision().getNumber(), event.getFile()));
                 //#1539 - an external inside an external needs to have the path appended 
-                externals.add(new SubversionSCM.External(modulePath + "/" + path.substring(0
+                externals.add(new External(modulePath + "/" + path.substring(0
                 		,path.length() - ext.getPath().length())
                 		,ext));
             }
