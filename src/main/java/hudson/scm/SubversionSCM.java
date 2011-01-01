@@ -336,6 +336,10 @@ public class SubversionSCM extends SCM implements Serializable {
         return new UpdateUpdater();
     }
 
+    public void setWorkspaceUpdater(WorkspaceUpdater workspaceUpdater) {
+        this.workspaceUpdater = workspaceUpdater;
+    }
+
     /**
      * list of all configured svn locations, expanded according to 
      * build parameters values;

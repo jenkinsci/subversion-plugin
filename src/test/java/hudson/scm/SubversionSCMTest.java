@@ -34,11 +34,15 @@ import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import hudson.ClassicPluginStrategy;
 import hudson.FilePath;
+import hudson.Launcher;
 import hudson.Launcher.LocalLauncher;
 import hudson.Proc;
+import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
+import hudson.model.BuildListener;
 import hudson.scm.subversion.CheckoutUpdater;
 import hudson.scm.subversion.UpdateUpdater;
+import hudson.scm.subversion.UpdateWithCleanUpdater;
 import hudson.scm.subversion.UpdateWithRevertUpdater;
 import hudson.scm.subversion.WorkspaceUpdater;
 import hudson.slaves.DumbSlave;
@@ -63,6 +67,7 @@ import org.jvnet.hudson.test.CaptureEnvironmentBuilder;
 import org.jvnet.hudson.test.Email;
 import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
 import org.jvnet.hudson.test.HudsonTestCase;
+import org.jvnet.hudson.test.TestBuilder;
 import org.jvnet.hudson.test.Url;
 import org.jvnet.hudson.test.recipes.PresetData;
 import static org.jvnet.hudson.test.recipes.PresetData.DataSet.ANONYMOUS_READONLY;
@@ -837,8 +842,8 @@ public class SubversionSCMTest extends HudsonTestCase {
 
         // teach a bogus credential and have SVNKit store it.
         SVNPasswordAuthentication bogus = new SVNPasswordAuthentication("bogus", "bogus", true);
-        m.acknowledgeAuthentication(true,kind,realm,null, bogus);
-        assertTrue(compareSVNAuthentications(m.getFirstAuthentication(kind, realm, repo),bogus));
+        m.acknowledgeAuthentication(true, kind, realm, null, bogus);
+        assertTrue(compareSVNAuthentications(m.getFirstAuthentication(kind, realm, repo), bogus));
         try {
             attemptAccess(m);
             fail("SVNKit shouldn't yet know how to access");
@@ -996,6 +1001,47 @@ public class SubversionSCMTest extends HudsonTestCase {
         AbstractProject job = (AbstractProject) hudson.createProjectFromXML("update", getClass().getResourceAsStream(resourceName));
         assertEquals(expected, ((SubversionSCM)job.getScm()).getWorkspaceUpdater().getClass());
     }
+
+    public void testUpdateWithCleanUpdater() throws Exception {
+        // this contains an empty "a" file and svn:ignore that ignores b
+        Proc srv = runSvnServe(getClass().getResource("clean-update-test.zip"));
+        try {
+            FreeStyleProject p = createFreeStyleProject();
+            SubversionSCM scm = new SubversionSCM("svn://localhost/");
+            scm.setWorkspaceUpdater(new UpdateWithCleanUpdater());
+            p.setScm(scm);
+
+            p.getBuildersList().add(new TestBuilder() {
+                @Override
+                public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
+                    FilePath ws = build.getWorkspace();
+                    // create two files
+                    ws.child("b").touch(0);
+                    ws.child("c").touch(0);
+                    return true;
+                }
+            });
+            FreeStyleBuild b = buildAndAssertSuccess(p);
+
+            // this should have created b and c
+            FilePath ws = b.getWorkspace();
+            assertTrue(ws.child("b").exists());
+            assertTrue(ws.child("c").exists());
+
+            // now, remove the builder that makes the workspace dirty and rebuild
+            p.getBuildersList().clear();
+            b = buildAndAssertSuccess(p);
+            System.out.println(b.getLog());
+
+            // those files should have been cleaned
+            ws = b.getWorkspace();
+            assertFalse(ws.child("b").exists());
+            assertFalse(ws.child("c").exists());
+        } finally {
+            srv.kill();
+        }
+    }
+
 
     private Proc runSvnServe(URL zip) throws Exception {
         return runSvnServe(new CopyExisting(zip).allocate());
