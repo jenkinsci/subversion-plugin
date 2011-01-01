@@ -60,7 +60,7 @@ public class UpdateWithCleanUpdater extends WorkspaceUpdater {
                 public void handleStatus(SVNStatus status) throws SVNException {
                     SVNStatusType s = status.getContentsStatus();
                     if (s == SVNStatusType.STATUS_UNVERSIONED || s == SVNStatusType.STATUS_IGNORED || s == SVNStatusType.STATUS_MODIFIED) {
-                        System.out.println("Deleting "+status.getFile());
+                        listener.getLogger().println("Deleting "+status.getFile());
                         try {
                             File f = status.getFile();
                             if (f.isDirectory())
