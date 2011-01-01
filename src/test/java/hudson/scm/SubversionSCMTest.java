@@ -193,10 +193,10 @@ public class SubversionSCMTest extends HudsonTestCase {
     @Email("http://hudson.361315.n4.nabble.com/Hudson-1-266-and-1-267-Subversion-authentication-broken-td375737.html")
     public void testHttpCheckOut() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
-        p.setScm(new SubversionSCM("http://svn.codehaus.org/plexus/tags/JASF_INIT/plexus-avalon-components/jasf/"));
+        p.setScm(new SubversionSCM("http://svn.codehaus.org/sxc/tags/sxc-0.5/sxc-core/src/test/java/com/envoisolutions/sxc/builder/"));
 
         FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserCause()).get());
-        assertTrue(b.getWorkspace().child("maven.xml").exists());
+        assertTrue(b.getWorkspace().child("Node.java").exists());
     }
 
     @Url("http://hudson.pastebin.com/m3ea34eea")
@@ -386,7 +386,7 @@ public class SubversionSCMTest extends HudsonTestCase {
 
     public void testURLWithVariable() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
-        String url = "http://svn.codehaus.org/plexus/tags/JASF_INIT/plexus-avalon-components/jasf/";
+        String url = "http://svn.codehaus.org/sxc/tags/sxc-0.5/sxc-core/src/test/java/com/envoisolutions/sxc/builder/";
         p.setScm(new SubversionSCM("$REPO" + url.substring(10)));
 
         String var = url.substring(0, 10);
@@ -395,7 +395,7 @@ public class SubversionSCMTest extends HudsonTestCase {
                 new ParametersAction(new StringParameterValue("REPO", var))).get();
         System.out.println(b.getLog(LOG_LIMIT));
         assertBuildStatus(Result.SUCCESS,b);
-        assertTrue(b.getWorkspace().child("maven.xml").exists());
+        assertTrue(b.getWorkspace().child("Node.java").exists());
     }
 
     /**
