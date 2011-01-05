@@ -102,6 +102,7 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.concurrent.Future;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -288,6 +289,27 @@ public class SubversionSCMTest extends HudsonTestCase {
         		new RevisionParameterAction(new SubversionSCM.SvnInfo(url, 13000))).get();
         System.out.println(b.getLog(LOG_LIMIT));
         assertTrue(b.getLog(LOG_LIMIT).contains("At revision 13000"));
+        assertBuildStatus(Result.SUCCESS,b);
+    }
+
+    public void testRevisionParameterFolding() throws Exception {
+        setJavaNetCredential();
+        FreeStyleProject p = createFreeStyleProject();
+        String url = "https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant";
+	p.setScm(new SubversionSCM(url));
+
+	// Schedule build of a specific revision with a quiet period
+        Future<FreeStyleBuild> f = p.scheduleBuild2(60, new Cause.UserCause(),
+        		new RevisionParameterAction(new SubversionSCM.SvnInfo(url, 13000)));
+
+	// Schedule another build at a more recent revision
+	p.scheduleBuild2(0, new Cause.UserCause(),
+        		new RevisionParameterAction(new SubversionSCM.SvnInfo(url, 14000)));
+
+        FreeStyleBuild b = f.get();
+	
+        System.out.println(b.getLog(LOG_LIMIT));
+        assertTrue(b.getLog(LOG_LIMIT).contains("At revision 14000"));
         assertBuildStatus(Result.SUCCESS,b);
     }
 
