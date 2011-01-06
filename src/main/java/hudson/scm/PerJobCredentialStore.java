@@ -67,20 +67,37 @@ final class PerJobCredentialStore implements Saveable, RemotableSVNAuthenticatio
     }
 
     public synchronized void save() throws IOException {
-        getXmlFile().write(this);
+        IS_SAVING.set(Boolean.TRUE);
+        try {
+            getXmlFile().write(this);
+        } finally {
+            IS_SAVING.remove();
+        }
     }
 
     private XmlFile getXmlFile() {
         return new XmlFile(new File(project.getRootDir(),"subversion.credentials"));
     }
 
+    /*package*/ synchronized boolean isEmpty() {
+        return credentials.isEmpty();
+    }
+
     /**
      * When sent to the remote node, send a proxy.
      */
     private Object writeReplace() {
+        if (IS_SAVING.get()!=null)  return this;
+        
         Channel c = Channel.current();
         return c==null ? this : c.export(RemotableSVNAuthenticationProvider.class, this);
     }
 
     private static final Logger LOGGER = Logger.getLogger(PerJobCredentialStore.class.getName());
+
+    /**
+     * Used to remember the context. If we are persisting, we don't want to persist a proxy,
+     * even if that happens in the context of a remote call.
+     */
+    private static final ThreadLocal<Boolean> IS_SAVING = new ThreadLocal<Boolean>();
 }
