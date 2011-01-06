@@ -107,10 +107,9 @@ import java.util.concurrent.Future;
 /**
  * @author Kohsuke Kawaguchi
  */
-public class SubversionSCMTest extends HudsonTestCase {
+public class SubversionSCMTest extends AbstractSubversionTest {
 	
     private static final int LOG_LIMIT = 1000;
-    private DescriptorImpl descriptor;
 
     // in some tests we play authentication games with this repo
     String realm = "<https://svn.dev.java.net:443> CollabNet Subversion Repository";
@@ -120,7 +119,6 @@ public class SubversionSCMTest extends HudsonTestCase {
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-        descriptor = hudson.getDescriptorByType(DescriptorImpl.class);
         repo = SVNURL.parseURIDecoded("https://svn.dev.java.net/svn/hudson");
     }
 
@@ -1065,26 +1063,4 @@ public class SubversionSCMTest extends HudsonTestCase {
     }
 
 
-    private Proc runSvnServe(URL zip) throws Exception {
-        return runSvnServe(new CopyExisting(zip).allocate());
-    }
-
-    /**
-     * Runs svnserve to serve the specified directory as a subversion repository.
-     */
-    private Proc runSvnServe(File repo) throws Exception {
-        LocalLauncher launcher = new LocalLauncher(new StreamTaskListener(System.out));
-        try {
-            launcher.launch().cmds("svnserve","--help").start().join();
-        } catch (IOException e) {
-            // if we fail to launch svnserve, skip the test
-            return null;
-        }
-        return launcher.launch().cmds(
-                "svnserve","-d","--foreground","-r",repo.getAbsolutePath()).pwd(repo).start();
-    }
-
-    static {
-        ClassicPluginStrategy.useAntClassLoader = true;
-    }
 }
