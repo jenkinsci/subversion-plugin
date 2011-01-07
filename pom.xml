@@ -34,7 +34,7 @@ THE SOFTWARE.
   <artifactId>subversion</artifactId>
   <packaging>hpi</packaging>
   <name>Hudson Subversion Plug-in</name>
-  <version>1.23-SNAPSHOT</version>
+  <version>1.23</version>
   <url>http://wiki.hudson-ci.org/display/HUDSON/Subversion+Plugin</url>
   <licenses>
     <license>
@@ -64,4 +64,10 @@ THE SOFTWARE.
       <url>http://maven.hudson-labs.org:8081/content/repositories/releases/</url>
     </repository>
   </distributionManagement>  
+
+  <scm>
+    <connection>scm:svn:https://guest@svn.java.net/svn/hudson~svn/tags/subversion-1.23</connection>
+    <developerConnection>scm:svn:https://svn.java.net/svn/hudson~svn/tags/subversion-1.23</developerConnection>
+    <url>https://svn.java.net/svn/hudson~svn/tags/subversion-1.23</url>
+  </scm>
 </project>
