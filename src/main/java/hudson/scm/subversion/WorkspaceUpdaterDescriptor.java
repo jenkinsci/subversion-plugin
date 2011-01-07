@@ -35,6 +35,6 @@ import hudson.model.Hudson;
 public abstract class WorkspaceUpdaterDescriptor extends Descriptor<WorkspaceUpdater> {
 
     public static DescriptorExtensionList<WorkspaceUpdater,WorkspaceUpdaterDescriptor> all() {
-        return Hudson.getInstance().getDescriptorList(WorkspaceUpdater.class);
+        return (DescriptorExtensionList)Hudson.getInstance().getDescriptorList(WorkspaceUpdater.class);
     }
 }
