@@ -81,7 +81,11 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
             LOGGER.fine("Change reported to Subversion repository "+uuid+" on "+affectedPath);
         boolean scmFound = false, triggerFound = false, uuidFound = false, pathFound = false;
 
-        String revParam = req.getParameter("rev");
+        // we can't reliably use req.getParameter() as it can try to parse the payload, which we've already consumed above.
+        // servlet container relies on Content-type to decide if it wants to parse the payload or not, and at least
+        // in case of Jetty, it doesn't check if the payload is
+        QueryParameterMap query = new QueryParameterMap(req);
+        String revParam = query.get("rev");
         long rev = -1;
         if (revParam != null) {
             rev = Long.parseLong(revParam);
