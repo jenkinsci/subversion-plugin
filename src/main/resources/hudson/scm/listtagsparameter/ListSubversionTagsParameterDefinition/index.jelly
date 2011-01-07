@@ -1,0 +1,56 @@
+<!--
+  - The MIT License
+  -
+  - Copyright (c) 2010, Manufacture Francaise des Pneumatiques Michelin, Romain Seguy
+  -
+  - Permission is hereby granted, free of charge, to any person obtaining a copy
+  - of this software and associated documentation files (the "Software"), to deal
+  - in the Software without restriction, including without limitation the rights
+  - to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  - copies of the Software, and to permit persons to whom the Software is
+  - furnished to do so, subject to the following conditions:
+  -
+  - The above copyright notice and this permission notice shall be included in
+  - all copies or substantial portions of the Software.
+  -
+  - THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  - IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  - FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  - AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  - LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  - OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  - THE SOFTWARE.
+  -->
+
+<!-- this is the page fragment displayed when triggering a new build -->
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+  <f:entry title="${it.name}" description="${it.description}">
+    <!-- this div is required because of ParametersDefinitionProperty.java#117 -->
+    <div name="parameter">
+      <input type="hidden" name="name" value="${it.name}"/>
+      <j:choose>
+        <j:when test="${it.tags.size() == null or it.tags.size() == 0}">
+          <!-- no tags at all -->
+          ${%No directory entries were found.}<br/>
+          ${%If you trigger the build, it will likely fail.}
+        </j:when>
+        <j:when test='${it.tags.size() == 1 and it.tags.get(0).startsWith("&amp;lt;") and it.tags.get(0).endsWith("&amp;gt;")}'>
+          <!-- tags could not be retrieved -->
+          <div style="color: #CC0000; font-weight: bold;">
+            <!-- we remove the lowerThan and greaterThan signs from the message -->
+            ${it.tags.get(0).substring(4, it.tags.get(0).length()-4)}<br/>
+            ${%If you trigger the build, it will likely fail.}
+          </div>
+        </j:when>
+        <j:otherwise>
+          <!-- everything is fine, we can display the drop-down list to the user -->
+          <select name="tag">
+            <j:forEach var="tag" items="${it.tags}">
+              <f:option>${tag}</f:option>
+            </j:forEach>
+          </select>
+        </j:otherwise>
+      </j:choose>
+    </div>
+  </f:entry>
+</j:jelly>
