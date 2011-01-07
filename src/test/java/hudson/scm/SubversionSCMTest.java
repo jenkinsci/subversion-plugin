@@ -1062,5 +1062,23 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         }
     }
 
+    /**
+     * Used for experimenting the memory leak problem.
+     * This test by itself doesn't detect that, but I'm leaving it in anyway.
+     */
+    @Bug(8061)
+    public void testPollingLeak() throws Exception {
+        Proc p = runSvnServe(getClass().getResource("small.zip"));
+        try {
+            FreeStyleProject b = createFreeStyleProject();
+            b.setScm(new SubversionSCM("svn://localhost/"));
+            b.setAssignedNode(createSlave());
 
+            assertBuildStatusSuccess(b.scheduleBuild2(0));
+
+            b.poll(new StreamTaskListener(System.out,Charset.defaultCharset()));
+        } finally {
+            p.kill();
+        }
+    }
 }
