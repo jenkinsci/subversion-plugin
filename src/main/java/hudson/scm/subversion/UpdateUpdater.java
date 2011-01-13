@@ -171,7 +171,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
     public static class DescriptorImpl extends WorkspaceUpdaterDescriptor {
         @Override
         public String getDisplayName() {
-            return "Use 'svn update' as much as possible";
+            return Messages.UpdateUpdater_DisplayName();
         }
     }
 }

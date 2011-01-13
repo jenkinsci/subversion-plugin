@@ -59,7 +59,7 @@ public class UpdateWithRevertUpdater extends WorkspaceUpdater {
     public static class DescriptorImpl extends WorkspaceUpdaterDescriptor {
         @Override
         public String getDisplayName() {
-            return "Use 'svn update' as much as possible, with 'svn revert' before update";
+            return Messages.UpdateWithRevertUpdater_DisplayName();
         }
     }
 }

@@ -80,7 +80,7 @@ public class UpdateWithCleanUpdater extends WorkspaceUpdater {
     public static class DescriptorImpl extends WorkspaceUpdaterDescriptor {
         @Override
         public String getDisplayName() {
-            return "Emulate clean checkout by first deleting unversioned/ignored files, then 'svn update'";
+            return Messages.UpdateWithCleanUpdater_DisplayName();
         }
     }
 }

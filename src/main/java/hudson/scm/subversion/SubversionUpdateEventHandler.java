@@ -26,7 +26,6 @@ package hudson.scm.subversion;
 import hudson.remoting.Which;
 import hudson.scm.SubversionEventHandlerImpl;
 import hudson.scm.SubversionSCM.External;
-import hudson.scm.subversion.Messages;
 import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNErrorCode;
 import org.tmatesoft.svn.core.SVNErrorMessage;

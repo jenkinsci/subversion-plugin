@@ -23,11 +23,9 @@
  */
 package hudson.scm.subversion;
 
-import hudson.DescriptorExtensionList;
 import hudson.ExtensionPoint;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Describable;
-import hudson.model.Hudson;
 import hudson.model.TaskListener;
 import hudson.scm.RevisionParameterAction;
 import hudson.scm.SubversionSCM;

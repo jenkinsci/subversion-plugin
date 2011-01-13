@@ -106,7 +106,7 @@ public class CheckoutUpdater extends WorkspaceUpdater {
     public static class DescriptorImpl extends WorkspaceUpdaterDescriptor {
         @Override
         public String getDisplayName() {
-            return "Always check out a fresh copy";
+            return Messages.CheckoutUpdater_DisplayName();
         }
     }
 }
