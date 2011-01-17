@@ -1761,11 +1761,20 @@ public class SubversionSCM extends SCM implements Serializable {
                 return FormValidation.ok();
 
             try {
-                SVNURL repoURL = SVNURL.parseURIDecoded(url);
-                if (checkRepositoryPath(context,repoURL)!=SVNNodeKind.NONE)
-                    // something exists
+                String urlWithoutRevision = getUrlWithoutRevision(url);
+            	
+                SVNURL repoURL = SVNURL.parseURIDecoded(urlWithoutRevision);
+                if (checkRepositoryPath(context,repoURL)!=SVNNodeKind.NONE) {
+                    // something exists; now check revision if any
+                    
+                    SVNRevision revision = getRevisionFromRemoteUrl(url);
+                    if (revision != null && !revision.isValid()) {
+                        return FormValidation.errorWithMarkup(Messages.SubversionSCM_doCheckRemote_invalidRevision());
+                    }
+                    
                     return FormValidation.ok();
-
+                }
+                
                 SVNRepository repository = null;
                 try {
                     repository = getRepository(context,repoURL);
@@ -2098,15 +2107,7 @@ public class SubversionSCM extends SCM implements Serializable {
          * possible "@NNN" suffix.
          */
         public String getURL() {
-            int idx = remote.lastIndexOf('@');
-            if(idx>0) {
-                    String n = remote.substring(idx+1);
-                SVNRevision r = SVNRevision.parse(n);
-                if ((r != null) && (r.isValid())) {
-                    return remote.substring(0,idx);
-                }
-            }
-            return remote;
+        	return getUrlWithoutRevision(remote);
         }
 
         /**
@@ -2151,12 +2152,8 @@ public class SubversionSCM extends SCM implements Serializable {
          *      Normally, this is the SVN revision timestamped at the build date.
          */
         public SVNRevision getRevision(SVNRevision defaultValue) {
-            int idx = remote.lastIndexOf('@');
-            if(idx>0) {
-                    String n = remote.substring(idx+1);
-                return SVNRevision.parse(n);
-                }
-            return defaultValue;
+            SVNRevision revision = getRevisionFromRemoteUrl(remote);
+            return revision != null ? revision : defaultValue;
         }
 
         private String getExpandedRemote(AbstractBuild<?,?> build) {
@@ -2270,6 +2267,35 @@ public class SubversionSCM extends SCM implements Serializable {
             }
         }
         return m;
+    }
+
+    private static String getUrlWithoutRevision(
+            String remoteUrlPossiblyWithRevision) {
+        int idx = remoteUrlPossiblyWithRevision.lastIndexOf('@');
+        if (idx > 0) {
+            String n = remoteUrlPossiblyWithRevision.substring(idx + 1);
+            SVNRevision r = SVNRevision.parse(n);
+            if ((r != null) && (r.isValid())) {
+                return remoteUrlPossiblyWithRevision.substring(0, idx);
+            }
+        }
+        return remoteUrlPossiblyWithRevision;
+    }
+
+    /**
+     * Gets the revision from a remote URL - i.e. the part after '@' if any
+     * 
+     * @return the revision or null
+     */
+    private static SVNRevision getRevisionFromRemoteUrl(
+            String remoteUrlPossiblyWithRevision) {
+        int idx = remoteUrlPossiblyWithRevision.lastIndexOf('@');
+        if (idx > 0) {
+            String n = remoteUrlPossiblyWithRevision.substring(idx + 1);
+            return SVNRevision.parse(n);
+        }
+
+        return null;
     }
 
 }
