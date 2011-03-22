@@ -112,18 +112,21 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     private static final int LOG_LIMIT = 1000;
 
     // in some tests we play authentication games with this repo
-    String realm = "<https://svn.dev.java.net:443> CollabNet Subversion Repository";
+    String realm = "<http://subversion.tigris.org:80> CollabNet Subversion Repository";
     String kind = ISVNAuthenticationManager.PASSWORD;
     SVNURL repo;
 
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-        repo = SVNURL.parseURIDecoded("https://svn.dev.java.net/svn/hudson");
+        repo = SVNURL.parseURIDecoded("http://subversion.tigris.org/svn/subclipse");
     }
 
     /**
      * Sets guest credentials to access java.net Subversion repo.
+     *
+     * @deprecated
+     *      We no longer rely on java.net to do tests.
      */
     protected void setJavaNetCredential() throws SVNException, IOException {
         // old svn.dev.java.net needed "guest" credential for read access.. new svn.java.net does not:
@@ -186,7 +189,6 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
     @Email("http://www.nabble.com/Hudson-1.266-and-1.267%3A-Subversion-authentication-broken--td21156950.html")
     public void testHttpsCheckOut() throws Exception {
-        setJavaNetCredential();
         FreeStyleProject p = createFreeStyleProject();
         p.setScm(new SubversionSCM("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant"));
 
@@ -205,7 +207,6 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
     @Url("http://hudson.pastebin.com/m3ea34eea")
     public void testRemoteCheckOut() throws Exception {
-        setJavaNetCredential();
         DumbSlave s = createSlave();
         FreeStyleProject p = createFreeStyleProject();
         p.setAssignedLabel(s.getSelfLabel());
@@ -221,7 +222,6 @@ public class SubversionSCMTest extends AbstractSubversionTest {
      */
     @Bug(262)
     public void testRevisionedCheckout() throws Exception {
-        setJavaNetCredential();
         FreeStyleProject p = createFreeStyleProject();
         p.setScm(new SubversionSCM("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant@13000"));
 
@@ -278,7 +278,6 @@ public class SubversionSCMTest extends AbstractSubversionTest {
      * Tests a checkout with RevisionParameterAction
      */
     public void testRevisionParameter() throws Exception {
-        setJavaNetCredential();
         FreeStyleProject p = createFreeStyleProject();
         String url = "https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant";
 	p.setScm(new SubversionSCM(url));
@@ -291,7 +290,6 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     }
 
     public void testRevisionParameterFolding() throws Exception {
-        setJavaNetCredential();
         FreeStyleProject p = createFreeStyleProject();
         String url = "https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant";
 	p.setScm(new SubversionSCM(url));
@@ -316,7 +314,6 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         // request parameters
         hudson.setCrumbIssuer(null);
 
-        setJavaNetCredential();
         FreeStyleProject p = createFreeStyleProject();
         String url = "https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant";
         SCMTrigger trigger = new SCMTrigger("0 */6 * * *");
@@ -449,7 +446,6 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     }
 
     public void testConfigRoundtrip() throws Exception {
-        setJavaNetCredential();
         FreeStyleProject p = createFreeStyleProject();
 
         SubversionSCM scm = new SubversionSCM(
@@ -601,7 +597,6 @@ public class SubversionSCMTest extends AbstractSubversionTest {
             return;
         }
 
-        setJavaNetCredential();
         FreeStyleProject p = createFreeStyleProject();
         p.setScm(new SubversionSCM("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/issue-3904"));
 
@@ -612,7 +607,6 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     }
 
     public void testExcludeByUser() throws Exception {
-        setJavaNetCredential();
         FreeStyleProject p = createFreeStyleProject( "testExcludeByUser" );
         p.setScm(new SubversionSCM(
                 Arrays.asList( new ModuleLocation( "https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/testSubversionExclusions@19438", null )),
@@ -815,7 +809,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
             // yep
         }
 
-        // let Hudson have the credential
+        // let Jenkins have the credential
         descriptor.postCredential(null,repo.toDecodedString(),"guest","",null,new PrintWriter(System.out));
 
         // emulate the call flow where the credential fails
@@ -893,7 +887,6 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     }
 
     public void testMultiModuleEnvironmentVariables() throws Exception {
-        setJavaNetCredential();
         FreeStyleProject p = createFreeStyleProject();
         ModuleLocation[] locations = {
             new ModuleLocation("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant", null),
@@ -914,7 +907,6 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     }
 
     public void testSingleModuleEnvironmentVariables() throws Exception {
-        setJavaNetCredential();
         FreeStyleProject p = createFreeStyleProject();
         p.setScm(new SubversionSCM("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant"));
 
