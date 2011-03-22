@@ -34,7 +34,7 @@ THE SOFTWARE.
   <artifactId>subversion</artifactId>
   <packaging>hpi</packaging>
   <name>Jenkins Subversion Plug-in</name>
-  <version>1.24-SNAPSHOT</version>
+  <version>1.24</version>
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Subversion+Plugin</url>
   <licenses>
     <license>
@@ -64,4 +64,10 @@ THE SOFTWARE.
       <url>http://maven.jenkins-ci.org:8081/content/repositories/releases/</url>
     </repository>
   </distributionManagement>
+
+  <scm>
+    <connection>scm:svn:https://guest@svn.java.net/svn/hudson~svn/tags/subversion-1.24</connection>
+    <developerConnection>scm:svn:https://svn.java.net/svn/hudson~svn/tags/subversion-1.24</developerConnection>
+    <url>https://svn.java.net/svn/hudson~svn/tags/subversion-1.24</url>
+  </scm>
 </project>
