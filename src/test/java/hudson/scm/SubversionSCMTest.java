@@ -45,6 +45,7 @@ import hudson.scm.subversion.UpdateUpdater;
 import hudson.scm.subversion.UpdateWithCleanUpdater;
 import hudson.scm.subversion.UpdateWithRevertUpdater;
 import hudson.scm.subversion.WorkspaceUpdater;
+import hudson.security.ACL;
 import hudson.slaves.DumbSlave;
 import hudson.model.Cause;
 import hudson.model.FreeStyleBuild;
@@ -60,6 +61,7 @@ import hudson.scm.browsers.Sventon;
 import hudson.triggers.SCMTrigger;
 import hudson.util.FormValidation;
 import hudson.util.StreamTaskListener;
+import org.acegisecurity.context.SecurityContextHolder;
 import org.dom4j.Document;
 import org.dom4j.io.DOMReader;
 import org.jvnet.hudson.test.Bug;
@@ -102,6 +104,7 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
 /**
@@ -139,12 +142,17 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         // create a build
         FreeStyleProject p = createFreeStyleProject();
         p.setScm(loadSvnRepo());
-        FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause()).get();
+        final FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause()).get();
         System.out.println(b.getLog(LOG_LIMIT));
         assertBuildStatus(Result.SUCCESS,b);
 
-        SubversionTagAction action = b.getAction(SubversionTagAction.class);
-        assertFalse(b.hasPermission(action.getPermission()));
+        final SubversionTagAction action = b.getAction(SubversionTagAction.class);
+        executeOnServer(new Callable<Object>() {
+            public Object call() throws Exception {
+                assertFalse("Shouldn't be accessible to anonymous user",b.hasPermission(action.getPermission()));
+                return null;
+            }
+        });
 
         WebClient wc = new WebClient();
         HtmlPage html = wc.getPage(b);
