@@ -278,7 +278,8 @@ public class SubversionSCM extends SCM implements Serializable {
                          String includedRegions) {
         for (Iterator<ModuleLocation> itr = locations.iterator(); itr.hasNext();) {
             ModuleLocation ml = itr.next();
-            if(ml.remote==null) itr.remove();
+            String remote = Util.fixEmptyAndTrim(ml.remote);
+            if(remote==null) itr.remove();
         }
         this.locations = locations.toArray(new ModuleLocation[locations.size()]);
 
@@ -1741,12 +1742,9 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         public FormValidation doCheckRemote(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value) {
             // syntax check first
-            String url = Util.nullify(value);
+            String url = Util.fixEmptyAndTrim(value);
             if (url == null)
-                return FormValidation.ok();
-
-            // remove unneeded whitespaces
-            url = url.trim();
+                return FormValidation.error(Messages.SubversionSCM_doCheckRemote_required()); 
 
             if(isValidateRemoteUpToVar()) {
                 url = (url.indexOf('$') != -1) ? url.substring(0, url.indexOf('$')) : url;

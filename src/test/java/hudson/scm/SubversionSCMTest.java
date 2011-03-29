@@ -487,6 +487,25 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         verify(scm,(SubversionSCM)p.getScm());
     }
 
+    @Bug(9143)
+    public void testCheckEmptyRemoteRemved() throws Exception {
+        FreeStyleProject p = createFreeStyleProject();
+
+        List<ModuleLocation> locs = new ArrayList<ModuleLocation>();
+        locs.add(new ModuleLocation("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/testSubversionExclusion", "c"));
+        locs.add(new ModuleLocation("", "d"));
+        locs.add(new ModuleLocation("    ", "e"));
+                
+        SubversionSCM scm = new SubversionSCM(
+                locs,
+                true, new Sventon(new URL("http://www.sun.com/"), "test"), "exclude", "user", "revprop", "excludeMessage");
+        p.setScm(scm);
+        submit(new WebClient().getPage(p, "configure").getFormByName("config"));
+        ModuleLocation[] ml = ((SubversionSCM) p.getScm()).getLocations();
+        assertEquals(1, ml.length);
+        assertEquals("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/testSubversionExclusion", ml[0].remote);
+    }
+
     @Bug(5684)
     public void testDoCheckExcludedUsers() throws Exception {
         String[] validUsernames = new String[] {
