@@ -24,8 +24,8 @@
 
 <div>
   SubversionのリポジトリURLの、最初の<code>$</code>の前(すなわち最初の変数の前）までの部分をチェックします。<br/>
-  たとえば、リポジトリURLが<code>https://hudson.dev.java.net/svn/hudson/trunk/hudson/plugins/$PLUGIN</code>の場合、
+  たとえば、リポジトリURLが<code>https://svn.jenkins-ci.org/trunk/hudson/plugins/$PLUGIN</code>の場合、
   <code>$PLUGIN</code>をチェック時には解決できないためエラーが発生しますが、
-  <code>https://hudson.dev.java.net/svn/hudson/trunk/hudson/plugins/</code>までを対象とすることで正常にチェックすることができます。
-  また、認証も<code>https://hudson.dev.java.net/svn/hudson/trunk/hudson/plugins/</code>に対して入力します。
+  <code>https://svn.jenkins-ci.org/trunk/hudson/plugins/</code>までを対象とすることで正常にチェックすることができます。
+  また、認証も<code>https://svn.jenkins-ci.org/trunk/hudson/plugins/</code>に対して入力します。
 </div>

@@ -88,7 +88,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
                     if (e.getErrorMessage().getErrorCode()==SVNErrorCode.WC_NOT_DIRECTORY) {
                         listener.getLogger().println("Checking out a fresh workspace because there's no workspace at "+module);
                     } else {
-                        listener.getLogger().println("Checking out a fresh workspace because Hudson failed to detect the current workspace "+module);
+                        listener.getLogger().println("Checking out a fresh workspace because Jenkins failed to detect the current workspace "+module);
                         e.printStackTrace(listener.error(e.getMessage()));
                     }
                     return false;

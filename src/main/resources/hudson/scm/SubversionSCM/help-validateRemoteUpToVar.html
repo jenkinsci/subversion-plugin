@@ -26,10 +26,10 @@
   When turned on, this option will allow validating Subversion's repository URLs
   only up to the first <code>$</code> sign, that is, up to the first encountered
   variable.<br/>
-  For example, the repository URL <code>https://hudson.dev.java.net/svn/hudson/trunk/hudson/plugins/$PLUGIN</code>,
+  For example, the repository URL <code>https://svn.jenkins-ci.org/trunk/hudson/hudson/plugins/$PLUGIN</code>,
   which validation raises an error since <code>$PLUGIN</code> can't be resolved
   at validation-time, would be successfully validated as
-  <code>https://hudson.dev.java.net/svn/hudson/trunk/hudson/plugins/</code>. Also,
-  credential would be entered for <code>https://hudson.dev.java.net/svn/hudson/trunk/hudson/plugins/</code>
+  <code>https://svn.jenkins-ci.org/trunk/hudson/plugins/</code>. Also,
+  credential would be entered for <code>https://svn.jenkins-ci.org/trunk/hudson/plugins/</code>
   rather than for the complete URL.
 </div>
