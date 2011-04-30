@@ -2270,7 +2270,8 @@ public class SubversionSCM extends SCM implements Serializable {
     private static String getUrlWithoutRevision(
             String remoteUrlPossiblyWithRevision) {
         int idx = remoteUrlPossiblyWithRevision.lastIndexOf('@');
-        if (idx > 0) {
+        int slashIdx = remoteUrlPossiblyWithRevision.lastIndexOf('/');
+        if (idx > 0 && idx > slashIdx) {
             String n = remoteUrlPossiblyWithRevision.substring(idx + 1);
             SVNRevision r = SVNRevision.parse(n);
             if ((r != null) && (r.isValid())) {
@@ -2288,7 +2289,8 @@ public class SubversionSCM extends SCM implements Serializable {
     private static SVNRevision getRevisionFromRemoteUrl(
             String remoteUrlPossiblyWithRevision) {
         int idx = remoteUrlPossiblyWithRevision.lastIndexOf('@');
-        if (idx > 0) {
+        int slashIdx = remoteUrlPossiblyWithRevision.lastIndexOf('/');
+        if (idx > 0 && idx > slashIdx) {
             String n = remoteUrlPossiblyWithRevision.substring(idx + 1);
             return SVNRevision.parse(n);
         }
