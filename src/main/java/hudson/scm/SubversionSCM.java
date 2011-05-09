@@ -1579,7 +1579,7 @@ public class SubversionSCM extends SCM implements Serializable {
             }
 
             public void acknowledgeAuthentication(boolean accepted, String kind, String realm, SVNErrorMessage errorMessage, SVNAuthentication authentication) throws SVNException {
-                if (accepted && local!=null)
+                if (accepted && local!=null && lastCredential!=null)
                     local.acknowledgeAuthentication(realm,lastCredential);
             }
 
