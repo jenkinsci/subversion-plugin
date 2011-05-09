@@ -759,10 +759,21 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     public static SVNClientManager createSvnClientManager(ISVNAuthenticationProvider authProvider) {
         SubversionWorkspaceSelector.syncWorkspaceFormatFromMaster();
-        ISVNAuthenticationManager sam = SVNWCUtil.createDefaultAuthenticationManager();
+        ISVNAuthenticationManager sam = createSvnAuthenticationManager(authProvider);
+        return SVNClientManager.newInstance(SVNWCUtil.createDefaultOptions(true), sam);
+    }
+
+    public static ISVNAuthenticationManager createSvnAuthenticationManager(ISVNAuthenticationProvider authProvider) {
+        File configDir;
+        if (CONFIG_DIR!=null)
+            configDir = new File(CONFIG_DIR);
+        else
+            configDir = SVNWCUtil.getDefaultConfigurationDirectory();
+        
+        ISVNAuthenticationManager sam = SVNWCUtil.createDefaultAuthenticationManager(configDir, null, null);
         sam.setAuthenticationProvider(authProvider);
         SVNAuthStoreHandlerImpl.install(sam);
-        return SVNClientManager.newInstance(SVNWCUtil.createDefaultOptions(true),sam);
+        return sam;
     }
 
     /**
@@ -1843,8 +1854,7 @@ public class SubversionSCM extends SCM implements Serializable {
         protected SVNRepository getRepository(AbstractProject context, SVNURL repoURL) throws SVNException {
             SVNRepository repository = SVNRepositoryFactory.create(repoURL);
 
-            ISVNAuthenticationManager sam = SVNWCUtil.createDefaultAuthenticationManager();
-            SVNAuthStoreHandlerImpl.install(sam);
+            ISVNAuthenticationManager sam = createSvnAuthenticationManager(createAuthenticationProvider(context));
             sam = new FilterSVNAuthenticationManager(sam) {
                 // If there's no time out, the blocking read operation may hang forever, because TCP itself
                 // has no timeout. So always use some time out. If the underlying implementation gives us some
@@ -1856,7 +1866,6 @@ public class SubversionSCM extends SCM implements Serializable {
                     return r;
                 }
             };
-            sam.setAuthenticationProvider(createAuthenticationProvider(context));
             repository.setTunnelProvider(SVNWCUtil.createDefaultOptions(true));
             repository.setAuthenticationManager(sam);
 
@@ -2218,6 +2227,11 @@ public class SubversionSCM extends SCM implements Serializable {
      * Property to control whether SCM polling happens from the slave or master
      */
     public static boolean POLL_FROM_MASTER = Boolean.getBoolean(SubversionSCM.class.getName()+".pollFromMaster");
+
+    /**
+     * If set to non-null, read configuration from this directory instead of "~/.subversion".
+     */
+    public static String CONFIG_DIR = null;
     
     /**
      * Enables trace logging of Ganymed SSH library.

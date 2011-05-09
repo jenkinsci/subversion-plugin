@@ -154,8 +154,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
     try {
       ISVNAuthenticationProvider authProvider = getDescriptor().createAuthenticationProvider(context);
 
-      ISVNAuthenticationManager authManager = SVNWCUtil.createDefaultAuthenticationManager();
-      authManager.setAuthenticationProvider(authProvider);
+      ISVNAuthenticationManager authManager = SubversionSCM.createSvnAuthenticationManager(authProvider);
 
       SVNURL repoURL = SVNURL.parseURIDecoded(getTagsDir());
 
