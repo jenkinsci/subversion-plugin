@@ -47,6 +47,7 @@ import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.auth.SVNAuthentication;
 import org.tmatesoft.svn.core.auth.SVNUserNameAuthentication;
 import org.tmatesoft.svn.core.internal.wc.DefaultSVNAuthenticationManager;
+import org.tmatesoft.svn.core.internal.wc.ISVNAuthStoreHandler;
 import org.tmatesoft.svn.core.internal.wc.SVNErrorManager;
 import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
@@ -163,6 +164,7 @@ public class UserProvidedCredential implements Closeable {
         public AuthenticationManagerImpl(PrintWriter logWriter) {
             super(SVNWCUtil.getDefaultConfigurationDirectory(), true, username, password, keyFile, password);
             this.logWriter = logWriter;
+            setAuthStoreHandler(new SVNAuthStoreHandlerImpl());
         }
 
         public AuthenticationManagerImpl(Writer w) {

@@ -761,6 +761,7 @@ public class SubversionSCM extends SCM implements Serializable {
         SubversionWorkspaceSelector.syncWorkspaceFormatFromMaster();
         ISVNAuthenticationManager sam = SVNWCUtil.createDefaultAuthenticationManager();
         sam.setAuthenticationProvider(authProvider);
+        SVNAuthStoreHandlerImpl.install(sam);
         return SVNClientManager.newInstance(SVNWCUtil.createDefaultOptions(true),sam);
     }
 
@@ -1843,6 +1844,7 @@ public class SubversionSCM extends SCM implements Serializable {
             SVNRepository repository = SVNRepositoryFactory.create(repoURL);
 
             ISVNAuthenticationManager sam = SVNWCUtil.createDefaultAuthenticationManager();
+            SVNAuthStoreHandlerImpl.install(sam);
             sam = new FilterSVNAuthenticationManager(sam) {
                 // If there's no time out, the blocking read operation may hang forever, because TCP itself
                 // has no timeout. So always use some time out. If the underlying implementation gives us some
