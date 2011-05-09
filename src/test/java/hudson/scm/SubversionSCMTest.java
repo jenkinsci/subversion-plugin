@@ -111,7 +111,7 @@ import java.util.concurrent.Future;
  * @author Kohsuke Kawaguchi
  */
 public class SubversionSCMTest extends AbstractSubversionTest {
-	
+
     private static final int LOG_LIMIT = 1000;
 
     // in some tests we play authentication games with this repo
@@ -123,6 +123,9 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     protected void setUp() throws Exception {
         super.setUp();
         repo = SVNURL.parseURIDecoded("http://subversion.tigris.org/svn/subclipse");
+
+        // during the test, don't pollute the global authentication cache.
+        SubversionSCM.CONFIG_DIR = createTmpDir().getAbsolutePath();
     }
 
     /**
