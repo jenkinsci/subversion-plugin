@@ -2231,7 +2231,7 @@ public class SubversionSCM extends SCM implements Serializable {
     /**
      * If set to non-null, read configuration from this directory instead of "~/.subversion".
      */
-    public static String CONFIG_DIR = null;
+    public static String CONFIG_DIR = System.getProperty(SubversionSCM.class.getName()+".configDir");
     
     /**
      * Enables trace logging of Ganymed SSH library.
