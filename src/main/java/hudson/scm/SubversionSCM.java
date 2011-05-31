@@ -770,7 +770,8 @@ public class SubversionSCM extends SCM implements Serializable {
         else
             configDir = SVNWCUtil.getDefaultConfigurationDirectory();
         
-        ISVNAuthenticationManager sam = SVNWCUtil.createDefaultAuthenticationManager(configDir, null, null);
+        //AuthenticationManager should not store the credentials. Authentication is provided via the authenticationprovider
+        ISVNAuthenticationManager sam = SVNWCUtil.createDefaultAuthenticationManager(configDir, null, null, false);
         sam.setAuthenticationProvider(authProvider);
         SVNAuthStoreHandlerImpl.install(sam);
         return sam;
