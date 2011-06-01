@@ -1,7 +1,8 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2010, Manufacture Francaise des Pneumatiques Michelin, Romain Seguy
+ * Copyright (c) 2010-2011, Manufacture Francaise des Pneumatiques Michelin,
+ * Romain Seguy
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +27,10 @@ package hudson.scm.listtagsparameter;
 
 import hudson.Util;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.regex.Pattern;
+import org.apache.commons.lang.StringUtils;
 import org.tmatesoft.svn.core.ISVNDirEntryHandler;
 import org.tmatesoft.svn.core.SVNDirEntry;
 import org.tmatesoft.svn.core.SVNException;
@@ -40,14 +44,31 @@ import org.tmatesoft.svn.core.SVNException;
 public class SimpleSVNDirEntryHandler implements ISVNDirEntryHandler {
 
   private List<String> dirs = new ArrayList<String>();
+  private Pattern filterPattern = null;
+
+  public SimpleSVNDirEntryHandler(String filter) {
+    if(StringUtils.isNotBlank(filter)) {
+      filterPattern = Pattern.compile(filter);
+    }
+  }
 
   public List<String> getDirs() {
+    return getDirs(false);
+  }
+
+  public List<String> getDirs(boolean reverse) {
+    Collections.sort(dirs);
+    if(reverse) {
+        Collections.reverse(dirs);
+    }
     return dirs;
   }
 
   @Override
   public void handleDirEntry(SVNDirEntry dirEntry) throws SVNException {
-    dirs.add(Util.removeTrailingSlash(dirEntry.getName()));
+    if(filterPattern != null && filterPattern.matcher(dirEntry.getName()).matches() || filterPattern == null) {
+      dirs.add(Util.removeTrailingSlash(dirEntry.getName()));
+    }
   }
 
 }

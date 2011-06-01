@@ -1,7 +1,8 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2010, Manufacture Francaise des Pneumatiques Michelin, Romain Seguy
+ * Copyright (c) 2010-2011, Manufacture Francaise des Pneumatiques Michelin,
+ * Romain Seguy
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,6 +39,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import net.sf.json.JSONObject;
 import org.jvnet.localizer.ResourceBundleHolder;
 import org.kohsuke.stapler.AncestorInPath;
@@ -50,7 +53,6 @@ import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
 import org.tmatesoft.svn.core.wc.SVNLogClient;
 import org.tmatesoft.svn.core.wc.SVNRevision;
-import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
 /**
  * Defines a new {@link ParameterDefinition} to be displayed at the top of the
@@ -68,6 +70,8 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
    * The Subversion repository which contains the tags to be listed.
    */
   private final String tagsDir;
+  private final String tagsFilter;
+  private final boolean reverse;
   /**
    * We use a UUID to uniquely identify each use of this parameter: We need this
    * to find the project using this parameter in the getTags() method (which is
@@ -76,9 +80,11 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
   private final UUID uuid;
 
   @DataBoundConstructor
-  public ListSubversionTagsParameterDefinition(String name, String tagsDir, String uuid) {
+  public ListSubversionTagsParameterDefinition(String name, String tagsDir, String tagsFilter, boolean reverse, String uuid) {
     super(name, ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("TagDescription"));
     this.tagsDir = Util.removeTrailingSlash(tagsDir);
+    this.tagsFilter = tagsFilter;
+    this.reverse = reverse;
 
     if(uuid == null || uuid.length() == 0) {
       this.uuid = UUID.randomUUID();
@@ -149,7 +155,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
       }
     }
 
-    SimpleSVNDirEntryHandler dirEntryHandler = new SimpleSVNDirEntryHandler();
+    SimpleSVNDirEntryHandler dirEntryHandler = new SimpleSVNDirEntryHandler(tagsFilter);
 
     try {
       ISVNAuthenticationProvider authProvider = getDescriptor().createAuthenticationProvider(context);
@@ -169,7 +175,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
       }};
     }
 
-    List<String> dirs = dirEntryHandler.getDirs();
+    List<String> dirs = dirEntryHandler.getDirs(isReverse());
 
     // SVNKit's doList() method returns also the parent dir, so we need to remove it
     if(dirs != null) {
@@ -187,6 +193,14 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
 
   public String getTagsDir() {
     return tagsDir;
+  }
+
+  public String getTagsFilter() {
+    return tagsFilter;
+  }
+
+  public boolean isReverse() {
+    return reverse;
   }
 
   /**
@@ -222,6 +236,18 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
 
     public FormValidation doCheckTagsDir(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value) {
       return getSubversionSCMDescriptor().doCheckRemote(req, context, value);
+    }
+
+    public FormValidation doCheckTagsFilter(@QueryParameter String value) {
+        if(value != null && value.length() == 0) {
+            try {
+                Pattern.compile(value);
+            }
+            catch(PatternSyntaxException pse) {
+                FormValidation.error(ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("NotValidRegex"));
+            }
+        }
+        return FormValidation.ok();
     }
 
     @Override
