@@ -103,6 +103,7 @@ import org.tmatesoft.svn.core.internal.io.dav.http.DefaultHTTPConnectionFactory;
 import org.tmatesoft.svn.core.internal.io.fs.FSRepositoryFactory;
 import org.tmatesoft.svn.core.internal.io.svn.SVNRepositoryFactoryImpl;
 import org.tmatesoft.svn.core.internal.util.SVNPathUtil;
+import org.tmatesoft.svn.core.internal.wc.DefaultSVNOptions;
 import org.tmatesoft.svn.core.internal.wc.SVNExternal;
 import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminAreaFactory;
 import org.tmatesoft.svn.core.io.SVNCapability;
@@ -760,7 +761,19 @@ public class SubversionSCM extends SCM implements Serializable {
     public static SVNClientManager createSvnClientManager(ISVNAuthenticationProvider authProvider) {
         SubversionWorkspaceSelector.syncWorkspaceFormatFromMaster();
         ISVNAuthenticationManager sam = createSvnAuthenticationManager(authProvider);
-        return SVNClientManager.newInstance(SVNWCUtil.createDefaultOptions(true), sam);
+        return SVNClientManager.newInstance(createDefaultSVNOptions(), sam);
+    }
+
+    /**
+     * Creates the {@link DefaultSVNOptions}.
+     *
+     * @return the {@link DefaultSVNOptions}.
+     */
+    public static DefaultSVNOptions createDefaultSVNOptions() {
+        DefaultSVNOptions defaultOptions = SVNWCUtil.createDefaultOptions(true);
+        defaultOptions.setAuthStorageEnabled(
+                Hudson.getInstance().getDescriptorByType(DescriptorImpl.class).isStoreAuthToDisk());
+        return defaultOptions;
     }
 
     public static ISVNAuthenticationManager createSvnAuthenticationManager(ISVNAuthenticationProvider authProvider) {
@@ -1314,6 +1327,12 @@ public class SubversionSCM extends SCM implements Serializable {
         private boolean validateRemoteUpToVar = false;
 
         /**
+         * When set to {@code false}, then auth details will never be stored on disk.
+         * @since 1.23
+         */
+        private boolean storeAuthToDisk = false;
+
+        /**
          * Stores {@link SVNAuthentication} for a single realm.
          *
          * <p>
@@ -1622,12 +1641,17 @@ public class SubversionSCM extends SCM implements Serializable {
             return validateRemoteUpToVar;
         }
 
+        public boolean isStoreAuthToDisk() {
+            return storeAuthToDisk;
+        }
+
         @Override
         public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
             globalExcludedRevprop = fixEmptyAndTrim(
                     req.getParameter("svn.global_excluded_revprop"));
             workspaceFormat = Integer.parseInt(req.getParameter("svn.workspaceFormat"));
             validateRemoteUpToVar = formData.containsKey("validateRemoteUpToVar");
+            storeAuthToDisk = formData.containsKey("storeAuthToDisk");
 
             // Save configuration
             save();
@@ -1727,7 +1751,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 // 3) if the authentication is successful, svnkit calls back acknowledgeAuthentication
                 //    (so we store the password info here)
                 repository = SVNRepositoryFactory.create(SVNURL.parseURIDecoded(url));
-                repository.setTunnelProvider(SVNWCUtil.createDefaultOptions(true));
+                repository.setTunnelProvider( createDefaultSVNOptions() );
                 AuthenticationManagerImpl authManager = upc.new AuthenticationManagerImpl(logWriter) {
                     @Override
                     protected void onSuccess(String realm, Credential cred) {
@@ -1866,7 +1890,7 @@ public class SubversionSCM extends SCM implements Serializable {
                     return r;
                 }
             };
-            repository.setTunnelProvider(SVNWCUtil.createDefaultOptions(true));
+            repository.setTunnelProvider(createDefaultSVNOptions());
             repository.setAuthenticationManager(sam);
 
             return repository;
