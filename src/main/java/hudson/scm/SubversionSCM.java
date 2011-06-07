@@ -771,7 +771,7 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     public static DefaultSVNOptions createDefaultSVNOptions() {
         DefaultSVNOptions defaultOptions = SVNWCUtil.createDefaultOptions(true);
-        DescriptorImpl descriptor = Hudson.getInstance().getDescriptorByType(DescriptorImpl.class);
+        DescriptorImpl descriptor = Hudson.getInstance() == null ? null : Hudson.getInstance().getDescriptorByType(DescriptorImpl.class);
         if (defaultOptions != null && descriptor != null) {
             defaultOptions.setAuthStorageEnabled(descriptor.isStoreAuthToDisk());
         }
