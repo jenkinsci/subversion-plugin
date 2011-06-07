@@ -1328,9 +1328,9 @@ public class SubversionSCM extends SCM implements Serializable {
 
         /**
          * When set to {@code false}, then auth details will never be stored on disk.
-         * @since 1.23
+         * @since 1.27
          */
-        private boolean storeAuthToDisk = false;
+        private boolean storeAuthToDisk = true;
 
         /**
          * Stores {@link SVNAuthentication} for a single realm.
