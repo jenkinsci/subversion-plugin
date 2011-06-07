@@ -34,8 +34,12 @@
     <f:entry title="${%Tags filter}" field="tagsFilter">
         <f:textbox field="tagsFilter"/>
     </f:entry>
-    <f:entry field="reverse">
-        <f:checkbox name="reverse" checked="${instance.reverse}"/>
+    <f:entry field="reverseByDate">
+        <f:checkbox name="reverseByDate" checked="${instance.reverseByDate}"/>
+        <label class="attach-previous">${%Sort newest first}</label>
+    </f:entry>
+    <f:entry field="reverseByName">
+        <f:checkbox name="reverseByName" checked="${instance.reverseByName}"/>
         <label class="attach-previous">${%Sort Z to A}</label>
     </f:entry>
 </j:jelly>

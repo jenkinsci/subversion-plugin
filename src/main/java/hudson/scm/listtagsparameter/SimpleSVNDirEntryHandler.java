@@ -26,9 +26,13 @@
 package hudson.scm.listtagsparameter;
 
 import hudson.Util;
-import java.util.ArrayList;
 import java.util.Collections;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.TreeSet;
 import java.util.regex.Pattern;
 import org.apache.commons.lang.StringUtils;
 import org.tmatesoft.svn.core.ISVNDirEntryHandler;
@@ -43,7 +47,7 @@ import org.tmatesoft.svn.core.SVNException;
  */
 public class SimpleSVNDirEntryHandler implements ISVNDirEntryHandler {
 
-  private List<String> dirs = new ArrayList<String>();
+  private Map<Date, String> dirs = new HashMap<Date, String>();
   private Pattern filterPattern = null;
 
   public SimpleSVNDirEntryHandler(String filter) {
@@ -53,21 +57,34 @@ public class SimpleSVNDirEntryHandler implements ISVNDirEntryHandler {
   }
 
   public List<String> getDirs() {
-    return getDirs(false);
+    return getDirs(false, false);
   }
 
-  public List<String> getDirs(boolean reverse) {
-    Collections.sort(dirs);
-    if(reverse) {
-        Collections.reverse(dirs);
+  public List<String> getDirs(boolean reverseByDate, boolean reverseByName) {
+    List sortedDirs = null;
+    if(reverseByDate) {
+      sortedDirs = new ArrayList();
+      TreeSet<Date> keys = new TreeSet<Date>(dirs.keySet());
+      for(Date key: keys) {
+        sortedDirs.add(dirs.get(key));
+      }
+      Collections.reverse(sortedDirs);
     }
-    return dirs;
+    else if(reverseByName) {
+      sortedDirs = new ArrayList(dirs.values());
+      Collections.reverse(sortedDirs);
+    }
+    else {
+      sortedDirs = new ArrayList(dirs.values());
+      Collections.sort(sortedDirs);
+    }
+    return sortedDirs;
   }
 
   @Override
   public void handleDirEntry(SVNDirEntry dirEntry) throws SVNException {
     if(filterPattern != null && filterPattern.matcher(dirEntry.getName()).matches() || filterPattern == null) {
-      dirs.add(Util.removeTrailingSlash(dirEntry.getName()));
+      dirs.put(dirEntry.getDate(), Util.removeTrailingSlash(dirEntry.getName()));
     }
   }
 

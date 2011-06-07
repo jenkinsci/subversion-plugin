@@ -71,7 +71,8 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
    */
   private final String tagsDir;
   private final String tagsFilter;
-  private final boolean reverse;
+  private final boolean reverseByDate;
+  private final boolean reverseByName;
   /**
    * We use a UUID to uniquely identify each use of this parameter: We need this
    * to find the project using this parameter in the getTags() method (which is
@@ -80,11 +81,12 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
   private final UUID uuid;
 
   @DataBoundConstructor
-  public ListSubversionTagsParameterDefinition(String name, String tagsDir, String tagsFilter, boolean reverse, String uuid) {
+  public ListSubversionTagsParameterDefinition(String name, String tagsDir, String tagsFilter, boolean reverseByDate, boolean reverseByName, String uuid) {
     super(name, ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("TagDescription"));
     this.tagsDir = Util.removeTrailingSlash(tagsDir);
     this.tagsFilter = tagsFilter;
-    this.reverse = reverse;
+    this.reverseByDate = reverseByDate;
+    this.reverseByName = reverseByName;
 
     if(uuid == null || uuid.length() == 0) {
       this.uuid = UUID.randomUUID();
@@ -175,7 +177,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
       }};
     }
 
-    List<String> dirs = dirEntryHandler.getDirs(isReverse());
+    List<String> dirs = dirEntryHandler.getDirs(isReverseByDate(), isReverseByName());
 
     // SVNKit's doList() method returns also the parent dir, so we need to remove it
     if(dirs != null) {
@@ -199,8 +201,12 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
     return tagsFilter;
   }
 
-  public boolean isReverse() {
-    return reverse;
+  public boolean isReverseByDate() {
+    return reverseByDate;
+  }
+
+  public boolean isReverseByName() {
+    return reverseByName;
   }
 
   /**
@@ -239,15 +245,15 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
     }
 
     public FormValidation doCheckTagsFilter(@QueryParameter String value) {
-        if(value != null && value.length() == 0) {
-            try {
-                Pattern.compile(value);
-            }
-            catch(PatternSyntaxException pse) {
-                FormValidation.error(ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("NotValidRegex"));
-            }
+      if(value != null && value.length() == 0) {
+        try {
+          Pattern.compile(value);
         }
-        return FormValidation.ok();
+        catch(PatternSyntaxException pse) {
+          FormValidation.error(ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("NotValidRegex"));
+        }
+      }
+      return FormValidation.ok();
     }
 
     @Override
@@ -260,7 +266,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
      */
     public SubversionSCM.DescriptorImpl getSubversionSCMDescriptor() {
       if(scmDescriptor == null) {
-         scmDescriptor = (SubversionSCM.DescriptorImpl) Hudson.getInstance().getDescriptor(SubversionSCM.class);
+        scmDescriptor = (SubversionSCM.DescriptorImpl) Hudson.getInstance().getDescriptor(SubversionSCM.class);
       }
       return scmDescriptor;
     }
