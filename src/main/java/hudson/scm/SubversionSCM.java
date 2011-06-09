@@ -1,7 +1,7 @@
 /*
  * The MIT License
  * 
- * Copyright (c) 2004-2010, Sun Microsystems, Inc., Kohsuke Kawaguchi, Fulvio Cavarretta,
+ * Copyright (c) 2004-2011, Sun Microsystems, Inc., Kohsuke Kawaguchi, Fulvio Cavarretta,
  * Jean-Baptiste Quenot, Luca Domenico Milanesio, Renaud Bruyeron, Stephen Connolly,
  * Tom Huybrechts, Yahoo! Inc., Manufacture Francaise des Pneumatiques Michelin,
  * Romain Seguy
@@ -30,6 +30,7 @@ import com.thoughtworks.xstream.XStream;
 import com.trilead.ssh2.DebugLogger;
 import com.trilead.ssh2.SCPClient;
 import com.trilead.ssh2.crypto.Base64;
+import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.FilePath.FileCallable;
@@ -322,7 +323,7 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     @Exported
     public ModuleLocation[] getLocations() {
-    	return getLocations(null);
+    	return getLocations(null, null);
     }
 
     @Exported
@@ -343,15 +344,24 @@ public class SubversionSCM extends SCM implements Serializable {
     }
 
     /**
-     * list of all configured svn locations, expanded according to 
-     * build parameters values;
-     *
-     * @param build
-     *      If non-null, variable expansions are performed against the build parameters.
-     *
      * @since 1.252
+     * @deprecated Use {@link #getLocations(EnvVars, AbstractBuild)} for vars
+     *             expansion to be performed on all env vars rather than just
+     *             build parameters.
      */
     public ModuleLocation[] getLocations(AbstractBuild<?,?> build) {
+        return getLocations(null, build);
+    }
+
+    /**
+     * List of all configured svn locations, expanded according to all env vars
+     * or, if none defined, according to only build parameters values.
+     *
+     * @param env If non-null, variable expansions are performed against these vars
+     * @param build If non-null (and if env is null), variable expansions are
+     *              performed against the build parameters
+     */
+    public ModuleLocation[] getLocations(EnvVars env, AbstractBuild<?,?> build) {
         // check if we've got a old location
         if (modules != null) {
             // import the old configuration
@@ -369,13 +379,20 @@ public class SubversionSCM extends SCM implements Serializable {
             modules = null;
         }
 
-        if(build == null)
-        	return locations;
-        
+        if(env == null && build == null)
+            return locations;
+
         ModuleLocation[] outLocations = new ModuleLocation[locations.length];
-        for (int i = 0; i < outLocations.length; i++) {
-			outLocations[i] = locations[i].getExpandedLocation(build);
-		}
+        if(env != null) {
+            for (int i = 0; i < outLocations.length; i++) {
+                outLocations[i] = locations[i].getExpandedLocation(env);
+            }
+        }
+        else {
+            for (int i = 0; i < outLocations.length; i++) {
+                outLocations[i] = locations[i].getExpandedLocation(build);
+            }
+        }
 
         return outLocations;
     }
@@ -631,7 +648,10 @@ public class SubversionSCM extends SCM implements Serializable {
     }
     
     public boolean checkout(AbstractBuild build, Launcher launcher, FilePath workspace, final BuildListener listener, File changelogFile) throws IOException, InterruptedException {
-        List<External> externals = checkout(build,workspace,listener);
+        EnvVars env = build.getEnvironment(listener);
+        env.overrideAll(build.getBuildVariables());
+
+        List<External> externals = checkout(build,workspace,listener,env);
 
         if(externals==null)
             return false;
@@ -665,7 +685,7 @@ public class SubversionSCM extends SCM implements Serializable {
      *      if the operation failed. Otherwise the set of local workspace paths
      *      (relative to the workspace root) that has loaded due to svn:external.
      */
-    private List<External> checkout(AbstractBuild build, FilePath workspace, TaskListener listener) throws IOException, InterruptedException {
+    private List<External> checkout(AbstractBuild build, FilePath workspace, TaskListener listener, EnvVars env) throws IOException, InterruptedException {
         if (repositoryLocationsNoLongerExist(build, listener)) {
             Run lsb = build.getProject().getLastSuccessfulBuild();
             if (lsb != null && build.getNumber()-lsb.getNumber()>10
@@ -682,7 +702,7 @@ public class SubversionSCM extends SCM implements Serializable {
             }
         }
 
-        return workspace.act(new CheckOutTask(build, this, build.getTimestamp().getTime(), listener));
+        return workspace.act(new CheckOutTask(build, this, build.getTimestamp().getTime(), listener, env));
     }
 
 
@@ -692,11 +712,11 @@ public class SubversionSCM extends SCM implements Serializable {
     private static class CheckOutTask extends UpdateTask implements FileCallable<List<External>> {
         private final UpdateTask task;
 
-        public CheckOutTask(AbstractBuild<?, ?> build, SubversionSCM parent, Date timestamp, TaskListener listener) {
+        public CheckOutTask(AbstractBuild<?, ?> build, SubversionSCM parent, Date timestamp, TaskListener listener, EnvVars env) {
             this.authProvider = parent.getDescriptor().createAuthenticationProvider(build.getParent());
             this.timestamp = timestamp;
             this.listener = listener;
-            this.locations = parent.getLocations(build);
+            this.locations = parent.getLocations(env, build);
             this.revisions = build.getAction(RevisionParameterAction.class);
             this.task = parent.getWorkspaceUpdater().createTask();
         }
@@ -2204,16 +2224,24 @@ public class SubversionSCM extends SCM implements Serializable {
         /**
          * Expand location value based on Build parametric execution.
          *
-         * @param build
-         *            Build instance for expanding parameters into their values
-         *
-         * @return Output ModuleLocation expanded according to Build parameters
-         *         values.
+         * @param build Build instance for expanding parameters into their values
+         * @return Output ModuleLocation expanded according to Build parameters values.
+         * @deprecated Use {@link #getExpandedLocation(EnvVars)} for vars expansion
+         *             to be performed on all env vars rather than just build parameters.
          */
         public ModuleLocation getExpandedLocation(AbstractBuild<?, ?> build) {
             return new ModuleLocation(getExpandedRemote(build), getLocalDir());
         }
         
+        /**
+         * Expand location value based on environment variables.
+         *
+         * @return Output ModuleLocation expanded according to specified env vars.
+         */
+        public ModuleLocation getExpandedLocation(EnvVars env) {
+            return new ModuleLocation(env.expand(remote), getLocalDir());
+        }
+
         @Override
         public String toString() {
             return remote;
