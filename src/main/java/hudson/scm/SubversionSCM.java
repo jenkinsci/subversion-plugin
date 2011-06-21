@@ -649,7 +649,7 @@ public class SubversionSCM extends SCM implements Serializable {
     
     public boolean checkout(AbstractBuild build, Launcher launcher, FilePath workspace, final BuildListener listener, File changelogFile) throws IOException, InterruptedException {
         EnvVars env = build.getEnvironment(listener);
-        env.overrideAll(build.getBuildVariables());
+        EnvVarsUtils.overrideAll(env, build.getBuildVariables());
 
         List<External> externals = checkout(build,workspace,listener,env);
 

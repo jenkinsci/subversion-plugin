@@ -1,7 +1,9 @@
 /*
  * The MIT License
  * 
- * Copyright (c) 2004-2010, Sun Microsystems, Inc., Kohsuke Kawaguchi, Bruce Chapman, Yahoo! Inc.
+ * Copyright (c) 2004-2011, Sun Microsystems, Inc., Kohsuke Kawaguchi,
+ * Bruce Chapman, Yahoo! Inc., Manufacture Francaise des Pneumatiques Michelin,
+ * Romain Seguy
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -419,14 +421,25 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
     public void testURLWithVariable() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
+
+        // --- 1st case: URL with a variable ---
+
         String url = "http://svn.codehaus.org/sxc/tags/sxc-0.5/sxc-core/src/test/java/com/envoisolutions/sxc/builder/";
         p.setScm(new SubversionSCM("$REPO" + url.substring(10)));
-
         String var = url.substring(0, 10);
 
         FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause(),
                 new ParametersAction(new StringParameterValue("REPO", var))).get();
         System.out.println(b.getLog(LOG_LIMIT));
+        assertBuildStatus(Result.SUCCESS,b);
+        assertTrue(b.getWorkspace().child("Node.java").exists());
+
+        // --- 2nd case: URL with an empty variable ---
+
+        p.setScm(new SubversionSCM(url + "$EMPTY_VAR"));
+
+        b = p.scheduleBuild2(0, new Cause.UserCause(),
+                new ParametersAction(new StringParameterValue("EMPTY_VAR", ""))).get();
         assertBuildStatus(Result.SUCCESS,b);
         assertTrue(b.getWorkspace().child("Node.java").exists());
     }
@@ -491,7 +504,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     }
 
     @Bug(9143)
-    public void testCheckEmptyRemoteRemved() throws Exception {
+    public void testCheckEmptyRemoteRemoved() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
 
         List<ModuleLocation> locs = new ArrayList<ModuleLocation>();
