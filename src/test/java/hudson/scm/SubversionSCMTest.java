@@ -567,21 +567,12 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     	assertEquals(left, right);
     }
     
-    public void test1() {
+    public void testSvnUrlParsing() {
         check("http://foobar/");
         check("https://foobar/");
         check("file://foobar/");
         check("svn://foobar/");
         check("svn+ssh://foobar/");
-    }
-
-    public void test2() {
-        String[] r = "abc\\ def ghi".split("(?<!\\\\)[ \\r\\n]+");
-        for (int i = 0; i < r.length; i++) {
-            r[i] = r[i].replaceAll("\\\\ "," ");
-        }
-        System.out.println(Arrays.asList(r));
-        assertEquals(r.length,2);
     }
 
     private void check(String url) {
