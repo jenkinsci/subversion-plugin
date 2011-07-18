@@ -23,6 +23,7 @@
  */
 package hudson.scm;
 
+import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.model.User;
 import hudson.scm.SubversionChangeLogSet.LogEntry;
@@ -252,6 +253,17 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         @Override
         public Collection<Path> getAffectedFiles() {
 	        return paths;
+        }
+        
+        void finish() {
+            Collections.sort(paths, new Comparator<Path>() {
+                @Override
+                public int compare(Path o1, Path o2) {
+                    String path1 = Util.fixNull(o1.getValue());
+                    String path2 = Util.fixNull(o2.getValue());
+                    return path1.compareTo(path2);
+                }
+            });
         }
     }
 

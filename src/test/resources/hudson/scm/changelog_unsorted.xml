@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<log>
+    <logentry revision="68100">
+        <author>user</author>
+        <date>2011-07-14T15:25:09.982854Z</date>
+        <paths>
+            <path action="M">/module-a/trunk/test-impl/src/main/java/org/test/Test1.java
+            </path>
+            <path action="M">/integration-tests/trunk/src/test/java/org/test/testing/impl/TestService.java
+            </path>
+            <path action="M">/module-b/trunk/src/main/java/org/test/a/Test2.java
+            </path>
+            <path action="M">/module-a/trunk/test-impl/src/main/java/org/test/ITest.java
+            </path>
+        </paths>
+        <msg>A commit
+            message</msg>
+    </logentry>
+</log> 

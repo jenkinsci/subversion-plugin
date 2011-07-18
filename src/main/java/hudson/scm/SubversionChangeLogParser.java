@@ -44,7 +44,7 @@ import java.util.Comparator;
  */
 public class SubversionChangeLogParser extends ChangeLogParser {
     public SubversionChangeLogSet parse(AbstractBuild build, File changelogFile) throws IOException, SAXException {
-        // http://svn.collab.net/repos/svn/trunk/subversion/svn/schema/
+        // http://svn.apache.org/repos/asf/subversion/trunk/subversion/svn/schema/log.rnc
 
         Digester digester = new Digester2();
         ArrayList<LogEntry> r = new ArrayList<LogEntry>();
@@ -70,6 +70,9 @@ public class SubversionChangeLogParser extends ChangeLogParser {
             throw new IOException2("Failed to parse "+changelogFile,e);
         }
 
+        for (LogEntry e : r) {
+            e.finish();
+        }
         return new SubversionChangeLogSet(build,r);
     }
 
