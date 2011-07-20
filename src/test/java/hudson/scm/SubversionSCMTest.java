@@ -42,6 +42,7 @@ import hudson.Proc;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
+import hudson.model.Item;
 import hudson.scm.subversion.CheckoutUpdater;
 import hudson.scm.subversion.UpdateUpdater;
 import hudson.scm.subversion.UpdateWithCleanUpdater;
@@ -499,7 +500,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
                 		new ModuleLocation("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/testSubversionExclusion", "")),
                 true,null,null,null,null,null);
         p.setScm(scm);
-        configRoundtrip(p);
+        configRoundtrip((Item)p);
         verify(scm,(SubversionSCM)p.getScm());
     }
 
