@@ -8,6 +8,6 @@ See [Subversion Plugin](https://wiki.jenkins-ci.org/display/JENKINS/Subversion+P
 Canonical Repository
 --------------------
 
-The Canopnical repository for this plugin is [Subversion](https://svn.jenkins-ci.org/trunk/hudson/plugins/subversion).
+The Canonical repository for this plugin is [Subversion](https://svn.jenkins-ci.org/trunk/hudson/plugins/subversion).
 
 Apache, Apache Subversion and Subversion are trademarks of the Apache Software Foundation.
