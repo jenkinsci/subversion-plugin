@@ -625,7 +625,8 @@ public class SubversionSCM extends SCM implements Serializable {
                         		revisions.put(url, revision);
                     	}
                 	} catch (NumberFormatException e) {
-                		// perhaps a corrupted line. ignore
+                	    // perhaps a corrupted line.
+                	    LOGGER.log(WARNING, "Error parsing line " + line, e);
                 	}
                 }
             } finally {
