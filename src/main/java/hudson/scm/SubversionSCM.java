@@ -563,7 +563,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
 
     /*package*/ static Map<String,Long> parseRevisionFile(AbstractBuild<?,?> build) throws IOException {
-        return parseRevisionFile(build,false);
+        return parseRevisionFile(build,false,false);
     }
 
     /**
@@ -573,9 +573,10 @@ public class SubversionSCM extends SCM implements Serializable {
      *      If true, this method will go back the build history until it finds a revision file.
      *      A build may not have a revision file for any number of reasons (such as failure, interruption, etc.)
      * @return
-     *      map from {@link SvnInfo#url Subversion URL} to its revision.
+     *      map from {@link SvnInfo#url Subversion URL} to its revision.  If there is more than one, choose
+     *      the one with the smallest revision number
      */
-    /*package*/ static Map<String,Long> parseRevisionFile(AbstractBuild<?,?> build, boolean findClosest) throws IOException {
+    /*package*/ static Map<String,Long> parseRevisionFile(AbstractBuild<?,?> build, boolean findClosest, boolean prunePinnedExternals) throws IOException {
         Map<String,Long> revisions = new HashMap<String,Long>(); // module -> revision
 
         if (findClosest) {
@@ -597,15 +598,35 @@ public class SubversionSCM extends SCM implements Serializable {
             try {
                 String line;
                 while((line=br.readLine())!=null) {
-                    int index = line.lastIndexOf('/');
+                	boolean isPinned = false;
+                	int indexLast = line.length();
+                	if (line.lastIndexOf("::p") == indexLast-3) {
+                		isPinned = true;
+                		indexLast -= 3;
+                	}
+                	int index = line.lastIndexOf('/');
                     if(index<0) {
                         continue;   // invalid line?
                     }
                     try {
-                        revisions.put(line.substring(0,index), Long.parseLong(line.substring(index+1)));
-                    } catch (NumberFormatException e) {
-                        // perhaps a corrupted line. ignore
-                    }
+                    	String url = line.substring(0, index);
+                    	long revision = Long.parseLong(line.substring(index+1,indexLast));
+                    	Long oldRevision = revisions.get(url);
+                    	if (isPinned) {
+                    		if (!prunePinnedExternals) {
+                    			if (oldRevision == null)
+                    				// If we're writing pinned, only write if there are no unpinned
+                    				revisions.put(url, revision);
+                    		}
+                    	} else {
+                    		// unpinned
+                        	if (oldRevision == null || oldRevision > revision)
+                        		// For unpinned, take minimum
+                        		revisions.put(url, revision);
+                    	}
+                	} catch (NumberFormatException e) {
+                		// perhaps a corrupted line. ignore
+                	}
                 }
             } finally {
                 br.close();
@@ -659,11 +680,15 @@ public class SubversionSCM extends SCM implements Serializable {
         // write out the revision file
         PrintWriter w = new PrintWriter(new FileOutputStream(getRevisionFile(build)));
         try {
-            Map<String,SvnInfo> revMap = workspace.act(new BuildRevisionMapTask(build, this, listener, externals));
-            for (Entry<String,SvnInfo> e : revMap.entrySet()) {
-                w.println( e.getKey() +'/'+ e.getValue().revision );
+            List<SvnInfoP> pList = workspace.act(new BuildRevisionMapTask(build, this, listener, externals));
+            List<SvnInfo> revList= new ArrayList<SvnInfo>(pList.size());
+            for (SvnInfoP p: pList) {
+            	if (p.pinned) 
+            		w.println( p.info.url +'/'+ p.info.revision + "::p");
+            	else
+            		w.println( p.info.url +'/'+ p.info.revision);
             }
-            build.addAction(new SubversionTagAction(build,revMap.values()));
+            build.addAction(new SubversionTagAction(build,revList));
         } finally {
             w.close();
         }
@@ -878,6 +903,23 @@ public class SubversionSCM extends SCM implements Serializable {
     }
 
     /**
+     * {@link SvnInfo} plus a flag if the revision is fixed.
+     */
+    private static final class SvnInfoP implements Serializable {
+        /**
+         * SvnInfo with an indicator boolean indicating whether this is a pinned external
+         */
+        public final SvnInfo info;
+        public final boolean pinned;
+
+        public SvnInfoP(SvnInfo info, boolean pinned) {
+            this.info = info;
+            this.pinned = pinned;
+        }
+        private static final long serialVersionUID = 1L;
+    }
+
+    /**
      * Information about svn:external
      */
     public static final class External implements Serializable {
@@ -948,7 +990,7 @@ public class SubversionSCM extends SCM implements Serializable {
      * @return
      *      null if the parsing somehow fails. Otherwise a map from the repository URL to revisions.
      */
-    private static class BuildRevisionMapTask implements FileCallable<Map<String,SvnInfo>> {
+    private static class BuildRevisionMapTask implements FileCallable<List<SvnInfoP>> {
         private final ISVNAuthenticationProvider authProvider;
         private final TaskListener listener;
         private final List<External> externals;
@@ -961,8 +1003,8 @@ public class SubversionSCM extends SCM implements Serializable {
             this.locations = parent.getLocations(build);
         }
 
-        public Map<String,SvnInfo> invoke(File ws, VirtualChannel channel) throws IOException {
-            Map<String/*module name*/,SvnInfo> revisions = new HashMap<String,SvnInfo>();
+        public List<SvnInfoP> invoke(File ws, VirtualChannel channel) throws IOException {
+            List<SvnInfoP> revisions = new ArrayList<SvnInfoP>();
 
             final SVNClientManager manager = createSvnClientManager(authProvider);
             try {
@@ -971,7 +1013,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 for( ModuleLocation module : locations ) {
                     try {
                         SvnInfo info = new SvnInfo(svnWc.doInfo(new File(ws,module.getLocalDir()), SVNRevision.WORKING));
-                        revisions.put(info.url,info);
+                        revisions.add(new SvnInfoP(info, false));
                     } catch (SVNException e) {
                         e.printStackTrace(listener.error("Failed to parse svn info for "+module.remote));
                     }
@@ -979,11 +1021,10 @@ public class SubversionSCM extends SCM implements Serializable {
                 for(External ext : externals){
                     try {
                         SvnInfo info = new SvnInfo(svnWc.doInfo(new File(ws,ext.path),SVNRevision.WORKING));
-                        revisions.put(info.url,info);
+                        revisions.add(new SvnInfoP(info, ext.isRevisionFixed()));
                     } catch (SVNException e) {
                         e.printStackTrace(listener.error("Failed to parse svn info for external "+ext.url+" at "+ext.path));
                     }
-
                 }
 
                 return revisions;
@@ -1011,11 +1052,7 @@ public class SubversionSCM extends SCM implements Serializable {
     @Override
     public SCMRevisionState calcRevisionsFromBuild(AbstractBuild<?, ?> build, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
         // exclude locations that are svn:external-ed with a fixed revision.
-        Map<String,Long> wsRev = parseRevisionFile(build,true);
-        for (External e : parseExternalsFile(build.getProject()))
-            if (e.isRevisionFixed())
-                wsRev.remove(e.url);
-
+        Map<String,Long> wsRev = parseRevisionFile(build,true,true);
         return new SVNRevisionState(wsRev);
     }
 

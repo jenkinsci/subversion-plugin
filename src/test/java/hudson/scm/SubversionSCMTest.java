@@ -39,7 +39,6 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Cause;
 import hudson.model.FreeStyleProject;
-import hudson.model.Job;
 import hudson.model.ParametersAction;
 import hudson.model.StringParameterValue;
 import hudson.scm.SubversionSCM.ModuleLocation;
@@ -1105,4 +1104,35 @@ public class SubversionSCMTest extends AbstractSubversionTest {
             p.kill();
         }
     }
-}
+
+
+    /**
+     * Check out a pinned external and the same url unpinned.
+     * See that we can poll afterward w/o getting confused.
+     */
+    @Bug(6209)
+    public void testPinnedExternals() throws Exception {
+        Proc p = runSvnServe(getClass().getResource("JENKINS-6209.zip"));
+        try {
+                FreeStyleProject b = createFreeStyleProject();
+
+            ModuleLocation[] locations = {
+                    new ModuleLocation("svn://localhost/y", null),
+                    new ModuleLocation("svn://localhost/z", null)
+                };
+
+            b.setScm(new SubversionSCM(Arrays.asList(locations), false, false, null, null, null, null, null, null));
+
+            assertBuildStatusSuccess(b.scheduleBuild2(0));
+            FilePath ws = b.getWorkspace();
+            assertEquals(ws.child("z").child("a").readToString(),"za 2\n");
+            assertEquals(ws.child("y").child("z").child("a").readToString(),"za 1\n");
+
+            assertEquals(b.poll(new StreamTaskListener(System.out,Charset.defaultCharset())).change, PollingResult.Change.NONE);
+        } finally {
+            p.kill();
+        }
+    }
+
+    
+}    
