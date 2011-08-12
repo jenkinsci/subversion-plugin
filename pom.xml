@@ -29,6 +29,9 @@ THE SOFTWARE.
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
     <version>1.399</version>
+    <!--
+    <version>1.420</version>
+    -->
   </parent>
 
   <artifactId>subversion</artifactId>
@@ -64,6 +67,19 @@ THE SOFTWARE.
       <url>http://maven.glassfish.org/content/groups/public/</url>
     </repository>
   </repositories>
+
+  <!-- needs the following section to run "mvn hpi:run". when LTS release comes out with 1.420 or later dependency, time to bump up the core so that we can use this.
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.jenkins-ci.tools</groupId>
+        <artifactId>maven-hpi-plugin</artifactId>
+        <version>1.75</version>
+        <extensions>true</extensions>
+      </plugin>
+    </plugins>
+  </build>
+  -->
 
   <dependencies>
     <dependency>
