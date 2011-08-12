@@ -34,6 +34,7 @@ import org.tmatesoft.svn.core.wc.ISVNStatusHandler;
 import org.tmatesoft.svn.core.wc.SVNStatus;
 import org.tmatesoft.svn.core.wc.SVNStatusType;
 
+import javax.rmi.CORBA.Util;
 import java.io.File;
 import java.io.IOException;
 
@@ -64,7 +65,7 @@ public class UpdateWithCleanUpdater extends WorkspaceUpdater {
                         try {
                             File f = status.getFile();
                             if (f.isDirectory())
-                                FileUtils.deleteDirectory(f);
+                                hudson.Util.deleteRecursive(f);
                             else
                                 f.delete();
                         } catch (IOException e) {
