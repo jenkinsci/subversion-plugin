@@ -38,6 +38,8 @@ import java.io.IOException;
  * @author Kohsuke Kawaguchi
  */
 public class UpdateWithRevertUpdater extends WorkspaceUpdater {
+    private static final long serialVersionUID = 485917115133281105L;
+
     @DataBoundConstructor
     public UpdateWithRevertUpdater() {}
 
@@ -48,6 +50,11 @@ public class UpdateWithRevertUpdater extends WorkspaceUpdater {
 
     // mostly "svn update" plus extra
     public static class TaskImpl extends UpdateUpdater.TaskImpl {
+        /**
+         * 
+         */
+        private static final long serialVersionUID = -8562813147341259328L;
+
         @Override
         protected void preUpdate(ModuleLocation module, File local) throws SVNException, IOException {
             listener.getLogger().println("Reverting " + local);

@@ -22,6 +22,8 @@ import static java.util.logging.Level.INFO;
  * @author Kohsuke Kawaguchi
  */
 final class PerJobCredentialStore implements Saveable, RemotableSVNAuthenticationProvider {
+    private static final long serialVersionUID = 8509067873170016632L;
+
     private final transient AbstractProject<?,?> project;
 
     /**

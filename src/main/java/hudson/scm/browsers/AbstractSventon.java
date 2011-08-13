@@ -33,6 +33,8 @@ import java.net.URL;
  * @author Kohsuke Kawaguchi
  */
 public abstract class AbstractSventon extends SubversionRepositoryBrowser {
+    private static final long serialVersionUID = 3514464895743639935L;
+
     /**
      * The URL of the Sventon 2.x repository.
      *

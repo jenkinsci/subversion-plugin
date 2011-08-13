@@ -39,7 +39,8 @@ import org.kohsuke.stapler.export.Exported;
  */
 public class ListSubversionTagsParameterValue extends ParameterValue {
 
-  @Exported(visibility=3) private String tagsDir; // this att comes from ListSubversionTagsParameterDefinition
+    private static final long serialVersionUID = 9192758635921187885L;
+@Exported(visibility=3) private String tagsDir; // this att comes from ListSubversionTagsParameterDefinition
   @Exported(visibility=3) private String tag;
 
   @DataBoundConstructor

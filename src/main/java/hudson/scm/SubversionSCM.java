@@ -1115,6 +1115,8 @@ public class SubversionSCM extends SCM implements Serializable {
         final ISVNAuthenticationProvider authProvider = getDescriptor().createAuthenticationProvider(project);
 
         return ch.call(new DelegatingCallable<PollingResult,IOException> () {
+            private static final long serialVersionUID = 8200959096894789583L;
+
             public ClassLoader getClassLoader() {
                 return Hudson.getInstance().getPluginManager().uberClassLoader;
             }
@@ -1402,6 +1404,11 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         public static abstract class Credential implements Serializable {
             /**
+             * 
+             */
+            private static final long serialVersionUID = -3707951427730113110L;
+
+            /**
              * @param kind
              *      One of the constants defined in {@link ISVNAuthenticationManager},
              *      indicating what subtype of {@link SVNAuthentication} is expected.
@@ -1413,6 +1420,10 @@ public class SubversionSCM extends SCM implements Serializable {
          * Username/password based authentication.
          */
         public static final class PasswordCredential extends Credential {
+            /**
+             * 
+             */
+            private static final long serialVersionUID = -1676145651108866745L;
             private final String userName;
             private final String password; // scrambled by base64
 
@@ -1434,6 +1445,10 @@ public class SubversionSCM extends SCM implements Serializable {
          * Public key authentication for Subversion over SSH.
          */
         public static final class SshPublicKeyCredential extends Credential {
+            /**
+             * 
+             */
+            private static final long serialVersionUID = -4649332611621900514L;
             private final String userName;
             private final String passphrase; // scrambled by base64
             private final String id;
@@ -1502,6 +1517,11 @@ public class SubversionSCM extends SCM implements Serializable {
                         if(channel!=null) {
                             // remote
                             privateKey = channel.call(new Callable<String,IOException>() {
+                                /**
+                                 * 
+                                 */
+                                private static final long serialVersionUID = -3088632649290496373L;
+
                                 public String call() throws IOException {
                                     return FileUtils.readFileToString(getKeyFile(),"iso-8859-1");
                                 }
@@ -1524,6 +1544,10 @@ public class SubversionSCM extends SCM implements Serializable {
          * SSL client certificate based authentication.
          */
         public static final class SslClientCertificateCredential extends Credential {
+            /**
+             * 
+             */
+            private static final long serialVersionUID = 5455755079546887446L;
             private final Secret certificate;
             private final String password; // scrambled by base64
 
@@ -1567,6 +1591,11 @@ public class SubversionSCM extends SCM implements Serializable {
         private transient final RemotableSVNAuthenticationProviderImpl remotableProvider = new RemotableSVNAuthenticationProviderImpl();
 
         private final class RemotableSVNAuthenticationProviderImpl implements RemotableSVNAuthenticationProvider {
+            /**
+             * 
+             */
+            private static final long serialVersionUID = 1243451839093253666L;
+
             public Credential getCredential(SVNURL url, String realm) {
                 for (SubversionCredentialProvider p : SubversionCredentialProvider.all()) {
                     Credential c = p.getCredential(url,realm);

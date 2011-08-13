@@ -52,12 +52,19 @@ import java.util.List;
  * @author Kohsuke Kawaguchi
  */
 public class CheckoutUpdater extends WorkspaceUpdater {
+    private static final long serialVersionUID = -3502075714024708011L;
+
     @DataBoundConstructor
     public CheckoutUpdater() {}
 
     @Override
     public UpdateTask createTask() {
         return new UpdateTask() {
+            /**
+             * 
+             */
+            private static final long serialVersionUID = 8349986526712487762L;
+
             @Override
             public List<External> perform() throws IOException, InterruptedException {
                 final SVNUpdateClient svnuc = manager.getUpdateClient();

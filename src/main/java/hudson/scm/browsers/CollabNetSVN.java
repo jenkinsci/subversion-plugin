@@ -42,6 +42,9 @@ import org.kohsuke.stapler.DataBoundConstructor;
  */
 public class CollabNetSVN extends SubversionRepositoryBrowser
 {
+    private static final long serialVersionUID = 4638328794797996597L;
+
+
     @Extension
     public static class DescriptorImpl extends Descriptor<RepositoryBrowser<?>> {
         public String getDisplayName() {

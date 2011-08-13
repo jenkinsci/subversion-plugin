@@ -41,6 +41,8 @@ import java.io.IOException;
  * @author Kohsuke Kawaguchi
  */
 public class UpdateWithCleanUpdater extends WorkspaceUpdater {
+    private static final long serialVersionUID = 8427138737745329413L;
+
     @DataBoundConstructor
     public UpdateWithCleanUpdater() {}
 
@@ -51,6 +53,11 @@ public class UpdateWithCleanUpdater extends WorkspaceUpdater {
 
     // mostly "svn update" plus extra
     public static class TaskImpl extends UpdateUpdater.TaskImpl {
+        /**
+         * 
+         */
+        private static final long serialVersionUID = -5120852266435704852L;
+
         @Override
         protected void preUpdate(ModuleLocation module, File local) throws SVNException, IOException {
             listener.getLogger().println("Cleaning up " + local);

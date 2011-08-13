@@ -52,6 +52,8 @@ import java.util.List;
  * @author Kohsuke Kawaguchi
  */
 public class UpdateUpdater extends WorkspaceUpdater {
+    private static final long serialVersionUID = 1451258464864424355L;
+
     @DataBoundConstructor
     public UpdateUpdater() {
     }
@@ -62,6 +64,11 @@ public class UpdateUpdater extends WorkspaceUpdater {
     }
 
     public static class TaskImpl extends UpdateTask {
+        /**
+         * 
+         */
+        private static final long serialVersionUID = -5766470969352844330L;
+
         /**
          * Returns true if we can use "svn update" instead of "svn checkout"
          */

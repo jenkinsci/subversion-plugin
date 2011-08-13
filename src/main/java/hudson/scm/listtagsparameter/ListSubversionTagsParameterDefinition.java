@@ -66,7 +66,8 @@ import org.tmatesoft.svn.core.wc.SVNRevision;
  */
 public class ListSubversionTagsParameterDefinition extends ParameterDefinition implements Comparable<ListSubversionTagsParameterDefinition> {
 
-  /**
+    private static final long serialVersionUID = 5458217954492915951L;
+/**
    * The Subversion repository which contains the tags to be listed.
    */
   private final String tagsDir;
@@ -172,7 +173,12 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
     catch(SVNException e) {
       // logs are not translated (IMO, this is a bad idea to translate logs)
       LOGGER.log(Level.SEVERE, "An SVN exception occurred while listing the directory entries at " + getTagsDir(), e);
-      return new ArrayList() {{
+      return new ArrayList() {/**
+         * 
+         */
+        private static final long serialVersionUID = -2461060214177503398L;
+
+    {
         add("&lt;" + ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("SVNException") + "&gt;");
       }};
     }
@@ -185,7 +191,12 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
     }
     else {
       LOGGER.log(Level.INFO, "No directory entries were found for the following SVN repository: {0}", getTagsDir());
-      return new ArrayList() {{
+      return new ArrayList() {/**
+         * 
+         */
+        private static final long serialVersionUID = -2725829892794981542L;
+
+    {
         add("&lt;" + ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("NoDirectoryEntriesFound") + "&gt;");
       }};
     }

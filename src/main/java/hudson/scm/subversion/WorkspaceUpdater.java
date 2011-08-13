@@ -54,6 +54,8 @@ import java.util.List;
  */
 @ExportedBean
 public abstract class WorkspaceUpdater extends AbstractDescribableImpl<WorkspaceUpdater> implements ExtensionPoint, Serializable {
+    private static final long serialVersionUID = 8902811304319899817L;
+
     /**
      * Creates the {@link UpdateTask} instance, which performs the actual check out / update.
      */
