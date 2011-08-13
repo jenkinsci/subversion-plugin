@@ -1,29 +1,30 @@
 package hudson.scm;
 
+import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.FINER;
+import static java.util.logging.Level.WARNING;
+import static javax.servlet.http.HttpServletResponse.SC_OK;
 import hudson.model.AbstractModelObject;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.scm.SubversionSCM.SvnInfo;
 import hudson.triggers.SCMTrigger;
+import hudson.util.QueryParameterMap;
 
-import org.apache.commons.io.IOUtils;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
-import org.tmatesoft.svn.core.SVNException;
-
-import javax.servlet.ServletException;
-import static javax.servlet.http.HttpServletResponse.SC_OK;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-import static java.util.logging.Level.FINE;
-import static java.util.logging.Level.FINER;
-import static java.util.logging.Level.WARNING;
-
 import java.util.logging.Logger;
+
+import javax.servlet.ServletException;
+
+import org.apache.commons.io.IOUtils;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
+import org.tmatesoft.svn.core.SVNException;
 
 /**
  * Per repository status.
