@@ -2,7 +2,6 @@ package hudson.scm;
 
 import java.io.Serializable;
 import java.util.Map;
-import java.util.Map.Entry;
 
 /**
  * {@link SCMRevisionState} for {@link SubversionSCM}. {@link Serializable} since we compute

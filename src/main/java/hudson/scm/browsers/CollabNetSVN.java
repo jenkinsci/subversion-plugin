@@ -24,7 +24,6 @@
 package hudson.scm.browsers;
 
 import hudson.model.Descriptor;
-import hudson.model.Descriptor.FormException;
 import hudson.scm.EditType;
 import hudson.scm.RepositoryBrowser;
 import hudson.scm.SubversionChangeLogSet;
@@ -33,9 +32,7 @@ import hudson.Extension;
 
 import java.io.IOException;
 import java.net.URL;
-import net.sf.json.JSONObject;
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.StaplerRequest;
 
 /**
  * {@link RepositoryBrowser} implementation for CollabNet hosted Subversion repositories.

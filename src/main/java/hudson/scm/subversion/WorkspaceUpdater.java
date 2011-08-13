@@ -41,7 +41,6 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
-import java.util.logging.Logger;
 
 /**
  * Encapsulates the logic of how files are obtained from a subversion repository.
@@ -165,6 +164,4 @@ public abstract class WorkspaceUpdater extends AbstractDescribableImpl<Workspace
 
         private static final long serialVersionUID = 1L;
     }
-
-    private static final Logger LOGGER = Logger.getLogger(WorkspaceUpdater.class.getName());
 }

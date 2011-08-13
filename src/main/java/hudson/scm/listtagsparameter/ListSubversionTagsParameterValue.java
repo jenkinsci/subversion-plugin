@@ -28,7 +28,6 @@ import hudson.EnvVars;
 import hudson.model.AbstractBuild;
 import hudson.model.ParameterValue;
 import hudson.util.VariableResolver;
-import java.util.logging.Logger;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.export.Exported;
 
@@ -79,7 +78,5 @@ public class ListSubversionTagsParameterValue extends ParameterValue {
   public void setTagsDir(String tagsDir) {
     this.tagsDir = tagsDir;
   }
-
-  private final static Logger LOGGER = Logger.getLogger(ListSubversionTagsParameterValue.class.getName());
 
 }

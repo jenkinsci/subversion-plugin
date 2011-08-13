@@ -25,7 +25,6 @@ package hudson.scm.subversion;
 
 import hudson.Extension;
 import hudson.scm.SubversionSCM.ModuleLocation;
-import org.apache.commons.io.FileUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNErrorMessage;
@@ -34,7 +33,6 @@ import org.tmatesoft.svn.core.wc.ISVNStatusHandler;
 import org.tmatesoft.svn.core.wc.SVNStatus;
 import org.tmatesoft.svn.core.wc.SVNStatusType;
 
-import javax.rmi.CORBA.Util;
 import java.io.File;
 import java.io.IOException;
 

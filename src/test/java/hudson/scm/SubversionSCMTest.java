@@ -453,7 +453,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
                 Arrays.asList(new ModuleLocation(svnBase + "trunk", null), new ModuleLocation(svnBase + "branches", null)),
                 false, false, null, null, null, null, null);
         p.setScm(scm);
-        FreeStyleBuild build = p.scheduleBuild2(0, new Cause.UserCause()).get();
+        p.scheduleBuild2(0, new Cause.UserCause()).get();
 
         // as a baseline, this shouldn't detect any change
         TaskListener listener = createTaskListener();

@@ -34,8 +34,6 @@ import org.xml.sax.SAXException;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 
 /**
  * {@link ChangeLogParser} for Subversion.
@@ -43,7 +41,7 @@ import java.util.Comparator;
  * @author Kohsuke Kawaguchi
  */
 public class SubversionChangeLogParser extends ChangeLogParser {
-    public SubversionChangeLogSet parse(AbstractBuild build, File changelogFile) throws IOException, SAXException {
+    public SubversionChangeLogSet parse(@SuppressWarnings("rawtypes") AbstractBuild build, File changelogFile) throws IOException, SAXException {
         // http://svn.apache.org/repos/asf/subversion/trunk/subversion/svn/schema/log.rnc
 
         Digester digester = new Digester2();
