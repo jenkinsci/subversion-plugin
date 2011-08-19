@@ -26,17 +26,19 @@ package hudson.scm;
 import hudson.Extension;
 import hudson.model.AbstractModelObject;
 import hudson.model.RootAction;
+import hudson.model.UnprotectedRootAction;
 
 import java.util.regex.Pattern;
 import java.util.UUID;
 
 /**
- * Information screen for the use of Subversion in Hudson.
+ * Receives the push notification of commits from repository.
+ * Opened up for untrusted access.
  *
  * @author Kohsuke Kawaguchi
  */
 @Extension
-public class SubversionStatus extends AbstractModelObject implements RootAction {
+public class SubversionStatus extends AbstractModelObject implements UnprotectedRootAction {
     public String getDisplayName() {
         return "Subversion";
     }
