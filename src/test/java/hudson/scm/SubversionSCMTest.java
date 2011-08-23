@@ -197,16 +197,16 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         return new SubversionSCM("file://" + new CopyExisting(getClass().getResource("/svn-repo.zip")).allocate().toURI().toURL().getPath() + "trunk/a","a");
     }
 
-    @Email("http://www.nabble.com/Hudson-1.266-and-1.267%3A-Subversion-authentication-broken--td21156950.html")
+    @Email("http://jenkins.361315.n4.nabble.com/Hudson-1-266-and-1-267-Subversion-authentication-broken-td375737.html")
     public void testHttpsCheckOut() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
-        p.setScm(new SubversionSCM("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant"));
+        p.setScm(new SubversionSCM("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant/"));
 
         FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserCause()).get());
         assertTrue(b.getWorkspace().child("build.xml").exists());
     }
 
-    @Email("http://hudson.361315.n4.nabble.com/Hudson-1-266-and-1-267-Subversion-authentication-broken-td375737.html")
+    @Email("http://jenkins.361315.n4.nabble.com/Hudson-1-266-and-1-267-Subversion-authentication-broken-td375737.html")
     public void testHttpCheckOut() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
         p.setScm(new SubversionSCM("http://svn.codehaus.org/sxc/tags/sxc-0.5/sxc-core/src/test/java/com/envoisolutions/sxc/builder/"));
@@ -220,7 +220,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         DumbSlave s = createSlave();
         FreeStyleProject p = createFreeStyleProject();
         p.setAssignedLabel(s.getSelfLabel());
-        p.setScm(new SubversionSCM("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant"));
+        p.setScm(new SubversionSCM("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant/"));
 
         FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserCause()).get());
         assertTrue(b.getWorkspace().child("build.xml").exists());
@@ -233,7 +233,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     @Bug(262)
     public void testRevisionedCheckout() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
-        p.setScm(new SubversionSCM("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant@13000"));
+        p.setScm(new SubversionSCM("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant@13000"));
 
         FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause()).get();
         System.out.println(b.getLog(LOG_LIMIT));
@@ -266,22 +266,22 @@ public class SubversionSCMTest extends AbstractSubversionTest {
      * Test parsing of @revision information from the tail of the URL
      */
     public void testModuleLocationRevisions() throws Exception {
-        SubversionSCM.ModuleLocation m = new SubversionSCM.ModuleLocation("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant@13000", null);
+        SubversionSCM.ModuleLocation m = new SubversionSCM.ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant@13000", null);
         SVNRevision r = m.getRevision(null);
         assertTrue(r.isValid());
         assertEquals(13000, r.getNumber());
-        assertEquals("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant", m.getURL());
+        assertEquals("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant", m.getURL());
 
-        m = new SubversionSCM.ModuleLocation("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant@HEAD", null);
+        m = new SubversionSCM.ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant@HEAD", null);
         r = m.getRevision(null);
         assertTrue(r.isValid());
         assertTrue(r == SVNRevision.HEAD);
-        assertEquals("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant", m.getURL());
+        assertEquals("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant", m.getURL());
 
-        m = new SubversionSCM.ModuleLocation("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant@FAKE", null);
+        m = new SubversionSCM.ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant@FAKE", null);
         r = m.getRevision(null);
         assertFalse(r.isValid());
-        assertEquals("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant@FAKE", m.getURL());
+        assertEquals("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant@FAKE", m.getURL());
     }
 
     /**
@@ -289,8 +289,8 @@ public class SubversionSCMTest extends AbstractSubversionTest {
      */
     public void testRevisionParameter() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
-        String url = "https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant";
-	p.setScm(new SubversionSCM(url));
+        String url = "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant";
+        p.setScm(new SubversionSCM(url));
 
         FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause(), 
         		new RevisionParameterAction(new SubversionSCM.SvnInfo(url, 13000))).get();
@@ -301,15 +301,15 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
     public void testRevisionParameterFolding() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
-        String url = "https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant";
-	p.setScm(new SubversionSCM(url));
+        String url = "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant";
+        p.setScm(new SubversionSCM(url));
 
 	// Schedule build of a specific revision with a quiet period
         Future<FreeStyleBuild> f = p.scheduleBuild2(60, new Cause.UserCause(),
         		new RevisionParameterAction(new SubversionSCM.SvnInfo(url, 13000)));
 
 	// Schedule another build at a more recent revision
-	p.scheduleBuild2(0, new Cause.UserCause(),
+        p.scheduleBuild2(0, new Cause.UserCause(),
         		new RevisionParameterAction(new SubversionSCM.SvnInfo(url, 14000)));
 
         FreeStyleBuild b = f.get();
@@ -325,7 +325,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         hudson.setCrumbIssuer(null);
 
         FreeStyleProject p = createFreeStyleProject();
-        String url = "https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant";
+        String url = "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant";
         SCMTrigger trigger = new SCMTrigger("0 */6 * * *");
 
         p.setScm(new SubversionSCM(url));
@@ -375,7 +375,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         FreeStyleProject p = createPostCommitTriggerJob();
         FreeStyleBuild b = sendCommitTrigger(p, true);
 
-        assertTrue(getActualRevision(b, "https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant") <= 13000);
+        assertTrue(getActualRevision(b, "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant") <= 13000);
     }
     
     /**
@@ -386,7 +386,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         FreeStyleProject p = createPostCommitTriggerJob();
         FreeStyleBuild b = sendCommitTrigger(p, false);
 
-        assertTrue(getActualRevision(b, "https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant") > 13000);
+        assertTrue(getActualRevision(b, "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant") > 13000);
     }
 
     /**
@@ -640,7 +640,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     public void testExcludeByUser() throws Exception {
         FreeStyleProject p = createFreeStyleProject( "testExcludeByUser" );
         p.setScm(new SubversionSCM(
-                Arrays.asList( new ModuleLocation( "https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/testSubversionExclusions@19438", null )),
+                Arrays.asList( new ModuleLocation( "https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusions@19438", null )),
                 true, null, "", "dty", "", "")
                 );
         // Do a build to force the creation of the workspace. This works around
@@ -920,8 +920,8 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     public void testMultiModuleEnvironmentVariables() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
         ModuleLocation[] locations = {
-            new ModuleLocation("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant", null),
-            new ModuleLocation("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-maven", null)
+            new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant", null),
+            new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-maven", null)
         };
         p.setScm(new SubversionSCM(Arrays.asList(locations), false, false, null, null, null, null, null, null));
 
@@ -930,23 +930,23 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
         assertBuildStatusSuccess(p.scheduleBuild2(0).get());
 
-        assertEquals("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant", builder.getEnvVars().get("SVN_URL_1"));
-        assertEquals("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-maven", builder.getEnvVars().get("SVN_URL_2"));
-        assertEquals(getActualRevision(p.getLastBuild(), "https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant").toString(), builder.getEnvVars().get("SVN_REVISION_1"));
-        assertEquals(getActualRevision(p.getLastBuild(), "https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-maven").toString(), builder.getEnvVars().get("SVN_REVISION_2"));
+        assertEquals("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant", builder.getEnvVars().get("SVN_URL_1"));
+        assertEquals("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-maven", builder.getEnvVars().get("SVN_URL_2"));
+        assertEquals(getActualRevision(p.getLastBuild(), "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant").toString(), builder.getEnvVars().get("SVN_REVISION_1"));
+        assertEquals(getActualRevision(p.getLastBuild(), "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-maven").toString(), builder.getEnvVars().get("SVN_REVISION_2"));
 
     }
 
     public void testSingleModuleEnvironmentVariables() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
-        p.setScm(new SubversionSCM("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant"));
+        p.setScm(new SubversionSCM("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant"));
 
         CaptureEnvironmentBuilder builder = new CaptureEnvironmentBuilder();
         p.getBuildersList().add(builder);
 
         assertBuildStatusSuccess(p.scheduleBuild2(0).get());
-        assertEquals("https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant", builder.getEnvVars().get("SVN_URL"));
-        assertEquals(getActualRevision(p.getLastBuild(), "https://svn.java.net/svn/hudson~svn/trunk/hudson/test-projects/trivial-ant").toString(), builder.getEnvVars().get("SVN_REVISION"));
+        assertEquals("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant", builder.getEnvVars().get("SVN_URL"));
+        assertEquals(getActualRevision(p.getLastBuild(), "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant").toString(), builder.getEnvVars().get("SVN_REVISION"));
     }
 
     @Bug(1379)
