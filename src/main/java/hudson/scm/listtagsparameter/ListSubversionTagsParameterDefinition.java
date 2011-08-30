@@ -2,7 +2,7 @@
  * The MIT License
  *
  * Copyright (c) 2010-2011, Manufacture Francaise des Pneumatiques Michelin,
- * Romain Seguy
+ * Romain Seguy, Jeff Blaisdell
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -70,8 +70,7 @@ import org.apache.commons.lang.StringUtils;
  */
 public class ListSubversionTagsParameterDefinition extends ParameterDefinition implements Comparable<ListSubversionTagsParameterDefinition> {
 
-    private static final long serialVersionUID = 5458217954492915951L;
-/**
+  /**
    * The Subversion repository which contains the tags to be listed.
    */
   private final String tagsDir;
@@ -135,10 +134,10 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
   @Override
   public ParameterValue getDefaultParameterValue() {
     if (StringUtils.isEmpty(this.defaultValue)) {
-	  return null;
+      return null;
     }
-	return new ListSubversionTagsParameterValue(getName(), getTagsDir(), this.defaultValue);
-  }   
+    return new ListSubversionTagsParameterValue(getName(), getTagsDir(), this.defaultValue);
+  }
 
   @Override
   public DescriptorImpl getDescriptor() {
@@ -189,21 +188,16 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
       SVNLogClient logClient = new SVNLogClient(authManager, null);
       
       if (isSVNRepositoryProjectRoot(repo)) {
-	    dirs = this.getSVNRootRepoDirectories(logClient, repoURL);
-	  } else {
-		logClient.doList(repoURL, SVNRevision.HEAD, SVNRevision.HEAD, false, false, dirEntryHandler);
-		dirs = dirEntryHandler.getDirs(isReverseByDate(), isReverseByName());
-	  }
+        dirs = this.getSVNRootRepoDirectories(logClient, repoURL);
+      } else {
+        logClient.doList(repoURL, SVNRevision.HEAD, SVNRevision.HEAD, false, false, dirEntryHandler);
+        dirs = dirEntryHandler.getDirs(isReverseByDate(), isReverseByName());
+      }
     }
     catch(SVNException e) {
       // logs are not translated (IMO, this is a bad idea to translate logs)
       LOGGER.log(Level.SEVERE, "An SVN exception occurred while listing the directory entries at " + getTagsDir(), e);
-      return new ArrayList() {/**
-         * 
-         */
-        private static final long serialVersionUID = -2461060214177503398L;
-
-    {
+      return new ArrayList() {{
         add("&lt;" + ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("SVNException") + "&gt;");
       }};
     }
@@ -214,12 +208,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
     }
     else {
       LOGGER.log(Level.INFO, "No directory entries were found for the following SVN repository: {0}", getTagsDir());
-      return new ArrayList() {/**
-         * 
-         */
-        private static final long serialVersionUID = -2725829892794981542L;
-
-    {
+      return new ArrayList() {{
         add("&lt;" + ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("NoDirectoryEntriesFound") + "&gt;");
       }};
     }
@@ -261,53 +250,49 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
    * Checks to see if given repository contains a trunk, branches, and tags
    * directories.
    * 
-   * @param repo
-   *            Repository to check.
+   * @param repo Repository to check.
    * @return True if trunk, branches, and tags exist.
    */
   private boolean isSVNRepositoryProjectRoot(SVNRepository repo) {
     try {
-	  SVNDirEntry trunkEntry = repo.info("./" + SVN_TRUNK, SVNRevision.HEAD.getNumber());
-	  SVNDirEntry branchesEntry = repo.info("./" + SVN_BRANCHES, SVNRevision.HEAD.getNumber());
-      SVNDirEntry tagsEntry = repo.info("./" + SVN_TAGS, SVNRevision.HEAD.getNumber());
+      SVNDirEntry trunkEntry = repo.info(SVN_TRUNK, SVNRevision.HEAD.getNumber());
+      SVNDirEntry branchesEntry = repo.info(SVN_BRANCHES, SVNRevision.HEAD.getNumber());
+      SVNDirEntry tagsEntry = repo.info(SVN_TAGS, SVNRevision.HEAD.getNumber());
 
-	  if ((trunkEntry != null) && (branchesEntry != null) && (tagsEntry != null)) {
-	    return true;
-	  }
-
-	} catch (SVNException e) {
-	  return false;
-	}
-	return false;
+      if ((trunkEntry != null) && (branchesEntry != null) && (tagsEntry != null)) {
+        return true;
+      }
+    } catch (SVNException e) {
+      return false;
+    }
+    return false;
   }
 
   /**
    * Appends the target directory to all entries in a list. I.E. 1.2 -->
    * branches/1.2
    * 
-   * @param targetDir
-   *            The target directory to append.
-   * @param dirs
-   *            List of directory entries
+   * @param targetDir The target directory to append.
+   * @param dirs List of directory entries
    */
   private void appendTargetDir(String targetDir, List<String> dirs) {
     if ((targetDir != null) && (dirs != null) && (dirs.size() > 0)) {
-	  for (int i = 0; i < dirs.size(); i++) {
-	    dirs.set(i, targetDir + System.getProperty("file.separator") + dirs.get(i));
-	  }
-	}
+      for (int i = 0; i < dirs.size(); i++) {
+        dirs.set(i, targetDir + '/' + dirs.get(i));
+      }
+    }
   }
-	
+  
   private boolean isInt(String value) {
     boolean isInteger = false;
-	try {
+    try {
       Integer.parseInt(value);
-	  isInteger = true;
-	} catch (NumberFormatException e) {
-	  isInteger = false;
-	}
-	return isInteger;
-  }	
+      isInteger = true;
+    } catch (NumberFormatException e) {
+      isInteger = false;
+    }
+    return isInteger;
+  }  
 
   /**
    * Returns a list of contents from the trunk, branches, and tags
@@ -319,52 +304,51 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
    * @throws SVNException
    */
   private List<String> getSVNRootRepoDirectories(SVNLogClient logClient, SVNURL repoURL) throws SVNException {
-
     // Get the branches repository contents
-	List<String> dirs = null;
-	SVNURL branchesRepo = repoURL.appendPath(SVN_BRANCHES, true);
-	SimpleSVNDirEntryHandler branchesEntryHandler = new SimpleSVNDirEntryHandler(null);
-	logClient.doList(branchesRepo, SVNRevision.HEAD, SVNRevision.HEAD, false, false, branchesEntryHandler);
-	List<String> branches = branchesEntryHandler.getDirs(isReverseByDate(), isReverseByName());
-	branches.remove(SVN_BRANCHES);
-	appendTargetDir(SVN_BRANCHES, branches);
+    List<String> dirs = null;
+    SVNURL branchesRepo = repoURL.appendPath(SVN_BRANCHES, true);
+    SimpleSVNDirEntryHandler branchesEntryHandler = new SimpleSVNDirEntryHandler(null);
+    logClient.doList(branchesRepo, SVNRevision.HEAD, SVNRevision.HEAD, false, false, branchesEntryHandler);
+    List<String> branches = branchesEntryHandler.getDirs(isReverseByDate(), isReverseByName());
+    branches.remove(SVN_BRANCHES);
+    appendTargetDir(SVN_BRANCHES, branches);
 
-	// Get the tags repository contents
-	SVNURL tagsRepo = repoURL.appendPath(SVN_TAGS, true);
-	SimpleSVNDirEntryHandler tagsEntryHandler = new SimpleSVNDirEntryHandler(null);
-	logClient.doList(tagsRepo, SVNRevision.HEAD, SVNRevision.HEAD, false, false, tagsEntryHandler);
-	List<String> tags = tagsEntryHandler.getDirs(isReverseByDate(), isReverseByName());
-	tags.remove(SVN_TAGS);
-	appendTargetDir(SVN_TAGS, tags);
+    // Get the tags repository contents
+    SVNURL tagsRepo = repoURL.appendPath(SVN_TAGS, true);
+    SimpleSVNDirEntryHandler tagsEntryHandler = new SimpleSVNDirEntryHandler(null);
+    logClient.doList(tagsRepo, SVNRevision.HEAD, SVNRevision.HEAD, false, false, tagsEntryHandler);
+    List<String> tags = tagsEntryHandler.getDirs(isReverseByDate(), isReverseByName());
+    tags.remove(SVN_TAGS);
+    appendTargetDir(SVN_TAGS, tags);
 
-	// Merge trunk with the contents of branches and tags.
-	dirs = new ArrayList<String>();
-	dirs.add(SVN_TRUNK);
-		
-	if (branches != null) {
-	  dirs.addAll(branches);
-	}
+    // Merge trunk with the contents of branches and tags.
+    dirs = new ArrayList<String>();
+    dirs.add(SVN_TRUNK);
 
-	if (tags != null) {
-	  dirs.addAll(tags);
-	}
-
-	// Filter out any unwanted repository locations.
-	if (StringUtils.isNotBlank(tagsFilter)) {
-	  Pattern filterPattern = Pattern.compile(tagsFilter);
-
-	  if ((dirs != null) && (dirs.size() > 0) && (filterPattern != null)) {
-	    List<String> temp = new ArrayList<String>();
-		for (String dir : dirs) {
-		  if (filterPattern.matcher(dir).matches()) {
-		    temp.add(dir);
-		  }
-		}
-		dirs = temp;
-	  }
+    if (branches != null) {
+      dirs.addAll(branches);
     }
 
-	return dirs;
+    if (tags != null) {
+      dirs.addAll(tags);
+    }
+
+    // Filter out any unwanted repository locations.
+    if (StringUtils.isNotBlank(tagsFilter)) {
+      Pattern filterPattern = Pattern.compile(tagsFilter);
+
+      if ((dirs != null) && (dirs.size() > 0) && (filterPattern != null)) {
+        List<String> temp = new ArrayList<String>();
+        for (String dir : dirs) {
+          if (filterPattern.matcher(dir).matches()) {
+            temp.add(dir);
+          }
+        }
+        dirs = temp;
+      }
+    }
+
+    return dirs;
   }     
   
   /**

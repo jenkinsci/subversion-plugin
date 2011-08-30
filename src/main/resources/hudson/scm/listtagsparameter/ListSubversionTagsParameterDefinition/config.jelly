@@ -2,7 +2,7 @@
   - The MIT License
   -
   - Copyright (c) 2010-2011, Manufacture Francaise des Pneumatiques Michelin,
-  - Romain Seguy
+  - Romain Seguy, Jeff Blaisdell
   -
   - Permission is hereby granted, free of charge, to any person obtaining a copy
   - of this software and associated documentation files (the "Software"), to deal
@@ -32,12 +32,12 @@
         <f:textbox name="parameter.tagsDir" value="${instance.tagsDir}" />
     </f:entry>
     <f:entry title="${%Tags filter}" field="tagsFilter">
-        <f:textbox field="tagsFilter"/>
+        <f:textbox field="parameter.tagsFilter" />
     </f:entry>
-    <f:entry title="${%Default Value}" field="defaultValue">
+    <f:entry title="${%Default value}" field="defaultValue">
         <f:textbox field="parameter.defaultValue" value="${instance.defaultValue}" />
     </f:entry> 
-    <f:entry title="${%Maximum Tags to Display}" field="maxTags">
+    <f:entry title="${%Maximum tags to display}" field="maxTags">
         <f:textbox field="parameter.maxTags" value="${instance.maxTags}" />
     </f:entry>       
     <f:entry field="reverseByDate">

@@ -1,7 +1,8 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2010, Manufacture Francaise des Pneumatiques Michelin, Romain Seguy
+ * Copyright (c) 2010-2011, Manufacture Francaise des Pneumatiques Michelin,
+ * Romain Seguy
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -39,8 +40,7 @@ import org.kohsuke.stapler.export.Exported;
  */
 public class ListSubversionTagsParameterValue extends ParameterValue {
 
-    private static final long serialVersionUID = 9192758635921187885L;
-@Exported(visibility=3) private String tagsDir; // this att comes from ListSubversionTagsParameterDefinition
+  @Exported(visibility=3) private String tagsDir; // this att comes from ListSubversionTagsParameterDefinition
   @Exported(visibility=3) private String tag;
 
   @DataBoundConstructor

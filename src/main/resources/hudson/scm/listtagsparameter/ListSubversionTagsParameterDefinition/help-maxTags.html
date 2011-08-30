@@ -1,8 +1,7 @@
 <!--
   - The MIT License
   -
-  - Copyright (c) 2010-2011, Manufacture Francaise des Pneumatiques Michelin, Romain Seguy
-  - Copyright (c) 2004-2011, Sun Microsystems, Inc., Kohsuke Kawaguchi, Seiji Sogabe
+  - Copyright (c) 2011, Jeff Blaisdell
   -
   - Permission is hereby granted, free of charge, to any person obtaining a copy
   - of this software and associated documentation files (the "Software"), to deal
@@ -24,16 +23,6 @@
   -->
 
 <div>
-  Specify the Subversion repository URL which contains the tags to be listed
-  when triggering a new build.<br/>
-  You can also specify the root of a Subversion repository: If this root contains
-  the <code>trunk</code>, <code>branches</code> and <code>tags</code> folders,
-  then the dropdown will display <code>trunk</code>, all the branches and all the
-  tags. If the root does not contain these three folders, then all its subfolders
-  are listed in the dropdown.<br/>
-  When you enter the URL, Jenkins automatically checks if it can connect to it.
-  If access requires authentication, you'll be prompted for the necessary
-  credential. If you already have a working credential but would like to change
-  it for some other reasons, click <a href="{0}/scm/SubversionSCM/enterCredential" target="_blank">
-  this link</a> and specify a different credential.
+  The maximum number of tags to display in the dropdown. Any non-number value
+  will default to all.
 </div>
