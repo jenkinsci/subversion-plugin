@@ -1,7 +1,8 @@
 <!--
   - The MIT License
   -
-  - Copyright (c) 2010, Manufacture Francaise des Pneumatiques Michelin, Romain Seguy
+  - Copyright (c) 2010-2011, Manufacture Francaise des Pneumatiques Michelin,
+  - Romain Seguy
   -
   - Permission is hereby granted, free of charge, to any person obtaining a copy
   - of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +32,14 @@
   set the <strong>Repository URL</strong> field of <strong>Subversion</strong>
   by concatenating the two fields of this parameter. For instance, if <strong>
   Name</strong> is set to <code>SVN_TAG</code> and <strong>Repository URL
-  </strong> is set to <code>https://svn.jenkins-ci.org/hudson/tags</code>,
-  then <strong>Subversion</strong>'s <strong>Repository URL</strong> must be set
-  to <code>https://svn.jenkins-ci.org/hudson/tags/$SVN_TAG</code>.
+  </strong> is set to <code>https://svn.jenkins-ci.org/tags</code>, then
+  <strong>Subversion</strong>'s <strong>Repository URL</strong> must be set to
+  <code>https://svn.jenkins-ci.org/tags/$SVN_TAG</code>.<br/>
+  Notice that you can set the <strong>Repository URL</strong> field to a Subversion
+  repository root rather than just pointing to a <code>tags</code> dir (ie, you
+  can set it to <code>https://svn.jenkins-ci.org</code> rather than
+  <code>https://svn.jenkins-ci.org/tags</code>). In that case, if this repository
+  root contains the <code>trunk</code>, <code>branches</code> and <code>tags</code>
+  folders, then the dropdown will allow the user to pick the trunk, or a
+  branch, or a tag.
 </div>

@@ -382,6 +382,10 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
       return getSubversionSCMDescriptor().createAuthenticationProvider(context);
     }
 
+    public FormValidation doCheckDefaultValue(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value) {
+      return getSubversionSCMDescriptor().doCheckRemote(req, context, value);
+    }
+
     public FormValidation doCheckTagsDir(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value) {
       return getSubversionSCMDescriptor().doCheckRemote(req, context, value);
     }
