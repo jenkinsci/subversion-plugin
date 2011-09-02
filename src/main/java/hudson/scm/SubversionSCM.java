@@ -2289,6 +2289,21 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         /**
+         * @deprecated This method is used by {@link #getExpandedLocation(AbstractBuild)}
+         *             which is deprecated since it expands variables only based
+         *             on build parameters.
+         */
+        private String getExpandedLocalDir(AbstractBuild<?,?> build) {
+            String outLocalDir = getLocalDir();
+
+            ParametersAction parameters = build.getAction(ParametersAction.class);
+            if (parameters != null)
+                outLocalDir = parameters.substitute(build, getLocalDir());
+
+            return outLocalDir;
+        }
+
+        /**
          * Expand location value based on Build parametric execution.
          *
          * @param build Build instance for expanding parameters into their values
@@ -2297,7 +2312,7 @@ public class SubversionSCM extends SCM implements Serializable {
          *             to be performed on all env vars rather than just build parameters.
          */
         public ModuleLocation getExpandedLocation(AbstractBuild<?, ?> build) {
-            return new ModuleLocation(getExpandedRemote(build), getLocalDir());
+            return new ModuleLocation(getExpandedRemote(build), getExpandedLocalDir(build));
         }
         
         /**
@@ -2306,7 +2321,7 @@ public class SubversionSCM extends SCM implements Serializable {
          * @return Output ModuleLocation expanded according to specified env vars.
          */
         public ModuleLocation getExpandedLocation(EnvVars env) {
-            return new ModuleLocation(env.expand(remote), getLocalDir());
+            return new ModuleLocation(env.expand(remote), env.expand(getLocalDir()));
         }
 
         @Override
