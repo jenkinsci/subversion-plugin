@@ -2219,8 +2219,8 @@ public class SubversionSCM extends SCM implements Serializable {
          * Relative to the workspace root.
          */
         public String getLocalDir() {
-            if(local==null)
-                return getLastPathComponent(remote);
+            if(local==null) 
+                return getLastPathComponent(getUrlWithoutRevision(remote));
             return local;
         }
 

@@ -1168,5 +1168,13 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         }
     }
 
+    @Bug(10943)
+    public void testGetLocalDirWithAtRevision() throws Exception {
+        // remote is not configured.
+        SubversionSCM scm = new SubversionSCM("http://localhost/project@100", null);
+        ModuleLocation[] locs = scm.getLocations();
+        assertEquals(1, locs.length);
+        assertEquals("project", locs[0].getLocalDir());
+    }
     
 }    
