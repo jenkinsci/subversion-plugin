@@ -255,7 +255,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
         FreeStyleProject p = createFreeStyleProject();
         p.setScm(scm);
-
+        
         FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause()).get();
         System.out.println(b.getLog(LOG_LIMIT));
         assertTrue(b.getLog(LOG_LIMIT).contains("At revision 2"));
@@ -284,6 +284,40 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         assertEquals("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant@FAKE", m.getURL());
     }
 
+    @Bug(10942)
+    public void testSingleModuleEnvironmentVariablesWithRevisin() throws Exception {
+        FreeStyleProject p = createFreeStyleProject();
+        p.setScm(new SubversionSCM("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant@HEAD"));
+
+        CaptureEnvironmentBuilder builder = new CaptureEnvironmentBuilder();
+        p.getBuildersList().add(builder);
+
+        assertBuildStatusSuccess(p.scheduleBuild2(0).get());
+        assertEquals("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant", builder.getEnvVars().get("SVN_URL"));
+        assertEquals(getActualRevision(p.getLastBuild(), "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant").toString(), builder.getEnvVars().get("SVN_REVISION"));
+    }
+    
+    @Bug(10942)
+    public void testMultiModuleEnvironmentVariablesWithRevision() throws Exception {
+        FreeStyleProject p = createFreeStyleProject();
+        ModuleLocation[] locations = {
+            new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant@18075", null),
+            new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-maven@HEAD", null)
+        };
+        p.setScm(new SubversionSCM(Arrays.asList(locations), false, false, null, null, null, null, null, null));
+
+        CaptureEnvironmentBuilder builder = new CaptureEnvironmentBuilder();
+        p.getBuildersList().add(builder);
+
+        assertBuildStatusSuccess(p.scheduleBuild2(0).get());
+
+        assertEquals("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant", builder.getEnvVars().get("SVN_URL_1"));
+        assertEquals("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-maven", builder.getEnvVars().get("SVN_URL_2"));
+        assertEquals(getActualRevision(p.getLastBuild(), "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant").toString(), builder.getEnvVars().get("SVN_REVISION_1"));
+        assertEquals(getActualRevision(p.getLastBuild(), "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-maven").toString(), builder.getEnvVars().get("SVN_REVISION_2"));
+
+    }    
+    
     /**
      * Tests a checkout with RevisionParameterAction
      */

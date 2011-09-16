@@ -4,7 +4,7 @@
  * Copyright (c) 2004-2011, Sun Microsystems, Inc., Kohsuke Kawaguchi, Fulvio Cavarretta,
  * Jean-Baptiste Quenot, Luca Domenico Milanesio, Renaud Bruyeron, Stephen Connolly,
  * Tom Huybrechts, Yahoo! Inc., Manufacture Francaise des Pneumatiques Michelin,
- * Romain Seguy
+ * Romain Seguy, OHTAKE Tomohiro
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -516,14 +516,14 @@ public class SubversionSCM extends SCM implements Serializable {
         try {
             Map<String,Long> revisions = parseRevisionFile(build);
             if(svnLocations.length==1) {
-                Long rev = revisions.get(svnLocations[0].remote);
+                Long rev = revisions.get(getUrlWithoutRevision(svnLocations[0].remote));
                 if(rev!=null) {
                     env.put("SVN_REVISION",rev.toString());
                     env.put("SVN_URL",svnLocations[0].getURL());
                 }
             } else if(svnLocations.length>1) {
                 for(int i=0;i<svnLocations.length;i++) {
-                    Long rev = revisions.get(svnLocations[i].remote);
+                    Long rev = revisions.get(getUrlWithoutRevision(svnLocations[i].remote));
                     if(rev!=null) {
                         env.put("SVN_REVISION_"+(i+1),rev.toString());
                         env.put("SVN_URL_"+(i+1),svnLocations[i].getURL());
