@@ -55,7 +55,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
      */
     private Map<String,Long> revisionMap;
 
-    /*package*/ SubversionChangeLogSet(AbstractBuild build, List<LogEntry> logs) {
+    /*package*/ SubversionChangeLogSet(AbstractBuild<?,?> build, List<LogEntry> logs) {
         super(build);
         // we want recent changes first
         Collections.sort(logs,new Comparator<LogEntry>() {
@@ -133,6 +133,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         // because of the classloader difference, we need to extend this method to make it accessible
         // to the rest of SubversionSCM
         @Override
+        @SuppressWarnings("rawtypes")
         protected void setParent(ChangeLogSet changeLogSet) {
             super.setParent(changeLogSet);
         }
@@ -151,6 +152,11 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
 
         public void setRevision(int revision) {
             this.revision = revision;
+        }
+        
+        @Override
+        public String getCommitId() {
+            return String.valueOf(revision);
         }
 
         @Override
