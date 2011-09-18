@@ -285,7 +285,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     }
 
     @Bug(10942)
-    public void testSingleModuleEnvironmentVariablesWithRevisin() throws Exception {
+    public void testSingleModuleEnvironmentVariablesWithRevision() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
         p.setScm(new SubversionSCM("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant@HEAD"));
 
