@@ -44,6 +44,7 @@ import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.Hudson;
 import hudson.model.Hudson.MasterComputer;
+import hudson.model.Item;
 import hudson.model.Node;
 import hudson.model.ParametersAction;
 import hudson.model.Run;
@@ -1789,8 +1790,8 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         // TODO: stapler should do multipart/form-data handling 
         public void doPostCredential(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-            Hudson.getInstance().checkPermission(Hudson.ADMINISTER);
-
+            Hudson.getInstance().checkPermission(Item.CONFIGURE);
+            
             MultipartFormDataParser parser = new MultipartFormDataParser(req);
 
             // we'll record what credential we are trying here.
@@ -1880,8 +1881,8 @@ public class SubversionSCM extends SCM implements Serializable {
                 return FormValidation.errorWithMarkup(
                     Messages.SubversionSCM_doCheckRemote_invalidUrl());
 
-            // Test the connection only if we have admin permission
-            if (!Hudson.getInstance().hasPermission(Hudson.ADMINISTER))
+            // Test the connection only if we have job cuonfigure permission
+            if (!Hudson.getInstance().hasPermission(Item.CONFIGURE))
                 return FormValidation.ok();
 
             try {
