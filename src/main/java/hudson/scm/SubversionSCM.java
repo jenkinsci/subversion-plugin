@@ -682,7 +682,7 @@ public class SubversionSCM extends SCM implements Serializable {
         // write out the revision file
         PrintWriter w = new PrintWriter(new FileOutputStream(getRevisionFile(build)));
         try {
-            List<SvnInfoP> pList = workspace.act(new BuildRevisionMapTask(build, this, listener, externals));
+            List<SvnInfoP> pList = workspace.act(new BuildRevisionMapTask(build, this, listener, externals, env));
             List<SvnInfo> revList= new ArrayList<SvnInfo>(pList.size());
             for (SvnInfoP p: pList) {
                 if (p.pinned) 
@@ -999,11 +999,11 @@ public class SubversionSCM extends SCM implements Serializable {
         private final List<External> externals;
         private final ModuleLocation[] locations;
 
-        public BuildRevisionMapTask(AbstractBuild<?, ?> build, SubversionSCM parent, TaskListener listener, List<External> externals) {
+        public BuildRevisionMapTask(AbstractBuild<?, ?> build, SubversionSCM parent, TaskListener listener, List<External> externals, EnvVars env) {
             this.authProvider = parent.getDescriptor().createAuthenticationProvider(build.getParent());
             this.listener = listener;
             this.externals = externals;
-            this.locations = parent.getLocations(build);
+            this.locations = parent.getLocations(env, build);
         }
 
         public List<SvnInfoP> invoke(File ws, VirtualChannel channel) throws IOException {
