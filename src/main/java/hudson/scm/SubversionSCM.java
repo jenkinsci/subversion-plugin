@@ -714,7 +714,7 @@ public class SubversionSCM extends SCM implements Serializable {
      *      (relative to the workspace root) that has loaded due to svn:external.
      */
     private List<External> checkout(AbstractBuild build, FilePath workspace, TaskListener listener, EnvVars env) throws IOException, InterruptedException {
-        if (repositoryLocationsNoLongerExist(build, listener)) {
+        if (repositoryLocationsNoLongerExist(build, listener, env)) {
             Run lsb = build.getProject().getLastSuccessfulBuild();
             if (lsb != null && build.getNumber()-lsb.getNumber()>10
             && build.getTimestamp().getTimeInMillis()-lsb.getTimestamp().getTimeInMillis() > TimeUnit2.DAYS.toMillis(1)) {
@@ -1078,8 +1078,11 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         AbstractBuild<?,?> lastCompletedBuild = project.getLastCompletedBuild();
+        EnvVars env = lastCompletedBuild.getEnvironment(listener);
+        EnvVarsUtils.overrideAll(env, lastCompletedBuild.getBuildVariables());     
+
         if (lastCompletedBuild!=null) {
-            if (repositoryLocationsNoLongerExist(lastCompletedBuild, listener)) {
+            if (repositoryLocationsNoLongerExist(lastCompletedBuild, listener, env)) {
                 // Disable this project, see HUDSON-763
                 listener.getLogger().println(
                         Messages.SubversionSCM_pollChanges_locationsNoLongerExist(project));
@@ -1088,7 +1091,7 @@ public class SubversionSCM extends SCM implements Serializable {
             }
 
             // are the locations checked out in the workspace consistent with the current configuration?
-            for (ModuleLocation loc : getLocations(lastCompletedBuild)) {
+            for (ModuleLocation loc : getLocations(env, lastCompletedBuild)) {
                 if (!baseline.revisions.containsKey(loc.getURL())) {
                     listener.getLogger().println(
                             Messages.SubversionSCM_pollChanges_locationNotInWorkspace(loc.getURL()));
@@ -2119,10 +2122,20 @@ public class SubversionSCM extends SCM implements Serializable {
 
     }
 
+    /**
+     * @deprecated 1.34
+     */
     public boolean repositoryLocationsNoLongerExist(AbstractBuild<?,?> build, TaskListener listener) {
+        return repositoryLocationsNoLongerExist(build, listener, null);
+    }
+    
+    /**
+     * @since 1.34
+     */
+    public boolean repositoryLocationsNoLongerExist(AbstractBuild<?,?> build, TaskListener listener, EnvVars env) {
         PrintStream out = listener.getLogger();
 
-        for (ModuleLocation l : getLocations(build))
+        for (ModuleLocation l : getLocations(env, build))
             try {
                 if (getDescriptor().checkRepositoryPath(build.getProject(), l.getSVNURL()) == SVNNodeKind.NONE) {
                     out.println("Location '" + l.remote + "' does not exist");
