@@ -540,7 +540,7 @@ public class SubversionSCM extends SCM implements Serializable {
     /**
      * Called after checkout/update has finished to compute the changelog.
      */
-    private boolean calcChangeLog(AbstractBuild<?,?> build, File changelogFile, BuildListener listener, List<External> externals) throws IOException, InterruptedException {
+    private boolean calcChangeLog(AbstractBuild<?,?> build, File changelogFile, BuildListener listener, List<External> externals, EnvVars env) throws IOException, InterruptedException {
         if(build.getPreviousBuild()==null) {
             // nothing to compare against
             return createEmptyChangeLog(changelogFile, listener, "log");
@@ -552,7 +552,7 @@ public class SubversionSCM extends SCM implements Serializable {
         OutputStream os = new BufferedOutputStream(new FileOutputStream(changelogFile));
         boolean created;
         try {
-            created = new SubversionChangeLogBuilder(build, listener, this).run(externals, new StreamResult(os));
+            created = new SubversionChangeLogBuilder(build, env, listener, this).run(externals, new StreamResult(os));
         } finally {
             os.close();
         }
@@ -699,7 +699,7 @@ public class SubversionSCM extends SCM implements Serializable {
         // write out the externals info
         new XmlFile(External.XSTREAM,getExternalsFile(build.getProject())).write(externals);
 
-        return calcChangeLog(build, changelogFile, listener, externals);
+        return calcChangeLog(build, changelogFile, listener, externals, env);
     }
 
     /**

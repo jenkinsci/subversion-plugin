@@ -23,6 +23,7 @@
  */
 package hudson.scm;
 
+import hudson.EnvVars;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
@@ -73,16 +74,27 @@ public final class SubversionChangeLogBuilder {
     private final BuildListener listener;
     private final SubversionSCM scm;
     private final AbstractBuild<?,?> build;
+    private final EnvVars env;
 
+    /**
+     * @deprecated 1.34
+     */
     public SubversionChangeLogBuilder(AbstractBuild<?,?> build, BuildListener listener, SubversionSCM scm) throws IOException {
+        this(build, null,listener, scm);
+    }
+
+    /**
+     * @since  1.34
+     */
+    public SubversionChangeLogBuilder(AbstractBuild<?,?> build, EnvVars env, BuildListener listener, SubversionSCM scm) throws IOException {
         previousRevisions = SubversionSCM.parseRevisionFile(build.getPreviousBuild());
         thisRevisions     = SubversionSCM.parseRevisionFile(build);
         this.listener = listener;
         this.scm = scm;
         this.build = build;
-
+        this.env = env;
     }
-
+    
     public boolean run(Collection<SubversionSCM.External> externals, Result changeLog) throws IOException, InterruptedException {
         boolean changelogFileCreated = false;
 
@@ -96,7 +108,7 @@ public final class SubversionChangeLogBuilder {
             th.setDocumentLocator(DUMMY_LOCATOR);
             logHandler.startDocument();
 
-            for (ModuleLocation l : scm.getLocations(build)) {
+            for (ModuleLocation l : scm.getLocations(env, build)) {
                 changelogFileCreated |= buildModule(l.getURL(), svnlc, logHandler);
             }
             for(SubversionSCM.External ext : externals) {
