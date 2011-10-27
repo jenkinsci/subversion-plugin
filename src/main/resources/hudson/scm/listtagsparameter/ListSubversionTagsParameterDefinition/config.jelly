@@ -32,7 +32,7 @@
         <f:textbox name="parameter.tagsDir" value="${instance.tagsDir}" />
     </f:entry>
     <f:entry title="${%Tags filter}" field="tagsFilter">
-        <f:textbox field="parameter.tagsFilter" />
+        <f:textbox field="parameter.tagsFilter" value="${instance.tagsFilter}" />
     </f:entry>
     <f:entry title="${%Default value}" field="defaultValue">
         <f:textbox field="parameter.defaultValue" value="${instance.defaultValue}" />
