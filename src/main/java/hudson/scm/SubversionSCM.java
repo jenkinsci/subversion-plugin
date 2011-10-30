@@ -729,8 +729,13 @@ public class SubversionSCM extends SCM implements Serializable {
                 return null;
             }
         }
+        
+        List<External> externals = new ArrayList<External>();
+        for (ModuleLocation location : getLocations(env, build)) {
+            externals.addAll(workspace.act(new CheckOutTask(build, this, location, build.getTimestamp().getTime(), listener, env)));
+        }
 
-        return workspace.act(new CheckOutTask(build, this, build.getTimestamp().getTime(), listener, env));
+        return externals;
     }
 
 
@@ -740,15 +745,15 @@ public class SubversionSCM extends SCM implements Serializable {
     private static class CheckOutTask extends UpdateTask implements FileCallable<List<External>> {
         private final UpdateTask task;
 
-        public CheckOutTask(AbstractBuild<?, ?> build, SubversionSCM parent, Date timestamp, TaskListener listener, EnvVars env) {
+         public CheckOutTask(AbstractBuild<?, ?> build, SubversionSCM parent, ModuleLocation location, Date timestamp, TaskListener listener, EnvVars env) {
             this.authProvider = parent.getDescriptor().createAuthenticationProvider(build.getParent());
             this.timestamp = timestamp;
             this.listener = listener;
-            this.locations = parent.getLocations(env, build);
+            this.location = location;
             this.revisions = build.getAction(RevisionParameterAction.class);
             this.task = parent.getWorkspaceUpdater().createTask();
         }
-
+        
         public List<External> invoke(File ws, VirtualChannel channel) throws IOException {
             manager = createSvnClientManager(authProvider);
             this.ws = ws;
@@ -777,11 +782,11 @@ public class SubversionSCM extends SCM implements Serializable {
 
         private void checkClockOutOfSync() {
             try {
-                for (ModuleLocation l : locations) {
-                    SVNDirEntry dir = manager.createRepository(l.getSVNURL(),true).info("/",-1);
-                    if(dir!=null) {// I don't think this can ever be null, but be defensive
-                        if(dir.getDate()!=null && dir.getDate().after(new Date())) // see http://www.nabble.com/NullPointerException-in-SVN-Checkout-Update-td21609781.html that reported this being null.
-                            listener.getLogger().println(Messages.SubversionSCM_ClockOutOfSync());
+                SVNDirEntry dir = manager.createRepository(location.getSVNURL(), true).info("/", -1);
+                if (dir != null) {// I don't think this can ever be null, but be defensive
+                    if (dir.getDate() != null && dir.getDate().after(new Date())) // see http://www.nabble.com/NullPointerException-in-SVN-Checkout-Update-td21609781.html that reported this being null.
+                    {
+                        listener.getLogger().println(Messages.SubversionSCM_ClockOutOfSync());
                     }
                 }
             } catch (SVNAuthenticationException e) {

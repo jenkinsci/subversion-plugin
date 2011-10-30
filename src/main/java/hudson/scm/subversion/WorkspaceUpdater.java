@@ -101,7 +101,7 @@ public abstract class WorkspaceUpdater extends AbstractDescribableImpl<Workspace
         /**
          * Modules to check out. Never null.
          */
-        public ModuleLocation[] locations;
+        public ModuleLocation location;
 
         /**
          * Build workspace. Never null.
@@ -129,7 +129,7 @@ public abstract class WorkspaceUpdater extends AbstractDescribableImpl<Workspace
             t.authProvider = this.authProvider;
             t.timestamp = this.timestamp;
             t.listener = this.listener;
-            t.locations = this.locations;
+            t.location = this.location;
             t.revisions = this.revisions;
             t.ws = this.ws;
 

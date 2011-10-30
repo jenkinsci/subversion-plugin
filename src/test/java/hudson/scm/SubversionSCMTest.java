@@ -105,6 +105,7 @@ import com.gargoylesoftware.htmlunit.WebResponse;
 import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import hudson.model.Run;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -499,7 +500,31 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         createCommit(scm,"trunk/foo");
         assertTrue("another change in the repo should be detected separately", p.pollSCMChanges(listener));
     }
+    
+    /**
+     * Test that multiple repository URLs are all polled.
+     */
+    @Bug(7461)
+    public void testMultipleRepositories() throws Exception {
+        // fetch the current workspaces
+        FreeStyleProject p = createFreeStyleProject();
+        String svnBase = "file://" + new CopyExisting(getClass().getResource("/svn-repo.zip")).allocate().toURI().toURL().getPath();
+        SubversionSCM scm = new SubversionSCM(
+                Arrays.asList(new ModuleLocation(svnBase + "trunk", "trunk")),
+                true, false, null, null, null, null, null);
+        p.setScm(scm);
+        Run r1 = p.scheduleBuild2(0, new Cause.UserCause()).get();
+        assertLogContains("Cleaning local Directory trunk", r1);
 
+        scm = new SubversionSCM(
+                Arrays.asList(new ModuleLocation(svnBase + "trunk", "trunk"), new ModuleLocation(svnBase + "branches", "branches")),
+                true, false, null, null, null, null, null);
+        p.setScm(scm);
+        Run r2 = p.scheduleBuild2(0, new Cause.UserCause()).get();
+        assertLogContains("Updating " + svnBase + "trunk", r2);
+        assertLogContains("Cleaning local Directory branches", r2);
+    }
+    
     public void testConfigRoundtrip() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
 

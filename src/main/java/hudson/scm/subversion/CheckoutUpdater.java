@@ -29,7 +29,6 @@ package hudson.scm.subversion;
 import hudson.Extension;
 import hudson.Util;
 import hudson.scm.SubversionSCM.External;
-import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.util.IOException2;
 import hudson.util.StreamCopyThread;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -70,8 +69,8 @@ public class CheckoutUpdater extends WorkspaceUpdater {
                 final SVNUpdateClient svnuc = manager.getUpdateClient();
                 final List<External> externals = new ArrayList<External>(); // store discovered externals to here
 
-                listener.getLogger().println("Cleaning workspace " + ws.getCanonicalPath());
-                Util.deleteContentsRecursive(ws);
+                listener.getLogger().println("Cleaning local Directory " + location.getLocalDir());
+                Util.deleteContentsRecursive(new File(ws, location.getLocalDir()));
 
                 // buffer the output by a separate thread so that the update operation
                 // won't be blocked by the remoting of the data
@@ -79,16 +78,13 @@ public class CheckoutUpdater extends WorkspaceUpdater {
                 StreamCopyThread sct = new StreamCopyThread("svn log copier", new PipedInputStream(pos), listener.getLogger());
                 sct.start();
 
-                ModuleLocation location = null;
                 try {
-                    for (final ModuleLocation l : locations) {
-                        location = l;
-                        listener.getLogger().println("Checking out " + l.remote);
+                    listener.getLogger().println("Checking out " + location.remote);
 
-                        File local = new File(ws, l.getLocalDir());
-                        svnuc.setEventHandler(new SubversionUpdateEventHandler(new PrintStream(pos), externals, local, l.getLocalDir()));
-                        svnuc.doCheckout(l.getSVNURL(), local.getCanonicalFile(), SVNRevision.HEAD, getRevision(l), SVNDepth.INFINITY, true);
-                    }
+                    File local = new File(ws, location.getLocalDir());
+                    svnuc.setEventHandler(new SubversionUpdateEventHandler(new PrintStream(pos), externals, local, location.getLocalDir()));
+                    svnuc.doCheckout(location.getSVNURL(), local.getCanonicalFile(), SVNRevision.HEAD, getRevision(location), SVNDepth.INFINITY, true);
+
                 } catch (SVNException e) {
                     e.printStackTrace(listener.error("Failed to check out " + location.remote));
                     return null;
