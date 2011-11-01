@@ -80,4 +80,8 @@ public class ListSubversionTagsParameterValue extends ParameterValue {
     this.tagsDir = tagsDir;
   }
 
+  @Override
+  public String toString() {
+      return "(ListSubversionTagsParameterValue) " + getName() + ": Repository URL='" + tagsDir + "' Tag='" + tag + "'";
+  }
 }
