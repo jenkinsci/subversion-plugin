@@ -832,7 +832,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         assertBuildStatusSuccess(p.scheduleBuild2(2).get());
 
         // initial polling on the master for the code path that doesn't find any change
-        assertFalse(p.pollSCMChanges(new StreamTaskListener(System.out)));
+        assertFalse(p.poll(StreamTaskListener.fromStdout()).hasChanges());
 
         // create a commit
         FreeStyleProject forCommit = createFreeStyleProject();
@@ -847,7 +847,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         cc.doCommit(new File[]{new File(newFile.getRemote())},false,"added",false,false);
 
         // polling on the master for the code path that doesn't find any change
-        assertTrue(p.pollSCMChanges(new StreamTaskListener(System.out)));
+        assertTrue(p.poll(StreamTaskListener.fromStdout()).hasChanges());
     }
 
 

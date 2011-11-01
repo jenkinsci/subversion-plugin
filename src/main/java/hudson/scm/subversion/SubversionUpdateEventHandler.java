@@ -72,7 +72,7 @@ final class SubversionUpdateEventHandler extends SubversionEventHandlerImpl {
             try {
                 path = getRelativePath(file);
             } catch (IOException e) {
-                throw new SVNException(SVNErrorMessage.create(SVNErrorCode.FS_GENERAL), e);
+                throw new SVNException(SVNErrorMessage.create(SVNErrorCode.FS_GENERAL, e));
             }
             path = getLocalPath(path);
         }

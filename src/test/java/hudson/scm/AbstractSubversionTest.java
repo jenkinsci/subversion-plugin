@@ -34,7 +34,7 @@ public abstract class AbstractSubversionTest extends HudsonTestCase  {
      * Runs svnserve to serve the specified directory as a subversion repository.
      */
     protected Proc runSvnServe(File repo) throws Exception {
-        LocalLauncher launcher = new LocalLauncher(new StreamTaskListener(System.out));
+        LocalLauncher launcher = new LocalLauncher(StreamTaskListener.fromStdout());
         try {
             launcher.launch().cmds("svnserve","--help").start().join();
         } catch (IOException e) {

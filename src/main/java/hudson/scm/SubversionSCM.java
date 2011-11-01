@@ -1482,7 +1482,8 @@ public class SubversionSCM extends SCM implements Serializable {
                     FileUtils.copyFile(keyFile,savedKeyFile);
                     setFilePermissions(savedKeyFile, "600");
                 } catch (IOException e) {
-                    throw new SVNException(SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,"Unable to save private key"),e);
+                    throw new SVNException(
+                            SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,"Unable to save private key").initCause(e));
                 }
             }
 
@@ -1541,9 +1542,11 @@ public class SubversionSCM extends SCM implements Serializable {
                         }
                         return new SVNSSHAuthentication(userName, privateKey.toCharArray(), Scrambler.descramble(passphrase),-1,false);
                     } catch (IOException e) {
-                        throw new SVNException(SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,"Unable to load private key"),e);
+                        throw new SVNException(
+                                SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,"Unable to load private key").initCause(e));
                     } catch (InterruptedException e) {
-                        throw new SVNException(SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,"Unable to load private key"),e);
+                        throw new SVNException(
+                                SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,"Unable to load private key").initCause(e));
                     }
                 } else
                     return null; // unknown

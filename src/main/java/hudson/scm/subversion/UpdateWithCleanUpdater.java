@@ -27,6 +27,7 @@ import hudson.Extension;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.tmatesoft.svn.core.SVNDepth;
+import org.tmatesoft.svn.core.SVNErrorCode;
 import org.tmatesoft.svn.core.SVNErrorMessage;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.wc.ISVNStatusHandler;
@@ -74,7 +75,7 @@ public class UpdateWithCleanUpdater extends WorkspaceUpdater {
                             else
                                 f.delete();
                         } catch (IOException e) {
-                            throw new SVNException(SVNErrorMessage.UNKNOWN_ERROR_MESSAGE,e);
+                            throw new SVNException(SVNErrorMessage.create(SVNErrorCode.UNKNOWN, e));
                         }
                     }
                 }
