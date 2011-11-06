@@ -26,15 +26,15 @@
 package hudson.scm.listtagsparameter;
 
 import hudson.Util;
-import java.util.Collections;
+
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.TreeSet;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.regex.Pattern;
-import org.apache.commons.lang.StringUtils;
+
 import org.tmatesoft.svn.core.ISVNDirEntryHandler;
 import org.tmatesoft.svn.core.SVNDirEntry;
 import org.tmatesoft.svn.core.SVNException;
@@ -47,12 +47,14 @@ import org.tmatesoft.svn.core.SVNException;
  */
 public class SimpleSVNDirEntryHandler implements ISVNDirEntryHandler {
 
-  private Map<Date, String> dirs = new HashMap<Date, String>();
-  private Pattern filterPattern = null;
+  private final SortedMap<Date, String> dirs = new TreeMap<Date, String>(Collections.reverseOrder());
+  private final Pattern filterPattern;
 
   public SimpleSVNDirEntryHandler(String filter) {
-    if(StringUtils.isNotBlank(filter)) {
+    if(Util.fixEmpty(filter) != null) {
       filterPattern = Pattern.compile(filter);
+    } else {
+      filterPattern = null;
     }
   }
 
@@ -61,29 +63,21 @@ public class SimpleSVNDirEntryHandler implements ISVNDirEntryHandler {
   }
 
   public List<String> getDirs(boolean reverseByDate, boolean reverseByName) {
-    List sortedDirs = null;
+    List<String> sortedDirs = new ArrayList<String>(dirs.values());
     if(reverseByDate) {
-      sortedDirs = new ArrayList();
-      TreeSet<Date> keys = new TreeSet<Date>(dirs.keySet());
-      for(Date key: keys) {
-        sortedDirs.add(dirs.get(key));
-      }
-      Collections.reverse(sortedDirs);
-    }
-    else if(reverseByName) {
-      sortedDirs = new ArrayList(dirs.values());
-      Collections.reverse(sortedDirs);
-    }
-    else {
-      sortedDirs = new ArrayList(dirs.values());
+      // dirs are already sorted reversely by date because of the SortedMap
+    } else if(reverseByName) {
+      Collections.sort(sortedDirs, Collections.reverseOrder());
+    } else {
       Collections.sort(sortedDirs);
     }
+
     return sortedDirs;
   }
 
   @Override
   public void handleDirEntry(SVNDirEntry dirEntry) throws SVNException {
-    if(filterPattern != null && filterPattern.matcher(dirEntry.getName()).matches() || filterPattern == null) {
+    if(filterPattern == null || filterPattern.matcher(dirEntry.getName()).matches()) {
       dirs.put(dirEntry.getDate(), Util.removeTrailingSlash(dirEntry.getName()));
     }
   }
