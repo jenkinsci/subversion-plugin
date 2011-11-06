@@ -29,18 +29,21 @@ import hudson.model.User;
 import hudson.scm.SubversionChangeLogSet.LogEntry;
 import hudson.scm.SubversionSCM.ModuleLocation;
 
-import org.kohsuke.stapler.export.Exported;
-import org.kohsuke.stapler.export.ExportedBean;
-
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Comparator;
+import java.util.Set;
+
+import org.kohsuke.stapler.export.Exported;
+import org.kohsuke.stapler.export.ExportedBean;
 
 /**
  * {@link ChangeLogSet} for Subversion.
@@ -57,15 +60,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
 
     /*package*/ SubversionChangeLogSet(AbstractBuild<?,?> build, List<LogEntry> logs) {
         super(build);
-        // we want recent changes first
-        Collections.sort(logs,new Comparator<LogEntry>() {
-            public int compare(LogEntry a, LogEntry b) {
-                return b.getRevision()-a.getRevision();
-            }
-        });
-        this.logs = Collections.unmodifiableList(logs);
-        for (LogEntry log : logs)
-            log.setParent(this);
+        this.logs = prepareChangeLogEntries(logs);
     }
 
     public boolean isEmptySet() {
@@ -90,6 +85,27 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         if(revisionMap==null)
             revisionMap = SubversionSCM.parseRevisionFile(build);
         return revisionMap;
+    }
+    
+    private List<LogEntry> prepareChangeLogEntries(List<LogEntry> items) {
+        items = removeDuplicatedEntries(items);
+        // we want recent changes first
+        Collections.sort(items, new ReverseByRevisionComparator());
+        for (LogEntry log : items) {
+            log.setParent(this);
+        }
+        return Collections.unmodifiableList(items);
+    }
+
+    /**
+     * Removes duplicate entries, e.g. those coming form svn:externals.
+     *
+     * @param items list of items
+     * @return filtered list without duplicated entries
+     */
+    static List<LogEntry> removeDuplicatedEntries(List<LogEntry> items) {
+        Set<LogEntry> entries = new HashSet<LogEntry>(items);
+        return new ArrayList<LogEntry>(entries);
     }
 
     @Exported
@@ -271,6 +287,42 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
                 }
             });
         }
+        
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+
+            LogEntry that = (LogEntry) o;
+
+            if (revision != that.revision) {
+                return false;
+            }
+            if (author != null ? !author.equals(that.author) : that.author != null) {
+                return false;
+            }
+            if (date != null ? !date.equals(that.date) : that.date != null) {
+                return false;
+            }
+            if (msg != null ? !msg.equals(that.msg) : that.msg != null) {
+                return false;
+            }
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = revision;
+            result = 31 * result + (author != null ? author.hashCode() : 0);
+            result = 31 * result + (date != null ? date.hashCode() : 0);
+            result = 31 * result + (msg != null ? msg.hashCode() : 0);
+            return result;
+        }
     }
 
     /**
@@ -329,6 +381,14 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
             if( action=='D' )
                 return EditType.DELETE;
             return EditType.EDIT;
+        }
+    }
+
+    private static final class ReverseByRevisionComparator implements Comparator<LogEntry>, Serializable {
+        private static final long serialVersionUID = 1L;
+
+        public int compare(LogEntry a, LogEntry b) {
+            return b.getRevision() - a.getRevision();
         }
     }
 }
