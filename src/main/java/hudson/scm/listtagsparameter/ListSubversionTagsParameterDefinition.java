@@ -35,6 +35,7 @@ import hudson.model.ParametersDefinitionProperty;
 import hudson.scm.SubversionSCM;
 import hudson.util.FormValidation;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -148,7 +149,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
    * Returns a list of Subversion dirs to be displayed in
    * {@code ListSubversionTagsParameterDefinition/index.jelly}.
    *
-   * <p>This method plainly reuses settings that must have been preivously
+   * <p>This method plainly reuses settings that must have been previously
    * defined when configuring the Subversion SCM.</p>
    *
    * <p>This method never returns {@code null}. In case an error happens, the
@@ -197,9 +198,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
     catch(SVNException e) {
       // logs are not translated (IMO, this is a bad idea to translate logs)
       LOGGER.log(Level.SEVERE, "An SVN exception occurred while listing the directory entries at " + getTagsDir(), e);
-      return new ArrayList() {{
-        add("&lt;" + ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("SVNException") + "&gt;");
-      }};
+      return Collections.singletonList("&lt;" + ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("SVNException") + "&gt;");
     }
 
     // SVNKit's doList() method returns also the parent dir, so we need to remove it
@@ -208,9 +207,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
     }
     else {
       LOGGER.log(Level.INFO, "No directory entries were found for the following SVN repository: {0}", getTagsDir());
-      return new ArrayList() {{
-        add("&lt;" + ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("NoDirectoryEntriesFound") + "&gt;");
-      }};
+      return Collections.singletonList("&lt;" + ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("NoDirectoryEntriesFound") + "&gt;");
     }
     
     // Conform list to the maxTags option.

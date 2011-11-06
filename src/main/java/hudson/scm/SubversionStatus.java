@@ -25,7 +25,6 @@ package hudson.scm;
 
 import hudson.Extension;
 import hudson.model.AbstractModelObject;
-import hudson.model.RootAction;
 import hudson.model.UnprotectedRootAction;
 
 import java.util.regex.Pattern;

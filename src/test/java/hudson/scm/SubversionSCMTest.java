@@ -110,6 +110,7 @@ import hudson.model.Run;
 /**
  * @author Kohsuke Kawaguchi
  */
+@SuppressWarnings("rawtypes")
 public class SubversionSCMTest extends AbstractSubversionTest {
 
     private static final int LOG_LIMIT = 1000;
@@ -305,7 +306,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
             new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant@18075", null),
             new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-maven@HEAD", null)
         };
-        p.setScm(new SubversionSCM(Arrays.asList(locations), false, false, null, null, null, null, null, null));
+        p.setScm(new SubversionSCM(Arrays.asList(locations), new CheckoutUpdater(), null, null, null, null, null, null));
 
         CaptureEnvironmentBuilder builder = new CaptureEnvironmentBuilder();
         p.getBuildersList().add(builder);
@@ -437,18 +438,18 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
         // as a baseline, this shouldn't detect any change
         TaskListener listener = createTaskListener();
-        assertFalse(p.pollSCMChanges(listener));
+        assertFalse(p.poll(listener).hasChanges());
 
         // now switch the repository to a new one.
         // this time the polling should indicate that we need a new build
         p.setScm(loadSvnRepo());
-        assertTrue(p.pollSCMChanges(listener));
+        assertTrue(p.poll(listener).hasChanges());
 
         // build it once again to switch
         p.scheduleBuild2(0, new Cause.UserCause()).get();
 
         // then no more change should be detected
-        assertFalse(p.pollSCMChanges(listener));
+        assertFalse(p.poll(listener).hasChanges());
     }
 
     public void testURLWithVariable() throws Exception {
@@ -486,19 +487,19 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         String svnBase = "file://" + new CopyExisting(getClass().getResource("/svn-repo.zip")).allocate().toURI().toURL().getPath();
         SubversionSCM scm = new SubversionSCM(
                 Arrays.asList(new ModuleLocation(svnBase + "trunk", null), new ModuleLocation(svnBase + "branches", null)),
-                false, false, null, null, null, null, null);
+                new CheckoutUpdater(), null, null, null, null, null, null);
         p.setScm(scm);
         p.scheduleBuild2(0, new Cause.UserCause()).get();
 
         // as a baseline, this shouldn't detect any change
         TaskListener listener = createTaskListener();
-        assertFalse(p.pollSCMChanges(listener));
+        assertFalse(p.poll(listener).hasChanges());
 
         createCommit(scm,"branches/foo");
-        assertTrue("any change in any of the repository should be detected", p.pollSCMChanges(listener));
-        assertFalse("no change since the last polling",p.pollSCMChanges(listener));
+        assertTrue("any change in any of the repository should be detected",p.poll(listener).hasChanges());
+        assertFalse("no change since the last polling",p.poll(listener).hasChanges());
         createCommit(scm,"trunk/foo");
-        assertTrue("another change in the repo should be detected separately", p.pollSCMChanges(listener));
+        assertTrue("another change in the repo should be detected separately",p.poll(listener).hasChanges());
     }
     
     /**
@@ -511,14 +512,14 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         String svnBase = "file://" + new CopyExisting(getClass().getResource("/svn-repo.zip")).allocate().toURI().toURL().getPath();
         SubversionSCM scm = new SubversionSCM(
                 Arrays.asList(new ModuleLocation(svnBase + "trunk", "trunk")),
-                true, false, null, null, null, null, null);
+                new UpdateUpdater(), null, null, null, null, null, null);
         p.setScm(scm);
         Run r1 = p.scheduleBuild2(0, new Cause.UserCause()).get();
         assertLogContains("Cleaning local Directory trunk", r1);
 
         scm = new SubversionSCM(
                 Arrays.asList(new ModuleLocation(svnBase + "trunk", "trunk"), new ModuleLocation(svnBase + "branches", "branches")),
-                true, false, null, null, null, null, null);
+                new UpdateUpdater(), null, null, null, null, null, null);
         p.setScm(scm);
         Run r2 = p.scheduleBuild2(0, new Cause.UserCause()).get();
         assertLogContains("Updating " + svnBase + "trunk", r2);
@@ -532,7 +533,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
                 Arrays.asList(
                 		new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusion", "c"),
                 		new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusion", "d")),
-                true,new Sventon(new URL("http://www.sun.com/"),"test"),"exclude","user","revprop","excludeMessage");
+                new UpdateUpdater(),new Sventon(new URL("http://www.sun.com/"),"test"),"exclude","user","revprop","excludeMessage",null);
         p.setScm(scm);
         submit(new WebClient().getPage(p,"configure").getFormByName("config"));
         verify(scm,(SubversionSCM)p.getScm());
@@ -540,7 +541,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         scm = new SubversionSCM(
         		Arrays.asList(
                 		new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusion", "c")),
-        		false,null,"","","","");
+        		new CheckoutUpdater(),null,"","","","",null);
         p.setScm(scm);
         submit(new WebClient().getPage(p,"configure").getFormByName("config"));
         verify(scm,(SubversionSCM)p.getScm());
@@ -553,7 +554,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         SubversionSCM scm = new SubversionSCM(
                 Arrays.asList(
                 		new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusion", "")),
-                true,null,null,null,null,null);
+                new UpdateUpdater(),null,null,null,null,null,null);
         p.setScm(scm);
         configRoundtrip((Item)p);
         verify(scm,(SubversionSCM)p.getScm());
@@ -570,7 +571,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
                 
         SubversionSCM scm = new SubversionSCM(
                 locs,
-                true, new Sventon(new URL("http://www.sun.com/"), "test"), "exclude", "user", "revprop", "excludeMessage");
+                new UpdateUpdater(), new Sventon(new URL("http://www.sun.com/"), "test"), "exclude", "user", "revprop", "excludeMessage",null);
         p.setScm(scm);
         submit(new WebClient().getPage(p, "configure").getFormByName("config"));
         ModuleLocation[] ml = ((SubversionSCM) p.getScm()).getLocations();
@@ -700,13 +701,13 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         FreeStyleProject p = createFreeStyleProject( "testExcludeByUser" );
         p.setScm(new SubversionSCM(
                 Arrays.asList( new ModuleLocation( "https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusions@19438", null )),
-                true, null, "", "dty", "", "")
+                new UpdateUpdater(), null, "", "dty", "", "", null)
                 );
         // Do a build to force the creation of the workspace. This works around
         // pollChanges returning true when the workspace does not exist.
         p.scheduleBuild2(0).get();
 
-        boolean foundChanges = p.pollSCMChanges(createTaskListener());
+        boolean foundChanges = p.poll(createTaskListener()).hasChanges();
         assertFalse("Polling found changes that should have been ignored", foundChanges);
     }
 
@@ -719,26 +720,26 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         File repo = new CopyExisting(getClass().getResource("HUDSON-6030.zip")).allocate();
         SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.getPath()},
                                                                    new String[]{"."}),
-                                              true, false, null, ".*/bar", "", "", "", "");
+                                              new UpdateUpdater(), null, ".*/bar", "", "", "", "");
 
         FreeStyleProject p = createFreeStyleProject("testExcludedRegions");
         p.setScm(scm);
         assertBuildStatusSuccess(p.scheduleBuild2(0).get());
 
         // initial polling on the slave for the code path that doesn't find any change
-        assertFalse(p.pollSCMChanges(createTaskListener()));
+        assertFalse(p.poll(createTaskListener()).hasChanges());
 
         createCommit(scm, "bar");
 
         // polling on the slave for the code path that does have a change but should be excluded.
         assertFalse("Polling found changes that should have been ignored",
-                    p.pollSCMChanges(createTaskListener()));
+                p.poll(createTaskListener()).hasChanges());
 
         createCommit(scm, "foo");
 
         // polling on the slave for the code path that doesn't find any change
         assertTrue("Polling didn't find a change it should have found.",
-                   p.pollSCMChanges(createTaskListener()));
+                p.poll(createTaskListener()).hasChanges());
 
     }
     
@@ -751,26 +752,26 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         File repo = new CopyExisting(getClass().getResource("HUDSON-6030.zip")).allocate();
         SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.getPath()},
                                                                    new String[]{"."}),
-                                              true, false, null, "", "", "", "", ".*/foo");
+                                              new UpdateUpdater(), null, "", "", "", "", ".*/foo");
 
         FreeStyleProject p = createFreeStyleProject("testExcludedRegions");
         p.setScm(scm);
         assertBuildStatusSuccess(p.scheduleBuild2(0).get());
 
         // initial polling on the slave for the code path that doesn't find any change
-        assertFalse(p.pollSCMChanges(createTaskListener()));
+        assertFalse(p.poll(createTaskListener()).hasChanges());
 
         createCommit(scm, "bar");
 
         // polling on the slave for the code path that does have a change but should be excluded.
         assertFalse("Polling found changes that should have been ignored",
-                    p.pollSCMChanges(createTaskListener()));
+                p.poll(createTaskListener()).hasChanges());
 
         createCommit(scm, "foo");
 
         // polling on the slave for the code path that doesn't find any change
         assertTrue("Polling didn't find a change it should have found.",
-                   p.pollSCMChanges(createTaskListener()));
+                p.poll(createTaskListener()).hasChanges());
 
     }
     
@@ -789,12 +790,12 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         assertBuildStatusSuccess(p.scheduleBuild2(0).get());
 
         // initial polling on the slave for the code path that doesn't find any change
-        assertFalse(p.pollSCMChanges(new StreamTaskListener(System.out, Charset.defaultCharset())));
+        assertFalse(p.poll(StreamTaskListener.fromStdout()).hasChanges());
 
         createCommit(scm, "foo");
 
         // polling on the slave for the code path that doesn't find any change
-        assertTrue(p.pollSCMChanges(new StreamTaskListener(System.out, Charset.defaultCharset())));
+        assertTrue(p.poll(StreamTaskListener.fromStdout()).hasChanges());
     }
 
     /**
@@ -844,7 +845,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         SVNClientManager svnm = SubversionSCM.createSvnClientManager(p);
         svnm.getWCClient().doAdd(new File(newFile.getRemote()),false,false,false, SVNDepth.INFINITY, false,false);
         SVNCommitClient cc = svnm.getCommitClient();
-        cc.doCommit(new File[]{new File(newFile.getRemote())},false,"added",false,false);
+        cc.doCommit(new File[]{new File(newFile.getRemote())},false,"added",null,null,false,false,SVNDepth.INFINITY);
 
         // polling on the master for the code path that doesn't find any change
         assertTrue(p.poll(StreamTaskListener.fromStdout()).hasChanges());
@@ -982,7 +983,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
             new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant", null),
             new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-maven", null)
         };
-        p.setScm(new SubversionSCM(Arrays.asList(locations), false, false, null, null, null, null, null, null));
+        p.setScm(new SubversionSCM(Arrays.asList(locations), new CheckoutUpdater(), null, null, null, null, null, null));
 
         CaptureEnvironmentBuilder builder = new CaptureEnvironmentBuilder();
         p.getBuildersList().add(builder);
@@ -1180,14 +1181,14 @@ public class SubversionSCMTest extends AbstractSubversionTest {
                     new ModuleLocation("svn://localhost/z", null)
                 };
 
-            b.setScm(new SubversionSCM(Arrays.asList(locations), false, false, null, null, null, null, null, null));
+            b.setScm(new SubversionSCM(Arrays.asList(locations), new CheckoutUpdater(), null, null, null, null, null, null));
 
-            assertBuildStatusSuccess(b.scheduleBuild2(0));
-            FilePath ws = b.getWorkspace();
+            FreeStyleBuild build = assertBuildStatusSuccess(b.scheduleBuild2(0));
+            FilePath ws = build.getWorkspace();
             assertEquals(ws.child("z").child("a").readToString(),"za 2\n");
             assertEquals(ws.child("y").child("z").child("a").readToString(),"za 1\n");
 
-            assertEquals(b.poll(new StreamTaskListener(System.out,Charset.defaultCharset())).change, PollingResult.Change.NONE);
+            assertEquals(b.poll(StreamTaskListener.fromStdout()).change, PollingResult.Change.NONE);
         } finally {
             p.kill();
         }
