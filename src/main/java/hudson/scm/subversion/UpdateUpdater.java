@@ -33,6 +33,7 @@ import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.scm.SubversionSCM.SvnInfo;
 import hudson.triggers.SCMTrigger;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNErrorCode;
 import org.tmatesoft.svn.core.SVNException;
@@ -132,7 +133,9 @@ public class UpdateUpdater extends WorkspaceUpdater {
                 preUpdate(location, local);
                 listener.getLogger().println("Updating " + location.remote);
                 svnuc.doUpdate(local.getCanonicalFile(), r, SVNDepth.INFINITY, true, false);
-
+            } catch (SVNCancelException e) {
+                listener.error("Subversion update has been canceled");
+                throw (InterruptedException)new InterruptedException().initCause(e);
             } catch (final SVNException e) {
                 if (e.getErrorMessage().getErrorCode() == SVNErrorCode.WC_LOCKED) {
                     // work space locked. try fresh check out

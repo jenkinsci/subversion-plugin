@@ -32,6 +32,7 @@ import hudson.scm.SubversionSCM.External;
 import hudson.util.IOException2;
 import hudson.util.StreamCopyThread;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.wc.SVNRevision;
@@ -59,9 +60,6 @@ public class CheckoutUpdater extends WorkspaceUpdater {
     @Override
     public UpdateTask createTask() {
         return new UpdateTask() {
-            /**
-             * 
-             */
             private static final long serialVersionUID = 8349986526712487762L;
 
             @Override
@@ -84,7 +82,9 @@ public class CheckoutUpdater extends WorkspaceUpdater {
                     File local = new File(ws, location.getLocalDir());
                     svnuc.setEventHandler(new SubversionUpdateEventHandler(new PrintStream(pos), externals, local, location.getLocalDir()));
                     svnuc.doCheckout(location.getSVNURL(), local.getCanonicalFile(), SVNRevision.HEAD, getRevision(location), SVNDepth.INFINITY, true);
-
+                } catch (SVNCancelException e) {
+                    listener.error("Subversion checkout has been canceled");
+                    throw (InterruptedException)new InterruptedException().initCause(e);
                 } catch (SVNException e) {
                     e.printStackTrace(listener.error("Failed to check out " + location.remote));
                     return null;
