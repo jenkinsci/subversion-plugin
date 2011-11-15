@@ -226,7 +226,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
         FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserCause()).get());
         assertTrue(b.getWorkspace().child("build.xml").exists());
-        b = assertBuildStatusSuccess(p.scheduleBuild2(0).get());
+        assertBuildStatusSuccess(p.scheduleBuild2(0).get());
     }
 
     /**
