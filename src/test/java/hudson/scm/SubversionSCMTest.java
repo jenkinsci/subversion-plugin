@@ -110,6 +110,8 @@ import hudson.model.Run;
 /**
  * @author Kohsuke Kawaguchi
  */
+// TODO: we're relying on no less than 3 external SVN repos for this test: svn.jenkins-ci.org, subversion.tigris.org and svn.codehaus.org
+// while the 1st one is probably okay, we should look that we get rid of the other 2 dependencies
 @SuppressWarnings("rawtypes")
 public class SubversionSCMTest extends AbstractSubversionTest {
 
