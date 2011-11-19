@@ -131,17 +131,6 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         SubversionSCM.CONFIG_DIR = createTmpDir().getAbsolutePath();
     }
 
-    /**
-     * Sets guest credentials to access java.net Subversion repo.
-     *
-     * @deprecated
-     *      We no longer rely on java.net to do tests.
-     */
-    protected void setJavaNetCredential() throws SVNException, IOException {
-        // old svn.dev.java.net needed "guest" credential for read access.. new svn.java.net does not:
-        //descriptor.postCredential(null,"https://svn.java.net/svn/hudson~svn/","guest","",null,new PrintWriter(new NullStream()));
-    }
-
     @PresetData(ANONYMOUS_READONLY)
     @Bug(2380)
     public void testTaggingPermission() throws Exception {
