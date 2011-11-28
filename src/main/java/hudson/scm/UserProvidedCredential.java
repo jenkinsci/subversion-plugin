@@ -163,7 +163,7 @@ public class UserProvidedCredential implements Closeable {
         public AuthenticationManagerImpl(PrintWriter logWriter) {
             super(SVNWCUtil.getDefaultConfigurationDirectory(), true, username, password, keyFile, password);
             this.logWriter = logWriter;
-            setAuthStoreHandler(new SVNAuthStoreHandlerImpl());
+            SVNAuthStoreHandlerImpl.install(this);
         }
 
         public AuthenticationManagerImpl(Writer w) {

@@ -5,6 +5,8 @@ import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.auth.SVNAuthentication;
 import org.tmatesoft.svn.core.internal.wc.DefaultSVNAuthenticationManager;
 import org.tmatesoft.svn.core.internal.wc.ISVNAuthStoreHandler;
+import org.tmatesoft.svn.core.internal.wc.ISVNAuthenticationStorageOptions;
+import org.tmatesoft.svn.core.internal.wc.ISVNGnomeKeyringPasswordProvider;
 
 /**
  * {@link ISVNAuthStoreHandler} implementation that always return true.
@@ -29,7 +31,23 @@ public class SVNAuthStoreHandlerImpl implements ISVNAuthStoreHandler {
     public static void install(ISVNAuthenticationManager sam) {
         if (sam instanceof DefaultSVNAuthenticationManager) {
             DefaultSVNAuthenticationManager dsam = (DefaultSVNAuthenticationManager) sam;
-            dsam.setAuthStoreHandler(new SVNAuthStoreHandlerImpl());
+            dsam.setAuthenticationStorageOptions(new ISVNAuthenticationStorageOptions() {
+                public boolean isNonInteractive() throws SVNException {
+                    return true;
+                }
+
+                public ISVNAuthStoreHandler getAuthStoreHandler() throws SVNException {
+                    return new SVNAuthStoreHandlerImpl();
+                }
+
+                public boolean isSSLPassphrasePromptSupported() {
+                    return false;
+                }
+
+                public ISVNGnomeKeyringPasswordProvider getGnomeKeyringPasswordProvider() {
+                    return null;
+                }
+            });
         }
     }
 }
