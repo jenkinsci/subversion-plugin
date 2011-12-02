@@ -66,6 +66,11 @@ THE SOFTWARE.
       <id>m.g.o-public</id>
       <url>http://maven.glassfish.org/content/groups/public/</url>
     </repository>
+    
+    <repository>
+    	<id>mavenTMateSoftReleasesRepository</id>
+    	<url>http://maven.tmatesoft.com/content/repositories/releases/</url>
+    </repository>
   </repositories>
 
   <!-- needs the following section to run "mvn hpi:run". when LTS release comes out with 1.420 or later dependency, time to bump up the core so that we can use this.
@@ -88,11 +93,35 @@ THE SOFTWARE.
       <version>1.3.6-jenkins-1</version>
     </dependency>
     
+    <!-- Quick fix for https://issues.jenkins-ci.org/browse/JENKINS-11901.
+    For a proper fix svnkit should bring in this dependency by itself -->
+    <dependency>
+    	<groupId>de.regnis.q.sequence</groupId>
+    	<artifactId>sequence-library</artifactId>
+    	<version>1.0.0</version>
+    	<scope>runtime</scope>
+    </dependency>
+    
     <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
         <version>1.8.5</version>
         <scope>test</scope>
     </dependency>
+    
+     <dependency>
+      <groupId>org.jenkins-ci.main</groupId>
+      <artifactId>jenkins-test-harness</artifactId>
+      <version>1.405</version>
+      <scope>test</scope>
+      <exclusions>
+      	<exclusion>
+      		<groupId>org.jvnet.hudson.plugins</groupId>
+      		<artifactId>subversion</artifactId>
+      	</exclusion>
+      </exclusions>
+    </dependency>
   </dependencies>
+  
+  
 </project>
