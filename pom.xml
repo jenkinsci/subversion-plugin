@@ -35,7 +35,7 @@ THE SOFTWARE.
   </parent>
 
   <artifactId>subversion</artifactId>
-  <version>1.37-SNAPSHOT</version>
+  <version>1.37</version>
   <packaging>hpi</packaging>
 
   <name>Jenkins Subversion Plug-in</name>
@@ -124,4 +124,10 @@ THE SOFTWARE.
   </dependencies>
   
   
+
+  <scm>
+    <connection>scm:svn:https://svn.jenkins-ci.org/tags/subversion-1.37</connection>
+    <developerConnection>scm:svn:https://svn.jenkins-ci.org/tags/subversion-1.37</developerConnection>
+    <url>https://svn.jenkins-ci.org/tags/subversion-1.37</url>
+  </scm>
 </project>
