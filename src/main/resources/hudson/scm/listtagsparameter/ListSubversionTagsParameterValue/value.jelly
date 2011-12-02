@@ -1,7 +1,8 @@
 <!--
   - The MIT License
   -
-  - Copyright (c) 2010, Manufacture Francaise des Pneumatiques Michelin, Romain Seguy
+  - Copyright (c) 2010-2011, Manufacture Francaise des Pneumatiques Michelin,
+  - Romain Seguy
   -
   - Permission is hereby granted, free of charge, to any person obtaining a copy
   - of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +28,6 @@
         <f:textbox name="tagsDir" value="${it.tagsDir}" />
     </f:entry>
     <f:entry title="${%Tag}">
-        <f:textbox name="tad" value="${it.tag}" />
+        <f:textbox name="tag" value="${it.tag}" />
     </f:entry>
 </j:jelly>
