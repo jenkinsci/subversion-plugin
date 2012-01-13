@@ -25,10 +25,11 @@ public class SimpleSVNDirEntryHandlerTest {
         
         List<String> dirs = handler.getDirs(false, false);
         
-        Assert.assertEquals(3, dirs.size());
+        Assert.assertEquals(4, dirs.size());
         Assert.assertEquals("trunk/a", dirs.get(0));
-        Assert.assertEquals("trunk/c", dirs.get(1));
-        Assert.assertEquals("trunk/x", dirs.get(2));
+        Assert.assertEquals("trunk/b", dirs.get(1));
+        Assert.assertEquals("trunk/c", dirs.get(2));
+        Assert.assertEquals("trunk/x", dirs.get(3));
     }
     
     @Test
@@ -37,10 +38,11 @@ public class SimpleSVNDirEntryHandlerTest {
         addEntries(handler);
         List<String> dirs = handler.getDirs(true, false);
         
-        Assert.assertEquals(3, dirs.size());
+        Assert.assertEquals(4, dirs.size());
         Assert.assertEquals("trunk/a", dirs.get(0));
-        Assert.assertEquals("trunk/x", dirs.get(1));
-        Assert.assertEquals("trunk/c", dirs.get(2));
+        Assert.assertEquals("trunk/b", dirs.get(1));
+        Assert.assertEquals("trunk/x", dirs.get(2));
+        Assert.assertEquals("trunk/c", dirs.get(3));
     }
     
     @Test
@@ -49,10 +51,11 @@ public class SimpleSVNDirEntryHandlerTest {
         addEntries(handler);
         List<String> dirs = handler.getDirs(false, true);
         
-        Assert.assertEquals(3, dirs.size());
+        Assert.assertEquals(4, dirs.size());
         Assert.assertEquals("trunk/x", dirs.get(0));
         Assert.assertEquals("trunk/c", dirs.get(1));
-        Assert.assertEquals("trunk/a", dirs.get(2));
+        Assert.assertEquals("trunk/b", dirs.get(2));
+        Assert.assertEquals("trunk/a", dirs.get(3));
     }
     
     @Test
@@ -68,6 +71,7 @@ public class SimpleSVNDirEntryHandlerTest {
     private void addEntries(SimpleSVNDirEntryHandler handler) {
         try {
             handler.handleDirEntry(getEntry("2011-11-01", "trunk/a"));
+            handler.handleDirEntry(getEntry("2011-11-01", "trunk/b"));
             handler.handleDirEntry(getEntry("2011-10-01", "trunk/x"));
             handler.handleDirEntry(getEntry("2011-09-01", "trunk/c"));
         } catch (ParseException e) {
