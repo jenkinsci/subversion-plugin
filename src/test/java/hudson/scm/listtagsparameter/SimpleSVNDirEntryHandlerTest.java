@@ -1,3 +1,27 @@
+/*
+ * The MIT License
+ *
+ * Copyright (c) 2011-2012, id:kutzi, id:grahamparks
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
 package hudson.scm.listtagsparameter;
 
 import java.text.ParseException;
@@ -25,10 +49,11 @@ public class SimpleSVNDirEntryHandlerTest {
         
         List<String> dirs = handler.getDirs(false, false);
         
-        Assert.assertEquals(3, dirs.size());
+        Assert.assertEquals(4, dirs.size());
         Assert.assertEquals("trunk/a", dirs.get(0));
-        Assert.assertEquals("trunk/c", dirs.get(1));
-        Assert.assertEquals("trunk/x", dirs.get(2));
+        Assert.assertEquals("trunk/b", dirs.get(1));
+        Assert.assertEquals("trunk/c", dirs.get(2));
+        Assert.assertEquals("trunk/x", dirs.get(3));
     }
     
     @Test
@@ -37,10 +62,11 @@ public class SimpleSVNDirEntryHandlerTest {
         addEntries(handler);
         List<String> dirs = handler.getDirs(true, false);
         
-        Assert.assertEquals(3, dirs.size());
+        Assert.assertEquals(4, dirs.size());
         Assert.assertEquals("trunk/a", dirs.get(0));
-        Assert.assertEquals("trunk/x", dirs.get(1));
-        Assert.assertEquals("trunk/c", dirs.get(2));
+        Assert.assertEquals("trunk/b", dirs.get(1));
+        Assert.assertEquals("trunk/x", dirs.get(2));
+        Assert.assertEquals("trunk/c", dirs.get(3));
     }
     
     @Test
@@ -49,10 +75,11 @@ public class SimpleSVNDirEntryHandlerTest {
         addEntries(handler);
         List<String> dirs = handler.getDirs(false, true);
         
-        Assert.assertEquals(3, dirs.size());
+        Assert.assertEquals(4, dirs.size());
         Assert.assertEquals("trunk/x", dirs.get(0));
         Assert.assertEquals("trunk/c", dirs.get(1));
-        Assert.assertEquals("trunk/a", dirs.get(2));
+        Assert.assertEquals("trunk/b", dirs.get(2));
+        Assert.assertEquals("trunk/a", dirs.get(3));
     }
     
     @Test
@@ -68,6 +95,7 @@ public class SimpleSVNDirEntryHandlerTest {
     private void addEntries(SimpleSVNDirEntryHandler handler) {
         try {
             handler.handleDirEntry(getEntry("2011-11-01", "trunk/a"));
+            handler.handleDirEntry(getEntry("2011-11-01", "trunk/b"));
             handler.handleDirEntry(getEntry("2011-10-01", "trunk/x"));
             handler.handleDirEntry(getEntry("2011-09-01", "trunk/c"));
         } catch (ParseException e) {
