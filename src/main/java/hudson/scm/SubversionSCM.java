@@ -1,7 +1,7 @@
 /*
  * The MIT License
  * 
- * Copyright (c) 2004-2011, Sun Microsystems, Inc., Kohsuke Kawaguchi, Fulvio Cavarretta,
+ * Copyright (c) 2004-2012, Sun Microsystems, Inc., Kohsuke Kawaguchi, Fulvio Cavarretta,
  * Jean-Baptiste Quenot, Luca Domenico Milanesio, Renaud Bruyeron, Stephen Connolly,
  * Tom Huybrechts, Yahoo! Inc., Manufacture Francaise des Pneumatiques Michelin,
  * Romain Seguy, OHTAKE Tomohiro
@@ -161,6 +161,7 @@ import com.thoughtworks.xstream.XStream;
 import com.trilead.ssh2.DebugLogger;
 import com.trilead.ssh2.SCPClient;
 import com.trilead.ssh2.crypto.Base64;
+import org.tmatesoft.svn.core.internal.util.SVNEncodingUtil;
 
 /**
  * Subversion SCM.
@@ -1104,9 +1105,17 @@ public class SubversionSCM extends SCM implements Serializable {
 
             // are the locations checked out in the workspace consistent with the current configuration?
             for (ModuleLocation loc : getLocations(env, lastCompletedBuild)) {
-                if (!baseline.revisions.containsKey(loc.getURL())) {
+                // baseline.revisions has URIdecoded URL
+                String url;
+                try { 
+                    url = loc.getSVNURL().toDecodedString();
+                } catch (SVNException ex) {
+                    ex.printStackTrace(listener.error(Messages.SubversionSCM_pollChanges_exception(loc.getURL())));
+                    return BUILD_NOW;
+                }
+                if (!baseline.revisions.containsKey(url)) {
                     listener.getLogger().println(
-                            Messages.SubversionSCM_pollChanges_locationNotInWorkspace(loc.getURL()));
+                            Messages.SubversionSCM_pollChanges_locationNotInWorkspace(url));
                     return BUILD_NOW;
                 }
             }
