@@ -65,6 +65,7 @@ import hudson.scm.subversion.WorkspaceUpdater.UpdateTask;
 import hudson.scm.subversion.WorkspaceUpdaterDescriptor;
 import hudson.util.EditDistance;
 import hudson.util.FormValidation;
+import hudson.util.LogTaskListener;
 import hudson.util.MultipartFormDataParser;
 import hudson.util.Scrambler;
 import hudson.util.Secret;
@@ -161,7 +162,6 @@ import com.thoughtworks.xstream.XStream;
 import com.trilead.ssh2.DebugLogger;
 import com.trilead.ssh2.SCPClient;
 import com.trilead.ssh2.crypto.Base64;
-import org.tmatesoft.svn.core.internal.util.SVNEncodingUtil;
 
 /**
  * Subversion SCM.
@@ -1369,13 +1369,41 @@ public class SubversionSCM extends SCM implements Serializable {
         return (DescriptorImpl)super.getDescriptor();
     }
 
+    /**
+     * @deprecated
+     */
     @Override
+    @Deprecated
     public FilePath getModuleRoot(FilePath workspace) {
         if (getLocations().length > 0)
             return workspace.child(getLocations()[0].getLocalDir());
         return workspace;
     }
 
+    @Override
+    public FilePath getModuleRoot(FilePath workspace, @SuppressWarnings("rawtypes") AbstractBuild build) {
+        if (build == null) {
+            return getModuleRoot(workspace);
+        }
+
+        // TODO: can't I get the build listener here?
+        TaskListener listener = new LogTaskListener(LOGGER, WARNING);
+        final EnvVars env;
+        try {
+            env = build.getEnvironment(listener);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        }
+
+        if (getLocations().length > 0)
+            return _getModuleRoot(workspace, getLocations()[0].getLocalDir(), env);
+        return workspace;
+    }
+
+    @Deprecated
     @Override
     public FilePath[] getModuleRoots(FilePath workspace) {
         final ModuleLocation[] moduleLocations = getLocations();
@@ -1387,6 +1415,41 @@ public class SubversionSCM extends SCM implements Serializable {
             return moduleRoots;
         }
         return new FilePath[] { getModuleRoot(workspace) };
+    }
+    
+    @Override
+    public FilePath[] getModuleRoots(FilePath workspace, @SuppressWarnings("rawtypes") AbstractBuild build) {
+        if (build == null) {
+            return getModuleRoots(workspace);
+        }
+        
+        // TODO: can't I get the build listener here?
+        TaskListener listener = new LogTaskListener(LOGGER, WARNING);
+        final EnvVars env;
+        try {
+            env = build.getEnvironment(listener);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        }
+        
+        final ModuleLocation[] moduleLocations = getLocations();
+        if (moduleLocations.length > 0) {
+            FilePath[] moduleRoots = new FilePath[moduleLocations.length];
+            for (int i = 0; i < moduleLocations.length; i++) {
+                moduleRoots[i] = _getModuleRoot(workspace, moduleLocations[i].getLocalDir(), env);
+            }
+            return moduleRoots;
+        }
+        return new FilePath[] { getModuleRoot(workspace, build) };
+
+    }
+
+    FilePath _getModuleRoot(FilePath workspace, String localDir, EnvVars env) {
+        return workspace.child(
+                env.expand(localDir));
     }
 
     private static String getLastPathComponent(String s) {
