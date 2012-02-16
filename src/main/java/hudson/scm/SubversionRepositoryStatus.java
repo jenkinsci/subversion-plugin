@@ -98,7 +98,7 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
         }
 
         OUTER:
-        for (AbstractProject<?,?> p : Hudson.getInstance().getItems(AbstractProject.class)) {
+        for (AbstractProject<?,?> p : Hudson.getInstance().getAllItems(AbstractProject.class)) {
             try {
                 SCM scm = p.getScm();
                 if (scm instanceof SubversionSCM) scmFound = true; else continue;
