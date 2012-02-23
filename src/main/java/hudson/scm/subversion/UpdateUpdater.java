@@ -50,12 +50,10 @@ import java.util.List;
 
 /**
  * {@link WorkspaceUpdater} that uses "svn update" as much as possible.
- * 
+ *
  * @author Kohsuke Kawaguchi
  */
 public class UpdateUpdater extends WorkspaceUpdater {
-    private static final long serialVersionUID = 1451258464864424355L;
-
     @DataBoundConstructor
     public UpdateUpdater() {
     }
@@ -67,7 +65,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
 
     public static class TaskImpl extends UpdateTask {
         /**
-         * 
+         *
          */
         private static final long serialVersionUID = -5766470969352844330L;
 
@@ -75,31 +73,33 @@ public class UpdateUpdater extends WorkspaceUpdater {
          * Returns true if we can use "svn update" instead of "svn checkout"
          */
         protected boolean isUpdatable() throws IOException {
-            String moduleName = location.getLocalDir();
-            File module = new File(ws, moduleName).getCanonicalFile(); // canonicalize to remove ".." and ".". See #474
+            for (ModuleLocation l : locations) {
+                String moduleName = l.getLocalDir();
+                File module = new File(ws, moduleName).getCanonicalFile(); // canonicalize to remove ".." and ".". See #474
 
-            if (!module.exists()) {
-                listener.getLogger().println("Checking out a fresh workspace because " + module + " doesn't exist");
-                return false;
-            }
-
-            try {
-                SVNInfo svnkitInfo = parseSvnInfo(module);
-                SvnInfo svnInfo = new SvnInfo(svnkitInfo);
-
-                String url = location.getURL();
-                if (!svnInfo.url.equals(url)) {
-                    listener.getLogger().println("Checking out a fresh workspace because the workspace is not " + url);
+                if (!module.exists()) {
+                    listener.getLogger().println("Checking out a fresh workspace because " + module + " doesn't exist");
                     return false;
                 }
-            } catch (SVNException e) {
-                if (e.getErrorMessage().getErrorCode() == SVNErrorCode.WC_NOT_DIRECTORY) {
-                    listener.getLogger().println("Checking out a fresh workspace because there's no workspace at " + module);
-                } else {
-                    listener.getLogger().println("Checking out a fresh workspace because Jenkins failed to detect the current workspace " + module);
-                    e.printStackTrace(listener.error(e.getMessage()));
+
+                try {
+                    SVNInfo svnkitInfo = parseSvnInfo(module);
+                    SvnInfo svnInfo = new SvnInfo(svnkitInfo);
+
+                    String url = l.getURL();
+                    if (!svnInfo.url.equals(url)) {
+                        listener.getLogger().println("Checking out a fresh workspace because the workspace is not " + url);
+                        return false;
+                    }
+                } catch (SVNException e) {
+                    if (e.getErrorMessage().getErrorCode() == SVNErrorCode.WC_NOT_DIRECTORY) {
+                        listener.getLogger().println("Checking out a fresh workspace because there's no workspace at " + module);
+                    } else {
+                        listener.getLogger().println("Checking out a fresh workspace because Jenkins failed to detect the current workspace " + module);
+                        e.printStackTrace(listener.error(e.getMessage()));
+                    }
+                    return false;
                 }
-                return false;
             }
             return true;
         }
@@ -117,46 +117,56 @@ public class UpdateUpdater extends WorkspaceUpdater {
 
         @Override
         public List<External> perform() throws IOException, InterruptedException {
-            if (!isUpdatable()) {
+            if (!isUpdatable())
                 return delegateTo(new CheckoutUpdater());
-            }
 
 
             final SVNUpdateClient svnuc = manager.getUpdateClient();
             final List<External> externals = new ArrayList<External>(); // store discovered externals to here
 
-            try {
-                File local = new File(ws, location.getLocalDir());
-                svnuc.setEventHandler(new SubversionUpdateEventHandler(listener.getLogger(), externals, local, location.getLocalDir()));
+            for (final ModuleLocation l : locations) {
+                try {
+                    File local = new File(ws, l.getLocalDir());
+                    svnuc.setEventHandler(new SubversionUpdateEventHandler(listener.getLogger(), externals, local, l.getLocalDir()));
 
-                SVNRevision r = getRevision(location);
+                    svnuc.setIgnoreExternals(l.isIgnoreExternalsOption());
+                    preUpdate(l, local);
 
-                preUpdate(location, local);
-                listener.getLogger().println("Updating " + location.remote);
-                svnuc.doUpdate(local.getCanonicalFile(), r, SVNDepth.INFINITY, true, false);
-            } catch (SVNCancelException e) {
-                listener.error("Subversion update has been canceled");
-                throw (InterruptedException)new InterruptedException().initCause(e);
-            } catch (final SVNException e) {
-                if (e.getErrorMessage().getErrorCode() == SVNErrorCode.WC_LOCKED) {
-                    // work space locked. try fresh check out
-                    listener.getLogger().println("Workspace appear to be locked, so getting a fresh workspace");
-                    return delegateTo(new CheckoutUpdater());
-                }
-                if (e.getErrorMessage().getErrorCode() == SVNErrorCode.WC_OBSTRUCTED_UPDATE) {
-                    // HUDSON-1882. If existence of local files cause an update to fail,
-                    // revert to fresh check out
-                    listener.getLogger().println(e.getMessage()); // show why this happened. Sometimes this is caused by having a build artifact in the repository.
-                    listener.getLogger().println("Updated failed due to local files. Getting a fresh workspace");
-                    return delegateTo(new CheckoutUpdater());
-                }
+                    SVNDepth svnDepth = getSvnDepth(l.getDepthOption());
+                    SVNRevision revision = getRevision(l);
 
-                e.printStackTrace(listener.error("Failed to update " + location.remote));
-                // trouble-shooting probe for #591
-                if (e.getErrorMessage().getErrorCode() == SVNErrorCode.WC_NOT_LOCKED) {
-                    listener.getLogger().println("Polled jobs are " + Hudson.getInstance().getDescriptorByType(SCMTrigger.DescriptorImpl.class).getItemsBeingPolled());
+                    listener.getLogger().println("Updating " + l.remote + " revision: " +
+                            (revision != null ? revision.toString() : "null") + " depth:" + svnDepth +
+                            " ignoreExternals: " + l.isIgnoreExternalsOption());
+                    svnuc.doUpdate(local.getCanonicalFile(), revision, svnDepth, true, false);
+                } catch (final SVNException e) {
+                    //TODO find better solution than this workaround, svnkit uses the same exception and
+                    // the same error code in case of aborted builds and builds with invalid credentials
+                    if (e.getMessage() != null && e.getMessage().contains(SVN_CANCEL_EXCEPTION_MESSAGE)) {
+                        listener.error("Svn command was aborted");
+                        throw (InterruptedException) new InterruptedException().initCause(e);
+                    }
+
+                    if (e.getErrorMessage().getErrorCode() == SVNErrorCode.WC_LOCKED) {
+                        // work space locked. try fresh check out
+                        listener.getLogger().println("Workspace appear to be locked, so getting a fresh workspace");
+                        return delegateTo(new CheckoutUpdater());
+                    }
+                    if (e.getErrorMessage().getErrorCode() == SVNErrorCode.WC_OBSTRUCTED_UPDATE) {
+                        // HUDSON-1882. If existence of local files cause an update to fail,
+                        // revert to fresh check out
+                        listener.getLogger().println(e.getMessage()); // show why this happened. Sometimes this is caused by having a build artifact in the repository.
+                        listener.getLogger().println("Updated failed due to local files. Getting a fresh workspace");
+                        return delegateTo(new CheckoutUpdater());
+                    }
+
+                    e.printStackTrace(listener.error("Failed to update " + l.remote));
+                    // trouble-shooting probe for #591
+                    if (e.getErrorMessage().getErrorCode() == SVNErrorCode.WC_NOT_LOCKED) {
+                        listener.getLogger().println("Polled jobs are " + Hudson.getInstance().getDescriptorByType(SCMTrigger.DescriptorImpl.class).getItemsBeingPolled());
+                    }
+                    return null;
                 }
-                return Collections.EMPTY_LIST;
             }
 
             return externals;
