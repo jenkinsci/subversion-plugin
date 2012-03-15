@@ -45,6 +45,7 @@ import java.io.PipedOutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
+import org.tmatesoft.svn.core.SVNErrorCode;
 
 /**
  * {@link WorkspaceUpdater} that does a fresh check out.
@@ -86,6 +87,10 @@ public class CheckoutUpdater extends WorkspaceUpdater {
                     listener.error("Subversion checkout has been canceled");
                     throw (InterruptedException)new InterruptedException().initCause(e);
                 } catch (SVNException e) {
+                    if (e.getErrorMessage().getErrorCode() == SVNErrorCode.BAD_URL) {
+                        listener.error("Failed to check out external from " + location.remote);
+                       throw (IOException)new IOException(e.getMessage());
+                    }
                     e.printStackTrace(listener.error("Failed to check out " + location.remote));
                     return null;
                 } finally {

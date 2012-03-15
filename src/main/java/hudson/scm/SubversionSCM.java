@@ -700,6 +700,9 @@ public class SubversionSCM extends SCM implements Serializable {
                 revList.add(p.info);
             }
             build.addAction(new SubversionTagAction(build,revList));
+        }catch(IOException e){
+            listener.error( e.getMessage() );
+            return false;
         } finally {
             w.close();
         }
@@ -739,10 +742,15 @@ public class SubversionSCM extends SCM implements Serializable {
         }
         
         List<External> externals = new ArrayList<External>();
-        for (ModuleLocation location : getLocations(env, build)) {
-            externals.addAll(workspace.act(new CheckOutTask(build, this, location, build.getTimestamp().getTime(), listener, env)));
+        try {
+            for (ModuleLocation location : getLocations(env, build)) {
+                externals.addAll(workspace.act(new CheckOutTask(build, this, location, build.getTimestamp().getTime(), listener, env)));
+            }
+        } catch (IOException e) {
+            listener.error( e.getMessage() );
+            return null;
         }
-
+        
         return externals;
     }
 
@@ -1031,7 +1039,8 @@ public class SubversionSCM extends SCM implements Serializable {
                         SvnInfo info = new SvnInfo(svnWc.doInfo(new File(ws,module.getLocalDir()), SVNRevision.WORKING));
                         revisions.add(new SvnInfoP(info, false));
                     } catch (SVNException e) {
-                        e.printStackTrace(listener.error("Failed to parse svn info for "+module.remote));
+                        listener.error("Failed to parse svn info for " + module.remote);
+                        throw (IOException)new IOException(e);
                     }
                 }
                 for(External ext : externals){
@@ -1039,7 +1048,8 @@ public class SubversionSCM extends SCM implements Serializable {
                         SvnInfo info = new SvnInfo(svnWc.doInfo(new File(ws,ext.path),SVNRevision.WORKING));
                         revisions.add(new SvnInfoP(info, ext.isRevisionFixed()));
                     } catch (SVNException e) {
-                        e.printStackTrace(listener.error("Failed to parse svn info for external "+ext.url+" at "+ext.path));
+                        listener.error("Failed to parse svn info for external " + ext.url + " at " + ext.path);
+                        throw (IOException)new IOException(e);
                     }
                 }
 

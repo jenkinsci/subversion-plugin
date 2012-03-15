@@ -83,6 +83,9 @@ final class SubversionUpdateEventHandler extends SubversionEventHandlerImpl {
          * SVNEvent.getAction() and SVNEventAction.UPDATE_-like constants.
          */
         SVNEventAction action = event.getAction();
+        if (action == SVNEventAction.FAILED_EXTERNAL) {           
+            throw new SVNException( SVNErrorMessage.create(SVNErrorCode.BAD_URL, event.getErrorMessage()) );
+        }
         if (action == SVNEventAction.UPDATE_EXTERNAL) {
             // for externals definitions
             SVNExternal ext = event.getExternalInfo();

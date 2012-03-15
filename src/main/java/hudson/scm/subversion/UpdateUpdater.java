@@ -138,6 +138,10 @@ public class UpdateUpdater extends WorkspaceUpdater {
                 listener.error("Subversion update has been canceled");
                 throw (InterruptedException)new InterruptedException().initCause(e);
             } catch (final SVNException e) {
+                if (e.getErrorMessage().getErrorCode() == SVNErrorCode.BAD_URL){
+                    listener.error("Failed to update external from " + location.remote);
+                    throw (IOException)new IOException(e.getMessage());
+                }
                 if (e.getErrorMessage().getErrorCode() == SVNErrorCode.WC_LOCKED) {
                     // work space locked. try fresh check out
                     listener.getLogger().println("Workspace appear to be locked, so getting a fresh workspace");
