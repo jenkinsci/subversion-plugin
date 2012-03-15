@@ -44,6 +44,7 @@ import java.util.Set;
 
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
+import org.tmatesoft.svn.core.internal.util.SVNDate;
 
 /**
  * {@link ChangeLogSet} for Subversion.
@@ -173,6 +174,11 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         @Override
         public String getCommitId() {
             return String.valueOf(revision);
+        }
+
+        @Override
+        public long getTimestamp() {
+            return date!=null ? SVNDate.parseDate(date).getTime() : -1;
         }
 
         @Override
