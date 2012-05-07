@@ -111,7 +111,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
          *      The target to run "svn info".
          */
         private SVNInfo parseSvnInfo(File workspace) throws SVNException {
-            final SVNWCClient svnWc = manager.getWCClient();
+            final SVNWCClient svnWc = clientManager.getWCClient();
             return svnWc.doInfo(workspace,SVNRevision.WORKING);
         }
 
@@ -122,7 +122,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
             }
 
 
-            final SVNUpdateClient svnuc = manager.getUpdateClient();
+            final SVNUpdateClient svnuc = clientManager.getUpdateClient();
             final List<External> externals = new ArrayList<External>(); // store discovered externals to here
 
             try {

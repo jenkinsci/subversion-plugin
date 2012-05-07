@@ -35,6 +35,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNException;
+import org.tmatesoft.svn.core.internal.wc2.SvnWcGeneration;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 import org.tmatesoft.svn.core.wc.SVNUpdateClient;
 
@@ -64,7 +65,8 @@ public class CheckoutUpdater extends WorkspaceUpdater {
 
             @Override
             public List<External> perform() throws IOException, InterruptedException {
-                final SVNUpdateClient svnuc = manager.getUpdateClient();
+                final SVNUpdateClient svnuc = clientManager.getUpdateClient();
+                svnuc.getOperationsFactory().setPrimaryWcGeneration(SvnWcGeneration.V16);
                 final List<External> externals = new ArrayList<External>(); // store discovered externals to here
 
                 listener.getLogger().println("Cleaning local Directory " + location.getLocalDir());

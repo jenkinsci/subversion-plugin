@@ -763,7 +763,8 @@ public class SubversionSCM extends SCM implements Serializable {
         }
         
         public List<External> invoke(File ws, VirtualChannel channel) throws IOException {
-            manager = createSvnClientManager(authProvider);
+            clientManager = createClientManager(authProvider);
+            manager = clientManager.getCore();
             this.ws = ws;
             try {
                 List<External> externals = perform();
@@ -775,7 +776,7 @@ public class SubversionSCM extends SCM implements Serializable {
             } catch (InterruptedException e) {
                 throw (InterruptedIOException)new InterruptedIOException().initCause(e);
             } finally {
-                manager.dispose();
+                clientManager.dispose();
             }
         }
 
@@ -790,7 +791,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
         private void checkClockOutOfSync() {
             try {
-                SVNDirEntry dir = manager.createRepository(location.getSVNURL(), true).info("/", -1);
+                SVNDirEntry dir = clientManager.createRepository(location.getSVNURL(), true).info("/", -1);
                 if (dir != null) {// I don't think this can ever be null, but be defensive
                     if (dir.getDate() != null && dir.getDate().after(new Date())) // see http://www.nabble.com/NullPointerException-in-SVN-Checkout-Update-td21609781.html that reported this being null.
                     {
@@ -809,6 +810,15 @@ public class SubversionSCM extends SCM implements Serializable {
     }
 
     /**
+     *
+     * @deprecated as of 1.40
+     *      Use {@link #createClientManager(ISVNAuthenticationProvider)}
+     */
+    public static SVNClientManager createSvnClientManager(ISVNAuthenticationProvider authProvider) {
+        return createClientManager(authProvider).getCore();
+    }
+
+    /**
      * Creates {@link SVNClientManager}.
      *
      * <p>
@@ -819,10 +829,10 @@ public class SubversionSCM extends SCM implements Serializable {
      *      If the operation runs on slaves,
      *      (and properly remoted, if the svn operations run on slaves.)
      */
-    public static SVNClientManager createSvnClientManager(ISVNAuthenticationProvider authProvider) {
+    public static SvnClientManager createClientManager(ISVNAuthenticationProvider authProvider) {
         SubversionWorkspaceSelector.syncWorkspaceFormatFromMaster();
         ISVNAuthenticationManager sam = createSvnAuthenticationManager(authProvider);
-        return SVNClientManager.newInstance(createDefaultSVNOptions(), sam);
+        return new SvnClientManager(SVNClientManager.newInstance(createDefaultSVNOptions(), sam));
     }
 
     /**
@@ -853,14 +863,23 @@ public class SubversionSCM extends SCM implements Serializable {
     }
 
     /**
+     * @deprecated as of 2.0
+     *      Use {@link #createClientManager(AbstractProject)}
+     *
+     */
+    public static SVNClientManager createSvnClientManager(AbstractProject context) {
+        return createClientManager(context).getCore();
+    }
+
+    /**
      * Creates {@link SVNClientManager} for code running on the master.
      * <p>
      * CAUTION: this code only works when invoked on master. On slaves, use
      * {@link #createSvnClientManager(ISVNAuthenticationProvider)} and get {@link ISVNAuthenticationProvider}
-     * from the master via remoting. 
+     * from the master via remoting.
      */
-    public static SVNClientManager createSvnClientManager(AbstractProject context) {
-        return createSvnClientManager(Hudson.getInstance().getDescriptorByType(DescriptorImpl.class).createAuthenticationProvider(context));
+    public static SvnClientManager createClientManager(AbstractProject context) {
+        return new SvnClientManager(createSvnClientManager(Hudson.getInstance().getDescriptorByType(DescriptorImpl.class).createAuthenticationProvider(context)));
     }
 
     public static final class SvnInfo implements Serializable, Comparable<SvnInfo> {
@@ -990,7 +1009,7 @@ public class SubversionSCM extends SCM implements Serializable {
      *      The target to run "svn info".
      */
     private static SVNInfo parseSvnInfo(SVNURL remoteUrl, ISVNAuthenticationProvider authProvider) throws SVNException {
-        final SVNClientManager manager = createSvnClientManager(authProvider);
+        final SvnClientManager manager = createClientManager(authProvider);
         try {
             final SVNWCClient svnWc = manager.getWCClient();
             return svnWc.doInfo(remoteUrl, SVNRevision.HEAD, SVNRevision.HEAD);
@@ -1022,7 +1041,7 @@ public class SubversionSCM extends SCM implements Serializable {
         public List<SvnInfoP> invoke(File ws, VirtualChannel channel) throws IOException {
             List<SvnInfoP> revisions = new ArrayList<SvnInfoP>();
 
-            final SVNClientManager manager = createSvnClientManager(authProvider);
+            final SvnClientManager manager = createClientManager(authProvider);
             try {
                 final SVNWCClient svnWc = manager.getWCClient();
                 // invoke the "svn info"
@@ -1223,7 +1242,7 @@ public class SubversionSCM extends SCM implements Serializable {
             // if no exclusion rules are defined, don't waste time going through "svn log".
             if (!hasExclusionRule())    return true;
 
-            final SVNClientManager manager = createSvnClientManager(authProvider);
+            final SvnClientManager manager = createClientManager(authProvider);
             try {
                 manager.getLogClient().doLog(url, null, SVNRevision.UNDEFINED,
                         SVNRevision.create(from), // get log entries from the local revision + 1

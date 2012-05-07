@@ -63,7 +63,7 @@ public class UpdateWithCleanUpdater extends WorkspaceUpdater {
         protected void preUpdate(ModuleLocation module, File local) throws SVNException, IOException {
             listener.getLogger().println("Cleaning up " + local);
 
-            manager.getStatusClient().doStatus(local, null, SVNDepth.INFINITY, false, false, true, false, new ISVNStatusHandler() {
+            clientManager.getStatusClient().doStatus(local, null, SVNDepth.INFINITY, false, false, true, false, new ISVNStatusHandler() {
                 public void handleStatus(SVNStatus status) throws SVNException {
                     SVNStatusType s = status.getContentsStatus();
                     if (s == SVNStatusType.STATUS_UNVERSIONED || s == SVNStatusType.STATUS_IGNORED || s == SVNStatusType.STATUS_MODIFIED) {

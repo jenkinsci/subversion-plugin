@@ -649,7 +649,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         p.setScm(loadSvnRepo());
         FreeStyleBuild b = p.scheduleBuild2(0).get();
 
-        SVNClientManager wc = SubversionSCM.createSvnClientManager((AbstractProject)null);
+        SvnClientManager wc = SubversionSCM.createClientManager((AbstractProject)null);
         SVNStatus st = wc.getStatusClient().doStatus(new File(b.getWorkspace().getRemote()+"/a"), false);
         int wcf = st.getWorkingCopyFormat();
         System.out.println(wcf);
@@ -797,7 +797,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         forCommit.setScm(scm);
         forCommit.setAssignedLabel(hudson.getSelfLabel());
         FreeStyleBuild b = assertBuildStatusSuccess(forCommit.scheduleBuild2(0).get());
-        SVNClientManager svnm = SubversionSCM.createSvnClientManager((AbstractProject)null);
+        SvnClientManager svnm = SubversionSCM.createClientManager((AbstractProject)null);
 
         List<File> added = new ArrayList<File>();
         for (String path : paths) {
@@ -833,7 +833,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         FreeStyleBuild b = assertBuildStatusSuccess(forCommit.scheduleBuild2(0).get());
         FilePath newFile = b.getWorkspace().child("foo");
         newFile.touch(System.currentTimeMillis());
-        SVNClientManager svnm = SubversionSCM.createSvnClientManager(p);
+        SvnClientManager svnm = SubversionSCM.createClientManager(p);
         svnm.getWCClient().doAdd(new File(newFile.getRemote()),false,false,false, SVNDepth.INFINITY, false,false);
         SVNCommitClient cc = svnm.getCommitClient();
         cc.doCommit(new File[]{new File(newFile.getRemote())},false,"added",null,null,false,false,SVNDepth.INFINITY);

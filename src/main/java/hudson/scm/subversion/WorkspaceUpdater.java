@@ -31,6 +31,7 @@ import hudson.scm.RevisionParameterAction;
 import hudson.scm.SubversionSCM;
 import hudson.scm.SubversionSCM.External;
 import hudson.scm.SubversionSCM.ModuleLocation;
+import hudson.scm.SvnClientManager;
 import org.kohsuke.stapler.export.ExportedBean;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
@@ -78,9 +79,15 @@ public abstract class WorkspaceUpdater extends AbstractDescribableImpl<Workspace
         // fields that are set by the caller as context for the perform method
 
         /**
-         * Factory for various subversion commands.
+         * @deprecated as of 1.40
+         *      Use {@link #clientManager}
          */
         public SVNClientManager manager;
+
+        /**
+         * Factory for various subversion commands.
+         */
+        public SvnClientManager clientManager;
 
         /**
          * Encapusulates the authentication. Connected back to Hudson master. Never null.
@@ -126,6 +133,7 @@ public abstract class WorkspaceUpdater extends AbstractDescribableImpl<Workspace
 
         protected List<External> delegateTo(UpdateTask t) throws IOException, InterruptedException {
             t.manager = this.manager;
+            t.clientManager = this.clientManager;
             t.authProvider = this.authProvider;
             t.timestamp = this.timestamp;
             t.listener = this.listener;
