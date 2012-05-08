@@ -48,6 +48,7 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
+import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNDirEntry;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNURL;
@@ -191,7 +192,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
       if (isSVNRepositoryProjectRoot(repo)) {
         dirs = this.getSVNRootRepoDirectories(logClient, repoURL);
       } else {
-        logClient.doList(repoURL, SVNRevision.HEAD, SVNRevision.HEAD, false, false, dirEntryHandler);
+        logClient.doList(repoURL, SVNRevision.HEAD, SVNRevision.HEAD, false, SVNDepth.IMMEDIATES, SVNDirEntry.DIRENT_ALL, dirEntryHandler);
         dirs = dirEntryHandler.getDirs(isReverseByDate(), isReverseByName());
       }
     }
@@ -305,7 +306,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
     List<String> dirs = null;
     SVNURL branchesRepo = repoURL.appendPath(SVN_BRANCHES, true);
     SimpleSVNDirEntryHandler branchesEntryHandler = new SimpleSVNDirEntryHandler(null);
-    logClient.doList(branchesRepo, SVNRevision.HEAD, SVNRevision.HEAD, false, false, branchesEntryHandler);
+    logClient.doList(branchesRepo, SVNRevision.HEAD, SVNRevision.HEAD, false, SVNDepth.IMMEDIATES, SVNDirEntry.DIRENT_ALL, branchesEntryHandler);
     List<String> branches = branchesEntryHandler.getDirs(isReverseByDate(), isReverseByName());
     branches.remove(SVN_BRANCHES);
     appendTargetDir(SVN_BRANCHES, branches);
@@ -313,7 +314,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
     // Get the tags repository contents
     SVNURL tagsRepo = repoURL.appendPath(SVN_TAGS, true);
     SimpleSVNDirEntryHandler tagsEntryHandler = new SimpleSVNDirEntryHandler(null);
-    logClient.doList(tagsRepo, SVNRevision.HEAD, SVNRevision.HEAD, false, false, tagsEntryHandler);
+    logClient.doList(tagsRepo, SVNRevision.HEAD, SVNRevision.HEAD, false, SVNDepth.IMMEDIATES, SVNDirEntry.DIRENT_ALL, tagsEntryHandler);
     List<String> tags = tagsEntryHandler.getDirs(isReverseByDate(), isReverseByName());
     tags.remove(SVN_TAGS);
     appendTargetDir(SVN_TAGS, tags);
