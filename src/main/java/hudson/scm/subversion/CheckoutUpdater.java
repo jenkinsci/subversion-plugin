@@ -66,7 +66,6 @@ public class CheckoutUpdater extends WorkspaceUpdater {
             @Override
             public List<External> perform() throws IOException, InterruptedException {
                 final SVNUpdateClient svnuc = clientManager.getUpdateClient();
-                svnuc.getOperationsFactory().setPrimaryWcGeneration(SvnWcGeneration.V16);
                 final List<External> externals = new ArrayList<External>(); // store discovered externals to here
 
                 listener.getLogger().println("Cleaning local Directory " + location.getLocalDir());
