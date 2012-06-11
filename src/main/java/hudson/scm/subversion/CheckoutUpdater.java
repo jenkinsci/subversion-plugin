@@ -81,7 +81,7 @@ public class CheckoutUpdater extends WorkspaceUpdater {
 
                     File local = new File(ws, location.getLocalDir());
                     svnuc.setEventHandler(new SubversionUpdateEventHandler(new PrintStream(pos), externals, local, location.getLocalDir()));
-                    svnuc.doCheckout(location.getSVNURL(), local.getCanonicalFile(), SVNRevision.HEAD, getRevision(location), SVNDepth.INFINITY, true);
+                    svnuc.doCheckout(location.getSVNURL(), local.getCanonicalFile(), SVNRevision.HEAD, getRevision(location), SVNDepth.fromString(location.getDepthOption()), true);
                 } catch (SVNCancelException e) {
                     listener.error("Subversion checkout has been canceled");
                     throw (InterruptedException)new InterruptedException().initCause(e);

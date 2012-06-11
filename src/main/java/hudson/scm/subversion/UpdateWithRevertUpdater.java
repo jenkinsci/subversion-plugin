@@ -58,7 +58,7 @@ public class UpdateWithRevertUpdater extends WorkspaceUpdater {
         @Override
         protected void preUpdate(ModuleLocation module, File local) throws SVNException, IOException {
             listener.getLogger().println("Reverting " + local);
-            manager.getWCClient().doRevert(new File[]{local.getCanonicalFile()}, SVNDepth.INFINITY, null);
+            manager.getWCClient().doRevert(new File[]{local.getCanonicalFile()}, SVNDepth.fromString(location.getDepthOption()), null);
         }
     }
 

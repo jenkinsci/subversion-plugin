@@ -133,7 +133,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
 
                 preUpdate(location, local);
                 listener.getLogger().println("Updating " + location.remote);
-                svnuc.doUpdate(local.getCanonicalFile(), r, SVNDepth.INFINITY, true, false);
+                svnuc.doUpdate(local.getCanonicalFile(), r, SVNDepth.fromString(location.getDepthOption()), true, false);
             } catch (SVNCancelException e) {
                 listener.error("Subversion update has been canceled");
                 throw (InterruptedException)new InterruptedException().initCause(e);
