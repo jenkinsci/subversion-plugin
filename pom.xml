@@ -47,6 +47,11 @@ THE SOFTWARE.
     </license>
   </licenses>
 
+  <scm>
+    <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
+    <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
+  </scm>
+
   <developers>
     <developer>
       <name>Many</name>
