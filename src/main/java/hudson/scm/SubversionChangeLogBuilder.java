@@ -216,7 +216,7 @@ public final class SubversionChangeLogBuilder {
         }
 
         public String invoke(File p, VirtualChannel channel) throws IOException {
-            final SVNClientManager manager = SubversionSCM.createSvnClientManager(authProvider);
+            final SvnClientManager manager = SubversionSCM.createClientManager(authProvider);
             try {
                 final SVNWCClient svnwc = manager.getWCClient();
 

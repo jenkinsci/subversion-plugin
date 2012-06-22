@@ -30,6 +30,7 @@ import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.internal.wc.admin.ISVNAdminAreaFactorySelector;
 import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminArea14;
 import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminAreaFactory;
+import org.tmatesoft.svn.core.internal.wc2.SvnWcGeneration;
 
 import java.io.File;
 import java.io.IOException;
@@ -52,7 +53,14 @@ import java.util.logging.Logger;
  * The primary scenario of this is the use of command-line SVN client, either from shell
  * script, Ant, or Maven.
  *
+ * <p>
+ * Working copy changes from Subversion 1.6 to 1.7 was so big that they introduced a separate
+ * {@link SvnWcGeneration} constant to represent that. So this class alone is no longer sufficient
+ * to make SVNKit sticks to the version we want it to use. See {@link SvnClientManager} that
+ * controls the other half of this.
+ *
  * @author Kohsuke Kawaguchi
+ * @see SvnClientManager
  */
 public class SubversionWorkspaceSelector implements ISVNAdminAreaFactorySelector {
     public SubversionWorkspaceSelector() {
@@ -78,6 +86,11 @@ public class SubversionWorkspaceSelector implements ISVNAdminAreaFactorySelector
      * {@link #getEnabledFactories(File, Collection, boolean)} method is called quite a few times
      * during a Subversion operation, so consulting this value back with master each time is not practical
      * performance wise. Therefore, we have {@link SubversionSCM} set this value, even though it's error prone.
+     *
+     * <p>
+     * Internally in SVNKit, these constants go up only to 1.6. We use {@link #WC_FORMAT_17} to indicate
+     * 1.7 (but when that value is chosen, it is really {@link SvnClientManager} that does the work, not
+     * {@link ISVNAdminAreaFactorySelector}).
      */
     public static volatile int workspaceFormat = SVNAdminArea14.WC_FORMAT;
 
@@ -103,6 +116,11 @@ public class SubversionWorkspaceSelector implements ISVNAdminAreaFactorySelector
                 }
         }
     }
+
+    /**
+     * Constant for {@link #workspaceFormat} that indicates we opt for 1.7 working copy.
+     */
+    public static final int WC_FORMAT_17 = 100;
 
     private static final Logger LOGGER = Logger.getLogger(SubversionWorkspaceSelector.class.getName());
 }
