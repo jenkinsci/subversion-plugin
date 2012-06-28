@@ -90,7 +90,6 @@ import org.tmatesoft.svn.core.auth.SVNUserNameAuthentication;
 import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminAreaFactory;
 import org.tmatesoft.svn.core.io.SVNRepository;
 import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
-import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNCommitClient;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 import org.tmatesoft.svn.core.wc.SVNStatus;
@@ -493,6 +492,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         assertTrue("another change in the repo should be detected separately",p.poll(listener).hasChanges());
     }
     
+    
     /**
      * Test that multiple repository URLs are all polled.
      */
@@ -515,6 +515,11 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         Run r2 = p.scheduleBuild2(0, new Cause.UserCause()).get();
         assertLogContains("Updating " + svnBase + "trunk", r2);
         assertLogContains("Cleaning local Directory branches", r2);
+    }
+    
+    public void testMultipleRepositoriesSvn17() throws Exception {
+    	configureSvnWorkspaceFormat(SubversionWorkspaceSelector.WC_FORMAT_17);
+    	testMultipleRepositories();
     }
     
     public void testConfigRoundtrip() throws Exception {
