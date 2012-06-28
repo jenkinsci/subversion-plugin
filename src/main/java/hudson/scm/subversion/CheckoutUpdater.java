@@ -31,11 +31,12 @@ import hudson.Util;
 import hudson.scm.SubversionSCM.External;
 import hudson.util.IOException2;
 import hudson.util.StreamCopyThread;
+
+import org.apache.commons.lang.time.FastDateFormat;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNException;
-import org.tmatesoft.svn.core.internal.wc2.SvnWcGeneration;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 import org.tmatesoft.svn.core.wc.SVNUpdateClient;
 
@@ -55,6 +56,8 @@ import java.util.List;
 public class CheckoutUpdater extends WorkspaceUpdater {
     private static final long serialVersionUID = -3502075714024708011L;
 
+    private static final FastDateFormat fmt = FastDateFormat.getInstance("''yyyy-MM-dd'T'HH:mm:ss.SSS Z''");
+    
     @DataBoundConstructor
     public CheckoutUpdater() {}
 
@@ -78,11 +81,18 @@ public class CheckoutUpdater extends WorkspaceUpdater {
                 sct.start();
 
                 try {
-                    listener.getLogger().println("Checking out " + location.remote);
+                	
+                	SVNRevision r = getRevision(location);
+
+                    String revisionName = r.getDate() != null ?
+                    		fmt.format(r.getDate()) : r.toString();
+                	
+                    listener.getLogger().println("Checking out " + location.remote + " at revision " + revisionName);
 
                     File local = new File(ws, location.getLocalDir());
                     svnuc.setEventHandler(new SubversionUpdateEventHandler(new PrintStream(pos), externals, local, location.getLocalDir()));
-                    svnuc.doCheckout(location.getSVNURL(), local.getCanonicalFile(), SVNRevision.HEAD, getRevision(location), SVNDepth.INFINITY, true);
+                    
+                    svnuc.doCheckout(location.getSVNURL(), local.getCanonicalFile(), SVNRevision.HEAD, r, SVNDepth.INFINITY, true);
                 } catch (SVNCancelException e) {
                     listener.error("Subversion checkout has been canceled");
                     throw (InterruptedException)new InterruptedException().initCause(e);
