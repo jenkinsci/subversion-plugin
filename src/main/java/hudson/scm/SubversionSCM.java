@@ -740,7 +740,10 @@ public class SubversionSCM extends SCM implements Serializable {
         
         List<External> externals = new ArrayList<External>();
         for (ModuleLocation location : getLocations(env, build)) {
-            externals.addAll(workspace.act(new CheckOutTask(build, this, location, build.getTimestamp().getTime(), listener, env)));
+            List<External> externalsFound = workspace.act(new CheckOutTask(build, this, location, build.getTimestamp().getTime(), listener, env));
+            if ( externalsFound != null ){
+                externals.addAll(externalsFound);
+            }
         }
 
         return externals;
