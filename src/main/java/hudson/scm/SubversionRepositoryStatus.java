@@ -89,14 +89,13 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
         // in case of Jetty, it doesn't check if the payload is
         QueryParameterMap query = new QueryParameterMap(req);
         String revParam = query.get("rev");
+        if (revParam == null) {
+            revParam = req.getHeader("X-Hudson-Subversion-Revision");
+        }
+
         long rev = -1;
         if (revParam != null) {
             rev = Long.parseLong(revParam);
-        } else {
-            revParam = req.getHeader("X-Hudson-Subversion-Revision");
-            if (revParam != null) {
-                rev = Long.parseLong(revParam);
-            }
         }
 
         for (AbstractProject<?,?> p : Hudson.getInstance().getAllItems(AbstractProject.class)) {
@@ -111,7 +110,7 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                 
                 List<SvnInfo> infos = new ArrayList<SvnInfo>();
                 
-                boolean jobMatches = false; 
+                boolean projectMatches = false; 
                 for (ModuleLocation loc : sscm.getLocations()) {
                     if (loc.getUUID(p).equals(uuid)) uuidFound = true; else continue;
 
@@ -132,13 +131,13 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                         || remaining.length()==0/*when someone is checking out the whole repo (that is, m==n)*/) {
                             // this project is possibly changed. poll now.
                             // if any of the data we used was bogus, the trigger will not detect a change
-                            jobMatches = true;
+                            projectMatches = true;
                             pathFound = true;
                         }
                     }
                 }
                 
-                if (jobMatches) {
+                if (projectMatches) {
                     LOGGER.fine("Scheduling the immediate polling of "+p);
                     
                     final RevisionParameterAction[] actions;
