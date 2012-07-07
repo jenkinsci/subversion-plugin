@@ -412,7 +412,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         WebClient wc = new WebClient();
         WebRequestSettings wr = new WebRequestSettings(new URL(getURL() + "subversion/" + repoUUID + "/notifyCommit"), HttpMethod.POST);
         wr.setRequestBody("A   trunk/hudson/test-projects/trivial-ant/build.xml\n" +
-        		"M   https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-maven/src/main/");
+        		"M   trunk/hudson/test-projects/trivial-maven/src/main/");
         wr.setAdditionalHeader("Content-Type", "text/plain;charset=UTF-8");
 
         if (includeRevision) {
