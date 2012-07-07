@@ -68,6 +68,7 @@ THE SOFTWARE.
           <configuration>
             <systemPropertyVariables>
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
+              <java.awt.headless>true</java.awt.headless>
             </systemPropertyVariables>
           </configuration>
         </plugin>
