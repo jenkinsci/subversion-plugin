@@ -32,6 +32,8 @@ import hudson.scm.SubversionSCM.External;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.scm.SubversionSCM.SvnInfo;
 import hudson.triggers.SCMTrigger;
+
+import org.apache.commons.lang.time.FastDateFormat;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNDepth;
@@ -56,6 +58,9 @@ import java.util.List;
 public class UpdateUpdater extends WorkspaceUpdater {
     private static final long serialVersionUID = 1451258464864424355L;
 
+    
+    private static final FastDateFormat fmt = FastDateFormat.getInstance("''yyyy-MM-dd'T'HH:mm:ss.SSS Z''");
+    
     @DataBoundConstructor
     public UpdateUpdater() {
     }
@@ -131,8 +136,11 @@ public class UpdateUpdater extends WorkspaceUpdater {
 
                 SVNRevision r = getRevision(location);
 
+                String revisionName = r.getDate() != null ?
+                		fmt.format(r.getDate()) : r.toString();
+                
                 preUpdate(location, local);
-                listener.getLogger().println("Updating " + location.remote);
+                listener.getLogger().println("Updating " + location.remote + " to revision " + revisionName);
                 svnuc.doUpdate(local.getCanonicalFile(), r, SVNDepth.INFINITY, true, false);
             } catch (SVNCancelException e) {
                 listener.error("Subversion update has been canceled");
