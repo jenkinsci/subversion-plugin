@@ -296,7 +296,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
             new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant@18075", null),
             new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-maven@HEAD", null)
         };
-        p.setScm(new SubversionSCM(Arrays.asList(locations), new CheckoutUpdater(), null, null, null, null, null, null));
+        p.setScm(new SubversionSCM(Arrays.asList(locations), new CheckoutUpdater(), null, null, null, null, null, null, false));
 
         CaptureEnvironmentBuilder builder = new CaptureEnvironmentBuilder();
         p.getBuildersList().add(builder);
@@ -477,7 +477,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         String svnBase = "file://" + new CopyExisting(getClass().getResource("/svn-repo.zip")).allocate().toURI().toURL().getPath();
         SubversionSCM scm = new SubversionSCM(
                 Arrays.asList(new ModuleLocation(svnBase + "trunk", null), new ModuleLocation(svnBase + "branches", null)),
-                new CheckoutUpdater(), null, null, null, null, null, null);
+                new CheckoutUpdater(), null, null, null, null, null, null,false);
         p.setScm(scm);
         p.scheduleBuild2(0, new Cause.UserCause()).get();
 
@@ -503,14 +503,14 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         String svnBase = "file://" + new CopyExisting(getClass().getResource("/svn-repo.zip")).allocate().toURI().toURL().getPath();
         SubversionSCM scm = new SubversionSCM(
                 Arrays.asList(new ModuleLocation(svnBase + "trunk", "trunk")),
-                new UpdateUpdater(), null, null, null, null, null, null);
+                new UpdateUpdater(), null, null, null, null, null, null,false);
         p.setScm(scm);
         Run r1 = p.scheduleBuild2(0, new Cause.UserCause()).get();
         assertLogContains("Cleaning local Directory trunk", r1);
 
         scm = new SubversionSCM(
                 Arrays.asList(new ModuleLocation(svnBase + "trunk", "trunk"), new ModuleLocation(svnBase + "branches", "branches")),
-                new UpdateUpdater(), null, null, null, null, null, null);
+                new UpdateUpdater(), null, null, null, null, null, null,false);
         p.setScm(scm);
         Run r2 = p.scheduleBuild2(0, new Cause.UserCause()).get();
         assertLogContains("Updating " + svnBase + "trunk", r2);
@@ -529,7 +529,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
                 Arrays.asList(
                 		new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusion", "c"),
                 		new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusion", "d")),
-                new UpdateUpdater(),new Sventon(new URL("http://www.sun.com/"),"test"),"exclude","user","revprop","excludeMessage",null);
+                new UpdateUpdater(),new Sventon(new URL("http://www.sun.com/"),"test"),"exclude","user","revprop","excludeMessage",null, false);
         p.setScm(scm);
         submit(new WebClient().getPage(p,"configure").getFormByName("config"));
         verify(scm,(SubversionSCM)p.getScm());
@@ -537,7 +537,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         scm = new SubversionSCM(
         		Arrays.asList(
                 		new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusion", "c")),
-        		new CheckoutUpdater(),null,"","","","",null);
+        		new CheckoutUpdater(),null,"","","","",null,false);
         p.setScm(scm);
         submit(new WebClient().getPage(p,"configure").getFormByName("config"));
         verify(scm,(SubversionSCM)p.getScm());
@@ -550,7 +550,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         SubversionSCM scm = new SubversionSCM(
                 Arrays.asList(
                 		new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusion", "")),
-                new UpdateUpdater(),null,null,null,null,null,null);
+                new UpdateUpdater(),null,null,null,null,null,null,false);
         p.setScm(scm);
         configRoundtrip((Item)p);
         verify(scm,(SubversionSCM)p.getScm());
@@ -567,7 +567,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
                 
         SubversionSCM scm = new SubversionSCM(
                 locs,
-                new UpdateUpdater(), new Sventon(new URL("http://www.sun.com/"), "test"), "exclude", "user", "revprop", "excludeMessage",null);
+                new UpdateUpdater(), new Sventon(new URL("http://www.sun.com/"), "test"), "exclude", "user", "revprop", "excludeMessage",null,false);
         p.setScm(scm);
         submit(new WebClient().getPage(p, "configure").getFormByName("config"));
         ModuleLocation[] ml = ((SubversionSCM) p.getScm()).getLocations();
@@ -697,7 +697,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         FreeStyleProject p = createFreeStyleProject( "testExcludeByUser" );
         p.setScm(new SubversionSCM(
                 Arrays.asList( new ModuleLocation( "https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusions@19438", null )),
-                new UpdateUpdater(), null, "", "dty", "", "", null)
+                new UpdateUpdater(), null, "", "dty", "", "", null, false)
                 );
         // Do a build to force the creation of the workspace. This works around
         // pollChanges returning true when the workspace does not exist.
@@ -716,7 +716,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         File repo = new CopyExisting(getClass().getResource("HUDSON-6030.zip")).allocate();
         SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.getPath()},
                                                                    new String[]{"."}),
-                                              new UpdateUpdater(), null, ".*/bar", "", "", "", "");
+                                              new UpdateUpdater(), null, ".*/bar", "", "", "", "", false);
 
         FreeStyleProject p = createFreeStyleProject("testExcludedRegions");
         p.setScm(scm);
@@ -748,7 +748,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         File repo = new CopyExisting(getClass().getResource("HUDSON-6030.zip")).allocate();
         SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.getPath()},
                                                                    new String[]{"."}),
-                                              new UpdateUpdater(), null, "", "", "", "", ".*/foo");
+                                              new UpdateUpdater(), null, "", "", "", "", ".*/foo", false);
 
         FreeStyleProject p = createFreeStyleProject("testExcludedRegions");
         p.setScm(scm);
@@ -979,7 +979,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
             new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant", null),
             new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-maven", null)
         };
-        p.setScm(new SubversionSCM(Arrays.asList(locations), new CheckoutUpdater(), null, null, null, null, null, null));
+        p.setScm(new SubversionSCM(Arrays.asList(locations), new CheckoutUpdater(), null, null, null, null, null, null, false));
 
         CaptureEnvironmentBuilder builder = new CaptureEnvironmentBuilder();
         p.getBuildersList().add(builder);
@@ -1177,7 +1177,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
                     new ModuleLocation("svn://localhost/z", null)
                 };
 
-            b.setScm(new SubversionSCM(Arrays.asList(locations), new CheckoutUpdater(), null, null, null, null, null, null));
+            b.setScm(new SubversionSCM(Arrays.asList(locations), new CheckoutUpdater(), null, null, null, null, null, null, false));
 
             FreeStyleBuild build = assertBuildStatusSuccess(b.scheduleBuild2(0));
             FilePath ws = build.getWorkspace();
