@@ -684,7 +684,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
         List<External> externals = checkout(build,workspace,listener,env);
 
-        if(externals==null)
+        if (externals==null)
             return false;
 
         // write out the revision file
@@ -741,6 +741,10 @@ public class SubversionSCM extends SCM implements Serializable {
         List<External> externals = new ArrayList<External>();
         for (ModuleLocation location : getLocations(env, build)) {
             List<External> externalsFound = workspace.act(new CheckOutTask(build, this, location, build.getTimestamp().getTime(), listener, env));
+            if (externalsFound == null) {
+                // An error occurred during checkout
+                return null;
+            }
             externals.addAll( externalsFound );
             // olamy: remove null check at it cause test failure
             // see https://github.com/jenkinsci/subversion-plugin/commit/de23a2b781b7b86f41319977ce4c11faee75179b#commitcomment-1551273

@@ -164,7 +164,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
                 if (e.getErrorMessage().getErrorCode() == SVNErrorCode.WC_NOT_LOCKED) {
                     listener.getLogger().println("Polled jobs are " + Hudson.getInstance().getDescriptorByType(SCMTrigger.DescriptorImpl.class).getItemsBeingPolled());
                 }
-                return Collections.EMPTY_LIST;
+                return null;
             }
 
             return externals;
