@@ -146,22 +146,29 @@ public class UpdateUpdater extends WorkspaceUpdater {
                 listener.error("Subversion update has been canceled");
                 throw (InterruptedException)new InterruptedException().initCause(e);
             } catch (final SVNException e) {
-                if (e.getErrorMessage().getErrorCode() == SVNErrorCode.WC_LOCKED) {
+                SVNErrorCode errorCode = e.getErrorMessage().getErrorCode();
+                if (errorCode == SVNErrorCode.WC_LOCKED) {
                     // work space locked. try fresh check out
                     listener.getLogger().println("Workspace appear to be locked, so getting a fresh workspace");
                     return delegateTo(new CheckoutUpdater());
                 }
-                if (e.getErrorMessage().getErrorCode() == SVNErrorCode.WC_OBSTRUCTED_UPDATE) {
+                if (errorCode == SVNErrorCode.WC_OBSTRUCTED_UPDATE) {
                     // HUDSON-1882. If existence of local files cause an update to fail,
                     // revert to fresh check out
                     listener.getLogger().println(e.getMessage()); // show why this happened. Sometimes this is caused by having a build artifact in the repository.
                     listener.getLogger().println("Updated failed due to local files. Getting a fresh workspace");
                     return delegateTo(new CheckoutUpdater());
                 }
+                if (errorCode == SVNErrorCode.WC_CORRUPT_TEXT_BASE || errorCode == SVNErrorCode.WC_CORRUPT) {
+                    // JENKINS-14550. if working copy is corrupted, revert to fresh check out
+                    listener.getLogger().println(e.getMessage()); // show why this happened. Sometimes this is caused by having a build artifact in the repository.
+                    listener.getLogger().println("Updated failed due to working copy corruption. Getting a fresh workspace");
+                    return delegateTo(new CheckoutUpdater());
+                }
 
                 e.printStackTrace(listener.error("Failed to update " + location.remote));
                 // trouble-shooting probe for #591
-                if (e.getErrorMessage().getErrorCode() == SVNErrorCode.WC_NOT_LOCKED) {
+                if (errorCode == SVNErrorCode.WC_NOT_LOCKED) {
                     listener.getLogger().println("Polled jobs are " + Hudson.getInstance().getDescriptorByType(SCMTrigger.DescriptorImpl.class).getItemsBeingPolled());
                 }
                 return null;
