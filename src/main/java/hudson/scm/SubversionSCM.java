@@ -216,6 +216,8 @@ public class SubversionSCM extends SCM implements Serializable {
     @Deprecated
     private Boolean doRevert;
 
+    private boolean ignoreDirPropChanges;
+
 
     /**
      * @deprecated as of 1.286
@@ -283,10 +285,20 @@ public class SubversionSCM extends SCM implements Serializable {
                 browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages, includedRegions);
     }
 
-    @DataBoundConstructor
+    /**
+     * 
+     * @deprecated as of ...
+     */
     public SubversionSCM(List<ModuleLocation> locations, WorkspaceUpdater workspaceUpdater,
                          SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages,
                          String includedRegions) {
+      this(locations, workspaceUpdater, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages, includedRegions, false);
+    }
+
+    @DataBoundConstructor
+    public SubversionSCM(List<ModuleLocation> locations, WorkspaceUpdater workspaceUpdater,
+                         SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages,
+                         String includedRegions, boolean ignoreDirPropChanges) {
         for (Iterator<ModuleLocation> itr = locations.iterator(); itr.hasNext();) {
             ModuleLocation ml = itr.next();
             String remote = Util.fixEmptyAndTrim(ml.remote);
@@ -301,6 +313,7 @@ public class SubversionSCM extends SCM implements Serializable {
         this.excludedRevprop = excludedRevprop;
         this.excludedCommitMessages = excludedCommitMessages;
         this.includedRegions = includedRegions;
+        this.ignoreDirPropChanges = ignoreDirPropChanges;
     }
 
     /**
@@ -513,6 +526,11 @@ public class SubversionSCM extends SCM implements Serializable {
         return patterns;
     }
 
+    @Exported
+    public boolean isIgnoreDirPropChanges() {
+      return ignoreDirPropChanges;
+    }
+    
     /**
      * Sets the <tt>SVN_REVISION</tt> environment variable during the build.
      */
@@ -1275,7 +1293,7 @@ public class SubversionSCM extends SCM implements Serializable {
          * Is there any exclusion rule?
          */
         private boolean hasExclusionRule() {
-            return excludedPatterns.length>0 || !excludedUsers.isEmpty() || excludedRevprop != null || excludedCommitMessages.length>0 || includedPatterns.length>0;
+            return excludedPatterns.length>0 || !excludedUsers.isEmpty() || excludedRevprop != null || excludedCommitMessages.length>0 || includedPatterns.length>0 || ignoreDirPropChanges;
         }
 
         /**
@@ -1338,6 +1356,24 @@ public class SubversionSCM extends SCM implements Serializable {
                 return false;
             }
 
+            // dirPropChanges are changes that modifiy ('M') a directory, i.e. only
+            // exclude if there are NO changes on files or Adds/Removals
+            if (ignoreDirPropChanges) {
+                boolean contentChanged = false;
+                for (SVNLogEntryPath path : changedPaths.values()) {
+                    if (path.getType() != 'M' || path.getKind() != SVNNodeKind.DIR) {
+                      contentChanged = true;
+                      break;
+                    }
+                }
+                if (!contentChanged) {
+                  listener.getLogger().println(Messages.SubversionSCM_pollChanges_ignoredRevision(
+                      logEntry.getRevision(),
+                      Messages.SubversionSCM_pollChanges_ignoredRevision_onlydirprops()));
+                    return false;
+                }
+            }
+            
             // If there are included patterns, see which paths are included
             List<String> includedPaths = new ArrayList<String>();
             if (includedPatterns.length > 0) {
@@ -1390,7 +1426,7 @@ public class SubversionSCM extends SCM implements Serializable {
     }
 
     public ChangeLogParser createChangeLogParser() {
-        return new SubversionChangeLogParser();
+        return new SubversionChangeLogParser(ignoreDirPropChanges);
     }
 
 
