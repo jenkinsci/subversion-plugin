@@ -62,12 +62,14 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
 import org.dom4j.Document;
 import org.dom4j.io.DOMReader;
+import org.junit.Test;
 import org.jvnet.hudson.test.Bug;
 import org.jvnet.hudson.test.Email;
 import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
@@ -80,6 +82,7 @@ import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNErrorCode;
 import org.tmatesoft.svn.core.SVNErrorMessage;
 import org.tmatesoft.svn.core.SVNException;
+import org.tmatesoft.svn.core.SVNPropertyValue;
 import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.auth.SVNAuthentication;
@@ -120,6 +123,8 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     String realm = "<http://subversion.tigris.org:80> CollabNet Subversion Repository";
     String kind = ISVNAuthenticationManager.PASSWORD;
     SVNURL repo;
+    
+    FilePath workingcopy;
 
     @Override
     protected void setUp() throws Exception {
@@ -794,6 +799,102 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         assertTrue(p.poll(StreamTaskListener.fromStdout()).hasChanges());
     }
 
+    @Test
+    public void testIgnorePropertyOnlyDirChanges() throws Exception {
+	File repo = new CopyExisting(getClass().getResource("ignoreprops.zip")).allocate();
+        FreeStyleProject p = createFreeStyleProject( "testIgnorePropertyOnlyDirChanges" );
+        SubversionSCM scm = new SubversionSCM(
+                Arrays.asList( new ModuleLocation( "file:///" + repo.getPath() + "/p", "." )),
+                new UpdateUpdater(), null, null, null, null, null, null, true);
+	p.setScm(scm);
+        // Do a build to force the creation of the workspace. This works around
+        // pollChanges returning true when the workspace does not exist.
+        p.scheduleBuild2(0).get();
+
+        createWorkingCopy(scm);
+        changeProperties("");
+        commitWorkingCopy("meta only");
+                
+        boolean foundChanges = p.poll(createTaskListener()).hasChanges();
+        assertFalse("Property only changes commit should have been ignored.", foundChanges);
+        
+        changeProperties("");
+        addFiles("x", "y");
+        commitWorkingCopy("meta + files");
+     
+        foundChanges = p.poll(createTaskListener()).hasChanges();
+        assertTrue("Non Property only changes commit should not be ignored.", foundChanges);
+        
+        // ignored commit followed by not ignored commit
+        
+        changeProperties("");
+        commitWorkingCopy("meta only");
+        changeFiles("x", "y");
+        commitWorkingCopy("files");
+     
+        foundChanges = p.poll(createTaskListener()).hasChanges();
+        assertTrue("Non Property only changes commit should not be ignored.", foundChanges);
+        
+    }
+    
+    /**
+     * Manufactures commits including metadata
+     * @return 
+     */
+    private void createWorkingCopy(SubversionSCM scm) throws Exception {
+	FreeStyleProject forCommit = createFreeStyleProject();
+	forCommit.setScm(scm);
+	forCommit.setAssignedLabel(hudson.getSelfLabel());
+	FreeStyleBuild b = assertBuildStatusSuccess(forCommit.scheduleBuild2(0).get());
+	workingcopy = b.getWorkspace();
+    }
+	
+    private void commitWorkingCopy(String comment) throws Exception {
+	SvnClientManager svnm = SubversionSCM.createClientManager((AbstractProject) null);
+	svnm
+	.getCommitClient()
+	.doCommit(new File[] {new File(workingcopy.getRemote())}, false, comment, null, null, false, false, SVNDepth.INFINITY);
+	svnm
+	.getUpdateClient()
+	.doUpdate(new File(workingcopy.getRemote()), SVNRevision.HEAD, SVNDepth.INFINITY, false, false);
+    }
+    
+    private void addFiles(String... paths) throws Exception {
+	SvnClientManager svnm = SubversionSCM.createClientManager((AbstractProject) null);
+	for (String path : paths) {
+	    FilePath newFile = workingcopy.child(path);
+	    newFile.touch(System.currentTimeMillis());
+	    svnm.getWCClient().doAdd(new File(newFile.getRemote()), false, false, false, SVNDepth.INFINITY, false, false);
+	}
+    }
+    
+    private void addDirectories(String... paths) throws Exception {
+	SvnClientManager svnm = SubversionSCM.createClientManager((AbstractProject) null);
+	for (String path : paths) {
+	    FilePath newFile = workingcopy.child(path);
+	    svnm.getWCClient().doAdd(new File(newFile.getRemote()), false, true, false, SVNDepth.INFINITY, false, true);
+	}
+    }
+    
+    private void changeFiles(String... paths) throws Exception {
+	SvnClientManager svnm = SubversionSCM.createClientManager((AbstractProject) null);
+	for (String path : paths) {
+	    FilePath newFile = workingcopy.child(path);
+	    newFile.write("random content","UTF-8");
+	}
+    }
+    
+    private void changeProperties(String... paths) throws Exception {
+	SvnClientManager svnm = SubversionSCM.createClientManager((AbstractProject) null);
+	for (String path : paths) {
+	    FilePath newFile = workingcopy.child(path);
+	    svnm.getWCClient().doSetProperty(
+		    new File(newFile.getRemote()), "date",
+		    SVNPropertyValue.create(new Date().toString()),
+		    true, SVNDepth.EMPTY, null, null);
+	}
+    }
+    
     /**
      * Manufactures commits by adding files in the given names.
      */
@@ -817,6 +918,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         SVNCommitClient cc = svnm.getCommitClient();
         cc.doCommit(added.toArray(new File[added.size()]),false,"added",null,null,false,false,SVNDepth.EMPTY);
     }
+
 
     public void testMasterPolling() throws Exception {
         File repo = new CopyExisting(getClass().getResource("two-revisions.zip")).allocate();
