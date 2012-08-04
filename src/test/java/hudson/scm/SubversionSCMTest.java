@@ -117,9 +117,6 @@ import hudson.model.Run;
 @SuppressWarnings("rawtypes")
 public class SubversionSCMTest extends AbstractSubversionTest {
 
-    // SVNKit needs three slashes in file urls (file:///C:\test)
-    private static final String FILTE_TO_URL_PREFIX = File.pathSeparatorChar == '/' ? "file://" : "file:///";
-
     private static final int LOG_LIMIT = 1000;
 
     // in some tests we play authentication games with this repo
@@ -194,7 +191,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
      * Loads a test Subversion repository into a temporary directory, and creates {@link SubversionSCM} for it.
      */
     private SubversionSCM loadSvnRepo() throws Exception {
-        return new SubversionSCM(FILTE_TO_URL_PREFIX + new CopyExisting(getClass().getResource("/svn-repo.zip")).allocate().toURI().toURL().getPath() + "trunk/a","a");
+        return new SubversionSCM("file://" + new CopyExisting(getClass().getResource("/svn-repo.zip")).allocate().toURI().toURL().getPath() + "trunk/a","a");
     }
 
     @Email("http://jenkins.361315.n4.nabble.com/Hudson-1-266-and-1-267-Subversion-authentication-broken-td375737.html")
@@ -251,7 +248,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
      */
     public void testHeadRevisionCheckout() throws Exception {
         File testRepo = new CopyExisting(getClass().getResource("two-revisions.zip")).allocate();
-        SubversionSCM scm = new SubversionSCM(FILTE_TO_URL_PREFIX + testRepo.getPath() + "@HEAD");
+        SubversionSCM scm = new SubversionSCM("file://" + testRepo.toURI().toURL().getPath() + "@HEAD");
 
         FreeStyleProject p = createFreeStyleProject();
         p.setScm(scm);
@@ -482,7 +479,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     public void testPollMultipleRepositories() throws Exception {
         // fetch the current workspaces
         FreeStyleProject p = createFreeStyleProject();
-        String svnBase = FILTE_TO_URL_PREFIX + new CopyExisting(getClass().getResource("/svn-repo.zip")).allocate().toURI().toURL().getPath();
+        String svnBase = "file://" + new CopyExisting(getClass().getResource("/svn-repo.zip")).allocate().toURI().toURL().getPath();
         SubversionSCM scm = new SubversionSCM(
                 Arrays.asList(new ModuleLocation(svnBase + "trunk", null), new ModuleLocation(svnBase + "branches", null)),
                 new CheckoutUpdater(), null, null, null, null, null, null);
@@ -508,7 +505,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     public void testMultipleRepositories() throws Exception {
         // fetch the current workspaces
         FreeStyleProject p = createFreeStyleProject();
-        String svnBase = FILTE_TO_URL_PREFIX + new CopyExisting(getClass().getResource("/svn-repo.zip")).allocate().toURI().toURL().getPath();
+        String svnBase = "file://" + new CopyExisting(getClass().getResource("/svn-repo.zip")).allocate().toURI().toURL().getPath();
         SubversionSCM scm = new SubversionSCM(
                 Arrays.asList(new ModuleLocation(svnBase + "trunk", "trunk")),
                 new UpdateUpdater(), null, null, null, null, null, null);
@@ -722,7 +719,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     public void testExcludedRegions() throws Exception {
 //        SLAVE_DEBUG_PORT = 8001;
         File repo = new CopyExisting(getClass().getResource("HUDSON-6030.zip")).allocate();
-        SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{FILTE_TO_URL_PREFIX + repo.getPath()},
+        SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.toURI().toURL().getPath()},
                                                                    new String[]{"."}),
                                               new UpdateUpdater(), null, ".*/bar", "", "", "", "");
 
@@ -754,7 +751,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     public void testIncludedRegions() throws Exception {
 //        SLAVE_DEBUG_PORT = 8001;
         File repo = new CopyExisting(getClass().getResource("HUDSON-6030.zip")).allocate();
-        SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{FILTE_TO_URL_PREFIX + repo.getPath()},
+        SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.toURI().toURL().getPath()},
                                                                    new String[]{"."}),
                                               new UpdateUpdater(), null, "", "", "", "", ".*/foo");
 
@@ -786,7 +783,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     public void testPolling() throws Exception {
 //        SLAVE_DEBUG_PORT = 8001;
         File repo = new CopyExisting(getClass().getResource("two-revisions.zip")).allocate();
-        SubversionSCM scm = new SubversionSCM(FILTE_TO_URL_PREFIX + repo.getPath());
+        SubversionSCM scm = new SubversionSCM("file://" + repo.toURI().toURL().getPath());
 
         FreeStyleProject p = createFreeStyleProject();
         p.setScm(scm);
@@ -804,10 +801,10 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
     @Test
     public void testIgnorePropertyOnlyDirChanges() throws Exception {
-	File repo = new CopyExisting(getClass().getResource("ignoreprops.zip")).allocate();
+	File repo = new CopyExisting(getClass().getResource("ignoreProps.zip")).allocate();
         FreeStyleProject p = createFreeStyleProject( "testIgnorePropertyOnlyDirChanges" );
         SubversionSCM scm = new SubversionSCM(
-                Arrays.asList( new ModuleLocation( FILTE_TO_URL_PREFIX + repo.getPath() + "/p", "." )),
+                Arrays.asList( new ModuleLocation( "file://" + repo.toURI().toURL().getPath() + "/p", "." )),
                 new UpdateUpdater(), null, null, null, null, null, null, true);
 	p.setScm(scm);
         // Do a build to force the creation of the workspace. This works around
@@ -925,7 +922,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
     public void testMasterPolling() throws Exception {
         File repo = new CopyExisting(getClass().getResource("two-revisions.zip")).allocate();
-        SubversionSCM scm = new SubversionSCM(FILTE_TO_URL_PREFIX + repo.getPath());
+        SubversionSCM scm = new SubversionSCM("file://" + repo.toURI().toURL().getPath());
         SubversionSCM.POLL_FROM_MASTER = true;
 
         FreeStyleProject p = createFreeStyleProject();
