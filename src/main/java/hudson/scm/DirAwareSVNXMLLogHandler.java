@@ -120,7 +120,6 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
         frame.myNumberOfChildrenRemaining--;
     }
     
-    //TODO: FIXME
     if (logEntry.hasChildren()) {
         MergeFrame frame = new MergeFrame();
         //frame.myNumberOfChildrenRemaining = logEntry.getNumberOfChildren();
