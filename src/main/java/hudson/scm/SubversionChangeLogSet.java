@@ -46,9 +46,6 @@ import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
 import org.tmatesoft.svn.core.internal.util.SVNDate;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 /**
  * {@link ChangeLogSet} for Subversion.
  *
