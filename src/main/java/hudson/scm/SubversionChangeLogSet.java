@@ -46,6 +46,9 @@ import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
 import org.tmatesoft.svn.core.internal.util.SVNDate;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  * {@link ChangeLogSet} for Subversion.
  *
@@ -237,7 +240,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         }
 
         public void setUser(String author) {
-            this.author = User.get(author);
+            this.author = User.getByCommitName(author);
         }
 
         @Exported
