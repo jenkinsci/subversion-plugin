@@ -171,7 +171,8 @@ public class UpdateUpdater extends WorkspaceUpdater {
                 if (errorCode == SVNErrorCode.WC_NOT_LOCKED) {
                     listener.getLogger().println("Polled jobs are " + Hudson.getInstance().getDescriptorByType(SCMTrigger.DescriptorImpl.class).getItemsBeingPolled());
                 }
-                return null;
+                listener.error("Subversion update failed");
+                throw (IOException) new IOException().initCause(new UpdaterException("failed to perform svn update", e));
             }
 
             return externals;

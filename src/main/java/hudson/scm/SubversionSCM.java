@@ -60,6 +60,7 @@ import hudson.scm.subversion.CheckoutUpdater;
 import hudson.scm.subversion.Messages;
 import hudson.scm.subversion.UpdateUpdater;
 import hudson.scm.subversion.UpdateWithRevertUpdater;
+import hudson.scm.subversion.UpdaterException;
 import hudson.scm.subversion.WorkspaceUpdater;
 import hudson.scm.subversion.WorkspaceUpdater.UpdateTask;
 import hudson.scm.subversion.WorkspaceUpdaterDescriptor;
@@ -682,10 +683,12 @@ public class SubversionSCM extends SCM implements Serializable {
         EnvVars env = build.getEnvironment(listener);
         EnvVarsUtils.overrideAll(env, build.getBuildVariables());
 
-        List<External> externals = checkout(build,workspace,listener,env);
-
-        if (externals==null)
+        List<External> externals = null;
+        try {
+            externals = checkout(build,workspace,listener,env);
+        } catch (UpdaterException e) {
             return false;
+        }
 
         // write out the revision file
         PrintWriter w = new PrintWriter(new FileOutputStream(getRevisionFile(build)));
@@ -740,12 +743,7 @@ public class SubversionSCM extends SCM implements Serializable {
         
         List<External> externals = new ArrayList<External>();
         for (ModuleLocation location : getLocations(env, build)) {
-            List<External> externalsFound = workspace.act(new CheckOutTask(build, this, location, build.getTimestamp().getTime(), listener, env));
-            if (externalsFound == null) {
-                // An error occurred during checkout
-                return null;
-            }
-            externals.addAll( externalsFound );
+            externals.addAll( workspace.act(new CheckOutTask(build, this, location, build.getTimestamp().getTime(), listener, env)));
             // olamy: remove null check at it cause test failure
             // see https://github.com/jenkinsci/subversion-plugin/commit/de23a2b781b7b86f41319977ce4c11faee75179b#commitcomment-1551273
             /*if ( externalsFound != null ){
