@@ -151,6 +151,13 @@ public final class SubversionChangeLogBuilder {
             return false;
         }
 
+        // handle case where previous workspace revision is newer than this revision
+        if (prevRev.compareTo(thisRev) > 0) {
+        	long temp = thisRev.longValue();
+        	thisRev = new Long(prevRev.longValue());
+        	prevRev = new Long(temp);
+        }
+        
         try {
             if(debug)
                 listener.getLogger().printf("Computing changelog of %1s from %2s to %3s\n",
