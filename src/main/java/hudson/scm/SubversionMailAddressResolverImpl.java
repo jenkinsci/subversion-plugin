@@ -1,12 +1,13 @@
 package hudson.scm;
 
-import hudson.tasks.MailAddressResolver;
 import hudson.Extension;
-import hudson.model.User;
 import hudson.model.AbstractProject;
+import hudson.model.Hudson;
+import hudson.model.User;
+import hudson.tasks.MailAddressResolver;
 
-import java.util.Map;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
@@ -17,7 +18,7 @@ import java.util.regex.Pattern;
 @Extension
 public class SubversionMailAddressResolverImpl extends MailAddressResolver {
     public String findMailAddressFor(User u) {
-        for (AbstractProject<?,?> p : u.getProjects()) {
+        for (AbstractProject<?,?> p : Hudson.getInstance().getProjects()) {
             SCM scm = p.getScm();
             if (scm instanceof SubversionSCM) {
                 SubversionSCM svn = (SubversionSCM) scm;
