@@ -35,7 +35,7 @@ THE SOFTWARE.
   </parent>
 
   <artifactId>subversion</artifactId>
-  <version>1.43</version>
+  <version>1.44-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
   <name>Jenkins Subversion Plug-in</name>
