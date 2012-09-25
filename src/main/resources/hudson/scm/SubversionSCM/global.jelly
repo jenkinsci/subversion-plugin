@@ -45,5 +45,9 @@ THE SOFTWARE.
             name="svn.storeAuthToDisk"
             checked="${descriptor.storeAuthToDisk}"
             title="${%Update default Subversion credentials cache after successful authentication}"/>
+        <f:optionalBlock
+            name="svn.avoidClearingWorkspace"
+            checked="${descriptor.avoidClearingWorkspace}"
+            title="${%Do not Clear Workspace in any case.}"/>
     </f:section>
 </j:jelly>

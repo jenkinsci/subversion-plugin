@@ -1512,6 +1512,11 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         private boolean storeAuthToDisk = true;
 
+                /*
+       Do not Clear Workspace in any case.
+        */
+        public boolean avoidClearingWorkspace = false;
+
         /**
          * Stores {@link SVNAuthentication} for a single realm.
          *
@@ -1855,6 +1860,16 @@ public class SubversionSCM extends SCM implements Serializable {
             return storeAuthToDisk;
         }
 
+        public boolean isAvoidClearingWorkspace()
+        {
+            return avoidClearingWorkspace;
+        }
+
+        public void setAvoidClearingWorkspace(boolean avoidClearingWorkspace)
+        {
+            this.avoidClearingWorkspace = avoidClearingWorkspace;
+        }
+
         @Override
         public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
             globalExcludedRevprop = fixEmptyAndTrim(
@@ -1862,6 +1877,7 @@ public class SubversionSCM extends SCM implements Serializable {
             workspaceFormat = Integer.parseInt(req.getParameter("svn.workspaceFormat"));
             validateRemoteUpToVar = formData.containsKey("validateRemoteUpToVar");
             storeAuthToDisk = formData.containsKey("storeAuthToDisk");
+            avoidClearingWorkspace = formData.containsKey("avoidClearingWorkspace");
 
             // Save configuration
             save();

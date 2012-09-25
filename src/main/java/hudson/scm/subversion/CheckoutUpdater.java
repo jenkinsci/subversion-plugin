@@ -28,6 +28,8 @@ package hudson.scm.subversion;
 
 import hudson.Extension;
 import hudson.Util;
+import hudson.model.Hudson;
+import hudson.scm.SubversionSCM;
 import hudson.scm.SubversionSCM.External;
 import hudson.util.IOException2;
 import hudson.util.StreamCopyThread;
@@ -57,7 +59,9 @@ public class CheckoutUpdater extends WorkspaceUpdater {
     private static final long serialVersionUID = -3502075714024708011L;
 
     private static final FastDateFormat fmt = FastDateFormat.getInstance("''yyyy-MM-dd'T'HH:mm:ss.SSS Z''");
-    
+
+    private SubversionSCM.DescriptorImpl scmDescriptor;
+
     @DataBoundConstructor
     public CheckoutUpdater() {}
 
@@ -66,8 +70,13 @@ public class CheckoutUpdater extends WorkspaceUpdater {
         return new UpdateTask() {
             private static final long serialVersionUID = 8349986526712487762L;
 
+
             @Override
             public List<External> perform() throws IOException, InterruptedException {
+                if( getSubversionSCMDescriptor().isAvoidClearingWorkspace() ) {
+                  listener.getLogger().println("Workspace Cleaning Stop , If you want to enable go to /configure and un check 'Do not Clear Workspace in any case'.");
+                  return new ArrayList<External>();
+                }
                 final SVNUpdateClient svnuc = clientManager.getUpdateClient();
                 final List<External> externals = new ArrayList<External>(); // store discovered externals to here
 
@@ -81,17 +90,17 @@ public class CheckoutUpdater extends WorkspaceUpdater {
                 sct.start();
 
                 try {
-                	
+
                 	SVNRevision r = getRevision(location);
 
                     String revisionName = r.getDate() != null ?
                     		fmt.format(r.getDate()) : r.toString();
-                	
+
                     listener.getLogger().println("Checking out " + location.remote + " at revision " + revisionName);
 
                     File local = new File(ws, location.getLocalDir());
                     svnuc.setEventHandler(new SubversionUpdateEventHandler(new PrintStream(pos), externals, local, location.getLocalDir()));
-                    
+
                     svnuc.doCheckout(location.getSVNURL(), local.getCanonicalFile(), SVNRevision.HEAD, r, SVNDepth.INFINITY, true);
                 } catch (SVNCancelException e) {
                     listener.error("Subversion checkout has been canceled");
@@ -123,4 +132,14 @@ public class CheckoutUpdater extends WorkspaceUpdater {
             return Messages.CheckoutUpdater_DisplayName();
         }
     }
+    /**
+        * Returns the descriptor of {@link SubversionSCM}.
+        */
+       public SubversionSCM.DescriptorImpl getSubversionSCMDescriptor() {
+         if(scmDescriptor == null) {
+           scmDescriptor = (SubversionSCM.DescriptorImpl) Hudson.getInstance().getDescriptor(SubversionSCM.class);
+         }
+         return scmDescriptor;
+       }
+
 }
