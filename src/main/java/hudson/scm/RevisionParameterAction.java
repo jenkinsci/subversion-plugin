@@ -23,6 +23,7 @@
  */
 package hudson.scm;
 
+import hudson.matrix.MatrixChildAction;
 import hudson.model.InvisibleAction;
 import hudson.model.Action;
 import hudson.model.Queue;
@@ -43,7 +44,7 @@ import org.tmatesoft.svn.core.wc.SVNRevision;
  * 
  * @author Tom Huybrechts
  */
-public class RevisionParameterAction extends InvisibleAction implements Serializable, FoldableAction {
+public class RevisionParameterAction extends InvisibleAction implements Serializable, FoldableAction, MatrixChildAction {
 	
 	private static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Logger.getLogger(RevisionParameterAction.class.getName());
