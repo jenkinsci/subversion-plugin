@@ -65,7 +65,7 @@ public class UpdateWithCleanUpdater extends WorkspaceUpdater {
 
             clientManager.getStatusClient().doStatus(local, null, SVNDepth.INFINITY, false, false, true, false, new ISVNStatusHandler() {
                 public void handleStatus(SVNStatus status) throws SVNException {
-                    SVNStatusType s = status.getContentsStatus();
+                    SVNStatusType s = status.getCombinedNodeAndContentsStatus();
                     if (s == SVNStatusType.STATUS_UNVERSIONED || s == SVNStatusType.STATUS_IGNORED || s == SVNStatusType.STATUS_MODIFIED) {
                         listener.getLogger().println("Deleting "+status.getFile());
                         try {
