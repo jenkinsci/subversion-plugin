@@ -1,12 +1,18 @@
 package hudson.scm;
 
+import hudson.model.Describable;
+import hudson.model.Descriptor;
 import hudson.tasks.MailAddressResolver;
 import hudson.Extension;
 import hudson.model.User;
 import hudson.model.AbstractProject;
+import hudson.tasks.Mailer;
+import net.sf.json.JSONObject;
+import org.kohsuke.stapler.StaplerRequest;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -15,7 +21,7 @@ import java.util.regex.Pattern;
  * @author Kohsuke Kawaguchi
  */
 @Extension
-public class SubversionMailAddressResolverImpl extends MailAddressResolver {
+public class SubversionMailAddressResolverImpl extends MailAddressResolver implements Describable<SubversionMailAddressResolverImpl> {
     public String findMailAddressFor(User u) {
         for (AbstractProject<?,?> p : u.getProjects()) {
             SCM scm = p.getScm();
@@ -23,7 +29,9 @@ public class SubversionMailAddressResolverImpl extends MailAddressResolver {
                 SubversionSCM svn = (SubversionSCM) scm;
                 for (SubversionSCM.ModuleLocation loc : svn.getLocations(p.getLastBuild())) {
                     String s = findMailAddressFor(u,loc.remote);
-                    if(s!=null) return s;
+                    if(s!=null) {
+                        return s;
+                    }
                 }
             }
         }
@@ -38,26 +46,74 @@ public class SubversionMailAddressResolverImpl extends MailAddressResolver {
      *      String that represents SCM connectivity.
      */
     protected String findMailAddressFor(User u, String scm) {
-        for (Map.Entry<Pattern, String> e : RULE_TABLE.entrySet())
-            if(e.getKey().matcher(scm).matches())
-                return u.getId()+e.getValue();
+        for (Rule rule : DESCRIPTOR.rules) {
+            if (rule.getMatcher(scm).matches())
+                return u.getId() + rule.getDomain();
+        }
         return null;
     }
 
-    private static final Map<Pattern,String/*suffix*/> RULE_TABLE = new HashMap<Pattern, String>();
+    public static class Rule {
 
-    static {
-        {// java.net
-            Pattern svnurl = Pattern.compile("https://[^.]+.dev.java.net/svn/([^/]+)(/.*)?");
-            RULE_TABLE.put(svnurl,"@dev.java.net");
+        private String pattern;
+        private String domain;
+        private transient Pattern compiled;
+
+        public Rule(String pattern, String domain) {
+            this.pattern = pattern;
+            this.domain = domain;
         }
 
-        {// source forge
-            Pattern svnUrl = Pattern.compile("(http|https)://[^.]+.svn.(sourceforge|sf).net/svnroot/([^/]+)(/.*)?");
-
-            RULE_TABLE.put(svnUrl,"@users.sourceforge.net");
+        public String getPattern() {
+            return pattern;
         }
 
-        // TODO: read some file under $HUDSON_HOME?
+        public String getDomain() {
+            return domain;
+        }
+
+        public Matcher getMatcher(String scm) {
+            if (compiled == null)
+                compiled = Pattern.compile(pattern);
+            return compiled.matcher(scm);
+        }
+    }
+
+    public Descriptor<SubversionMailAddressResolverImpl> getDescriptor() {
+        return DESCRIPTOR;
+    }
+
+    @Extension
+    public final static DescriptorImpl DESCRIPTOR = new DescriptorImpl();
+
+    public static class DescriptorImpl extends Descriptor<SubversionMailAddressResolverImpl> {
+
+        private Rule[] rules;
+
+        public DescriptorImpl() {
+            load();
+            if (rules == null) {
+                rules = new Rule[] {
+                    new Rule("https://[^.]+.dev.java.net/svn/([^/]+)(/.*)?", "@dev.java.net"),
+                    new Rule("(http|https)://[^.]+.svn.(sourceforge|sf).net/svnroot/([^/]+)(/.*)?", "@users.sourceforge.net")
+                };
+            }
+        }
+
+        @Override
+        public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
+            rules = req.bindJSONToList(Rule.class, json.get("rules")).toArray(new Rule[0]);
+            save();
+            return true;
+        }
+
+        public Rule[] getRules() {
+            return rules;
+        }
+
+        @Override
+        public String getDisplayName() {
+            return "Extrapolate user email from svn repository";
+        }
     }
 }
