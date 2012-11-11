@@ -1,5 +1,6 @@
 package hudson.scm;
 
+import hudson.model.AbstractDescribableImpl;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.tasks.MailAddressResolver;
@@ -8,6 +9,7 @@ import hudson.model.User;
 import hudson.model.AbstractProject;
 import hudson.tasks.Mailer;
 import net.sf.json.JSONObject;
+import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 
 import java.util.Map;
@@ -53,12 +55,13 @@ public class SubversionMailAddressResolverImpl extends MailAddressResolver imple
         return null;
     }
 
-    public static class Rule {
+    public static class Rule extends AbstractDescribableImpl<Rule> {
 
         private String pattern;
         private String domain;
         private transient Pattern compiled;
 
+        @DataBoundConstructor
         public Rule(String pattern, String domain) {
             this.pattern = pattern;
             this.domain = domain;
@@ -76,6 +79,14 @@ public class SubversionMailAddressResolverImpl extends MailAddressResolver imple
             if (compiled == null)
                 compiled = Pattern.compile(pattern);
             return compiled.matcher(scm);
+        }
+
+        @Extension
+        public static class DescriptorImpl extends Descriptor<Rule> {
+            @Override
+            public String getDisplayName() {
+                return "Rule";
+            }
         }
     }
 
