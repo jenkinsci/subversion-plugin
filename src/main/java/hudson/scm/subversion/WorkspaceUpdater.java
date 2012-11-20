@@ -114,6 +114,11 @@ public abstract class WorkspaceUpdater extends AbstractDescribableImpl<Workspace
          * Build workspace. Never null.
          */
         public File ws;
+        
+       /**
+         * Do svn checkout or update in quite mode
+         */
+        public boolean quiteMode;
 
         /**
          * If the build parameter is specified with specific version numbers, this field captures that. Can be null.
@@ -140,6 +145,7 @@ public abstract class WorkspaceUpdater extends AbstractDescribableImpl<Workspace
             t.location = this.location;
             t.revisions = this.revisions;
             t.ws = this.ws;
+            t.quiteMode = this.quiteMode;
 
             return t.perform();
         }

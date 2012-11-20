@@ -206,6 +206,8 @@ public class SubversionSCM extends SCM implements Serializable {
     private String excludedCommitMessages;
 
     private WorkspaceUpdater workspaceUpdater;
+    
+    private boolean quiteMode;
 
     // No longer in use but left for serialization compatibility.
     @Deprecated
@@ -281,13 +283,13 @@ public class SubversionSCM extends SCM implements Serializable {
                          boolean useUpdate, boolean doRevert, SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages,
                          String includedRegions) {
         this(locations, useUpdate?(doRevert?new UpdateWithRevertUpdater():new UpdateUpdater()):new CheckoutUpdater(),
-                browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages, includedRegions);
+                browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages, includedRegions, false);
     }
 
     @DataBoundConstructor
     public SubversionSCM(List<ModuleLocation> locations, WorkspaceUpdater workspaceUpdater,
                          SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages,
-                         String includedRegions) {
+                         String includedRegions, boolean quiteMode) {
         for (Iterator<ModuleLocation> itr = locations.iterator(); itr.hasNext();) {
             ModuleLocation ml = itr.next();
             String remote = Util.fixEmptyAndTrim(ml.remote);
@@ -302,6 +304,7 @@ public class SubversionSCM extends SCM implements Serializable {
         this.excludedRevprop = excludedRevprop;
         this.excludedCommitMessages = excludedCommitMessages;
         this.includedRegions = includedRegions;
+        this.quiteMode =quiteMode;
     }
 
     /**
@@ -417,6 +420,12 @@ public class SubversionSCM extends SCM implements Serializable {
     public String getExcludedRegions() {
         return excludedRegions;
     }
+    
+    
+    public boolean isQuiteMode(){
+        return quiteMode;
+    }
+
 
     public String[] getExcludedRegionsNormalized() {
         return (excludedRegions == null || excludedRegions.trim().equals(""))
@@ -740,7 +749,8 @@ public class SubversionSCM extends SCM implements Serializable {
                 return null;
             }
         }
-        
+        if(quiteMode)
+            listener.getLogger().println("svn run in quite mode");
         List<External> externals = new ArrayList<External>();
         for (ModuleLocation location : getLocations(env, build)) {
             externals.addAll( workspace.act(new CheckOutTask(build, this, location, build.getTimestamp().getTime(), listener, env)));
@@ -770,6 +780,7 @@ public class SubversionSCM extends SCM implements Serializable {
             this.location = location;
             this.revisions = build.getAction(RevisionParameterAction.class);
             this.task = parent.getWorkspaceUpdater().createTask();
+            this.quiteMode = parent.isQuiteMode();
         }
         
         public List<External> invoke(File ws, VirtualChannel channel) throws IOException {

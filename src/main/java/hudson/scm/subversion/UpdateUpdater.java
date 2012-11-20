@@ -46,6 +46,8 @@ import org.tmatesoft.svn.core.wc.SVNWCClient;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PipedOutputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -129,10 +131,16 @@ public class UpdateUpdater extends WorkspaceUpdater {
 
             final SVNUpdateClient svnuc = clientManager.getUpdateClient();
             final List<External> externals = new ArrayList<External>(); // store discovered externals to here
-
+            PrintStream outputStream  = null;
+            if(!quiteMode){
+                outputStream = listener.getLogger();
+            }
+            else{
+                outputStream = new PrintStream(new PipedOutputStream());
+            }
             try {
                 File local = new File(ws, location.getLocalDir());
-                svnuc.setEventHandler(new SubversionUpdateEventHandler(listener.getLogger(), externals, local, location.getLocalDir()));
+                svnuc.setEventHandler(new SubversionUpdateEventHandler(outputStream, externals, local, location.getLocalDir()));
 
                 SVNRevision r = getRevision(location);
 

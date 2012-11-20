@@ -77,8 +77,11 @@ public class CheckoutUpdater extends WorkspaceUpdater {
                 // buffer the output by a separate thread so that the update operation
                 // won't be blocked by the remoting of the data
                 PipedOutputStream pos = new PipedOutputStream();
-                StreamCopyThread sct = new StreamCopyThread("svn log copier", new PipedInputStream(pos), listener.getLogger());
-                sct.start();
+                StreamCopyThread sct = null;
+                if(!quiteMode){
+                    sct=new StreamCopyThread("svn log copier", new PipedInputStream(pos), listener.getLogger());
+                    sct.start();
+                }
 
                 try {
                 	
@@ -91,7 +94,6 @@ public class CheckoutUpdater extends WorkspaceUpdater {
 
                     File local = new File(ws, location.getLocalDir());
                     svnuc.setEventHandler(new SubversionUpdateEventHandler(new PrintStream(pos), externals, local, location.getLocalDir()));
-                    
                     svnuc.doCheckout(location.getSVNURL(), local.getCanonicalFile(), SVNRevision.HEAD, r, SVNDepth.INFINITY, true);
                 } catch (SVNCancelException e) {
                     listener.error("Subversion checkout has been canceled");
@@ -104,7 +106,8 @@ public class CheckoutUpdater extends WorkspaceUpdater {
                         pos.close();
                     } finally {
                         try {
-                            sct.join(); // wait for all data to be piped.
+                            if(!quiteMode)
+                                sct.join(); // wait for all data to be piped.
                         } catch (InterruptedException e) {
                             throw new IOException2("interrupted", e);
                         }
