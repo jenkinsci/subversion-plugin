@@ -60,5 +60,8 @@ THE SOFTWARE.
     <f:entry title="${%Exclusion revprop name}" field="excludedRevprop">
         <f:textbox checkUrl="'descriptorByName/hudson.scm.SubversionSCM/checkRevisionPropertiesSupported?value='+toValue(document.getElementById('svn.remote.loc'))"/>
     </f:entry>
+    <f:entry title="${%Use Commit Times}" field="useCommitTimes">
+    	<f:checkbox />
+    </f:entry>
   </f:advanced>
 </j:jelly>

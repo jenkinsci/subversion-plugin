@@ -153,6 +153,7 @@ import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminAreaFactory;
 import org.tmatesoft.svn.core.io.SVNCapability;
 import org.tmatesoft.svn.core.io.SVNRepository;
 import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
+import org.tmatesoft.svn.core.wc.ISVNOptions;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNInfo;
 import org.tmatesoft.svn.core.wc.SVNRevision;
@@ -204,6 +205,7 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     private String excludedRevprop;
     private String excludedCommitMessages;
+	private boolean useCommitTimes;
 
     private WorkspaceUpdater workspaceUpdater;
 
@@ -283,7 +285,10 @@ public class SubversionSCM extends SCM implements Serializable {
         this(locations, useUpdate?(doRevert?new UpdateWithRevertUpdater():new UpdateUpdater()):new CheckoutUpdater(),
                 browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages, includedRegions);
     }
-
+	
+    /**
+     * @deprecated  as of 1.23
+     */
     @DataBoundConstructor
     public SubversionSCM(List<ModuleLocation> locations, WorkspaceUpdater workspaceUpdater,
                          SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages,
@@ -302,6 +307,27 @@ public class SubversionSCM extends SCM implements Serializable {
         this.excludedRevprop = excludedRevprop;
         this.excludedCommitMessages = excludedCommitMessages;
         this.includedRegions = includedRegions;
+    }
+
+    @DataBoundConstructor
+    public SubversionSCM(List<ModuleLocation> locations, WorkspaceUpdater workspaceUpdater,
+                         SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages,
+                         String includedRegions, boolean useCommitTimes) {
+        for (Iterator<ModuleLocation> itr = locations.iterator(); itr.hasNext();) {
+            ModuleLocation ml = itr.next();
+            String remote = Util.fixEmptyAndTrim(ml.remote);
+            if(remote==null) itr.remove();
+        }
+        this.locations = locations.toArray(new ModuleLocation[locations.size()]);
+
+        this.workspaceUpdater = workspaceUpdater;
+        this.browser = browser;
+        this.excludedRegions = excludedRegions;
+        this.excludedUsers = excludedUsers;
+        this.excludedRevprop = excludedRevprop;
+        this.excludedCommitMessages = excludedCommitMessages;
+        this.includedRegions = includedRegions;
+        this.useCommitTimes = useCommitTimes;
     }
 
     /**
@@ -463,6 +489,11 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         return new Pattern[0];
+    }
+	
+    @Exported
+    public boolean getUseCommitTimes() {
+        return useCommitTimes;
     }
 
     @Exported
@@ -762,6 +793,7 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     private static class CheckOutTask extends UpdateTask implements FileCallable<List<External>> {
         private final UpdateTask task;
+        private boolean useCommitTimes;
 
          public CheckOutTask(AbstractBuild<?, ?> build, SubversionSCM parent, ModuleLocation location, Date timestamp, TaskListener listener, EnvVars env) {
             this.authProvider = parent.getDescriptor().createAuthenticationProvider(build.getParent());
@@ -770,10 +802,11 @@ public class SubversionSCM extends SCM implements Serializable {
             this.location = location;
             this.revisions = build.getAction(RevisionParameterAction.class);
             this.task = parent.getWorkspaceUpdater().createTask();
+            this.useCommitTimes = parent.getUseCommitTimes();
         }
         
         public List<External> invoke(File ws, VirtualChannel channel) throws IOException {
-            clientManager = createClientManager(authProvider);
+            clientManager = createClientManager(authProvider,useCommitTimes);
             manager = clientManager.getCore();
             this.ws = ws;
             try {
@@ -839,22 +872,37 @@ public class SubversionSCM extends SCM implements Serializable {
      *      If the operation runs on slaves,
      *      (and properly remoted, if the svn operations run on slaves.)
      */
-    public static SvnClientManager createClientManager(ISVNAuthenticationProvider authProvider) {
+    public static SvnClientManager createClientManager(ISVNAuthenticationProvider authProvider, boolean useCommitTimes) {
         ISVNAuthenticationManager sam = createSvnAuthenticationManager(authProvider);
-        return new SvnClientManager(SVNClientManager.newInstance(createDefaultSVNOptions(), sam));
+        return new SvnClientManager(SVNClientManager.newInstance(createDefaultSVNOptions(useCommitTimes), sam));
     }
-
-    /**
-     * Creates the {@link DefaultSVNOptions}.
+	
+	public static SVNClientManager createClientManager(ISVNAuthenticationProvider authProvider) {
+    	return createClientManager(authProvider, false);
+    }
+    
+     /**
+     * Creates the {@link DefaultSVNOptions} using useCommitTimes = false 
      *
      * @return the {@link DefaultSVNOptions}.
      */
     public static DefaultSVNOptions createDefaultSVNOptions() {
+    	return createDefaultSVNOptions(false);
+    }
+	
+    /**
+     * Creates the {@link DefaultSVNOptions}.
+	 * @param useCommitTimes enables or disabled the subversion option "use-commit-times" 
+     *
+     * @return the {@link DefaultSVNOptions}.
+     */
+    public static DefaultSVNOptions createDefaultSVNOptions(boolean useCommitTimes) {
         DefaultSVNOptions defaultOptions = SVNWCUtil.createDefaultOptions(true);
         DescriptorImpl descriptor = Hudson.getInstance() == null ? null : Hudson.getInstance().getDescriptorByType(DescriptorImpl.class);
         if (defaultOptions != null && descriptor != null) {
             defaultOptions.setAuthStorageEnabled(descriptor.isStoreAuthToDisk());
         }
+		defaultOptions.setUseCommitTimes(useCommitTimes);
         return defaultOptions;
     }
 
