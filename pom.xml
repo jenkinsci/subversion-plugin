@@ -28,10 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>1.405</version>
-    <!--
-    <version>1.420</version>
-    -->
+    <version>1.447</version>
   </parent>
 
   <artifactId>subversion</artifactId>
@@ -54,17 +51,28 @@ THE SOFTWARE.
     </developer>
   </developers>
   
+  <properties>
+    <maven-hpi-plugin.version>1.91</maven-hpi-plugin.version>
+  </properties>
+  
   <build>
+    <plugins>
+        <plugin>
+            <groupId>org.jenkins-ci.tools</groupId>
+            <artifactId>maven-hpi-plugin</artifactId>
+            <version>${maven-hpi-plugin.version}</version>
+        </plugin>
+    </plugins>
   	<pluginManagement>
   		<plugins>
   			<plugin>
   				<artifactId>maven-release-plugin</artifactId>
-  				<version>2.2.1</version>
+  				<version>2.3.2</version>
   			</plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.12</version>
+          <version>2.12.4</version>
           <configuration>
             <systemPropertyVariables>
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
@@ -101,19 +109,6 @@ THE SOFTWARE.
     </repository>
   </repositories>
 
-  <!-- needs the following section to run "mvn hpi:run". when LTS release comes out with 1.420 or later dependency, time to bump up the core so that we can use this.
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.jenkins-ci.tools</groupId>
-        <artifactId>maven-hpi-plugin</artifactId>
-        <version>1.75</version>
-        <extensions>true</extensions>
-      </plugin>
-    </plugins>
-  </build>
-  -->
-
   <dependencies>
     <dependency>
       <groupId>org.jenkins-ci.svnkit</groupId>
@@ -122,16 +117,22 @@ THE SOFTWARE.
     </dependency>
 
     <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.11</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
-        <version>1.8.5</version>
+        <version>1.9.5</version>
         <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>org.jenkins-ci.main</groupId>
       <artifactId>jenkins-test-harness</artifactId>
-      <version>${parent.version}</version>
+      <version>${project.parent.version}</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
@@ -139,12 +140,6 @@ THE SOFTWARE.
           <artifactId>subversion</artifactId>
         </exclusion>
       </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.9</version>
-      <scope>test</scope>
     </dependency>
   </dependencies>
 
