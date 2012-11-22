@@ -365,6 +365,26 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
         return p;
     }
+    
+    private FreeStyleProject createPostCommitTriggerJobMultipleSvnLocations() throws Exception {
+        // Disable crumbs because HTMLUnit refuses to mix request bodies with
+        // request parameters
+        hudson.setCrumbIssuer(null);
+
+        FreeStyleProject p = createFreeStyleProject();
+        String[] urls = new String[] {"https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant",
+                "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-maven/"};
+
+        p.setScm(new SubversionSCM(urls, new String[] {"", ""}));
+        
+        SCMTrigger trigger = new SCMTrigger("0 */6 * * *");
+        p.addTrigger(trigger);
+        trigger.start(p, true);
+
+        return p;
+    }
+    
+    // 
 
     private FreeStyleBuild sendCommitTrigger(FreeStyleProject p, boolean includeRevision) throws Exception {
         String repoUUID = "71c3de6d-444a-0410-be80-ed276b4c234a";
@@ -376,6 +396,31 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
         if (includeRevision) {
             wr.setAdditionalHeader("X-Hudson-Subversion-Revision", "13000");
+        }
+        
+        WebConnection conn = wc.getWebConnection();
+        WebResponse resp = conn.getResponse(wr);
+        assertTrue(isGoodHttpStatus(resp.getStatusCode()));
+
+        waitUntilNoActivity();
+        FreeStyleBuild b = p.getLastBuild();
+        assertNotNull(b);
+        assertBuildStatus(Result.SUCCESS,b);
+
+        return b;
+    }
+    
+    private FreeStyleBuild sendCommitTriggerMultipleSvnLocations(FreeStyleProject p, boolean includeRevision) throws Exception {
+        String repoUUID = "71c3de6d-444a-0410-be80-ed276b4c234a";
+
+        WebClient wc = new WebClient();
+        WebRequestSettings wr = new WebRequestSettings(new URL(getURL() + "subversion/" + repoUUID + "/notifyCommit"), HttpMethod.POST);
+        wr.setRequestBody("A   trunk/hudson/test-projects/trivial-ant/build.xml\n" +
+        		"M   trunk/hudson/test-projects/trivial-maven/src/main/");
+        wr.setAdditionalHeader("Content-Type", "text/plain;charset=UTF-8");
+
+        if (includeRevision) {
+            wr.setAdditionalHeader("X-Hudson-Subversion-Revision", "18075");
         }
         
         WebConnection conn = wc.getWebConnection();
@@ -407,6 +452,24 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         FreeStyleBuild b = sendCommitTrigger(p, true);
 
         assertTrue(getActualRevision(b, "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant") <= 13000);
+    }
+    
+    /**
+     * Tests a checkout triggered from the post-commit hook
+     */
+    public void testPostCommitTriggerMultipleSvnLocations() throws Exception {
+        FreeStyleProject p = createPostCommitTriggerJobMultipleSvnLocations();
+        FreeStyleBuild b = sendCommitTriggerMultipleSvnLocations(p, true);
+
+        assertTrue(getActualRevision(b, "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant") <= 18075);
+        Long actualRevision = getActualRevision(b, "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-maven");
+        assertEquals(Long.valueOf(18075), actualRevision);
+        
+        List<RevisionParameterAction> actions = b.getActions(RevisionParameterAction.class);
+        assertEquals(1, actions.size());
+        
+        RevisionParameterAction action = actions.get(0);
+        assertEquals(2, action.getRevisions().size());
     }
     
     /**
