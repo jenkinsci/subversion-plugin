@@ -14,7 +14,9 @@ import hudson.util.QueryParameterMap;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Logger;
@@ -87,17 +89,15 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
         // in case of Jetty, it doesn't check if the payload is
         QueryParameterMap query = new QueryParameterMap(req);
         String revParam = query.get("rev");
+        if (revParam == null) {
+            revParam = req.getHeader("X-Hudson-Subversion-Revision");
+        }
+
         long rev = -1;
         if (revParam != null) {
             rev = Long.parseLong(revParam);
-        } else {
-            revParam = req.getHeader("X-Hudson-Subversion-Revision");
-            if (revParam != null) {
-                rev = Long.parseLong(revParam);
-            }
         }
 
-        OUTER:
         for (AbstractProject<?,?> p : Hudson.getInstance().getAllItems(AbstractProject.class)) {
             try {
                 SCM scm = p.getScm();
@@ -107,6 +107,10 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                 if (trigger!=null) triggerFound = true; else continue;
 
                 SubversionSCM sscm = (SubversionSCM) scm;
+                
+                List<SvnInfo> infos = new ArrayList<SvnInfo>();
+                
+                boolean projectMatches = false; 
                 for (ModuleLocation loc : sscm.getLocations()) {
                     if (loc.getUUID(p).equals(uuid)) uuidFound = true; else continue;
 
@@ -118,14 +122,8 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                     if(remaining.startsWith("/"))   remaining=remaining.substring(1);
                     String remainingSlash = remaining + '/';
 
-                    final RevisionParameterAction[] actions;
                     if ( rev != -1 ) {
-                        SvnInfo info[] = { new SvnInfo(loc.getURL(), rev) };
-                        RevisionParameterAction action = new RevisionParameterAction(info);
-                        actions = new RevisionParameterAction[] {action};
-
-                    } else {
-                        actions = new RevisionParameterAction[0];
+                        infos.add(new SvnInfo(loc.getURL(), rev));
                     }
 
                     for (String path : affectedPath) {
@@ -133,14 +131,26 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                         || remaining.length()==0/*when someone is checking out the whole repo (that is, m==n)*/) {
                             // this project is possibly changed. poll now.
                             // if any of the data we used was bogus, the trigger will not detect a change
-                            LOGGER.fine("Scheduling the immediate polling of "+p);
-                            trigger.run(actions);
+                            projectMatches = true;
                             pathFound = true;
-
-                            continue OUTER;
                         }
                     }
                 }
+                
+                if (projectMatches) {
+                    LOGGER.fine("Scheduling the immediate polling of "+p);
+                    
+                    final RevisionParameterAction[] actions;
+                    if (infos.isEmpty()) {
+                        actions = new RevisionParameterAction[0];
+                    } else {
+                        actions = new RevisionParameterAction[] {
+                                new RevisionParameterAction(infos)};
+                    }
+                    
+                    trigger.run(actions);
+                }
+                
             } catch (SVNException e) {
                 LOGGER.log(WARNING,"Failed to handle Subversion commit notification",e);
             }
