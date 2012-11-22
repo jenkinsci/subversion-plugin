@@ -264,7 +264,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         }
 
         public void setUser(String author) {
-            this.author = User.get(author);
+            this.author = User.getByCommitName(author);
         }
 
         @Exported
