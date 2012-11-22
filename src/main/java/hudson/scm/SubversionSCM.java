@@ -1348,7 +1348,6 @@ public class SubversionSCM extends SCM implements Serializable {
             }
 
             // If there were no changes, don't count this entry as a change
-            @SuppressWarnings("unchecked")
             Map<String, SVNLogEntryPath> changedPaths = logEntry.getChangedPaths();
             if (changedPaths.isEmpty()) {
                 return false;

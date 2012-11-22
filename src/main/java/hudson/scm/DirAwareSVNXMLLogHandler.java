@@ -22,7 +22,6 @@ import org.tmatesoft.svn.core.SVNLogEntry;
 import org.tmatesoft.svn.core.SVNLogEntryPath;
 import org.tmatesoft.svn.core.internal.util.SVNDate;
 import org.tmatesoft.svn.core.internal.wc.SVNErrorManager;
-import org.tmatesoft.svn.core.wc.xml.AbstractXMLHandler;
 import org.tmatesoft.svn.core.wc.xml.SVNXMLLogHandler;
 import org.tmatesoft.svn.util.ISVNDebugLog;
 import org.tmatesoft.svn.util.SVNLogType;
@@ -41,7 +40,7 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
   
   private boolean myIsOmitLogMessage;
 
-  private LinkedList myMergeStack;
+  private LinkedList<MergeFrame> myMergeStack;
   
   public DirAwareSVNXMLLogHandler(ContentHandler contentHandler, ISVNDebugLog log) {
     super(contentHandler, log);
@@ -93,8 +92,8 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
     }
     if (logEntry.getChangedPaths() != null && !logEntry.getChangedPaths().isEmpty()) {
         openTag(PATHS_TAG);
-        for (Iterator paths = logEntry.getChangedPaths().keySet().iterator(); paths.hasNext();) {
-            String key = (String) paths.next();
+        for (Iterator<String> paths = logEntry.getChangedPaths().keySet().iterator(); paths.hasNext();) {
+            String key = paths.next();
             SVNLogEntryPath path = (SVNLogEntryPath) logEntry.getChangedPaths().get(key);
             addAttribute(ACTION_ATTR, path.getType() + "");
             if (path.getCopyPath() != null) {
@@ -122,9 +121,8 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
     
     if (logEntry.hasChildren()) {
         MergeFrame frame = new MergeFrame();
-        //frame.myNumberOfChildrenRemaining = logEntry.getNumberOfChildren();
         if (myMergeStack == null) {
-            myMergeStack = new LinkedList();
+            myMergeStack = new LinkedList<MergeFrame>();
         }
         myMergeStack.addLast(frame);
     } else {

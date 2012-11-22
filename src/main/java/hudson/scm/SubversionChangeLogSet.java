@@ -27,7 +27,6 @@ import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.model.User;
 import hudson.scm.SubversionChangeLogSet.LogEntry;
-import hudson.scm.SubversionChangeLogSet.Path;
 import hudson.scm.SubversionSCM.ModuleLocation;
 
 import java.io.IOException;
@@ -112,10 +111,8 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
 
     static List<LogEntry> removePropertyOnlyChanges(List<LogEntry> items) {
 
-      for (Iterator<LogEntry> it = items.iterator(); it.hasNext(); ) {
-        LogEntry next = it.next();
-        
-        next.removePropertyOnlyPaths();
+      for (LogEntry entry : items) {
+        entry.removePropertyOnlyPaths();
       }
       
       return items;
@@ -173,7 +170,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         protected void removePropertyOnlyPaths() {
           for (Iterator<Path> it = paths.iterator(); it.hasNext();) {
             Path path = it.next();
-            if (path.isPropOnylChange()) it.remove();
+            if (path.isPropOnlyChange()) it.remove();
           }
         }
 
@@ -411,7 +408,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
             this.value = value;
         }
         
-        public boolean isPropOnylChange() {
+        public boolean isPropOnlyChange() {
             return action == 'M' && "dir".equals(kind);
         }
         
