@@ -41,6 +41,18 @@ import java.util.ArrayList;
  * @author Kohsuke Kawaguchi
  */
 public class SubversionChangeLogParser extends ChangeLogParser {
+  
+    private boolean ignoreDirPropChanges;
+
+    @Deprecated
+    public SubversionChangeLogParser() {
+      this(false);
+    }
+    
+    public SubversionChangeLogParser(boolean ignoreDirPropChanges) {
+      this.ignoreDirPropChanges = ignoreDirPropChanges;
+    }
+
     public SubversionChangeLogSet parse(@SuppressWarnings("rawtypes") AbstractBuild build, File changelogFile) throws IOException, SAXException {
         // http://svn.apache.org/repos/asf/subversion/trunk/subversion/svn/schema/log.rnc
 
@@ -71,7 +83,7 @@ public class SubversionChangeLogParser extends ChangeLogParser {
         for (LogEntry e : r) {
             e.finish();
         }
-        return new SubversionChangeLogSet(build,r);
+        return new SubversionChangeLogSet(build,r, ignoreDirPropChanges);
     }
 
 }

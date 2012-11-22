@@ -27,6 +27,7 @@ import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.model.User;
 import hudson.scm.SubversionChangeLogSet.LogEntry;
+import hudson.scm.SubversionChangeLogSet.Path;
 import hudson.scm.SubversionSCM.ModuleLocation;
 
 import java.io.IOException;
@@ -59,8 +60,16 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
      */
     private Map<String,Long> revisionMap;
 
+    private boolean ignoreDirPropChanges;
+    
+    @Deprecated
     /*package*/ SubversionChangeLogSet(AbstractBuild<?,?> build, List<LogEntry> logs) {
+      this(build, logs, false);
+    }
+
+    /*package*/ SubversionChangeLogSet(AbstractBuild<?,?> build, List<LogEntry> logs, boolean ignoreDirPropChanges) {
         super(build);
+        this.ignoreDirPropChanges = ignoreDirPropChanges;
         this.logs = prepareChangeLogEntries(logs);
     }
 
@@ -90,12 +99,26 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
     
     private List<LogEntry> prepareChangeLogEntries(List<LogEntry> items) {
         items = removeDuplicatedEntries(items);
+        
+        if (ignoreDirPropChanges) items = removePropertyOnlyChanges(items);
+        
         // we want recent changes first
         Collections.sort(items, new ReverseByRevisionComparator());
         for (LogEntry log : items) {
             log.setParent(this);
         }
         return Collections.unmodifiableList(items);
+    }
+
+    static List<LogEntry> removePropertyOnlyChanges(List<LogEntry> items) {
+
+      for (Iterator<LogEntry> it = items.iterator(); it.hasNext(); ) {
+        LogEntry next = it.next();
+        
+        next.removePropertyOnlyPaths();
+      }
+      
+      return items;
     }
 
     /**
@@ -145,6 +168,13 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
          */
         public SubversionChangeLogSet getParent() {
             return (SubversionChangeLogSet)super.getParent();
+        }
+
+        protected void removePropertyOnlyPaths() {
+          for (Iterator<Path> it = paths.iterator(); it.hasNext();) {
+            Path path = it.next();
+            if (path.isPropOnylChange()) it.remove();
+          }
         }
 
         // because of the classloader difference, we need to extend this method to make it accessible
@@ -342,7 +372,8 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         private LogEntry entry;
         private char action;
         private String value;
-
+        private String kind;
+        
         /**
          * Gets the {@link LogEntry} of which this path is a member.
          */
@@ -379,7 +410,19 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         public void setValue(String value) {
             this.value = value;
         }
-
+        
+        public boolean isPropOnylChange() {
+            return action == 'M' && "dir".equals(kind);
+        }
+        
+        public String getKind() {
+          return kind;
+        }
+        
+        public void setKind(String kind) {
+            this.kind = kind;
+        }
+        
         @Exported
         public EditType getEditType() {
             if( action=='A' )
