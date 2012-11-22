@@ -33,6 +33,7 @@ import hudson.scm.SubversionSCM.External;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.scm.SvnClientManager;
 import org.kohsuke.stapler.export.ExportedBean;
+import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNRevision;
@@ -65,6 +66,13 @@ public abstract class WorkspaceUpdater extends AbstractDescribableImpl<Workspace
     @Override
     public WorkspaceUpdaterDescriptor getDescriptor() {
         return (WorkspaceUpdaterDescriptor)super.getDescriptor();
+    }
+    
+    protected static boolean isAuthenticationFailedError(SVNCancelException e) {
+        // this is very ugly. SVNKit (1.7.4 at least) reports missing authentication data as a cancel exception
+        // "No credential to try. Authentication failed"
+        // See DefaultSVNAuthenticationManager#getFirstAuthentication
+        return e.getMessage().contains("No credential to try");
     }
 
     /**

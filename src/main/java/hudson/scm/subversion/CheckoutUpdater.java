@@ -94,8 +94,13 @@ public class CheckoutUpdater extends WorkspaceUpdater {
                     
                     svnuc.doCheckout(location.getSVNURL(), local.getCanonicalFile(), SVNRevision.HEAD, r, SVNDepth.INFINITY, true);
                 } catch (SVNCancelException e) {
-                    listener.error("Subversion checkout has been canceled");
-                    throw (InterruptedException)new InterruptedException().initCause(e);
+                    if (isAuthenticationFailedError(e)) {
+                        e.printStackTrace(listener.error("Failed to check out " + location.remote));
+                        return null;
+                    } else {
+                        listener.error("Subversion checkout has been canceled");
+                        throw (InterruptedException)new InterruptedException().initCause(e);
+                    }
                 } catch (SVNException e) {
                     e.printStackTrace(listener.error("Failed to check out " + location.remote));
                     return null;

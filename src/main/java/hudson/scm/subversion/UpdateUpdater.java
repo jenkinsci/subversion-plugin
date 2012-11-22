@@ -143,8 +143,13 @@ public class UpdateUpdater extends WorkspaceUpdater {
                 listener.getLogger().println("Updating " + location.remote + " to revision " + revisionName);
                 svnuc.doUpdate(local.getCanonicalFile(), r, SVNDepth.INFINITY, true, false);
             } catch (SVNCancelException e) {
-                listener.error("Subversion update has been canceled");
-                throw (InterruptedException)new InterruptedException().initCause(e);
+                if (isAuthenticationFailedError(e)) {
+                    e.printStackTrace(listener.error("Failed to check out " + location.remote));
+                    return null;
+                } else {
+                    listener.error("Subversion update has been canceled");
+                    throw (InterruptedException)new InterruptedException().initCause(e);
+                }
             } catch (final SVNException e) {
                 Throwable cause = e;
                 do {
