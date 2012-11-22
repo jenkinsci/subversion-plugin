@@ -41,6 +41,10 @@ THE SOFTWARE.
       </table>
     </f:repeatable>
   </f:entry>
+  <f:entry title="${%Ignore Property changes}" field="ignoreDirPropChanges">
+    <f:checkbox />
+  </f:entry>
+  
   <f:dropdownDescriptorSelector title="${%Check-out Strategy}" field="workspaceUpdater" descriptors="${descriptor.getWorkspaceUpdaterDescriptors()}"/>
 
   <t:listScmBrowsers name="svn.browser" />

@@ -23,8 +23,11 @@
  */
 package hudson.scm;
 
+import static hudson.scm.SubversionChangeLogUtil.*;
+
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -65,13 +68,5 @@ public class SubversionChangeLogSetTest {
         Assert.assertEquals("Items size is not equals to expected", items.size(), 7);
         resultItems = SubversionChangeLogSet.removeDuplicatedEntries(items);
         Assert.assertEquals(resultItems.size(), 7);
-    }
-
-
-    private SubversionChangeLogSet.LogEntry buildChangeLogEntry(int revision, String msg) {
-        SubversionChangeLogSet.LogEntry entry = new SubversionChangeLogSet.LogEntry();
-        entry.setRevision(revision);
-        entry.setMsg(msg);
-        return entry;
     }
 }
