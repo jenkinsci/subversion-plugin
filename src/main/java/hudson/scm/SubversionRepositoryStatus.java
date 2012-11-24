@@ -119,6 +119,7 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
         }
 
         for (AbstractProject<?,?> p : this.jobProvider.getAllJobs()) {
+            if(p.isDisabled()) continue;
             try {
                 SCM scm = p.getScm();
                 if (scm instanceof SubversionSCM) scmFound = true; else continue;
