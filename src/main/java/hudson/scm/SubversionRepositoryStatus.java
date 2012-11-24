@@ -14,6 +14,8 @@ import hudson.util.QueryParameterMap;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -63,6 +65,7 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
             return Hudson.getInstance().getAllItems(AbstractProject.class);
         }
     };
+    private static Method IS_IGNORE_POST_COMMIT_HOOKS_METHOD;
     
     // for tests
     void setJobProvider(JobProvider jobProvider) {
@@ -125,7 +128,7 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                 if (scm instanceof SubversionSCM) scmFound = true; else continue;
 
                 SCMTrigger trigger = p.getTrigger(SCMTrigger.class);
-                if (trigger!=null) triggerFound = true; else continue;
+                if (trigger!=null && !doesIgnorePostCommitHooks(trigger)) triggerFound = true; else continue;
 
                 SubversionSCM sscm = (SubversionSCM) scm;
                 
@@ -178,11 +181,31 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
         }
 
         if (!scmFound)          LOGGER.warning("No subversion jobs found");
-        else if (!triggerFound) LOGGER.warning("No subversion jobs using SCM polling");
+        else if (!triggerFound) LOGGER.warning("No subversion jobs using SCM polling or all jobs using SCM polling are ignoring post-commit hooks");
         else if (!uuidFound)    LOGGER.warning("No subversion jobs using repository: " + uuid);
         else if (!pathFound)    LOGGER.fine("No jobs found matching the modified files");
 
         rsp.setStatus(SC_OK);
+    }
+    
+    private boolean doesIgnorePostCommitHooks(SCMTrigger trigger) {
+        if (IS_IGNORE_POST_COMMIT_HOOKS_METHOD == null)
+            return false;
+        
+        try {
+            return (Boolean)IS_IGNORE_POST_COMMIT_HOOKS_METHOD.invoke(trigger, (Object[])null);
+        } catch (Exception e) {
+            LOGGER.log(WARNING,"Failure when calling isIgnorePostCommitHooks",e);
+            return false;
+        }
+    }
+
+    static {
+        try {
+            IS_IGNORE_POST_COMMIT_HOOKS_METHOD = SCMTrigger.class.getMethod("isIgnorePostCommitHooks", (Class[])null);
+        } catch (Exception e) {
+            // we're running in an older Jenkins version which doesn't have this method
+        }
     }
 
     private static final Logger LOGGER = Logger.getLogger(SubversionRepositoryStatus.class.getName());
