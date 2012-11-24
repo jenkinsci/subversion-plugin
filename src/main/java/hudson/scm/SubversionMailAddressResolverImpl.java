@@ -7,13 +7,10 @@ import hudson.tasks.MailAddressResolver;
 import hudson.Extension;
 import hudson.model.User;
 import hudson.model.AbstractProject;
-import hudson.tasks.Mailer;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 
-import java.util.Map;
-import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
