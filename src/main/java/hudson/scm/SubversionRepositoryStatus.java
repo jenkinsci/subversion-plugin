@@ -30,6 +30,8 @@ import org.tmatesoft.svn.core.SVNException;
 
 /**
  * Per repository status.
+ * <p>
+ * Receives post-commit hook notifications.
  *
  * @author Kohsuke Kawaguchi
  * @see SubversionStatus
@@ -47,6 +49,24 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
 
     public String getSearchUrl() {
         return uuid.toString();
+    }
+    
+    static interface JobProvider {
+        @SuppressWarnings("rawtypes")
+        List<AbstractProject> getAllJobs();
+    }
+    
+    private JobProvider jobProvider = new JobProvider() {
+        @SuppressWarnings("rawtypes")
+        @Override
+        public List<AbstractProject> getAllJobs() {
+            return Hudson.getInstance().getAllItems(AbstractProject.class);
+        }
+    };
+    
+    // for tests
+    void setJobProvider(JobProvider jobProvider) {
+        this.jobProvider = jobProvider;
     }
 
     /**
@@ -98,7 +118,7 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
             rev = Long.parseLong(revParam);
         }
 
-        for (AbstractProject<?,?> p : Hudson.getInstance().getAllItems(AbstractProject.class)) {
+        for (AbstractProject<?,?> p : this.jobProvider.getAllJobs()) {
             try {
                 SCM scm = p.getScm();
                 if (scm instanceof SubversionSCM) scmFound = true; else continue;
