@@ -41,14 +41,14 @@ THE SOFTWARE.
       </table>
     </f:repeatable>
   </f:entry>
-  <f:entry title="${%Ignore Property changes}" field="ignoreDirPropChanges">
-    <f:checkbox />
-  </f:entry>
   
   <f:dropdownDescriptorSelector title="${%Check-out Strategy}" field="workspaceUpdater" descriptors="${descriptor.getWorkspaceUpdaterDescriptors()}"/>
 
   <t:listScmBrowsers name="svn.browser" />
   <f:advanced>
+    <f:entry title="${%Ignore Property Changes on directories}" field="ignoreDirPropChanges">
+        <f:checkbox />
+    </f:entry>
     <f:entry title="${%Excluded Regions}" field="excludedRegions">
         <f:textarea />
     </f:entry>
