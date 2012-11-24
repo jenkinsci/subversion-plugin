@@ -46,7 +46,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Computer;
 import hudson.model.Hudson;
-import hudson.model.Hudson.MasterComputer;
+import jenkins.model.Jenkins.MasterComputer;
 import hudson.model.Node;
 import hudson.model.ParametersAction;
 import hudson.model.Run;

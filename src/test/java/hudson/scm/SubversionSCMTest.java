@@ -141,7 +141,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         // create a build
         FreeStyleProject p = createFreeStyleProject();
         p.setScm(loadSvnRepo());
-        final FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause()).get();
+        final FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserIdCause()).get();
         System.out.println(b.getLog(LOG_LIMIT));
         assertBuildStatus(Result.SUCCESS,b);
 
@@ -199,7 +199,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         FreeStyleProject p = createFreeStyleProject();
         p.setScm(new SubversionSCM("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant/"));
 
-        FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserCause()).get());
+        FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserIdCause()).get());
         assertTrue(b.getWorkspace().child("build.xml").exists());
     }
 
@@ -208,7 +208,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         FreeStyleProject p = createFreeStyleProject();
         p.setScm(new SubversionSCM("http://svn.codehaus.org/sxc/tags/sxc-0.5/sxc-core/src/test/java/com/envoisolutions/sxc/builder/"));
 
-        FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserCause()).get());
+        FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserIdCause()).get());
         assertTrue(b.getWorkspace().child("Node.java").exists());
     }
 
@@ -219,7 +219,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         p.setAssignedLabel(s.getSelfLabel());
         p.setScm(new SubversionSCM("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant/"));
 
-        FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserCause()).get());
+        FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserIdCause()).get());
         assertTrue(b.getWorkspace().child("build.xml").exists());
         assertBuildStatusSuccess(p.scheduleBuild2(0).get());
     }
@@ -232,12 +232,12 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         FreeStyleProject p = createFreeStyleProject();
         p.setScm(new SubversionSCM("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant@13000"));
 
-        FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause()).get();
+        FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserIdCause()).get();
         System.out.println(b.getLog(LOG_LIMIT));
         assertTrue(b.getLog(LOG_LIMIT).contains("At revision 13000"));
         assertBuildStatus(Result.SUCCESS,b);
 
-        b = p.scheduleBuild2(0, new Cause.UserCause()).get();
+        b = p.scheduleBuild2(0, new Cause.UserIdCause()).get();
         System.out.println(b.getLog(LOG_LIMIT));
         assertTrue(b.getLog(LOG_LIMIT).contains("At revision 13000"));
         assertBuildStatus(Result.SUCCESS,b);
@@ -253,7 +253,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         FreeStyleProject p = createFreeStyleProject();
         p.setScm(scm);
         
-        FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause()).get();
+        FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserIdCause()).get();
         System.out.println(b.getLog(LOG_LIMIT));
         assertTrue(b.getLog(LOG_LIMIT).contains("At revision 2"));
         assertBuildStatus(Result.SUCCESS,b);
@@ -323,7 +323,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         String url = "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant";
         p.setScm(new SubversionSCM(url));
 
-        FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause(), 
+        FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserIdCause(), 
         		new RevisionParameterAction(new SubversionSCM.SvnInfo(url, 13000))).get();
         System.out.println(b.getLog(LOG_LIMIT));
         assertTrue(b.getLog(LOG_LIMIT).contains("At revision 13000"));
@@ -336,11 +336,11 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         p.setScm(new SubversionSCM(url));
 
 	// Schedule build of a specific revision with a quiet period
-        Future<FreeStyleBuild> f = p.scheduleBuild2(60, new Cause.UserCause(),
+        Future<FreeStyleBuild> f = p.scheduleBuild2(60, new Cause.UserIdCause(),
         		new RevisionParameterAction(new SubversionSCM.SvnInfo(url, 13000)));
 
 	// Schedule another build at a more recent revision
-        p.scheduleBuild2(0, new Cause.UserCause(),
+        p.scheduleBuild2(0, new Cause.UserIdCause(),
         		new RevisionParameterAction(new SubversionSCM.SvnInfo(url, 14000)));
 
         FreeStyleBuild b = f.get();
@@ -492,7 +492,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         // fetch the current workspace
         FreeStyleProject p = createFreeStyleProject();
         p.setScm(loadSvnRepo());
-        p.scheduleBuild2(0, new Cause.UserCause()).get();
+        p.scheduleBuild2(0, new Cause.UserIdCause()).get();
 
         // as a baseline, this shouldn't detect any change
         TaskListener listener = createTaskListener();
@@ -504,7 +504,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         assertTrue(p.poll(listener).hasChanges());
 
         // build it once again to switch
-        p.scheduleBuild2(0, new Cause.UserCause()).get();
+        p.scheduleBuild2(0, new Cause.UserIdCause()).get();
 
         // then no more change should be detected
         assertFalse(p.poll(listener).hasChanges());
@@ -519,7 +519,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         p.setScm(new SubversionSCM("$REPO" + url.substring(10)));
         String var = url.substring(0, 10);
 
-        FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause(),
+        FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserIdCause(),
                 new ParametersAction(new StringParameterValue("REPO", var))).get();
         System.out.println(b.getLog(LOG_LIMIT));
         assertBuildStatus(Result.SUCCESS,b);
@@ -529,7 +529,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
         p.setScm(new SubversionSCM(url + "$EMPTY_VAR"));
 
-        b = p.scheduleBuild2(0, new Cause.UserCause(),
+        b = p.scheduleBuild2(0, new Cause.UserIdCause(),
                 new ParametersAction(new StringParameterValue("EMPTY_VAR", ""))).get();
         assertBuildStatus(Result.SUCCESS,b);
         assertTrue(b.getWorkspace().child("Node.java").exists());
@@ -547,7 +547,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
                 Arrays.asList(new ModuleLocation(svnBase + "trunk", null), new ModuleLocation(svnBase + "branches", null)),
                 new CheckoutUpdater(), null, null, null, null, null, null);
         p.setScm(scm);
-        p.scheduleBuild2(0, new Cause.UserCause()).get();
+        p.scheduleBuild2(0, new Cause.UserIdCause()).get();
 
         // as a baseline, this shouldn't detect any change
         TaskListener listener = createTaskListener();
@@ -573,14 +573,14 @@ public class SubversionSCMTest extends AbstractSubversionTest {
                 Arrays.asList(new ModuleLocation(svnBase + "trunk", "trunk")),
                 new UpdateUpdater(), null, null, null, null, null, null);
         p.setScm(scm);
-        Run r1 = p.scheduleBuild2(0, new Cause.UserCause()).get();
+        Run r1 = p.scheduleBuild2(0, new Cause.UserIdCause()).get();
         assertLogContains("Cleaning local Directory trunk", r1);
 
         scm = new SubversionSCM(
                 Arrays.asList(new ModuleLocation(svnBase + "trunk", "trunk"), new ModuleLocation(svnBase + "branches", "branches")),
                 new UpdateUpdater(), null, null, null, null, null, null);
         p.setScm(scm);
-        Run r2 = p.scheduleBuild2(0, new Cause.UserCause()).get();
+        Run r2 = p.scheduleBuild2(0, new Cause.UserIdCause()).get();
         assertLogContains("Updating " + svnBase + "trunk", r2);
         assertLogContains("Cleaning local Directory branches", r2);
     }
@@ -755,7 +755,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         FreeStyleProject p = createFreeStyleProject();
         p.setScm(new SubversionSCM("https://svn.jenkins-ci.org/trunk/hudson/test-projects/issue-3904"));
 
-        FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserCause()).get();
+        FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserIdCause()).get();
         File source = new File(b.getWorkspace().getRemote() + "/readme.txt");
         File linked = new File(b.getWorkspace().getRemote() + "/linked.txt");
         assertEquals("Files '" + source + "' and '" + linked + "' are not identical from user view.", readFileAsString(source), readFileAsString(linked));
@@ -928,14 +928,6 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 	    FilePath newFile = workingcopy.child(path);
 	    newFile.touch(System.currentTimeMillis());
 	    svnm.getWCClient().doAdd(new File(newFile.getRemote()), false, false, false, SVNDepth.INFINITY, false, false);
-	}
-    }
-    
-    private void addDirectories(String... paths) throws Exception {
-	SvnClientManager svnm = SubversionSCM.createClientManager((AbstractProject) null);
-	for (String path : paths) {
-	    FilePath newFile = workingcopy.child(path);
-	    svnm.getWCClient().doAdd(new File(newFile.getRemote()), false, true, false, SVNDepth.INFINITY, false, true);
 	}
     }
     

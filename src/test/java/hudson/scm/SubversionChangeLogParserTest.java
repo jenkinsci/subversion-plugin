@@ -37,7 +37,7 @@ public class SubversionChangeLogParserTest extends AbstractSubversionTest {
     }
     
     private void whenChangelogFileIsParsed() throws IOException, SAXException {
-        this.changeLogSet = new SubversionChangeLogParser().parse(null, this.changelogFile);
+        this.changeLogSet = new SubversionChangeLogParser(false).parse(null, this.changelogFile);
     }
     
     private void thenAffectedPathsMustBeSortedAlphabetically() {
