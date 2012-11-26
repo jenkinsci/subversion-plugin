@@ -35,10 +35,7 @@ import hudson.triggers.SCMTrigger;
 
 import org.apache.commons.lang.time.FastDateFormat;
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.tmatesoft.svn.core.SVNCancelException;
-import org.tmatesoft.svn.core.SVNDepth;
-import org.tmatesoft.svn.core.SVNErrorCode;
-import org.tmatesoft.svn.core.SVNException;
+import org.tmatesoft.svn.core.*;
 import org.tmatesoft.svn.core.wc.SVNInfo;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 import org.tmatesoft.svn.core.wc.SVNUpdateClient;
@@ -57,7 +54,6 @@ import java.util.List;
 public class UpdateUpdater extends WorkspaceUpdater {
     private static final long serialVersionUID = 1451258464864424355L;
 
-    
     private static final FastDateFormat fmt = FastDateFormat.getInstance("''yyyy-MM-dd'T'HH:mm:ss.SSS Z''");
     
     @DataBoundConstructor
@@ -153,9 +149,9 @@ public class UpdateUpdater extends WorkspaceUpdater {
                     throw (InterruptedException)new InterruptedException().initCause(e);
                 }
             } catch (final SVNException e) {
-                Throwable cause = e;
+                SVNException cause = e;
                 do {
-                    SVNErrorCode errorCode = ((SVNException)cause).getErrorMessage().getErrorCode();
+                    SVNErrorCode errorCode = cause.getErrorMessage().getErrorCode();
                     if (errorCode == SVNErrorCode.WC_LOCKED) {
                         // work space locked. try fresh check out
                         listener.getLogger().println("Workspace appear to be locked, so getting a fresh workspace");
@@ -180,7 +176,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
                     }
 
                   // recurse as long as we encounter nested SVNException
-                } while ((cause = cause.getCause()) instanceof SVNException);
+                } while (null != (cause = getNestedSVNException(cause)));
 
                 e.printStackTrace(listener.error("Failed to update " + location.remote));
                 listener.error("Subversion update failed");
@@ -189,6 +185,21 @@ public class UpdateUpdater extends WorkspaceUpdater {
 
             return externals;
         }
+
+        /**
+         * Retrieve nested SVNException.
+         * svnkit use to hide the root cause within nested {@link SVNException}. Also, SVNException cause in many cases
+         * is a {@link SVNErrorMessage}, that itself as for cause a lower level SVNException, and so on.
+         */
+        private SVNException getNestedSVNException(Throwable e) {
+            Throwable t = e.getCause();
+            if (t instanceof SVNException) return (SVNException) t;
+            if (t instanceof SVNErrorMessage) {
+                return getNestedSVNException(t);
+            }
+            return null;
+        }
+
 
         /**
          * Hook for subtype to perform some cleanup activity before "svn update" takes place.
