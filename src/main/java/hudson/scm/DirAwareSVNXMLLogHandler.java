@@ -42,12 +42,18 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
 
   private LinkedList<MergeFrame> myMergeStack;
   
+  private String relDir;
+  
   public DirAwareSVNXMLLogHandler(ContentHandler contentHandler, ISVNDebugLog log) {
     super(contentHandler, log);
   }
 
   public DirAwareSVNXMLLogHandler(ContentHandler contentHandler) {
     super(contentHandler);
+  }
+  
+  public void setRelativeDir(String relDir) {
+	  this.relDir = relDir;
   }
   
   /**
@@ -95,6 +101,9 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
         for (Iterator<String> paths = logEntry.getChangedPaths().keySet().iterator(); paths.hasNext();) {
             String key = paths.next();
             SVNLogEntryPath path = (SVNLogEntryPath) logEntry.getChangedPaths().get(key);
+            if (path.getPath().startsWith(relDir)) {
+                path.setPath(path.getPath().substring(relDir.length() + 1)); // Also remove '/'
+            }
             addAttribute(ACTION_ATTR, path.getType() + "");
             if (path.getCopyPath() != null) {
                 addAttribute(COPYFROM_PATH_ATTR, path.getCopyPath());

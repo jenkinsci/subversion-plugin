@@ -38,6 +38,7 @@ import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.ISVNLogEntryHandler;
 import org.tmatesoft.svn.core.SVNLogEntry;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
+import org.tmatesoft.svn.core.internal.util.SVNURLUtil;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNLogClient;
 import org.tmatesoft.svn.core.wc.SVNRevision;
@@ -103,12 +104,16 @@ public final class SubversionChangeLogBuilder {
             SVNLogClient svnlc = manager.getLogClient();
             TransformerHandler th = createTransformerHandler();
             th.setResult(changeLog);
-            SVNXMLLogHandler logHandler = new DirAwareSVNXMLLogHandler(th);
+            DirAwareSVNXMLLogHandler logHandler = new DirAwareSVNXMLLogHandler(th);
             // work around for http://svnkit.com/tracker/view.php?id=175
             th.setDocumentLocator(DUMMY_LOCATOR);
             logHandler.startDocument();
 
             for (ModuleLocation l : scm.getLocations(env, build)) {
+                SVNURL svnUrl = SVNURL.parseURIEncoded(l.getURL());
+                SVNURL rootUrl = l.getRepositoryRoot(build.getProject());
+                String relDir = svnUrl.toString().substring(rootUrl.toString().length());
+                logHandler.setRelativeDir(relDir);
                 changelogFileCreated |= buildModule(l.getURL(), svnlc, logHandler);
             }
             for(SubversionSCM.External ext : externals) {
@@ -121,6 +126,9 @@ public final class SubversionChangeLogBuilder {
             }
 
             return changelogFileCreated;
+        } catch (SVNException e) {
+            e.printStackTrace(); // I don't know the proper way to expose issues at this point. There shouldn't really be any I think
+            return false;
         } finally {
             manager.dispose();
         }
