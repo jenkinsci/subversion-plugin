@@ -26,7 +26,11 @@ package hudson.scm;
 
 import hudson.EnvVars;
 import hudson.Platform;
+import hudson.model.Hudson;
+import hudson.slaves.EnvironmentVariablesNodeProperty;
+
 import java.io.File;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -35,15 +39,15 @@ import java.util.Map;
 public class EnvVarsUtils {
 
     /**
-     * Changes the behavior of {@link EnvVars#overrideAll(java.util.Map)} which
-     * drops variables which have value a null or a 0-length value: This
-     * implementation doesn't.
-     *
-     * <p>This is a fix for JENKINS-10045.</p>
+     * Changes the behavior of {@link EnvVars#overrideAll(java.util.Map)} which drops variables which have value a null
+     * or a 0-length value: This implementation doesn't.
+     * <p>
+     * This is a fix for JENKINS-10045.
+     * </p>
      * 
      * @see EnvVars#overrideAll(java.util.Map)
      */
-    public static void overrideAll(EnvVars env, Map<String,String> all) {
+    public static void overrideAll(EnvVars env, Map<String, String> all) {
         for (Map.Entry<String, String> e : all.entrySet()) {
             override(env, e.getKey(), e.getValue());
         }
@@ -54,24 +58,23 @@ public class EnvVarsUtils {
      * @see EnvVars#override(java.lang.String, java.lang.String)
      */
     private static void override(EnvVars env, String key, String value) {
-        // this implementation doesn't  drop empty variables (JENKINS-10045)
-        //if(value == null || value.length() == 0) {
-        //    remove(key);
-        //    return;
-        //}
-        
+        // this implementation doesn't drop empty variables (JENKINS-10045)
+        // if(value == null || value.length() == 0) {
+        // remove(key);
+        // return;
+        // }
+
         int idx = key.indexOf('+');
-        if(idx > 0) {
+        if (idx > 0) {
             String realKey = key.substring(0, idx);
             String v = env.get(realKey);
-            if(v == null) {
+            if (v == null) {
                 v = value;
-            }
-            else {
+            } else {
                 // EnvVars.platform is private with no getter, but we really need it
                 Platform platform = null;
                 try {
-                    platform = (Platform) EnvVars.class.getField("platform").get(env);
+                    platform = (Platform)EnvVars.class.getField("platform").get(env);
                 } catch (Exception e) {
                     // nothing we can really do
                 }
@@ -86,4 +89,13 @@ public class EnvVarsUtils {
         env.put(key, value);
     }
 
+    public static EnvVars getEnvVarsFromGlobalNodeProperties() {
+        List<EnvironmentVariablesNodeProperty> list = Hudson.getInstance().getGlobalNodeProperties()
+            .getAll(EnvironmentVariablesNodeProperty.class);
+        EnvVars envVars = new EnvVars();
+        for (EnvironmentVariablesNodeProperty environmentVariablesNodeProperty : list) {
+            envVars.putAll(environmentVariablesNodeProperty.getEnvVars().descendingMap());
+        }
+        return envVars;
+    }
 }

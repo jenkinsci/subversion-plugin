@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi, Erik Ramfelt
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,10 +23,10 @@
  */
 package hudson.scm;
 
+import hudson.EnvVars;
 import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.model.User;
-import hudson.scm.SubversionChangeLogSet.LogEntry;
 import hudson.scm.SubversionSCM.ModuleLocation;
 
 import java.io.IOException;
@@ -48,30 +48,32 @@ import org.tmatesoft.svn.core.internal.util.SVNDate;
 
 /**
  * {@link ChangeLogSet} for Subversion.
- *
+ * 
  * @author Kohsuke Kawaguchi
  */
-public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
+public final class SubversionChangeLogSet extends ChangeLogSet<SubversionChangeLogSet.LogEntry> {
+
     private final List<LogEntry> logs;
 
     /**
      * @GuardedBy this
      */
-    private Map<String,Long> revisionMap;
+    private Map<String, Long> revisionMap;
 
     private boolean ignoreDirPropChanges;
-    
+
     @Deprecated
-    /*package*/ SubversionChangeLogSet(AbstractBuild<?,?> build, List<LogEntry> logs) {
-      this(build, logs, false);
+    /* package */SubversionChangeLogSet(AbstractBuild<?, ?> build, List<LogEntry> logs) {
+        this(build, logs, false);
     }
 
-    /*package*/ SubversionChangeLogSet(AbstractBuild<?,?> build, List<LogEntry> logs, boolean ignoreDirPropChanges) {
+    /* package */SubversionChangeLogSet(AbstractBuild<?, ?> build, List<LogEntry> logs, boolean ignoreDirPropChanges) {
         super(build);
         this.ignoreDirPropChanges = ignoreDirPropChanges;
         this.logs = prepareChangeLogEntries(logs);
     }
 
+    @Override
     public boolean isEmptySet() {
         return logs.isEmpty();
     }
@@ -81,6 +83,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
     }
 
 
+    @Override
     public Iterator<LogEntry> iterator() {
         return logs.iterator();
     }
@@ -90,17 +93,20 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         return "svn";
     }
 
-    public synchronized Map<String,Long> getRevisionMap() throws IOException {
-        if(revisionMap==null)
+    public synchronized Map<String, Long> getRevisionMap() throws IOException {
+        if (revisionMap == null) {
             revisionMap = SubversionSCM.parseRevisionFile(build);
+        }
         return revisionMap;
     }
-    
+
     private List<LogEntry> prepareChangeLogEntries(List<LogEntry> items) {
         items = removeDuplicatedEntries(items);
-        
-        if (ignoreDirPropChanges) items = removePropertyOnlyChanges(items);
-        
+
+        if (ignoreDirPropChanges) {
+            items = removePropertyOnlyChanges(items);
+        }
+
         // we want recent changes first
         Collections.sort(items, new ReverseByRevisionComparator());
         for (LogEntry log : items) {
@@ -111,16 +117,16 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
 
     static List<LogEntry> removePropertyOnlyChanges(List<LogEntry> items) {
 
-      for (LogEntry entry : items) {
-        entry.removePropertyOnlyPaths();
-      }
-      
-      return items;
+        for (LogEntry entry : items) {
+            entry.removePropertyOnlyPaths();
+        }
+
+        return items;
     }
 
     /**
      * Removes duplicate entries, e.g. those coming form svn:externals.
-     *
+     * 
      * @param items list of items
      * @return filtered list without duplicated entries
      */
@@ -132,15 +138,20 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
     @Exported
     public List<RevisionInfo> getRevisions() throws IOException {
         List<RevisionInfo> r = new ArrayList<RevisionInfo>();
-        for (Map.Entry<String, Long> e : getRevisionMap().entrySet())
-            r.add(new RevisionInfo(e.getKey(),e.getValue()));
+        for (Map.Entry<String, Long> e : getRevisionMap().entrySet()) {
+            r.add(new RevisionInfo(e.getKey(), e.getValue()));
+        }
         return r;
     }
 
-    @ExportedBean(defaultVisibility=999)
+    @ExportedBean(defaultVisibility = 999)
     public static final class RevisionInfo {
-        @Exported public final String module;
-        @Exported public final long revision;
+
+        @Exported
+        public final String module;
+        @Exported
+        public final long revision;
+
         public RevisionInfo(String module, long revision) {
             this.module = module;
             this.revision = revision;
@@ -150,10 +161,11 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
     /**
      * One commit.
      * <p>
-     * Setter methods are public only so that the objects can be constructed from Digester.
-     * So please consider this object read-only.
+     * Setter methods are public only so that the objects can be constructed from Digester. So please consider this
+     * object read-only.
      */
     public static class LogEntry extends ChangeLogSet.Entry {
+
         private int revision;
         private User author;
         private String date;
@@ -163,15 +175,18 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         /**
          * Gets the {@link SubversionChangeLogSet} to which this change set belongs.
          */
+        @Override
         public SubversionChangeLogSet getParent() {
             return (SubversionChangeLogSet)super.getParent();
         }
 
         protected void removePropertyOnlyPaths() {
-          for (Iterator<Path> it = paths.iterator(); it.hasNext();) {
-            Path path = it.next();
-            if (path.isPropOnlyChange()) it.remove();
-          }
+            for (Iterator<Path> it = paths.iterator(); it.hasNext();) {
+                Path path = it.next();
+                if (path.isPropOnlyChange()) {
+                    it.remove();
+                }
+            }
         }
 
         // because of the classloader difference, we need to extend this method to make it accessible
@@ -184,10 +199,8 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
 
         /**
          * Gets the revision of the commit.
-         *
          * <p>
-         * If the commit made the repository revision 1532, this
-         * method returns 1532.
+         * If the commit made the repository revision 1532, this method returns 1532.
          */
         @Exported
         public int getRevision() {
@@ -197,7 +210,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         public void setRevision(int revision) {
             this.revision = revision;
         }
-        
+
         @Override
         public String getCommitId() {
             return String.valueOf(revision);
@@ -205,34 +218,42 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
 
         @Override
         public long getTimestamp() {
-            return date!=null ? SVNDate.parseDate(date).getTime() : -1;
+            return date != null ? SVNDate.parseDate(date).getTime() : -1;
         }
 
         @Override
         public User getAuthor() {
-            if(author==null)
+            if (author == null) {
                 return User.getUnknown();
+            }
             return author;
         }
 
         @Override
         public Collection<String> getAffectedPaths() {
             return new AbstractList<String>() {
+
+                @Override
                 public String get(int index) {
                     return preparePath(paths.get(index).value);
                 }
+
+                @Override
                 public int size() {
                     return paths.size();
                 }
             };
         }
-        
+
         private String preparePath(String path) {
             SCM scm = getParent().build.getProject().getScm();
-            if (!(scm instanceof SubversionSCM)) return path;
+            if (!(scm instanceof SubversionSCM)) {
+                return path;
+            }
             ModuleLocation[] locations = ((SubversionSCM)scm).getLocations();
-            for (int i = 0; i < locations.length; i++) {
-                String commonPart = findCommonPart(locations[i].remote, path);
+            for (ModuleLocation location : locations) {
+                EnvVars env = EnvVarsUtils.getEnvVarsFromGlobalNodeProperties();
+                String commonPart = findCommonPart(location.getExpandedLocation(env).remote, path);
                 if (commonPart != null) {
                     if (path.startsWith("/")) {
                         path = path.substring(1);
@@ -246,7 +267,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
             }
             return path;
         }
-        
+
         private String findCommonPart(String folder, String filePath) {
             if (folder == null || filePath == null) {
                 return null;
@@ -269,7 +290,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
 
         @Exported
         public String getUser() {// digester wants read/write property, even though it never reads. Duh.
-            return author!=null ? author.getDisplayName() : "unknown";
+            return author != null ? author.getDisplayName() : "unknown";
         }
 
         @Exported
@@ -281,7 +302,8 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
             this.date = date;
         }
 
-        @Override @Exported
+        @Override
+        @Exported
         public String getMsg() {
             return msg;
         }
@@ -290,28 +312,29 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
             this.msg = msg;
         }
 
-        public void addPath( Path p ) {
+        public void addPath(Path p) {
             p.entry = this;
             paths.add(p);
         }
 
         /**
          * Gets the files that are changed in this commit.
-         * @return
-         *      can be empty but never null.
+         * 
+         * @return can be empty but never null.
          */
         @Exported
         public List<Path> getPaths() {
             return paths;
         }
-        
+
         @Override
         public Collection<Path> getAffectedFiles() {
-	        return paths;
+            return paths;
         }
-        
+
         void finish() {
             Collections.sort(paths, new Comparator<Path>() {
+
                 @Override
                 public int compare(Path o1, Path o2) {
                     String path1 = Util.fixNull(o1.getValue());
@@ -320,7 +343,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
                 }
             });
         }
-        
+
         @Override
         public boolean equals(Object o) {
             if (this == o) {
@@ -330,7 +353,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
                 return false;
             }
 
-            LogEntry that = (LogEntry) o;
+            LogEntry that = (LogEntry)o;
 
             if (revision != that.revision) {
                 return false;
@@ -361,16 +384,17 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
     /**
      * A file in a commit.
      * <p>
-     * Setter methods are public only so that the objects can be constructed from Digester.
-     * So please consider this object read-only.
+     * Setter methods are public only so that the objects can be constructed from Digester. So please consider this
+     * object read-only.
      */
-    @ExportedBean(defaultVisibility=999)
+    @ExportedBean(defaultVisibility = 999)
     public static class Path implements AffectedFile {
+
         private LogEntry entry;
         private char action;
         private String value;
         private String kind;
-        
+
         /**
          * Gets the {@link LogEntry} of which this path is a member.
          */
@@ -392,7 +416,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         /**
          * Path in the repository. Such as <tt>/test/trunk/foo.c</tt>
          */
-        @Exported(name="file")
+        @Exported(name = "file")
         public String getValue() {
             return value;
         }
@@ -400,39 +424,45 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         /**
          * Inherited from AffectedFile
          */
+        @Override
         public String getPath() {
-	        return getValue();
+            return getValue();
         }
-        
+
         public void setValue(String value) {
             this.value = value;
         }
-        
+
         public boolean isPropOnlyChange() {
             return action == 'M' && "dir".equals(kind);
         }
-        
+
         public String getKind() {
-          return kind;
+            return kind;
         }
-        
+
         public void setKind(String kind) {
             this.kind = kind;
         }
-        
+
+        @Override
         @Exported
         public EditType getEditType() {
-            if( action=='A' )
+            if (action == 'A') {
                 return EditType.ADD;
-            if( action=='D' )
+            }
+            if (action == 'D') {
                 return EditType.DELETE;
+            }
             return EditType.EDIT;
         }
     }
 
     private static final class ReverseByRevisionComparator implements Comparator<LogEntry>, Serializable {
+
         private static final long serialVersionUID = 1L;
 
+        @Override
         public int compare(LogEntry a, LogEntry b) {
             return b.getRevision() - a.getRevision();
         }
