@@ -109,12 +109,12 @@ public final class SubversionChangeLogBuilder {
             th.setDocumentLocator(DUMMY_LOCATOR);
             logHandler.startDocument();
 
-            for (ModuleLocation l : scm.getLocations(env, build)) {
-                SVNURL svnUrl = SVNURL.parseURIEncoded(l.getURL());
-                SVNURL rootUrl = l.getRepositoryRoot(build.getProject());
+            for (ModuleLocation moduleLocation : scm.getLocations(env, build)) {
+                SVNURL svnUrl = SVNURL.parseURIEncoded(moduleLocation.getURL());
+                SVNURL rootUrl = moduleLocation.getRepositoryRoot(build.getProject());
                 String relDir = svnUrl.toString().substring(rootUrl.toString().length());
                 logHandler.setRelativeDir(relDir);
-                changelogFileCreated |= buildModule(l.getURL(), svnlc, logHandler);
+                changelogFileCreated |= buildModule(moduleLocation.getURL(), svnlc, logHandler);
             }
             for(SubversionSCM.External ext : externals) {
                 changelogFileCreated |= buildModule(
@@ -127,7 +127,7 @@ public final class SubversionChangeLogBuilder {
 
             return changelogFileCreated;
         } catch (SVNException e) {
-            e.printStackTrace(); // I don't know the proper way to expose issues at this point. There shouldn't really be any I think
+            e.printStackTrace(); // I don't know the proper way to expose issues at this point. Although there shouldn't really be any I think
             return false;
         } finally {
             manager.dispose();
