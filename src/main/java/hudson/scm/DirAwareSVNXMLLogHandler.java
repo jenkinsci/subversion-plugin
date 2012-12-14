@@ -101,8 +101,10 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
         for (Iterator<String> paths = logEntry.getChangedPaths().keySet().iterator(); paths.hasNext();) {
             String key = paths.next();
             SVNLogEntryPath path = (SVNLogEntryPath) logEntry.getChangedPaths().get(key);
-            if (relativeDir != null && path.getPath().startsWith(relativeDir)) {
-                path.setPath(path.getPath().substring(relativeDir.length() + 1)); // Also remove the '/'
+            if (relativeDir != null && relativeDir.equals(path.getPath()) && path.getPath().startsWith(relativeDir)) {
+                path.setPath(path.getPath().substring(relativeDir.length() + 1)); // Also remove the leading '/'
+            } else {
+            	path.setPath(path.getPath().substring(1)); // Still remove the leading '/'
             }
             addAttribute(ACTION_ATTR, path.getType() + "");
             if (path.getCopyPath() != null) {
