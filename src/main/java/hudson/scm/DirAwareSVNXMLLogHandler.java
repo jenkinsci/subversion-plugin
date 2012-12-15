@@ -42,7 +42,7 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
 
   private LinkedList<MergeFrame> myMergeStack;
 
-  private SVNLogFilter filter;
+  private SVNLogFilter filter = new NullSVNLogFilter();
 
   public DirAwareSVNXMLLogHandler(ContentHandler contentHandler, SVNLogFilter filter) {
     super(contentHandler);
@@ -75,7 +75,7 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
    */
   public void handleLogEntry(SVNLogEntry logEntry) throws SVNException {
       try {
-          if (!filter.hasExclusionRule() || filter.isIncluded(logEntry)) {
+          if (filter == null || !filter.hasExclusionRule() || filter.isIncluded(logEntry)) {
               sendToHandler(logEntry);
           }
       } catch (SAXException e) {
