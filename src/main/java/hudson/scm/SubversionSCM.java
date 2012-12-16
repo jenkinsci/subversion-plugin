@@ -541,7 +541,7 @@ public class SubversionSCM extends SCM implements Serializable {
     }
     
     /**
-     * Sets the <tt>SVN_REVISION</tt> environment variable during the build.
+     * Sets the <tt>SVN_REVISION_n</tt> and <tt>SVN_URL_n</tt> environment variables during the build.
      */
     @Override
     public void buildEnvVars(AbstractBuild<?, ?> build, Map<String, String> env) {
@@ -552,18 +552,20 @@ public class SubversionSCM extends SCM implements Serializable {
         try {
             Map<String,Long> revisions = parseRevisionFile(build);
             if(svnLocations.length==1) {
+                // for backwards compatibility if there's only a single modulelocation, we also set
+                // SVN_REVISION and SVN_URL without '_n'
                 Long rev = revisions.get(getUrlWithoutRevision(svnLocations[0].remote));
                 if(rev!=null) {
                     env.put("SVN_REVISION",rev.toString());
                     env.put("SVN_URL",svnLocations[0].getURL());
                 }
-            } else if(svnLocations.length>1) {
-                for(int i=0;i<svnLocations.length;i++) {
-                    Long rev = revisions.get(getUrlWithoutRevision(svnLocations[i].remote));
-                    if(rev!=null) {
-                        env.put("SVN_REVISION_"+(i+1),rev.toString());
-                        env.put("SVN_URL_"+(i+1),svnLocations[i].getURL());
-                    }
+            }
+            
+            for(int i=0;i<svnLocations.length;i++) {
+                Long rev = revisions.get(getUrlWithoutRevision(svnLocations[i].remote));
+                if(rev!=null) {
+                    env.put("SVN_REVISION_"+(i+1),rev.toString());
+                    env.put("SVN_URL_"+(i+1),svnLocations[i].getURL());
                 }
             }
 
@@ -2593,7 +2595,7 @@ public class SubversionSCM extends SCM implements Serializable {
         return m;
     }
 
-    private static String getUrlWithoutRevision(
+    static String getUrlWithoutRevision(
             String remoteUrlPossiblyWithRevision) {
         int idx = remoteUrlPossiblyWithRevision.lastIndexOf('@');
         int slashIdx = remoteUrlPossiblyWithRevision.lastIndexOf('/');
