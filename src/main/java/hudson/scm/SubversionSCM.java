@@ -182,6 +182,7 @@ import com.trilead.ssh2.crypto.Base64;
  *
  * @author Kohsuke Kawaguchi
  */
+@SuppressWarnings("rawtypes")
 public class SubversionSCM extends SCM implements Serializable {
     /**
      * the locations field is used to store all configured SVN locations (with
@@ -567,7 +568,7 @@ public class SubversionSCM extends SCM implements Serializable {
             }
 
         } catch (IOException e) {
-            // ignore this error
+            LOGGER.log(WARNING, "error building environment variables", e);
         }
     }
 
@@ -1451,7 +1452,7 @@ public class SubversionSCM extends SCM implements Serializable {
     }
 
     @Override
-    public FilePath getModuleRoot(FilePath workspace, @SuppressWarnings("rawtypes") AbstractBuild build) {
+    public FilePath getModuleRoot(FilePath workspace, AbstractBuild build) {
         if (build == null) {
             return getModuleRoot(workspace);
         }
@@ -1488,7 +1489,7 @@ public class SubversionSCM extends SCM implements Serializable {
     }
     
     @Override
-    public FilePath[] getModuleRoots(FilePath workspace, @SuppressWarnings("rawtypes") AbstractBuild build) {
+    public FilePath[] getModuleRoots(FilePath workspace, AbstractBuild build) {
         if (build == null) {
             return getModuleRoots(workspace);
         }
