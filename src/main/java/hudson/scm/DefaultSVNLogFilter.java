@@ -1,10 +1,6 @@
 package hudson.scm;
 
 import hudson.Util;
-import org.tmatesoft.svn.core.SVNLogEntry;
-import org.tmatesoft.svn.core.SVNLogEntryPath;
-import org.tmatesoft.svn.core.SVNNodeKind;
-import org.tmatesoft.svn.core.SVNProperties;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -13,27 +9,32 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.tmatesoft.svn.core.SVNLogEntry;
+import org.tmatesoft.svn.core.SVNLogEntryPath;
+import org.tmatesoft.svn.core.SVNNodeKind;
+import org.tmatesoft.svn.core.SVNProperties;
+
 /**
  * Determines whether a log entry contains changes within the included paths for a project.
  */
 public class DefaultSVNLogFilter implements SVNLogFilter {
 
     private PrintStream log;
-    private SubversionSCM scm;
 
     private Pattern[] excludedPatterns;
     private Pattern[] includedPatterns;
     private Set<String> excludedUsers;
     private String excludedRevprop;
     private Pattern[] excludedCommitMessages;
+    private boolean ignoreDirPropChanges;
 
-    public DefaultSVNLogFilter(SubversionSCM scm, Pattern[] excludedPatterns, Pattern[] includedPatterns, Set<String> excludedUsers, String excludedRevProp, Pattern[] excludedCommitMessages) {
-        this.scm = scm;
+    public DefaultSVNLogFilter(Pattern[] excludedPatterns, Pattern[] includedPatterns, Set<String> excludedUsers, String excludedRevProp, Pattern[] excludedCommitMessages, boolean ignoreDirPropChanges) {
         this.excludedPatterns = excludedPatterns;
         this.includedPatterns = includedPatterns;
         this.excludedUsers = excludedUsers;
         this.excludedRevprop = excludedRevProp;
         this.excludedCommitMessages = excludedCommitMessages;
+        this.ignoreDirPropChanges = ignoreDirPropChanges;
     }
 
     /* (non-Javadoc)
@@ -47,7 +48,7 @@ public class DefaultSVNLogFilter implements SVNLogFilter {
 	 * @see hudson.scm.SVNLogFilter#hasExclusionRule()
 	 */
     public boolean hasExclusionRule() {
-        return excludedPatterns.length > 0 || !excludedUsers.isEmpty() || excludedRevprop != null || excludedCommitMessages.length > 0 || includedPatterns.length > 0 || scm.isIgnoreDirPropChanges();
+        return excludedPatterns.length > 0 || !excludedUsers.isEmpty() || excludedRevprop != null || excludedCommitMessages.length > 0 || includedPatterns.length > 0 || ignoreDirPropChanges;
     }
 
     /* (non-Javadoc)
@@ -96,7 +97,7 @@ public class DefaultSVNLogFilter implements SVNLogFilter {
 
         // dirPropChanges are changes that modifiy ('M') a directory, i.e. only
         // exclude if there are NO changes on files or Adds/Removals
-        if (scm.isIgnoreDirPropChanges()) {
+        if (ignoreDirPropChanges) {
             boolean contentChanged = false;
             for (SVNLogEntryPath path : changedPaths.values()) {
                 if (path.getType() != 'M' || path.getKind() != SVNNodeKind.DIR) {
