@@ -1963,9 +1963,10 @@ public class SubversionSCM extends SCM implements Serializable {
             PrintWriter logWriter = new PrintWriter(log);
 
             UserProvidedCredential upc = UserProvidedCredential.fromForm(req,parser);
-
+            boolean authenticationForced = Boolean.parseBoolean(parser.get("authenticationForced")); 
+            
             try {
-                postCredential(parser.get("url"), upc, logWriter);
+                postCredential(parser.get("url"), upc, logWriter, authenticationForced);
                 rsp.sendRedirect("credentialOK");
             } catch (SVNException e) {
                 logWriter.println("FAILED: "+e.getErrorMessage());
@@ -1989,13 +1990,17 @@ public class SubversionSCM extends SCM implements Serializable {
         public void postCredential(AbstractProject inContextOf, String url, String username, String password, File keyFile, PrintWriter logWriter) throws SVNException, IOException {
             postCredential(url,new UserProvidedCredential(username,password,keyFile,inContextOf),logWriter);
         }
+        
+        public void postCredential(String url, final UserProvidedCredential upc, PrintWriter logWriter) throws SVNException, IOException {
+            postCredential(url, upc, logWriter, true);
+        }
 
         /**
          * Submits the authentication info.
          *
          * This code is fairly ugly because of the way SVNKit handles credentials.
          */
-        public void postCredential(String url, final UserProvidedCredential upc, PrintWriter logWriter) throws SVNException, IOException {
+        public void postCredential(String url, final UserProvidedCredential upc, PrintWriter logWriter, boolean authenticationForced) throws SVNException, IOException {
             SVNRepository repository = null;
 
             try {
@@ -2018,7 +2023,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
                     }
                 };
-                authManager.setAuthenticationForced(true);
+                authManager.setAuthenticationForced(authenticationForced);
                 repository.setAuthenticationManager(authManager);
                 repository.testConnection();
                 authManager.checkIfProtocolCompleted();
