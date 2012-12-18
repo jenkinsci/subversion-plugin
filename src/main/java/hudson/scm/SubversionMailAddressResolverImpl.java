@@ -54,9 +54,9 @@ public class SubversionMailAddressResolverImpl extends MailAddressResolver imple
 
     public static class Rule extends AbstractDescribableImpl<Rule> {
 
-        private String pattern;
-        private String domain;
-        private transient Pattern compiled;
+        private final String pattern;
+        private final String domain;
+        private volatile Pattern compiled;
 
         @DataBoundConstructor
         public Rule(String pattern, String domain) {
