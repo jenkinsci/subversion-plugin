@@ -22,6 +22,9 @@ import java.util.regex.Pattern;
 @Extension
 public class SubversionMailAddressResolverImpl extends MailAddressResolver implements Describable<SubversionMailAddressResolverImpl> {
     public String findMailAddressFor(User u) {
+        if(DESCRIPTOR.rules.length == 0)
+            return null;
+        
         for (AbstractProject<?,?> p : u.getProjects()) {
             SCM scm = p.getScm();
             if (scm instanceof SubversionSCM) {
