@@ -40,7 +40,9 @@ import hudson.model.AbstractProject;
 import hudson.model.Cause;
 import hudson.model.FreeStyleProject;
 import hudson.model.ParametersAction;
+import hudson.model.Run;
 import hudson.model.StringParameterValue;
+import hudson.scm.ChangeLogSet.Entry;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.scm.browsers.Sventon;
 import hudson.scm.subversion.CheckoutUpdater;
@@ -62,6 +64,7 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -107,7 +110,6 @@ import com.gargoylesoftware.htmlunit.WebResponse;
 import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import hudson.model.Run;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -839,6 +841,47 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
     }
     
+    @SuppressWarnings("unchecked")
+    @Bug(10449)
+	public void testFilterChangelog() throws Exception {
+      File repo = new CopyExisting(getClass().getResource("JENKINS-10449.zip")).allocate();
+      SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.toURI().toURL().getPath()},
+                                                                 new String[]{"."}),
+                                            new UpdateUpdater(), null, "/z.*", "", "", "", "", false, true);
+
+      FreeStyleProject p = createFreeStyleProject("testFilterChangelog");
+      p.setScm(scm);
+      assertBuildStatusSuccess(p.scheduleBuild2(0).get());
+
+      // initial polling on the slave for the code path that doesn't find any change
+      assertFalse(p.poll(createTaskListener()).hasChanges());
+
+      createCommit(scm, "z/q");
+
+      // polling on the slave for the code path that does have a change but should be excluded.
+      assertFalse("Polling found changes that should have been ignored",
+              p.poll(createTaskListener()).hasChanges());
+
+      createCommit(scm, "foo");
+
+      assertTrue("Polling didn't find a change it should have found.",
+              p.poll(createTaskListener()).hasChanges());
+
+      AbstractBuild build = p.scheduleBuild2(0).get();
+      assertBuildStatusSuccess(build);
+      boolean ignored = true, included = false;
+      ChangeLogSet<Entry> cls = build.getChangeSet();
+      for (Entry e : cls) {
+          Collection<String> paths = e.getAffectedPaths();
+          if (paths.contains("/z/q"))
+              ignored = false;
+          if (paths.contains("/foo"))
+              included = true;
+      }
+
+      assertTrue("Changelog included or excluded entries it shouldn't have.", ignored && included);
+    }
+
     /**
      * Do the polling on the slave and make sure it works.
      */

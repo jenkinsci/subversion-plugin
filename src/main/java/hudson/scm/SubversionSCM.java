@@ -216,7 +216,7 @@ public class SubversionSCM extends SCM implements Serializable {
     private Boolean doRevert;
 
     private boolean ignoreDirPropChanges;
-
+    private boolean filterChangelog;
 
     /**
      * @deprecated as of 1.286
@@ -294,10 +294,19 @@ public class SubversionSCM extends SCM implements Serializable {
       this(locations, workspaceUpdater, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages, includedRegions, false);
     }
 
+    /**
+     *  @deprecated as of 1.43
+     */
+    public SubversionSCM(List<ModuleLocation> locations, WorkspaceUpdater workspaceUpdater,
+            SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages,
+            String includedRegions, boolean ignoreDirPropChanges) {
+        this(locations, workspaceUpdater, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages, includedRegions, ignoreDirPropChanges, false);
+    }
+
     @DataBoundConstructor
     public SubversionSCM(List<ModuleLocation> locations, WorkspaceUpdater workspaceUpdater,
                          SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages,
-                         String includedRegions, boolean ignoreDirPropChanges) {
+                         String includedRegions, boolean ignoreDirPropChanges, boolean filterChangelog) {
         for (Iterator<ModuleLocation> itr = locations.iterator(); itr.hasNext();) {
             ModuleLocation ml = itr.next();
             String remote = Util.fixEmptyAndTrim(ml.remote);
@@ -313,6 +322,7 @@ public class SubversionSCM extends SCM implements Serializable {
         this.excludedCommitMessages = excludedCommitMessages;
         this.includedRegions = includedRegions;
         this.ignoreDirPropChanges = ignoreDirPropChanges;
+        this.filterChangelog = filterChangelog;
     }
 
     /**
@@ -537,6 +547,11 @@ public class SubversionSCM extends SCM implements Serializable {
       return ignoreDirPropChanges;
     }
     
+    @Exported
+    public boolean isFilterChangelog() {
+      return filterChangelog;
+    }
+
     /**
      * Sets the <tt>SVN_REVISION</tt> environment variable during the build.
      */
