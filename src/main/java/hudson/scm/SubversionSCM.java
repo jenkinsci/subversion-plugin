@@ -295,7 +295,7 @@ public class SubversionSCM extends SCM implements Serializable {
     }
 
     /**
-     *  @deprecated as of 1.43
+     *  @deprecated
      */
     public SubversionSCM(List<ModuleLocation> locations, WorkspaceUpdater workspaceUpdater,
             SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages,
