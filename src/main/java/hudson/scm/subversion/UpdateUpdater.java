@@ -131,7 +131,9 @@ public class UpdateUpdater extends WorkspaceUpdater {
 
             try {
                 File local = new File(ws, location.getLocalDir());
-                svnuc.setEventHandler(new SubversionUpdateEventHandler(listener.getLogger(), externals, local, location.getLocalDir()));
+                SubversionUpdateEventHandler eventHandler = new SubversionUpdateEventHandler(listener.getLogger(), externals, local, location.getLocalDir());
+                svnuc.setEventHandler(eventHandler);
+                svnuc.setExternalsHandler(eventHandler);
 
                 SVNRevision r = getRevision(location);
 

@@ -46,6 +46,8 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Computer;
 import hudson.model.Hudson;
+import java.util.Arrays;
+import java.util.WeakHashMap;
 import jenkins.model.Jenkins.MasterComputer;
 import hudson.model.Node;
 import hudson.model.ParametersAction;
@@ -148,7 +150,6 @@ import org.tmatesoft.svn.core.internal.io.fs.FSRepositoryFactory;
 import org.tmatesoft.svn.core.internal.io.svn.SVNRepositoryFactoryImpl;
 import org.tmatesoft.svn.core.internal.util.SVNPathUtil;
 import org.tmatesoft.svn.core.internal.wc.DefaultSVNOptions;
-import org.tmatesoft.svn.core.internal.wc.SVNExternal;
 import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminAreaFactory;
 import org.tmatesoft.svn.core.io.SVNCapability;
 import org.tmatesoft.svn.core.io.SVNRepository;
@@ -220,6 +221,10 @@ public class SubversionSCM extends SCM implements Serializable {
 
     private boolean ignoreDirPropChanges;
 
+    /**
+     * A cache of the svn:externals (keyed by project).
+     */
+    private transient Map<AbstractProject, List<External>> projectExternalsCache;
 
     /**
      * @deprecated as of 1.286
@@ -426,6 +431,44 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         return outLocations;
+    }
+
+    /**
+     * Get the list of every checked-out location. This differs from {@link #getLocations()}
+     * which returns only the configured locations whereas this method returns the configured
+     * locations + any svn:externals locations.
+     */
+    public ModuleLocation[] getProjectLocations(AbstractProject context) throws IOException {
+        Map<AbstractProject, List<External>> projectExternalsCache = getProjectExternalsCache();
+
+        List<External> projectExternals;
+        synchronized (projectExternalsCache) {
+            projectExternals = projectExternalsCache.get(context);
+        }
+
+        if (projectExternals == null) {
+            projectExternals = parseExternalsFile(context);
+
+            synchronized (projectExternalsCache) {
+                if (!projectExternalsCache.containsKey(context)) {
+                    projectExternalsCache.put(context, projectExternals);
+                }
+            }
+        }
+
+        ModuleLocation[] configuredLocations = getLocations();
+        if (projectExternals.isEmpty()) {
+            return configuredLocations;
+        }
+
+        List<ModuleLocation> allLocations = new ArrayList<ModuleLocation>(configuredLocations.length + projectExternals.size());
+        allLocations.addAll(Arrays.asList(configuredLocations));
+
+        for (External external : projectExternals) {
+            allLocations.add(new ModuleLocation(external.url, external.path));
+        }
+
+        return allLocations.toArray(new ModuleLocation[allLocations.size()]);
     }
 
     @Override
@@ -737,6 +780,10 @@ public class SubversionSCM extends SCM implements Serializable {
 
         // write out the externals info
         new XmlFile(External.XSTREAM,getExternalsFile(build.getProject())).write(externals);
+        Map<AbstractProject, List<External>> projectExternalsCache = getProjectExternalsCache();
+        synchronized (projectExternalsCache) {
+            projectExternalsCache.put(build.getProject(), externals);
+        }
 
         return calcChangeLog(build, changelogFile, listener, externals, env);
     }
@@ -784,6 +831,13 @@ public class SubversionSCM extends SCM implements Serializable {
         return externals;
     }
 
+    private synchronized Map<AbstractProject, List<External>> getProjectExternalsCache() {
+        if (projectExternalsCache == null) {
+            projectExternalsCache = new WeakHashMap<AbstractProject, List<External>>();
+        }
+
+        return projectExternalsCache;
+    }
 
     /**
      * Either run "svn co" or "svn up" equivalent.
@@ -1011,16 +1065,10 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         public final long revision;
 
-        /**
-         * @param modulePath
-         *      The root of the current module that svn was checking out when it hits 'ext'.
-         *      Since we call svnkit multiple times in general case to check out from multiple locations,
-         *      we use this to make the path relative to the entire workspace, not just the particular module.
-         */
-        public External(String modulePath,SVNExternal ext) {
-            this.path = modulePath+'/'+ext.getPath();
-            this.url = ext.getResolvedURL().toDecodedString();
-            this.revision = ext.getRevision().getNumber();
+        public External(String path, SVNURL url, long revision) {
+            this.path = path;
+            this.url = url.toDecodedString();
+            this.revision = revision;
         }
 
         /**

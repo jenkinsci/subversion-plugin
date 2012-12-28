@@ -23,22 +23,23 @@
  */
 package hudson.scm.subversion;
 
-import hudson.remoting.Which;
 import hudson.scm.SubversionEventHandlerImpl;
 import hudson.scm.SubversionSCM.External;
+import java.util.HashMap;
+import java.util.Map;
 import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNErrorCode;
 import org.tmatesoft.svn.core.SVNErrorMessage;
 import org.tmatesoft.svn.core.SVNException;
-import org.tmatesoft.svn.core.SVNNodeKind;
-import org.tmatesoft.svn.core.internal.wc.SVNExternal;
+import org.tmatesoft.svn.core.SVNURL;
+import org.tmatesoft.svn.core.wc.ISVNExternalsHandler;
 import org.tmatesoft.svn.core.wc.SVNEvent;
 import org.tmatesoft.svn.core.wc.SVNEventAction;
+import org.tmatesoft.svn.core.wc.SVNRevision;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.net.URL;
 import java.util.List;
 
 /**
@@ -47,8 +48,11 @@ import java.util.List;
  *
  * This code also records all the referenced external locations.
  */
-final class SubversionUpdateEventHandler extends SubversionEventHandlerImpl {
-
+final class SubversionUpdateEventHandler extends SubversionEventHandlerImpl implements ISVNExternalsHandler {
+    /**
+     * Staged map of svn:externals details.
+     */
+    private final Map<File, SVNExternalDetails> externalDetails = new HashMap<File, SVNExternalDetails>();
     /**
      * External urls that are fetched through svn:externals.
      * We add to this collection as we find them.
@@ -65,56 +69,58 @@ final class SubversionUpdateEventHandler extends SubversionEventHandlerImpl {
         this.modulePath = modulePath;
     }
 
+    public SVNRevision[] handleExternal(File externalPath, SVNURL externalURL, SVNRevision externalRevision,
+                                        SVNRevision externalPegRevision, String externalsDefinition,
+                                        SVNRevision externalsWorkingRevision) {
+        long revisionNumber = SVNRevision.isValidRevisionNumber(externalPegRevision.getNumber()) ? externalPegRevision.getNumber() : -1;
+        SVNExternalDetails details = new SVNExternalDetails(externalURL, revisionNumber);
+
+        externalDetails.put(externalPath, details);
+        return new SVNRevision[] {externalRevision, externalPegRevision};
+    }
+
+    @Override
     public void handleEvent(SVNEvent event, double progress) throws SVNException {
-        File file = event.getFile();
-        String path = null;
-        if (file != null) {
-            try {
-                path = getRelativePath(file);
-            } catch (IOException e) {
-                throw new SVNException(SVNErrorMessage.create(SVNErrorCode.FS_GENERAL, e));
-            }
-            path = getLocalPath(path);
-        }
-
-        /*
-         * Gets the current action. An action is represented by SVNEventAction.
-         * In case of an update an  action  can  be  determined  via  comparing
-         * SVNEvent.getAction() and SVNEventAction.UPDATE_-like constants.
-         */
         SVNEventAction action = event.getAction();
-        if (action == SVNEventAction.UPDATE_EXTERNAL) {
-            // for externals definitions
-            SVNExternal ext = event.getExternalInfo();
-            if(ext==null) {
-                // prepare for the situation where the user created their own svnkit
-                URL jarFile = null;
+        if (action == SVNEventAction.UPDATE_COMPLETED) {
+            File file = event.getFile();
+            SVNExternalDetails details = externalDetails.remove(file);
+            if (details != null) {
+                String path;
                 try {
-                    jarFile = Which.jarURL(SVNEvent.class);
+                    path = getLocalPath(getRelativePath(file));
                 } catch (IOException e) {
-                    // ignore this failure
+                    throw new SVNException(SVNErrorMessage.create(SVNErrorCode.FS_GENERAL, e));
                 }
-                out.println("AssertionError: appears to be using unpatched svnkit at "+ jarFile);
-            } else {
-                out.println(Messages.SubversionUpdateEventHandler_FetchExternal(
-                        ext.getResolvedURL(), ext.getRevision().getNumber(), event.getFile()));
-                //#1539 - an external inside an external needs to have the path appended 
-                externals.add(new External(modulePath + "/" + path.substring(0
-                		,path.length() - ext.getPath().length())
-                		,ext));
+
+                out.println(Messages.SubversionUpdateEventHandler_FetchExternal(details, event.getRevision(), file));
+                externals.add(new External(modulePath + '/' + path, details.getUrl(), details.getRevision()));
             }
-            return;
-        }
-        if (action==SVNEventAction.SKIP && event.getExpectedAction()==SVNEventAction.UPDATE_EXTERNAL && event.getNodeKind()== SVNNodeKind.FILE) {
-            // svn:externals file support requires 1.6 workspace
-            out.println("svn:externals to a file requires Subversion 1.6 workspace support. Use the system configuration to enable that.");
         }
 
-        super.handleEvent(event,progress);
+        super.handleEvent(event, progress);
     }
 
     public void checkCancelled() throws SVNCancelException {
         if(Thread.interrupted())
             throw new SVNCancelException();
+    }
+
+    private static class SVNExternalDetails {
+        private final SVNURL url;
+        private final long revision;
+
+        private SVNExternalDetails(SVNURL url, long revision) {
+            this.url = url;
+            this.revision = revision;
+        }
+
+        public SVNURL getUrl() {
+            return url;
+        }
+
+        public long getRevision() {
+            return revision;
+        }
     }
 }
