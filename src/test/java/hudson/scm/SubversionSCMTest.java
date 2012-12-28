@@ -783,7 +783,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 //        SLAVE_DEBUG_PORT = 8001;
         File repo = new CopyExisting(getClass().getResource("HUDSON-6030.zip")).allocate();
         SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.toURI().toURL().getPath()},
-                                                                   new String[]{"."}),
+                                                                   new String[]{"."}, null, null),
                                               new UpdateUpdater(), null, ".*/bar", "", "", "", "");
 
         FreeStyleProject p = createFreeStyleProject("testExcludedRegions");
@@ -815,7 +815,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 //        SLAVE_DEBUG_PORT = 8001;
         File repo = new CopyExisting(getClass().getResource("HUDSON-6030.zip")).allocate();
         SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.toURI().toURL().getPath()},
-                                                                   new String[]{"."}),
+                                                                   new String[]{"."}, null, null),
                                               new UpdateUpdater(), null, "", "", "", "", ".*/foo");
 
         FreeStyleProject p = createFreeStyleProject("testExcludedRegions");
