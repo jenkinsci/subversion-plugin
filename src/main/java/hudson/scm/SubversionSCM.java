@@ -46,6 +46,8 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Computer;
 import hudson.model.Hudson;
+import java.util.Arrays;
+import java.util.WeakHashMap;
 import jenkins.model.Jenkins.MasterComputer;
 import hudson.model.Node;
 import hudson.model.ParametersAction;
@@ -221,6 +223,11 @@ public class SubversionSCM extends SCM implements Serializable {
 
     private boolean ignoreDirPropChanges;
     private boolean filterChangelog;
+
+    /**
+     * A cache of the svn:externals (keyed by project).
+     */
+    private transient Map<AbstractProject, List<External>> projectExternalsCache;
 
     /**
      * @deprecated as of 1.286
@@ -437,6 +444,48 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         return outLocations;
+    }
+
+    /**
+     * Get the list of every checked-out location. This differs from {@link #getLocations()}
+     * which returns only the configured locations whereas this method returns the configured
+     * locations + any svn:externals locations.
+     */
+    public ModuleLocation[] getProjectLocations(AbstractProject project) throws IOException {
+        List<External> projectExternals = getExternals(project);
+
+        ModuleLocation[] configuredLocations = getLocations();
+        if (projectExternals.isEmpty()) {
+            return configuredLocations;
+        }
+
+        List<ModuleLocation> allLocations = new ArrayList<ModuleLocation>(configuredLocations.length + projectExternals.size());
+        allLocations.addAll(Arrays.asList(configuredLocations));
+
+        for (External external : projectExternals) {
+            allLocations.add(new ModuleLocation(external.url, external.path));
+        }
+
+        return allLocations.toArray(new ModuleLocation[allLocations.size()]);
+    }
+
+    private List<External> getExternals(AbstractProject context) throws IOException {
+        Map<AbstractProject, List<External>> projectExternalsCache = getProjectExternalsCache();
+        List<External> projectExternals;
+        synchronized (projectExternalsCache) {
+            projectExternals = projectExternalsCache.get(context);
+        }
+
+        if (projectExternals == null) {
+            projectExternals = parseExternalsFile(context);
+
+            synchronized (projectExternalsCache) {
+                if (!projectExternalsCache.containsKey(context)) {
+                    projectExternalsCache.put(context, projectExternals);
+                }
+            }
+        }
+        return projectExternals;
     }
 
     @Override
@@ -759,6 +808,10 @@ public class SubversionSCM extends SCM implements Serializable {
 
         // write out the externals info
         new XmlFile(External.XSTREAM,getExternalsFile(build.getProject())).write(externals);
+        Map<AbstractProject, List<External>> projectExternalsCache = getProjectExternalsCache();
+        synchronized (projectExternalsCache) {
+            projectExternalsCache.put(build.getProject(), externals);
+        }
 
         return calcChangeLog(build, changelogFile, listener, externals, env);
     }
@@ -806,6 +859,13 @@ public class SubversionSCM extends SCM implements Serializable {
         return externals;
     }
 
+    private synchronized Map<AbstractProject, List<External>> getProjectExternalsCache() {
+        if (projectExternalsCache == null) {
+            projectExternalsCache = new WeakHashMap<AbstractProject, List<External>>();
+        }
+
+        return projectExternalsCache;
+    }
 
     /**
      * Either run "svn co" or "svn up" equivalent.

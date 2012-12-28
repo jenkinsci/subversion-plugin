@@ -134,7 +134,7 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                 List<SvnInfo> infos = new ArrayList<SvnInfo>();
                 
                 boolean projectMatches = false; 
-                for (ModuleLocation loc : sscm.getLocations()) {
+                for (ModuleLocation loc : sscm.getProjectLocations(p)) {
                     if (loc.getUUID(p).equals(uuid)) uuidFound = true; else continue;
 
                     String m = loc.getSVNURL().getPath();
