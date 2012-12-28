@@ -28,6 +28,7 @@ import hudson.scm.SubversionSCM.ModuleLocation;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNException;
+import org.tmatesoft.svn.core.wc.SVNWCClient;
 
 import java.io.File;
 import java.io.IOException;
@@ -57,8 +58,10 @@ public class UpdateWithRevertUpdater extends WorkspaceUpdater {
 
         @Override
         protected void preUpdate(ModuleLocation module, File local) throws SVNException, IOException {
-            listener.getLogger().println("Reverting " + local);
-            clientManager.getWCClient().doRevert(new File[]{local.getCanonicalFile()}, SVNDepth.INFINITY, null);
+            listener.getLogger().println("Reverting " + local + " to depth " + module.getDepthOption() + " with ignoreExternals: " + module.isIgnoreExternalsOption());
+            final SVNWCClient svnwc = manager.getWCClient();
+            svnwc.setIgnoreExternals(module.isIgnoreExternalsOption());
+            svnwc.doRevert(new File[]{local.getCanonicalFile()}, getSvnDepth(module.getDepthOption()), null);
         }
     }
 

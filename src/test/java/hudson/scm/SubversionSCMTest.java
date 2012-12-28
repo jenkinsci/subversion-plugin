@@ -783,7 +783,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 //        SLAVE_DEBUG_PORT = 8001;
         File repo = new CopyExisting(getClass().getResource("HUDSON-6030.zip")).allocate();
         SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.toURI().toURL().getPath()},
-                                                                   new String[]{"."}),
+                                                                   new String[]{"."}, null, null),
                                               new UpdateUpdater(), null, ".*/bar", "", "", "", "");
 
         FreeStyleProject p = createFreeStyleProject("testExcludedRegions");
@@ -815,7 +815,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 //        SLAVE_DEBUG_PORT = 8001;
         File repo = new CopyExisting(getClass().getResource("HUDSON-6030.zip")).allocate();
         SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.toURI().toURL().getPath()},
-                                                                   new String[]{"."}),
+                                                                   new String[]{"."}, null, null),
                                               new UpdateUpdater(), null, "", "", "", "", ".*/foo");
 
         FreeStyleProject p = createFreeStyleProject("testExcludedRegions");
@@ -1354,6 +1354,78 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         ModuleLocation[] locs = scm.getLocations();
         assertEquals(1, locs.length);
         assertEquals("project", locs[0].getLocalDir());
+    }
+
+    @Bug(777)
+    public void testIgnoreExternals() throws Exception {
+        Proc p = runSvnServe(getClass().getResource("JENKINS-777.zip"));
+
+        try {
+            FreeStyleProject b = createFreeStyleProject();
+
+            ModuleLocation[] locations = {
+                    new ModuleLocation("svn://localhost/jenkins-777/proja", "no_externals", "infinity", true),
+                    new ModuleLocation("svn://localhost/jenkins-777/proja", "with_externals", "infinity", false)
+                };
+
+            b.setScm(new SubversionSCM(Arrays.asList(locations), new CheckoutUpdater(), null, null, null, null, null, null));
+
+            FreeStyleBuild build = assertBuildStatusSuccess(b.scheduleBuild2(0));
+            FilePath ws = build.getWorkspace();
+
+            // Check that the external exists
+            assertTrue(ws.child("with_externals").child("externals").child("projb").exists());
+
+            // Check that the external doesn't exist
+            assertTrue(!(ws.child("no_externals").child("externals").child("projb").exists()));
+        } finally {
+            p.kill();
+        }
+    }
+
+    @Bug(777)
+    public void testDepthOptions() throws Exception {
+        Proc p = runSvnServe(getClass().getResource("JENKINS-777.zip"));
+
+        try {
+            FreeStyleProject b = createFreeStyleProject();
+
+            ModuleLocation[] locations = {
+                    new ModuleLocation("svn://localhost/jenkins-777/proja", "empty", "empty", true),
+                    new ModuleLocation("svn://localhost/jenkins-777/proja", "files", "files", true),
+                    new ModuleLocation("svn://localhost/jenkins-777/proja", "immediates", "immediates", true),
+                    new ModuleLocation("svn://localhost/jenkins-777/proja", "infinity", "infinity", true)
+                };
+
+            b.setScm(new SubversionSCM(Arrays.asList(locations), new CheckoutUpdater(), null, null, null, null, null, null));
+
+            FreeStyleBuild build = assertBuildStatusSuccess(b.scheduleBuild2(0));
+            FilePath ws = build.getWorkspace();
+
+            // Test if file file1 exists for various depths
+            assertTrue(!(ws.child("empty").child("file1").exists()));
+
+            assertTrue(ws.child("files").child("file1").exists());
+            assertTrue(ws.child("immediates").child("file1").exists());
+            assertTrue(ws.child("infinity").child("file1").exists());
+            
+            // Test if directory subdir exists for various depths
+            assertTrue(!(ws.child("empty").child("subdir").exists()));
+            assertTrue(!(ws.child("files").child("subdir").exists()));
+
+            assertTrue(ws.child("immediates").child("subdir").exists());
+            assertTrue(ws.child("infinity").child("subdir").exists());
+            
+            // Test if file subdir/file3 exists for various depths
+            assertTrue(!(ws.child("empty").child("subdir").child("file3").exists()));
+            assertTrue(!(ws.child("files").child("subdir").child("file3").exists()));
+            assertTrue(!(ws.child("immediates").child("subdir").child("file3").exists()));
+
+            assertTrue(ws.child("infinity").child("subdir").child("file3").exists());
+            
+        } finally {
+            p.kill();
+        }
     }
     
 }    
