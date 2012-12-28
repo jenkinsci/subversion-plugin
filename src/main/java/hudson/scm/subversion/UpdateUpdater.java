@@ -138,9 +138,12 @@ public class UpdateUpdater extends WorkspaceUpdater {
                 String revisionName = r.getDate() != null ?
                 		fmt.format(r.getDate()) : r.toString();
                 
+                svnuc.setIgnoreExternals(location.isIgnoreExternalsOption());
                 preUpdate(location, local);
-                listener.getLogger().println("Updating " + location.remote + " to revision " + revisionName);
-                svnuc.doUpdate(local.getCanonicalFile(), r, SVNDepth.INFINITY, true, false);
+                listener.getLogger().println("Updating " + location.remote + " at revision " + revisionName +
+                    " to depth " + location.getDepthOption() + " and ignoring externals: " + location.isIgnoreExternalsOption());
+                SVNDepth svnDepth = getSvnDepth(location.getDepthOption());
+                svnuc.doUpdate(local.getCanonicalFile(), r, svnDepth, true, false);
             } catch (SVNCancelException e) {
                 if (isAuthenticationFailedError(e)) {
                     e.printStackTrace(listener.error("Failed to check out " + location.remote));
