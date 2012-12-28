@@ -41,7 +41,14 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
   private boolean myIsOmitLogMessage;
 
   private LinkedList<MergeFrame> myMergeStack;
-  
+
+  private SVNLogFilter filter = new NullSVNLogFilter();
+
+  public DirAwareSVNXMLLogHandler(ContentHandler contentHandler, SVNLogFilter filter) {
+    super(contentHandler);
+    this.filter = filter;
+  }
+
   public DirAwareSVNXMLLogHandler(ContentHandler contentHandler, ISVNDebugLog log) {
     super(contentHandler, log);
   }
@@ -68,7 +75,9 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
    */
   public void handleLogEntry(SVNLogEntry logEntry) throws SVNException {
       try {
-          sendToHandler(logEntry);
+          if (filter == null || !filter.hasExclusionRule() || filter.isIncluded(logEntry)) {
+              sendToHandler(logEntry);
+          }
       } catch (SAXException e) {
           SVNErrorMessage err = SVNErrorMessage.create(SVNErrorCode.XML_MALFORMED, e.getLocalizedMessage());
           SVNErrorManager.error(err, e, SVNLogType.DEFAULT);

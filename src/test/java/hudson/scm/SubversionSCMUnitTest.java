@@ -48,8 +48,10 @@ public class SubversionSCMUnitTest {
         SubversionSCM scm = new SubversionSCM("dummyUrl");
         
         FilePath resolvedRoot = scm._getModuleRoot(root, "$BRANCH/someMorePath", envVars);
-        
-        Assert.assertEquals("root/test/someMorePath", resolvedRoot.getRemote());
+
+        String expected = String.format("root%stest/someMorePath", System.getProperty("file.separator"));
+
+        Assert.assertEquals(expected, resolvedRoot.getRemote());
     }
     
     @SuppressWarnings("deprecation")

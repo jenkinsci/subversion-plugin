@@ -130,9 +130,7 @@ import org.tmatesoft.svn.core.SVNErrorCode;
 import org.tmatesoft.svn.core.SVNErrorMessage;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNLogEntry;
-import org.tmatesoft.svn.core.SVNLogEntryPath;
 import org.tmatesoft.svn.core.SVNNodeKind;
-import org.tmatesoft.svn.core.SVNProperties;
 import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationOutcomeListener;
@@ -219,7 +217,7 @@ public class SubversionSCM extends SCM implements Serializable {
     private Boolean doRevert;
 
     private boolean ignoreDirPropChanges;
-
+    private boolean filterChangelog;
 
     /**
      * @deprecated as of 1.286
@@ -297,10 +295,19 @@ public class SubversionSCM extends SCM implements Serializable {
       this(locations, workspaceUpdater, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages, includedRegions, false);
     }
 
+    /**
+     *  @deprecated
+     */
+    public SubversionSCM(List<ModuleLocation> locations, WorkspaceUpdater workspaceUpdater,
+            SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages,
+            String includedRegions, boolean ignoreDirPropChanges) {
+        this(locations, workspaceUpdater, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages, includedRegions, ignoreDirPropChanges, false);
+    }
+
     @DataBoundConstructor
     public SubversionSCM(List<ModuleLocation> locations, WorkspaceUpdater workspaceUpdater,
                          SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages,
-                         String includedRegions, boolean ignoreDirPropChanges) {
+                         String includedRegions, boolean ignoreDirPropChanges, boolean filterChangelog) {
         for (Iterator<ModuleLocation> itr = locations.iterator(); itr.hasNext();) {
             ModuleLocation ml = itr.next();
             String remote = Util.fixEmptyAndTrim(ml.remote);
@@ -316,6 +323,7 @@ public class SubversionSCM extends SCM implements Serializable {
         this.excludedCommitMessages = excludedCommitMessages;
         this.includedRegions = includedRegions;
         this.ignoreDirPropChanges = ignoreDirPropChanges;
+        this.filterChangelog = filterChangelog;
     }
 
     /**
@@ -540,6 +548,11 @@ public class SubversionSCM extends SCM implements Serializable {
       return ignoreDirPropChanges;
     }
     
+    @Exported
+    public boolean isFilterChangelog() {
+      return filterChangelog;
+    }
+
     /**
      * Sets the <tt>SVN_REVISION_n</tt> and <tt>SVN_URL_n</tt> environment variables during the build.
      */
@@ -1248,22 +1261,23 @@ public class SubversionSCM extends SCM implements Serializable {
         });
     }
 
+    public SVNLogFilter createSVNLogFilter() {
+        return new DefaultSVNLogFilter(getExcludedRegionsPatterns(), getIncludedRegionsPatterns(),
+                getExcludedUsersNormalized(), getExcludedRevprop(), getExcludedCommitMessagesPatterns(), isIgnoreDirPropChanges());
+    }
+
     /**
      * Goes through the changes between two revisions and see if all the changes
      * are excluded.
      */
     private final class SVNLogHandler implements ISVNLogEntryHandler, Serializable {
-        private boolean changesFound = false;
 
-        private final TaskListener listener;
-        private final Pattern[] excludedPatterns = getExcludedRegionsPatterns();
-        private final Pattern[] includedPatterns = getIncludedRegionsPatterns();
-        private final Set<String> excludedUsers = getExcludedUsersNormalized();
-        private final String excludedRevprop = getExcludedRevpropNormalized();
-        private final Pattern[] excludedCommitMessages = getExcludedCommitMessagesPatterns();
+        private boolean changesFound = false;
+        private SVNLogFilter filter;
 
         private SVNLogHandler(TaskListener listener) {
-            this.listener = listener;
+            this.filter = createSVNLogFilter();
+            this.filter.setLog(listener.getLogger());
         }
 
         public boolean isChangesFound() {
@@ -1277,7 +1291,7 @@ public class SubversionSCM extends SCM implements Serializable {
             if (from>to)        return false; // empty revision range, meaning no change
 
             // if no exclusion rules are defined, don't waste time going through "svn log".
-            if (!hasExclusionRule())    return true;
+            if (!filter.hasExclusionRule())    return true;
 
             final SvnClientManager manager = createClientManager(authProvider);
             try {
@@ -1298,13 +1312,6 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         /**
-         * Is there any exclusion rule?
-         */
-        private boolean hasExclusionRule() {
-            return excludedPatterns.length>0 || !excludedUsers.isEmpty() || excludedRevprop != null || excludedCommitMessages.length>0 || includedPatterns.length>0 || ignoreDirPropChanges;
-        }
-
-        /**
          * Handles a log entry passed.
          * Check for log entries that should be excluded from triggering a build.
          * If an entry is not an entry that should be excluded, set changesFound to true
@@ -1315,118 +1322,9 @@ public class SubversionSCM extends SCM implements Serializable {
          * @throws org.tmatesoft.svn.core.SVNException
          */
         public void handleLogEntry(SVNLogEntry logEntry) throws SVNException {
-            if (checkLogEntry(logEntry)) {
+            if (filter.isIncluded(logEntry)) {
                 changesFound = true;
             }
-        }
-
-        /**
-         * Checks if the given log entry should be considered for the purposes
-         * of SCM polling.
-         *
-         * @return <code>true</code> if the should trigger polling, <code>false</code> otherwise
-         */
-        private boolean checkLogEntry(SVNLogEntry logEntry) {
-            if (excludedRevprop != null) {
-                // If the entry includes the exclusion revprop, don't count it as a change
-                SVNProperties revprops = logEntry.getRevisionProperties();
-                if (revprops != null && revprops.containsName(excludedRevprop)) {
-                    listener.getLogger().println(Messages.SubversionSCM_pollChanges_ignoredRevision(
-                            logEntry.getRevision(),
-                            Messages.SubversionSCM_pollChanges_ignoredRevision_revprop(excludedRevprop)));
-                    return false;
-                }
-            }
-
-            String author = logEntry.getAuthor();
-            if (excludedUsers.contains(author)) {
-                // If the author is an excluded user, don't count this entry as a change
-                listener.getLogger().println(Messages.SubversionSCM_pollChanges_ignoredRevision(
-                        logEntry.getRevision(),
-                        Messages.SubversionSCM_pollChanges_ignoredRevision_author(author)));
-                return false;
-            }
-
-            if (excludedCommitMessages != null) {
-                // If the commit message contains one of the excluded messages, don't count it as a change
-                String commitMessage = logEntry.getMessage();
-                for (Pattern pattern : excludedCommitMessages) {
-                    if (pattern.matcher(commitMessage).find()) {
-                        return false;
-                    }
-                }
-            }
-
-            // If there were no changes, don't count this entry as a change
-            Map<String, SVNLogEntryPath> changedPaths = logEntry.getChangedPaths();
-            if (changedPaths.isEmpty()) {
-                return false;
-            }
-
-            // dirPropChanges are changes that modifiy ('M') a directory, i.e. only
-            // exclude if there are NO changes on files or Adds/Removals
-            if (ignoreDirPropChanges) {
-                boolean contentChanged = false;
-                for (SVNLogEntryPath path : changedPaths.values()) {
-                    if (path.getType() != 'M' || path.getKind() != SVNNodeKind.DIR) {
-                      contentChanged = true;
-                      break;
-                    }
-                }
-                if (!contentChanged) {
-                  listener.getLogger().println(Messages.SubversionSCM_pollChanges_ignoredRevision(
-                      logEntry.getRevision(),
-                      Messages.SubversionSCM_pollChanges_ignoredRevision_onlydirprops()));
-                    return false;
-                }
-            }
-            
-            // If there are included patterns, see which paths are included
-            List<String> includedPaths = new ArrayList<String>();
-            if (includedPatterns.length > 0) {
-                for (String path : changedPaths.keySet()) {
-                    for (Pattern pattern : includedPatterns) {
-                        if (pattern.matcher(path).matches()) {
-                            includedPaths.add(path);
-                            break;
-                        }
-                    }
-                }
-            } else {
-                includedPaths = new ArrayList<String>(changedPaths.keySet());
-            }
-
-            // If no paths are included don't count this entry as a change
-            if (includedPaths.isEmpty()) {
-                listener.getLogger().println(Messages.SubversionSCM_pollChanges_ignoredRevision(
-                        logEntry.getRevision(),
-                        Messages.SubversionSCM_pollChanges_ignoredRevision_noincpath()));
-                return false;
-            }
-
-            // Else, check each changed path
-            List<String> excludedPaths = new ArrayList<String>();
-            if (excludedPatterns.length > 0) {
-                for (String path : includedPaths) {
-                    for (Pattern pattern : excludedPatterns) {
-                        if (pattern.matcher(path).matches()) {
-                            excludedPaths.add(path);
-                            break;
-                        }
-                    }
-                }
-            }
-
-            // If all included paths are in an excluded region, don't count this entry as a change
-            if (includedPaths.size() == excludedPaths.size()) {
-                listener.getLogger().println(Messages.SubversionSCM_pollChanges_ignoredRevision(
-                        logEntry.getRevision(),
-                        Messages.SubversionSCM_pollChanges_ignoredRevision_path(Util.join(excludedPaths, ", "))));
-                return false;
-            }
-
-            // Otherwise, a change is a change
-            return true;
         }
 
         private static final long serialVersionUID = 1L;
