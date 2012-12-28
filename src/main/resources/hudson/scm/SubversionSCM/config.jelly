@@ -32,6 +32,17 @@ THE SOFTWARE.
         <f:entry title="${%Local module directory} (${%optional})" field="local">
           <f:textbox value="${loc!=null?loc.local:'.'}" />
         </f:entry>
+        <f:entry title="${%Repository depth option}" field="depthOption">
+            <select name="depthOption">
+                <f:option value="infinity" selected="${loc.depthOption=='infinity'}">infinity</f:option>
+                <f:option value="empty" selected="${loc.depthOption=='empty'}">empty</f:option>
+                <f:option value="files" selected="${loc.depthOption=='files'}">files</f:option>
+                <f:option value="immediates" selected="${loc.depthOption=='immediates'}">immediates</f:option>
+            </select>
+        </f:entry>
+        <f:entry title="${%Ignore externals option}" field="ignoreExternalsOption">
+          <f:checkbox default="false" checked="${loc.ignoreExternalsOption}"/>
+        </f:entry>
         <f:entry>
           <div align="right">
             <input type="button" value="${%Add more locations...}" class="repeatable-add show-if-last" />
