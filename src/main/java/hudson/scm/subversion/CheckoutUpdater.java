@@ -91,8 +91,10 @@ public class CheckoutUpdater extends WorkspaceUpdater {
 		    	" to depth " + location.getDepthOption() + " and ignoring externals: " + location.isIgnoreExternalsOption());
 
                     File local = new File(ws, location.getLocalDir());
+                    SubversionUpdateEventHandler eventHandler = new SubversionUpdateEventHandler(new PrintStream(pos), externals, local, location.getLocalDir());
+                    svnuc.setEventHandler(eventHandler);
+                    svnuc.setExternalsHandler(eventHandler);
                     svnuc.setIgnoreExternals(location.isIgnoreExternalsOption());
-                    svnuc.setEventHandler(new SubversionUpdateEventHandler(new PrintStream(pos), externals, local, location.getLocalDir()));
                     
                     SVNDepth svnDepth = getSvnDepth(location.getDepthOption());
                     svnuc.doCheckout(location.getSVNURL(), local.getCanonicalFile(), SVNRevision.HEAD, r, svnDepth, true);
