@@ -104,10 +104,7 @@ public class SubversionMailAddressResolverImpl extends MailAddressResolver imple
         public DescriptorImpl() {
             load();
             if (rules == null) {
-                rules = new Rule[] {
-                    new Rule("https://[^.]+.dev.java.net/svn/([^/]+)(/.*)?", "@dev.java.net"),
-                    new Rule("(http|https)://[^.]+.svn.(sourceforge|sf).net/svnroot/([^/]+)(/.*)?", "@users.sourceforge.net")
-                };
+                rules = new Rule[0];
             }
         }
 

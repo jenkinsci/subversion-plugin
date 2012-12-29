@@ -1,5 +1,5 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-    <f:section title="Subversion Mail Address resolver">
+    <f:section title="Subversion Mail Address Resolver">
         <f:entry title="Matching rules"
                  description="Rules to retrieve user e-mail based on subversion repository">
             <f:repeatable field="rules">
