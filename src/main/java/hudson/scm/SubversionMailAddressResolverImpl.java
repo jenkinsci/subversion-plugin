@@ -59,7 +59,7 @@ public class SubversionMailAddressResolverImpl extends MailAddressResolver imple
 
         private final String pattern;
         private final String domain;
-        private volatile Pattern compiled;
+        private transient volatile Pattern compiled;
 
         @DataBoundConstructor
         public Rule(String pattern, String domain) {
