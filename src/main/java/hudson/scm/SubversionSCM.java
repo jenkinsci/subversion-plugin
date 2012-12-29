@@ -58,6 +58,7 @@ import hudson.scm.PollingResult.Change;
 import hudson.scm.UserProvidedCredential.AuthenticationManagerImpl;
 import hudson.scm.subversion.CheckoutUpdater;
 import hudson.scm.subversion.Messages;
+import hudson.scm.subversion.SvnHelper;
 import hudson.scm.subversion.UpdateUpdater;
 import hudson.scm.subversion.UpdateWithRevertUpdater;
 import hudson.scm.subversion.UpdaterException;
@@ -563,11 +564,11 @@ public class SubversionSCM extends SCM implements Serializable {
         ModuleLocation[] svnLocations = getLocations(build);
 
         try {
-            Map<String,Long> revisions = parseRevisionFile(build);
+            Map<String,Long> revisions = parseSvnRevisionFile(build);
             if(svnLocations.length==1) {
                 // for backwards compatibility if there's only a single modulelocation, we also set
                 // SVN_REVISION and SVN_URL without '_n'
-                Long rev = revisions.get(getUrlWithoutRevision(svnLocations[0].remote));
+                Long rev = revisions.get(SvnHelper.getUrlWithoutRevision(svnLocations[0].remote));
                 if(rev!=null) {
                     env.put("SVN_REVISION",rev.toString());
                     env.put("SVN_URL",svnLocations[0].getURL());
@@ -575,7 +576,7 @@ public class SubversionSCM extends SCM implements Serializable {
             }
             
             for(int i=0;i<svnLocations.length;i++) {
-                Long rev = revisions.get(getUrlWithoutRevision(svnLocations[i].remote));
+                Long rev = revisions.get(SvnHelper.getUrlWithoutRevision(svnLocations[i].remote));
                 if(rev!=null) {
                     env.put("SVN_REVISION_"+(i+1),rev.toString());
                     env.put("SVN_URL_"+(i+1),svnLocations[i].getURL());
@@ -612,9 +613,15 @@ public class SubversionSCM extends SCM implements Serializable {
         return true;
     }
 
-
+    /**
+     * Please consider using the non-static version {@link #parseSvnRevisionFile(AbstractBuild)}!
+     */
     /*package*/ static Map<String,Long> parseRevisionFile(AbstractBuild<?,?> build) throws IOException {
         return parseRevisionFile(build,false,false);
+    }
+    
+    /*package*/ Map<String,Long> parseSvnRevisionFile(AbstractBuild<?,?> build) throws IOException {
+        return parseRevisionFile(build);
     }
 
     /**
@@ -1948,7 +1955,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 return FormValidation.ok();
 
             try {
-                String urlWithoutRevision = getUrlWithoutRevision(url);
+                String urlWithoutRevision = SvnHelper.getUrlWithoutRevision(url);
             	
                 SVNURL repoURL = SVNURL.parseURIDecoded(urlWithoutRevision);
                 if (checkRepositoryPath(context,repoURL)!=SVNNodeKind.NONE) {
@@ -2294,7 +2301,7 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         public String getLocalDir() {
             if(local==null) 
-                return getLastPathComponent(getUrlWithoutRevision(remote));
+                return getLastPathComponent(SvnHelper.getUrlWithoutRevision(remote));
             return local;
         }
 
@@ -2303,7 +2310,7 @@ public class SubversionSCM extends SCM implements Serializable {
          * possible "@NNN" suffix.
          */
         public String getURL() {
-        	return getUrlWithoutRevision(remote);
+        	return SvnHelper.getUrlWithoutRevision(remote);
         }
 
         /**
@@ -2491,20 +2498,6 @@ public class SubversionSCM extends SCM implements Serializable {
             }
         }
         return m;
-    }
-
-    static String getUrlWithoutRevision(
-            String remoteUrlPossiblyWithRevision) {
-        int idx = remoteUrlPossiblyWithRevision.lastIndexOf('@');
-        int slashIdx = remoteUrlPossiblyWithRevision.lastIndexOf('/');
-        if (idx > 0 && idx > slashIdx) {
-            String n = remoteUrlPossiblyWithRevision.substring(idx + 1);
-            SVNRevision r = SVNRevision.parse(n);
-            if ((r != null) && (r.isValid())) {
-                return remoteUrlPossiblyWithRevision.substring(0, idx);
-            }
-        }
-        return remoteUrlPossiblyWithRevision;
     }
 
     /**

@@ -87,8 +87,8 @@ public final class SubversionChangeLogBuilder {
      * @since  1.34
      */
     public SubversionChangeLogBuilder(AbstractBuild<?,?> build, EnvVars env, BuildListener listener, SubversionSCM scm) throws IOException {
-        previousRevisions = SubversionSCM.parseRevisionFile(build.getPreviousBuild());
-        thisRevisions     = SubversionSCM.parseRevisionFile(build);
+        previousRevisions = scm.parseSvnRevisionFile(build.getPreviousBuild());
+        thisRevisions     = scm.parseSvnRevisionFile(build);
         this.listener = listener;
         this.scm = scm;
         this.build = build;
