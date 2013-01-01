@@ -1427,5 +1427,40 @@ public class SubversionSCMTest extends AbstractSubversionTest {
             p.kill();
         }
     }
-    
+
+    @Bug(777)
+    public void testChangingDepthWithUpdateUpdater() throws Exception {
+        Proc p = runSvnServe(getClass().getResource("JENKINS-777.zip"));
+
+        try {
+            // enable 1.6 mode
+            HtmlForm f = createWebClient().goTo("configure").getFormByName("config");
+            f.getSelectByName("svn.workspaceFormat").setSelectedAttribute("10",true);
+            submit(f);
+
+            FreeStyleProject b = createFreeStyleProject();
+
+            ModuleLocation[] locations = {
+                    new ModuleLocation("svn://localhost/jenkins-777/proja", "proja", "infinity", true)
+                };
+
+            // Do initial update with infinite depth and check that file1 exists
+            b.setScm(new SubversionSCM(Arrays.asList(locations), new UpdateUpdater(), null, null, null, null, null, null));
+            FreeStyleBuild build = assertBuildStatusSuccess(b.scheduleBuild2(0));
+            FilePath ws = build.getWorkspace();
+            assertTrue(ws.child("proja").child("file1").exists());
+
+            // Trigger new build with depth empty and check that file1 no longer exists
+            ModuleLocation[] locations2 = {
+                    new ModuleLocation("svn://localhost/jenkins-777/proja", "proja", "empty", true)
+                };
+            b.setScm(new SubversionSCM(Arrays.asList(locations2), new UpdateUpdater(), null, null, null, null, null, null));
+            FreeStyleBuild build2 = assertBuildStatusSuccess(b.scheduleBuild2(0));
+            ws = build2.getWorkspace();
+            assertTrue(!(ws.child("proja").child("file1").exists()));
+
+        } finally {
+            p.kill();
+        }
+    }
 }    
