@@ -118,7 +118,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlPage;
  */
 // TODO: we're relying on no less than 3 external SVN repos for this test: svn.jenkins-ci.org, subversion.tigris.org and svn.codehaus.org
 // while the 1st one is probably okay, we should look that we get rid of the other 2 dependencies
-@SuppressWarnings("rawtypes")
+@SuppressWarnings({"rawtypes","deprecation"})
 public class SubversionSCMTest extends AbstractSubversionTest {
 
     private static final int LOG_LIMIT = 1000;
@@ -843,7 +843,6 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
     }
     
-    @SuppressWarnings("unchecked")
     @Bug(10449)
 	public void testFilterChangelog() throws Exception {
         verifyChangelogFilter(true);
@@ -855,7 +854,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
             ExecutionException {
           File repo = new CopyExisting(getClass().getResource("JENKINS-10449.zip")).allocate();
           SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.toURI().toURL().getPath()},
-                                                                     new String[]{"."}),
+                                                                     new String[]{"."},null,null),
                                                 new UpdateUpdater(), null, "/z.*", "", "", "", "", false, shouldFilterLog);
 
           FreeStyleProject p = createFreeStyleProject(String.format("testFilterChangelog-%s", shouldFilterLog));
@@ -879,7 +878,8 @@ public class SubversionSCMTest extends AbstractSubversionTest {
           AbstractBuild build = p.scheduleBuild2(0).get();
           assertBuildStatusSuccess(build);
           boolean ignored = true, included = false;
-          ChangeLogSet<Entry> cls = build.getChangeSet();
+          @SuppressWarnings("unchecked")
+        ChangeLogSet<Entry> cls = build.getChangeSet();
           for (Entry e : cls) {
               Collection<String> paths = e.getAffectedPaths();
               if (paths.contains("/z/q"))
