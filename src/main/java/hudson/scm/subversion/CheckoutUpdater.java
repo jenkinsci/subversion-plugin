@@ -87,12 +87,15 @@ public class CheckoutUpdater extends WorkspaceUpdater {
                     String revisionName = r.getDate() != null ?
                     		fmt.format(r.getDate()) : r.toString();
                 	
-                    listener.getLogger().println("Checking out " + location.remote + " at revision " + revisionName);
+                    listener.getLogger().println("Checking out " + location.remote + " at revision " + revisionName +
+		    	" to depth " + location.getDepthOption() + " and ignoring externals: " + location.isIgnoreExternalsOption());
 
                     File local = new File(ws, location.getLocalDir());
+                    svnuc.setIgnoreExternals(location.isIgnoreExternalsOption());
                     svnuc.setEventHandler(new SubversionUpdateEventHandler(new PrintStream(pos), externals, local, location.getLocalDir()));
                     
-                    svnuc.doCheckout(location.getSVNURL(), local.getCanonicalFile(), SVNRevision.HEAD, r, SVNDepth.INFINITY, true);
+                    SVNDepth svnDepth = getSvnDepth(location.getDepthOption());
+                    svnuc.doCheckout(location.getSVNURL(), local.getCanonicalFile(), SVNRevision.HEAD, r, svnDepth, true);
                 } catch (SVNCancelException e) {
                     if (isAuthenticationFailedError(e)) {
                         e.printStackTrace(listener.error("Failed to check out " + location.remote));
