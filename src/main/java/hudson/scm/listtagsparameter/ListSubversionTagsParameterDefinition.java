@@ -308,7 +308,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
     SimpleSVNDirEntryHandler branchesEntryHandler = new SimpleSVNDirEntryHandler(null);
     logClient.doList(branchesRepo, SVNRevision.HEAD, SVNRevision.HEAD, false, SVNDepth.IMMEDIATES, SVNDirEntry.DIRENT_ALL, branchesEntryHandler);
     List<String> branches = branchesEntryHandler.getDirs(isReverseByDate(), isReverseByName());
-    branches.remove(SVN_BRANCHES);
+    branches.remove("");
     appendTargetDir(SVN_BRANCHES, branches);
 
     // Get the tags repository contents
@@ -316,7 +316,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
     SimpleSVNDirEntryHandler tagsEntryHandler = new SimpleSVNDirEntryHandler(null);
     logClient.doList(tagsRepo, SVNRevision.HEAD, SVNRevision.HEAD, false, SVNDepth.IMMEDIATES, SVNDirEntry.DIRENT_ALL, tagsEntryHandler);
     List<String> tags = tagsEntryHandler.getDirs(isReverseByDate(), isReverseByName());
-    tags.remove(SVN_TAGS);
+    tags.remove("");
     appendTargetDir(SVN_TAGS, tags);
 
     // Merge trunk with the contents of branches and tags.
