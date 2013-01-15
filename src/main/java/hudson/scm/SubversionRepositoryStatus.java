@@ -59,7 +59,6 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
     
     private JobProvider jobProvider = new JobProvider() {
         @SuppressWarnings("rawtypes")
-        @Override
         public List<AbstractProject> getAllJobs() {
             return Hudson.getInstance().getAllItems(AbstractProject.class);
         }

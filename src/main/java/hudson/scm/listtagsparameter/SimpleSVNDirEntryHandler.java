@@ -89,7 +89,6 @@ public class SimpleSVNDirEntryHandler implements ISVNDirEntryHandler {
     return sortedDirs;
   }
 
-  @Override
   public void handleDirEntry(SVNDirEntry dirEntry) throws SVNException {
     if(filterPattern == null || filterPattern.matcher(dirEntry.getName()).matches()) {
       dirs.add(dirEntry);

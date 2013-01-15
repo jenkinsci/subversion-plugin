@@ -73,7 +73,6 @@ public final class SubversionChangeLogSet extends ChangeLogSet<SubversionChangeL
         this.logs = prepareChangeLogEntries(logs);
     }
 
-    @Override
     public boolean isEmptySet() {
         return logs.isEmpty();
     }
@@ -83,7 +82,6 @@ public final class SubversionChangeLogSet extends ChangeLogSet<SubversionChangeL
     }
 
 
-    @Override
     public Iterator<LogEntry> iterator() {
         return logs.iterator();
     }
@@ -96,7 +94,6 @@ public final class SubversionChangeLogSet extends ChangeLogSet<SubversionChangeL
     public synchronized Map<String,Long> getRevisionMap() throws IOException {
         if(revisionMap==null)
             revisionMap = SubversionSCM.parseRevisionFile(build);
-        }
         return revisionMap;
     }
     
@@ -167,7 +164,6 @@ public final class SubversionChangeLogSet extends ChangeLogSet<SubversionChangeL
         /**
          * Gets the {@link SubversionChangeLogSet} to which this change set belongs.
          */
-        @Override
         public SubversionChangeLogSet getParent() {
             return (SubversionChangeLogSet)super.getParent();
         }
@@ -223,13 +219,9 @@ public final class SubversionChangeLogSet extends ChangeLogSet<SubversionChangeL
         @Override
         public Collection<String> getAffectedPaths() {
             return new AbstractList<String>() {
-
-                @Override
                 public String get(int index) {
                     return preparePath(paths.get(index).value);
                 }
-
-                @Override
                 public int size() {
                     return paths.size();
                 }
@@ -322,7 +314,6 @@ public final class SubversionChangeLogSet extends ChangeLogSet<SubversionChangeL
         
         void finish() {
             Collections.sort(paths, new Comparator<Path>() {
-                @Override
                 public int compare(Path o1, Path o2) {
                     String path1 = Util.fixNull(o1.getValue());
                     String path2 = Util.fixNull(o2.getValue());
@@ -410,7 +401,6 @@ public final class SubversionChangeLogSet extends ChangeLogSet<SubversionChangeL
         /**
          * Inherited from AffectedFile
          */
-        @Override
         public String getPath() {
 	        return getValue();
         }
