@@ -1,7 +1,7 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
     <f:section title="Subversion Mail Address Resolver">
         <f:entry title="Matching rules"
-                 description="Rules to retrieve user e-mail based on subversion repository">
+                 description="Rules to retrieve user e-mail based on subversion repository&lt;br>&lt;strong>Warning:&lt;/strong> enabling rules here can cause major performance problems in large Jenkins installations.">
             <f:repeatable field="rules">
                 <table width="100%">
                     <f:entry title="${%repository pattern}" field="pattern">
