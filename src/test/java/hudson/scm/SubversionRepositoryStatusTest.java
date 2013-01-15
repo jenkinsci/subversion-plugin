@@ -37,7 +37,6 @@ public class SubversionRepositoryStatusTest {
         when(project.isDisabled()).thenReturn(true);
         
         JobProvider jobProvider = new JobProvider() {
-            @Override
             public List<AbstractProject> getAllJobs() {
                 return Collections.singletonList(project);
             }
