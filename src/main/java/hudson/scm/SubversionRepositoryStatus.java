@@ -91,7 +91,7 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
 	        	if (LOGGER.isLoggable(FINER)) {
 	        		LOGGER.finer("Reading line: "+line);
 	        	}
-	            affectedPath.add(line.substring(4));
+	        	affectedPath.add(cropAffectedPathFromChangeInfo(line));
 	            if (line.startsWith("svnlook changed --revision ")) {
 	                String msg = "Expecting the output from the svnlook command but instead you just sent me the svnlook invocation command line: " + line;
 	                LOGGER.warning(msg);
@@ -197,6 +197,10 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
             LOGGER.log(WARNING,"Failure when calling isIgnorePostCommitHooks",e);
             return false;
         }
+    }
+
+    private String cropAffectedPathFromChangeInfo(String line) {
+        return line.substring(1).trim();
     }
 
     static {

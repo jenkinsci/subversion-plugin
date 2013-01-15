@@ -23,10 +23,10 @@
  */
 package hudson.scm;
 
+import hudson.EnvVars;
 import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.model.User;
-import hudson.scm.SubversionChangeLogSet.LogEntry;
 import hudson.scm.SubversionSCM.ModuleLocation;
 
 import java.io.IOException;
@@ -51,7 +51,8 @@ import org.tmatesoft.svn.core.internal.util.SVNDate;
  *
  * @author Kohsuke Kawaguchi
  */
-public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
+public final class SubversionChangeLogSet extends ChangeLogSet<SubversionChangeLogSet.LogEntry> {
+
     private final List<LogEntry> logs;
 
     /**
@@ -60,7 +61,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
     private Map<String,Long> revisionMap;
 
     private boolean ignoreDirPropChanges;
-    
+
     @Deprecated
     /*package*/ SubversionChangeLogSet(AbstractBuild<?,?> build, List<LogEntry> logs) {
       this(build, logs, false);
@@ -72,6 +73,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         this.logs = prepareChangeLogEntries(logs);
     }
 
+    @Override
     public boolean isEmptySet() {
         return logs.isEmpty();
     }
@@ -81,6 +83,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
     }
 
 
+    @Override
     public Iterator<LogEntry> iterator() {
         return logs.iterator();
     }
@@ -93,6 +96,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
     public synchronized Map<String,Long> getRevisionMap() throws IOException {
         if(revisionMap==null)
             revisionMap = SubversionSCM.parseRevisionFile(build);
+        }
         return revisionMap;
     }
     
@@ -163,6 +167,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         /**
          * Gets the {@link SubversionChangeLogSet} to which this change set belongs.
          */
+        @Override
         public SubversionChangeLogSet getParent() {
             return (SubversionChangeLogSet)super.getParent();
         }
@@ -197,7 +202,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         public void setRevision(int revision) {
             this.revision = revision;
         }
-        
+
         @Override
         public String getCommitId() {
             return String.valueOf(revision);
@@ -218,21 +223,26 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         @Override
         public Collection<String> getAffectedPaths() {
             return new AbstractList<String>() {
+
+                @Override
                 public String get(int index) {
                     return preparePath(paths.get(index).value);
                 }
+
+                @Override
                 public int size() {
                     return paths.size();
                 }
             };
         }
-        
+
         private String preparePath(String path) {
             SCM scm = getParent().build.getProject().getScm();
             if (!(scm instanceof SubversionSCM)) return path;
             ModuleLocation[] locations = ((SubversionSCM)scm).getLocations();
-            for (int i = 0; i < locations.length; i++) {
-                String commonPart = findCommonPart(locations[i].remote, path);
+            for (ModuleLocation location : locations) {
+                EnvVars env = EnvVarsUtils.getEnvVarsFromGlobalNodeProperties();
+                String commonPart = findCommonPart(location.getExpandedLocation(env).remote, path);
                 if (commonPart != null) {
                     if (path.startsWith("/")) {
                         path = path.substring(1);
@@ -246,7 +256,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
             }
             return path;
         }
-        
+
         private String findCommonPart(String folder, String filePath) {
             if (folder == null || filePath == null) {
                 return null;
@@ -304,7 +314,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         public List<Path> getPaths() {
             return paths;
         }
-        
+
         @Override
         public Collection<Path> getAffectedFiles() {
 	        return paths;
@@ -320,7 +330,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
                 }
             });
         }
-        
+
         @Override
         public boolean equals(Object o) {
             if (this == o) {
@@ -400,6 +410,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         /**
          * Inherited from AffectedFile
          */
+        @Override
         public String getPath() {
 	        return getValue();
         }
