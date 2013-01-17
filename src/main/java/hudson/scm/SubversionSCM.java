@@ -54,9 +54,7 @@ import hudson.model.ParametersAction;
 import hudson.model.Run;
 import hudson.remoting.Callable;
 import hudson.remoting.Channel;
-import hudson.remoting.DelegatingCallable;
 import hudson.remoting.VirtualChannel;
-import hudson.scm.PollingResult.Change;
 import hudson.scm.UserProvidedCredential.AuthenticationManagerImpl;
 import hudson.scm.subversion.CheckoutUpdater;
 import hudson.scm.subversion.Messages;
@@ -89,7 +87,6 @@ import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
-import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -1120,7 +1117,7 @@ public class SubversionSCM extends SCM implements Serializable {
      * @param remoteUrl
      *      The target to run "svn info".
      */
-    private static SVNInfo parseSvnInfo(SVNURL remoteUrl, ISVNAuthenticationProvider authProvider) throws SVNException {
+    static SVNInfo parseSvnInfo(SVNURL remoteUrl, ISVNAuthenticationProvider authProvider) throws SVNException {
         final SvnClientManager manager = createClientManager(authProvider);
         try {
             final SVNWCClient svnWc = manager.getWCClient();
@@ -1255,72 +1252,24 @@ public class SubversionSCM extends SCM implements Serializable {
         // determine where to perform polling. prefer the node where the build happened,
         // in case a cluster is non-uniform. see http://www.nabble.com/svn-connection-from-slave-only-td24970587.html
         VirtualChannel ch=null;
-        Node n = lastCompletedBuild!=null ? lastCompletedBuild.getBuiltOn() : null;
-        if (POLL_FROM_MASTER) {
-            n = null;
-        }
-        if (n!=null) {
-            Computer c = n.toComputer();
-            if (c!=null)    ch = c.getChannel();
+        Node n = null;
+        if (!POLL_FROM_MASTER) {
+            n = lastCompletedBuild!=null ? lastCompletedBuild.getBuiltOn() : null;
+            if (n!=null) {
+                Computer c = n.toComputer();
+                if (c!=null)    ch = c.getChannel();
+            }
         }
         if (ch==null)   ch= MasterComputer.localChannel;
+ 
         final String nodeName = n!=null ? n.getNodeName() : "master";
-        final String projectName = project.getName();
 
-        final SVNLogHandler logHandler = new SVNLogHandler(listener);
-        // figure out the remote revisions
+        final SVNLogHandler logHandler = new SVNLogHandler(createSVNLogFilter(), listener);
+
         final ISVNAuthenticationProvider authProvider = getDescriptor().createAuthenticationProvider(project);
 
-        return ch.call(new DelegatingCallable<PollingResult,IOException> () {
-            private static final long serialVersionUID = 8200959096894789583L;
-
-            public ClassLoader getClassLoader() {
-                return Hudson.getInstance().getPluginManager().uberClassLoader;
-            }
-
-            /**
-             * Computes {@link PollingResult}. Note that we allow changes that match the certain paths to be excluded,
-             * so
-             */
-            public PollingResult call() throws IOException {
-                listener.getLogger().println("Received SCM poll call on " + nodeName + " for " + projectName + " on " + DateFormat.getDateTimeInstance().format(new Date()) );
-                final Map<String,Long> revs = new HashMap<String,Long>();
-                boolean changes = false;
-                boolean significantChanges = false;
-
-                for (Map.Entry<String,Long> baselineInfo : baseline.revisions.entrySet()) {
-                    String url = baselineInfo.getKey();
-                    long baseRev = baselineInfo.getValue();
-                    /*
-                        If we fail to check the remote revision, assume there's no change.
-                        In this way, a temporary SVN server problem won't result in bogus builds,
-                        which will fail anyway. So our policy in the error handling in the polling
-                        is not to fire off builds. see HUDSON-6136.
-                     */
-                    revs.put(url, baseRev);
-                    try {
-                        final SVNURL svnurl = SVNURL.parseURIDecoded(url);
-                        long nowRev = new SvnInfo(parseSvnInfo(svnurl,authProvider)).revision;
-
-                        changes |= (nowRev>baseRev);
-
-                        listener.getLogger().println(Messages.SubversionSCM_pollChanges_remoteRevisionAt(url, nowRev));
-                        revs.put(url, nowRev);
-                        // make sure there's a change and it isn't excluded
-                        if (logHandler.findNonExcludedChanges(svnurl,
-                                baseRev+1, nowRev, authProvider)) {
-                            listener.getLogger().println(Messages.SubversionSCM_pollChanges_changedFrom(baseRev));
-                            significantChanges = true;
-                        }
-                    } catch (SVNException e) {
-                        e.printStackTrace(listener.error(Messages.SubversionSCM_pollChanges_exception(url)));
-                    }
-                }
-                assert revs.size()== baseline.revisions.size();
-                return new PollingResult(baseline,new SVNRevisionState(revs),
-                        significantChanges ? Change.SIGNIFICANT : changes ? Change.INSIGNIFICANT : Change.NONE);
-            }
-        });
+        // figure out the remote revisions
+        return ch.call(new CompareAgainstBaselineCallable(baseline, logHandler, project.getName(), listener, authProvider, nodeName));
     }
 
     public SVNLogFilter createSVNLogFilter() {
@@ -1332,13 +1281,13 @@ public class SubversionSCM extends SCM implements Serializable {
      * Goes through the changes between two revisions and see if all the changes
      * are excluded.
      */
-    private final class SVNLogHandler implements ISVNLogEntryHandler, Serializable {
+    static final class SVNLogHandler implements ISVNLogEntryHandler, Serializable {
 
         private boolean changesFound = false;
         private SVNLogFilter filter;
 
-        private SVNLogHandler(TaskListener listener) {
-            this.filter = createSVNLogFilter();
+        SVNLogHandler(SVNLogFilter svnLogFilter, TaskListener listener) {
+            this.filter = svnLogFilter;;
             this.filter.setTaskListener(listener);
         }
 
