@@ -1,7 +1,6 @@
 package hudson.scm;
 
 import static java.util.regex.Pattern.compile;
-import hudson.remoting.Channel;
 import hudson.scm.SubversionSCM.SVNLogHandler;
 import hudson.util.StreamTaskListener;
 

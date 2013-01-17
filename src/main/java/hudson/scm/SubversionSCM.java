@@ -563,12 +563,6 @@ public class SubversionSCM extends SCM implements Serializable {
         return excludedRevprop;
     }
 
-    private String getExcludedRevpropNormalized() {
-        String s = fixEmptyAndTrim(getExcludedRevprop());
-        if (s!=null)        return s;
-        return getDescriptor().getGlobalExcludedRevprop();
-    }
-
     @Exported
     public String getExcludedCommitMessages() {
         return excludedCommitMessages;
@@ -752,7 +746,8 @@ public class SubversionSCM extends SCM implements Serializable {
      * @return
      *      immutable list. Can be empty but never null.
      */
-    /*package*/ static List<External> parseExternalsFile(AbstractProject project) throws IOException {
+    /*package*/ @SuppressWarnings("unchecked")
+    static List<External> parseExternalsFile(AbstractProject project) throws IOException {
         File file = getExternalsFile(project);
         if(file.exists()) {
             try {
@@ -774,6 +769,7 @@ public class SubversionSCM extends SCM implements Serializable {
         return false;
     }
     
+    @SuppressWarnings("unchecked")
     public boolean checkout(AbstractBuild build, Launcher launcher, FilePath workspace, final BuildListener listener, File changelogFile) throws IOException, InterruptedException {
         EnvVars env = build.getEnvironment(listener);
         EnvVarsUtils.overrideAll(env, build.getBuildVariables());
@@ -1698,7 +1694,7 @@ public class SubversionSCM extends SCM implements Serializable {
         /**
          * See {@link DescriptorImpl#createAuthenticationProvider(AbstractProject)}.
          */
-        private static final class SVNAuthenticationProviderImpl implements ISVNAuthenticationProvider, ISVNAuthenticationOutcomeListener, Serializable {
+        static final class SVNAuthenticationProviderImpl implements ISVNAuthenticationProvider, ISVNAuthenticationOutcomeListener, Serializable {
             /**
              * Project-scoped authentication source. For historical reasons, can be null.
              */
@@ -1783,6 +1779,7 @@ public class SubversionSCM extends SCM implements Serializable {
             load();
         }
 
+        @SuppressWarnings("unchecked")
         protected DescriptorImpl(Class clazz, Class<? extends RepositoryBrowser> repositoryBrowser) {
             super(clazz,repositoryBrowser);
         }
@@ -2534,6 +2531,7 @@ public class SubversionSCM extends SCM implements Serializable {
     /**
      * In preparation for a comparison, char[] needs to be converted that supports value equality.
      */
+    @SuppressWarnings("unchecked")
     private static Map describeBean(Object o) throws InvocationTargetException, NoSuchMethodException, IllegalAccessException {
         Map<?,?> m = PropertyUtils.describe(o);
         for (Entry e : m.entrySet()) {
