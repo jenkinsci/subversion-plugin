@@ -1,12 +1,15 @@
 package hudson.scm;
 
+import hudson.model.TaskListener;
+
 import java.io.PrintStream;
+import java.io.Serializable;
 
 import org.tmatesoft.svn.core.SVNLogEntry;
 
-public interface SVNLogFilter {
+public interface SVNLogFilter extends Serializable {
 
-    public abstract void setLog(PrintStream log);
+    public abstract void setTaskListener(TaskListener listener);
 
     /**
      * Is there any exclusion rule?

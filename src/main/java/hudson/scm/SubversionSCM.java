@@ -1339,7 +1339,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
         private SVNLogHandler(TaskListener listener) {
             this.filter = createSVNLogFilter();
-            this.filter.setLog(listener.getLogger());
+            this.filter.setTaskListener(listener);
         }
 
         public boolean isChangesFound() {

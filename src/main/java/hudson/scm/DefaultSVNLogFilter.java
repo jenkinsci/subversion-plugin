@@ -1,6 +1,7 @@
 package hudson.scm;
 
 import hudson.Util;
+import hudson.model.TaskListener;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -19,7 +20,7 @@ import org.tmatesoft.svn.core.SVNProperties;
  */
 public class DefaultSVNLogFilter implements SVNLogFilter {
 
-    private PrintStream log;
+    private TaskListener listener;
 
     private Pattern[] excludedPatterns;
     private Pattern[] includedPatterns;
@@ -37,12 +38,13 @@ public class DefaultSVNLogFilter implements SVNLogFilter {
         this.ignoreDirPropChanges = ignoreDirPropChanges;
     }
 
-    /* (non-Javadoc)
-	 * @see hudson.scm.SVNLogFilter#setLog(java.io.PrintStream)
-	 */
-    public void setLog(PrintStream log) {
-        this.log = log;
+    public void setTaskListener(TaskListener listener) {
+        this.listener = listener;
     }
+
+	private PrintStream getLog() {
+		return this.listener != null ? this.listener.getLogger() : null;
+	}
 
     /* (non-Javadoc)
 	 * @see hudson.scm.SVNLogFilter#hasExclusionRule()
@@ -59,8 +61,8 @@ public class DefaultSVNLogFilter implements SVNLogFilter {
             // If the entry includes the exclusion revprop, don't count it as a change
             SVNProperties revprops = logEntry.getRevisionProperties();
             if (revprops != null && revprops.containsName(excludedRevprop)) {
-                if (log != null) {
-                    log.println(hudson.scm.subversion.Messages.SubversionSCM_pollChanges_ignoredRevision(
+                if (getLog() != null) {
+                    getLog().println(hudson.scm.subversion.Messages.SubversionSCM_pollChanges_ignoredRevision(
                         logEntry.getRevision(),
                         hudson.scm.subversion.Messages.SubversionSCM_pollChanges_ignoredRevision_revprop(excludedRevprop)));
                 }
@@ -71,8 +73,8 @@ public class DefaultSVNLogFilter implements SVNLogFilter {
         String author = logEntry.getAuthor();
         if (excludedUsers.contains(author)) {
             // If the author is an excluded user, don't count this entry as a change
-            if (log != null) {
-                log.println(hudson.scm.subversion.Messages.SubversionSCM_pollChanges_ignoredRevision(
+            if (getLog() != null) {
+            	getLog().println(hudson.scm.subversion.Messages.SubversionSCM_pollChanges_ignoredRevision(
                     logEntry.getRevision(),
                     hudson.scm.subversion.Messages.SubversionSCM_pollChanges_ignoredRevision_author(author)));
             }
@@ -106,8 +108,8 @@ public class DefaultSVNLogFilter implements SVNLogFilter {
                 }
             }
             if (!contentChanged) {
-                if (log != null) {
-                    log.println(hudson.scm.subversion.Messages.SubversionSCM_pollChanges_ignoredRevision(
+                if (getLog() != null) {
+                	getLog().println(hudson.scm.subversion.Messages.SubversionSCM_pollChanges_ignoredRevision(
                         logEntry.getRevision(),
                         hudson.scm.subversion.Messages.SubversionSCM_pollChanges_ignoredRevision_onlydirprops()));
                 }
@@ -132,8 +134,8 @@ public class DefaultSVNLogFilter implements SVNLogFilter {
 
         // If no paths are included don't count this entry as a change
         if (includedPaths.isEmpty()) {
-            if (log != null) {
-                log.println(hudson.scm.subversion.Messages.SubversionSCM_pollChanges_ignoredRevision(
+            if (getLog() != null) {
+            	getLog().println(hudson.scm.subversion.Messages.SubversionSCM_pollChanges_ignoredRevision(
                     logEntry.getRevision(),
                     hudson.scm.subversion.Messages.SubversionSCM_pollChanges_ignoredRevision_noincpath()));
             }
@@ -155,8 +157,8 @@ public class DefaultSVNLogFilter implements SVNLogFilter {
 
         // If all included paths are in an excluded region, don't count this entry as a change
         if (includedPaths.size() == excludedPaths.size()) {
-            if (log != null) {
-                log.println(hudson.scm.subversion.Messages.SubversionSCM_pollChanges_ignoredRevision(
+            if (getLog() != null) {
+            	getLog().println(hudson.scm.subversion.Messages.SubversionSCM_pollChanges_ignoredRevision(
                     logEntry.getRevision(),
                     hudson.scm.subversion.Messages.SubversionSCM_pollChanges_ignoredRevision_path(Util.join(excludedPaths, ", "))));
             }
