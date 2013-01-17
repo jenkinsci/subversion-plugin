@@ -933,16 +933,27 @@ public class SubversionSCMTest extends AbstractSubversionTest {
                 
         boolean foundChanges = p.poll(createTaskListener()).hasChanges();
         assertFalse("Property only changes commit should have been ignored.", foundChanges);
-        
+
+        p.scheduleBuild2(0).get();
         changeProperties("");
         addFiles("x", "y");
+        commitWorkingCopy("meta + add");
+     
+        foundChanges = p.poll(createTaskListener()).hasChanges();
+        assertTrue("Non Property only changes (adds) commit should not be ignored.", foundChanges);
+        
+        p.scheduleBuild2(0).get();
+
+        changeProperties("", "c1");
+        changeFiles("x", "y", "c1/f2.txt");
         commitWorkingCopy("meta + files");
      
         foundChanges = p.poll(createTaskListener()).hasChanges();
-        assertTrue("Non Property only changes commit should not be ignored.", foundChanges);
-        
+        assertTrue("Non Property only changes (modify) commit should not be ignored.", foundChanges);
+
         // ignored commit followed by not ignored commit
-        
+
+        p.scheduleBuild2(0).get();
         changeProperties("");
         commitWorkingCopy("meta only");
         changeFiles("x", "y");
@@ -950,7 +961,13 @@ public class SubversionSCMTest extends AbstractSubversionTest {
      
         foundChanges = p.poll(createTaskListener()).hasChanges();
         assertTrue("Non Property only changes commit should not be ignored.", foundChanges);
-        
+
+        p.scheduleBuild2(0).get();
+        changeProperties("c1");
+        commitWorkingCopy("meta only");
+     
+        foundChanges = p.poll(createTaskListener()).hasChanges();
+        assertFalse("Property only changes commit should be ignored.", foundChanges);
     }
     
     /**
@@ -988,7 +1005,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 	SvnClientManager svnm = SubversionSCM.createClientManager((AbstractProject) null);
 	for (String path : paths) {
 	    FilePath newFile = workingcopy.child(path);
-	    newFile.write("random content","UTF-8");
+	    newFile.write(new Date().toString(),"UTF-8");
 	}
     }
     
