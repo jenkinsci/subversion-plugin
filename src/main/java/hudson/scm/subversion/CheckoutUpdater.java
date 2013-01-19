@@ -87,8 +87,7 @@ public class CheckoutUpdater extends WorkspaceUpdater {
                     String revisionName = r.getDate() != null ?
                     		fmt.format(r.getDate()) : r.toString();
                 	
-                    listener.getLogger().println("Checking out " + location.remote + " at revision " + revisionName +
-		    	" to depth " + location.getDepthOption() + " and ignoring externals: " + location.isIgnoreExternalsOption());
+                    listener.getLogger().println("Checking out " + location.remote + " at revision " + revisionName);
 
                     File local = new File(ws, location.getLocalDir());
                     SubversionUpdateEventHandler eventHandler = new SubversionUpdateEventHandler(new PrintStream(pos), externals, local, location.getLocalDir());

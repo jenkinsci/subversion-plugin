@@ -138,8 +138,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
                 
                 svnuc.setIgnoreExternals(location.isIgnoreExternalsOption());
                 preUpdate(location, local);
-                listener.getLogger().println("Updating " + location.remote + " at revision " + revisionName +
-                    " to depth " + location.getDepthOption() + " and ignoring externals: " + location.isIgnoreExternalsOption());
+                listener.getLogger().println("Updating " + location.remote + " at revision " + revisionName);
                 SVNDepth svnDepth = getSvnDepth(location.getDepthOption());
                 svnuc.doUpdate(local.getCanonicalFile(), r, svnDepth, true, true);
             } catch (SVNCancelException e) {
