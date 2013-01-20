@@ -225,6 +225,8 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     private transient Map<AbstractProject, List<External>> projectExternalsCache;
 
+    private transient boolean pollFromMaster = POLL_FROM_MASTER;
+    
     /**
      * @deprecated as of 1.286
      */
@@ -1195,6 +1197,14 @@ public class SubversionSCM extends SCM implements Serializable {
         Map<String,Long> wsRev = parseRevisionFile(build,true,true);
         return new SVNRevisionState(wsRev);
     }
+    
+    private boolean isPollFromMaster() {
+        return pollFromMaster;
+    }
+    
+    void setPollFromMaster(boolean pollFromMaster) {
+        this.pollFromMaster = pollFromMaster;
+    }
 
     @Override
     protected PollingResult compareRemoteRevisionWith(AbstractProject<?,?> project, Launcher launcher, FilePath workspace, final TaskListener listener, SCMRevisionState _baseline) throws IOException, InterruptedException {
@@ -1249,7 +1259,7 @@ public class SubversionSCM extends SCM implements Serializable {
         // in case a cluster is non-uniform. see http://www.nabble.com/svn-connection-from-slave-only-td24970587.html
         VirtualChannel ch=null;
         Node n = null;
-        if (!POLL_FROM_MASTER) {
+        if (!isPollFromMaster()) {
             n = lastCompletedBuild!=null ? lastCompletedBuild.getBuiltOn() : null;
             if (n!=null) {
                 Computer c = n.toComputer();
@@ -2486,7 +2496,7 @@ public class SubversionSCM extends SCM implements Serializable {
     /**
      * Property to control whether SCM polling happens from the slave or master
      */
-    public static boolean POLL_FROM_MASTER = Boolean.getBoolean(SubversionSCM.class.getName()+".pollFromMaster");
+    private static boolean POLL_FROM_MASTER = Boolean.getBoolean(SubversionSCM.class.getName()+".pollFromMaster");
 
     /**
      * If set to non-null, read configuration from this directory instead of "~/.subversion".

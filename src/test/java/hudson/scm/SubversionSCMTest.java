@@ -1048,7 +1048,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     public void testMasterPolling() throws Exception {
         File repo = new CopyExisting(getClass().getResource("two-revisions.zip")).allocate();
         SubversionSCM scm = new SubversionSCM("file://" + repo.toURI().toURL().getPath());
-        SubversionSCM.POLL_FROM_MASTER = true;
+        scm.setPollFromMaster(true);
 
         FreeStyleProject p = createFreeStyleProject();
         p.setScm(scm);
