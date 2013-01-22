@@ -306,7 +306,6 @@ public List<String> getTags() {
    */
   private List<String> getSVNRootRepoDirectories(SVNLogClient logClient, SVNURL repoURL) throws SVNException {
     // Get the branches repository contents
-    List<String> dirs = null;
     SVNURL branchesRepo = repoURL.appendPath(SVN_BRANCHES, true);
     SimpleSVNDirEntryHandler branchesEntryHandler = new SimpleSVNDirEntryHandler(null);
     logClient.doList(branchesRepo, SVNRevision.HEAD, SVNRevision.HEAD, false, SVNDepth.IMMEDIATES, SVNDirEntry.DIRENT_ALL, branchesEntryHandler);
@@ -323,22 +322,15 @@ public List<String> getTags() {
     appendTargetDir(SVN_TAGS, tags);
 
     // Merge trunk with the contents of branches and tags.
-    dirs = new ArrayList<String>();
+    List<String> dirs = new ArrayList<String>();
     dirs.add(SVN_TRUNK);
-
-    if (branches != null) {
-      dirs.addAll(branches);
-    }
-
-    if (tags != null) {
-      dirs.addAll(tags);
-    }
+    dirs.addAll(branches);
+    dirs.addAll(tags);
 
     // Filter out any unwanted repository locations.
-    if (StringUtils.isNotBlank(tagsFilter)) {
+    if (StringUtils.isNotBlank(tagsFilter) && dirs.size() > 0) {
       Pattern filterPattern = Pattern.compile(tagsFilter);
 
-      if ((dirs != null) && (dirs.size() > 0) && (filterPattern != null)) {
         List<String> temp = new ArrayList<String>();
         for (String dir : dirs) {
           if (filterPattern.matcher(dir).matches()) {
@@ -346,7 +338,6 @@ public List<String> getTags() {
           }
         }
         dirs = temp;
-      }
     }
 
     return dirs;
