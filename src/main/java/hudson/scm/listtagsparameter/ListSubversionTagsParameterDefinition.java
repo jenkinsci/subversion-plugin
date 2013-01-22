@@ -70,9 +70,11 @@ import org.apache.commons.lang.StringUtils;
  * 
  * @author Romain Seguy (http://openromain.blogspot.com)
  */
+@SuppressWarnings("rawtypes")
 public class ListSubversionTagsParameterDefinition extends ParameterDefinition implements Comparable<ListSubversionTagsParameterDefinition> {
 
-  /**
+    private static final long serialVersionUID = 1L;
+/**
    * The Subversion repository which contains the tags to be listed.
    */
   private final String tagsDir;
@@ -156,14 +158,15 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
    * <p>This method never returns {@code null}. In case an error happens, the
    * returned list contains an error message surrounded by &lt; and &gt;.</p>
    */
-  public List<String> getTags() {
+public List<String> getTags() {
     AbstractProject context = null;
     List<AbstractProject> jobs = Hudson.getInstance().getItems(AbstractProject.class);
 
     // which project is this parameter bound to? (I should take time to move
     // this code to Hudson core one day)
     for(AbstractProject project : jobs) {
-      ParametersDefinitionProperty property = (ParametersDefinitionProperty) project.getProperty(ParametersDefinitionProperty.class);
+      @SuppressWarnings("unchecked")
+    ParametersDefinitionProperty property = (ParametersDefinitionProperty) project.getProperty(ParametersDefinitionProperty.class);
       if(property != null) {
         List<ParameterDefinition> parameterDefinitions = property.getParameterDefinitions();
         if(parameterDefinitions != null) {
