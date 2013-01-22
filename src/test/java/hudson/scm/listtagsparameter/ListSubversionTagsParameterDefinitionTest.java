@@ -2,9 +2,20 @@ package hudson.scm.listtagsparameter;
 
 import hudson.Proc;
 import hudson.scm.AbstractSubversionTest;
-import org.jvnet.hudson.test.Bug;
 
 import java.util.Arrays;
+import java.util.List;
+
+import org.junit.Assert;
+
+import org.jvnet.hudson.test.Bug;
+import org.tmatesoft.svn.core.ISVNDirEntryHandler;
+import org.tmatesoft.svn.core.SVNDirEntry;
+import org.tmatesoft.svn.core.SVNException;
+import org.tmatesoft.svn.core.SVNURL;
+import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
+import org.tmatesoft.svn.core.wc.SVNLogClient;
+import org.tmatesoft.svn.core.wc.SVNRevision;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -18,9 +29,29 @@ public class ListSubversionTagsParameterDefinitionTest extends AbstractSubversio
         Proc p = runSvnServe(getClass().getResource("JENKINS-11933.zip"));
         try {
             ListSubversionTagsParameterDefinition def = new ListSubversionTagsParameterDefinition("FOO", "svn://localhost/", "", "", "", false, false, null);
-            assertEquals(Arrays.asList("trunk", "tags/a", "tags/b", "tags/c"), def.getTags());
+            List<String> tags = def.getTags();
+            List<String> expected = Arrays.asList("trunk", "tags/a", "tags/b", "tags/c");
+            
+            if (!expected.equals(tags))  {
+                dumpRepositoryContents();
+                
+                Assert.fail("Expected " + expected + ", but got " + tags);
+            }
+            
         } finally {
             p.kill();
         }
+    }
+
+    private void dumpRepositoryContents() throws SVNException {
+        System.out.println("Repository contents:");
+        SVNURL repoURL = SVNURL.parseURIEncoded( "svn://localhost/");
+        SVNLogClient logClient = new SVNLogClient((ISVNAuthenticationManager)null, null);
+        logClient.doList(repoURL, SVNRevision.HEAD, SVNRevision.HEAD, false, true, new ISVNDirEntryHandler() {
+            @Override
+            public void handleDirEntry(SVNDirEntry dirEntry) throws SVNException {
+                System.out.println(dirEntry.getRelativePath());
+            }
+        });
     }
 }
