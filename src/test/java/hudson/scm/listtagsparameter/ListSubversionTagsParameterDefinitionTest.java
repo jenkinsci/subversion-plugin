@@ -34,6 +34,7 @@ public class ListSubversionTagsParameterDefinitionTest extends AbstractSubversio
             
             if (!expected.equals(tags))  {
                 // retry. Maybe the svnserve just didn't start up correctly, yet
+                System.out.println("First attempt failed. Retrying.");
                 Thread.sleep(300L);
                 tags = def.getTags();
                 if (!expected.equals(tags))  {
