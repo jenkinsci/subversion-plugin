@@ -168,6 +168,9 @@ public class UpdateUpdater extends WorkspaceUpdater {
                         listener.getLogger().println("Switching to " + location.remote + " at revision " + revisionName);
                         svnuc.doSwitch(local.getCanonicalFile(), location.getSVNURL(), r, r, svnDepth, true, true, true);
                         break;
+                    case CHECKOUT:
+                        // This case is handled by the (svnCommand == SvnCommandToUse.CHECKOUT) above.
+                        break;
                 }
             } catch (SVNCancelException e) {
                 if (isAuthenticationFailedError(e)) {
