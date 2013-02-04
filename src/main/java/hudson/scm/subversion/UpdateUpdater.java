@@ -72,15 +72,15 @@ public class UpdateUpdater extends WorkspaceUpdater {
         private static final long serialVersionUID = -5766470969352844330L;
 
         /**
-         * Returns true if we can use "svn update" instead of "svn checkout"
+         * Returns whether we can do a "svn update" or a "svn switch" or a "svn checkout"
          */
-        protected boolean isUpdatable() throws IOException {
+        protected SvnCommandToUse svnCommandToUse() throws IOException {
             String moduleName = location.getLocalDir();
             File module = new File(ws, moduleName).getCanonicalFile(); // canonicalize to remove ".." and ".". See #474
 
             if (!module.exists()) {
                 listener.getLogger().println("Checking out a fresh workspace because " + module + " doesn't exist");
-                return false;
+                return SvnCommandToUse.CHECKOUT;
             }
 
             try {
@@ -88,9 +88,15 @@ public class UpdateUpdater extends WorkspaceUpdater {
                 SvnInfo svnInfo = new SvnInfo(svnkitInfo);
 
                 String url = location.getURL();
+                
                 if (!svnInfo.url.equals(url)) {
-                    listener.getLogger().println("Checking out a fresh workspace because the workspace is not " + url);
-                    return false;
+                    if (isSameRepository(location, svnkitInfo)) {
+                        listener.getLogger().println("Switching from " + svnInfo.url + " to " + url);
+                        return SvnCommandToUse.SWITCH;
+                    } else {
+                        listener.getLogger().println("Checking out a fresh workspace because the workspace is not " + url);
+                        return SvnCommandToUse.CHECKOUT;
+                    }
                 }
             } catch (SVNException e) {
                 if (e.getErrorMessage().getErrorCode() == SVNErrorCode.WC_NOT_DIRECTORY) {
@@ -99,9 +105,13 @@ public class UpdateUpdater extends WorkspaceUpdater {
                     listener.getLogger().println("Checking out a fresh workspace because Jenkins failed to detect the current workspace " + module);
                     e.printStackTrace(listener.error(e.getMessage()));
                 }
-                return false;
+                return SvnCommandToUse.CHECKOUT;
             }
-            return true;
+            return SvnCommandToUse.UPDATE;
+        }
+
+        private boolean isSameRepository(ModuleLocation location, SVNInfo svnkitInfo) throws SVNException {
+            return location.getSVNURL().toString().startsWith(svnkitInfo.getRepositoryRootURL().toString());
         }
 
         /**
@@ -117,10 +127,11 @@ public class UpdateUpdater extends WorkspaceUpdater {
 
         @Override
         public List<External> perform() throws IOException, InterruptedException {
-            if (!isUpdatable()) {
+            SvnCommandToUse svnCommand = svnCommandToUse();
+            
+            if (svnCommand == SvnCommandToUse.CHECKOUT) {
                 return delegateTo(new CheckoutUpdater());
             }
-
 
             final SVNUpdateClient svnuc = clientManager.getUpdateClient();
             final List<External> externals = new ArrayList<External>(); // store discovered externals to here
@@ -138,9 +149,21 @@ public class UpdateUpdater extends WorkspaceUpdater {
                 
                 svnuc.setIgnoreExternals(location.isIgnoreExternalsOption());
                 preUpdate(location, local);
-                listener.getLogger().println("Updating " + location.remote + " at revision " + revisionName);
                 SVNDepth svnDepth = getSvnDepth(location.getDepthOption());
-                svnuc.doUpdate(local.getCanonicalFile(), r, svnDepth, true, true);
+                
+                switch (svnCommand) {
+                    case UPDATE:
+                        listener.getLogger().println("Updating " + location.remote + " at revision " + revisionName);
+                        svnuc.doUpdate(local.getCanonicalFile(), r, svnDepth, true, true);
+                        break;
+                    case SWITCH:
+                        listener.getLogger().println("Switching to " + location.remote + " at revision " + revisionName);
+                        svnuc.doSwitch(local.getCanonicalFile(), location.getSVNURL(), r, r, svnDepth, true, true, true);
+                        break;
+                    case CHECKOUT:
+                        // This case is handled by the (svnCommand == SvnCommandToUse.CHECKOUT) above.
+                        break;
+                }
             } catch (SVNCancelException e) {
                 if (isAuthenticationFailedError(e)) {
                     e.printStackTrace(listener.error("Failed to check out " + location.remote));
@@ -221,5 +244,11 @@ public class UpdateUpdater extends WorkspaceUpdater {
         public String getDisplayName() {
             return Messages.UpdateUpdater_DisplayName();
         }
+    }
+    
+    private static enum SvnCommandToUse {
+        UPDATE,
+        SWITCH,
+        CHECKOUT
     }
 }
