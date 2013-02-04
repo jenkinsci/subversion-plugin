@@ -74,13 +74,13 @@ public class UpdateUpdater extends WorkspaceUpdater {
         /**
          * Returns whether we can do a "svn update" or a "svn switch" or a "svn checkout"
          */
-        protected svnCommandToUse svnCommandToUse() throws IOException {
+        protected SvnCommandToUse svnCommandToUse() throws IOException {
             String moduleName = location.getLocalDir();
             File module = new File(ws, moduleName).getCanonicalFile(); // canonicalize to remove ".." and ".". See #474
 
             if (!module.exists()) {
                 listener.getLogger().println("Checking out a fresh workspace because " + module + " doesn't exist");
-                return svnCommandToUse.CHECKOUT;
+                return SvnCommandToUse.CHECKOUT;
             }
 
             try {
@@ -104,11 +104,11 @@ public class UpdateUpdater extends WorkspaceUpdater {
                             location_grandparent.equals(svnInfo_parent) || 
                             location_parent.equals(svnInfo_grandparent)) {
                         listener.getLogger().println("Switching from " + svnInfo.url + " to " + url);
-                        return svnCommandToUse.SWITCH;
+                        return SvnCommandToUse.SWITCH;
                     }
                     
                     listener.getLogger().println("Checking out a fresh workspace because the workspace is not " + url);
-                    return svnCommandToUse.CHECKOUT;
+                    return SvnCommandToUse.CHECKOUT;
                 }
             } catch (SVNException e) {
                 if (e.getErrorMessage().getErrorCode() == SVNErrorCode.WC_NOT_DIRECTORY) {
@@ -117,9 +117,9 @@ public class UpdateUpdater extends WorkspaceUpdater {
                     listener.getLogger().println("Checking out a fresh workspace because Jenkins failed to detect the current workspace " + module);
                     e.printStackTrace(listener.error(e.getMessage()));
                 }
-                return svnCommandToUse.CHECKOUT;
+                return SvnCommandToUse.CHECKOUT;
             }
-            return svnCommandToUse.UPDATE;
+            return SvnCommandToUse.UPDATE;
         }
 
         /**
@@ -135,9 +135,9 @@ public class UpdateUpdater extends WorkspaceUpdater {
 
         @Override
         public List<External> perform() throws IOException, InterruptedException {
-            svnCommandToUse svnCommand = svnCommandToUse();
+            SvnCommandToUse svnCommand = svnCommandToUse();
             
-            if (svnCommand == svnCommandToUse.CHECKOUT) {
+            if (svnCommand == SvnCommandToUse.CHECKOUT) {
                 return delegateTo(new CheckoutUpdater());
             }
 
@@ -251,7 +251,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
         }
     }
     
-    private static enum svnCommandToUse {
+    private static enum SvnCommandToUse {
         UPDATE,
         SWITCH,
         CHECKOUT
