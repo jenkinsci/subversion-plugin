@@ -90,25 +90,13 @@ public class UpdateUpdater extends WorkspaceUpdater {
                 String url = location.getURL();
                 
                 if (!svnInfo.url.equals(url)) {
-                    SVNURL location_parent = location.getSVNURL().removePathTail();
-                    SVNURL location_grandparent = location_parent.removePathTail();
-                    
-                    SVNURL svnInfo_parent = svnInfo.getSVNURL().removePathTail();
-                    SVNURL svnInfo_grandparent = svnInfo_parent.removePathTail();
-                    
-                    // Determine if we can use "svn switch" to do the update
-                    // case 1: branches/a to branches/b
-                    // case 2: x/trunk to x/branches/a
-                    // case 3: x/branches/a to x/trunk
-                    if (location_parent.equals(svnInfo_parent) || 
-                            location_grandparent.equals(svnInfo_parent) || 
-                            location_parent.equals(svnInfo_grandparent)) {
+                    if (location.getSVNURL().toString().startsWith(svnkitInfo.getRepositoryRootURL().toString())) {
                         listener.getLogger().println("Switching from " + svnInfo.url + " to " + url);
                         return SvnCommandToUse.SWITCH;
+                    } else {
+                        listener.getLogger().println("Checking out a fresh workspace because the workspace is not " + url);
+                        return SvnCommandToUse.CHECKOUT;
                     }
-                    
-                    listener.getLogger().println("Checking out a fresh workspace because the workspace is not " + url);
-                    return SvnCommandToUse.CHECKOUT;
                 }
             } catch (SVNException e) {
                 if (e.getErrorMessage().getErrorCode() == SVNErrorCode.WC_NOT_DIRECTORY) {
