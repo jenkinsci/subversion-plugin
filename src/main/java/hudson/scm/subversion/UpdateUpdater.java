@@ -90,7 +90,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
                 String url = location.getURL();
                 
                 if (!svnInfo.url.equals(url)) {
-                    if (location.getSVNURL().toString().startsWith(svnkitInfo.getRepositoryRootURL().toString())) {
+                    if (isSameRepository(location, svnkitInfo)) {
                         listener.getLogger().println("Switching from " + svnInfo.url + " to " + url);
                         return SvnCommandToUse.SWITCH;
                     } else {
@@ -108,6 +108,10 @@ public class UpdateUpdater extends WorkspaceUpdater {
                 return SvnCommandToUse.CHECKOUT;
             }
             return SvnCommandToUse.UPDATE;
+        }
+
+        private boolean isSameRepository(ModuleLocation location, SVNInfo svnkitInfo) throws SVNException {
+            return location.getSVNURL().toString().startsWith(svnkitInfo.getRepositoryRootURL().toString());
         }
 
         /**
