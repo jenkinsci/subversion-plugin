@@ -74,7 +74,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
         /**
          * Returns whether we can do a "svn update" or a "svn switch" or a "svn checkout"
          */
-        protected SvnCommandToUse svnCommandToUse() throws IOException {
+        protected SvnCommandToUse getSvnCommandToUse() throws IOException {
             String moduleName = location.getLocalDir();
             File module = new File(ws, moduleName).getCanonicalFile(); // canonicalize to remove ".." and ".". See #474
 
@@ -127,7 +127,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
 
         @Override
         public List<External> perform() throws IOException, InterruptedException {
-            SvnCommandToUse svnCommand = svnCommandToUse();
+            SvnCommandToUse svnCommand = getSvnCommandToUse();
             
             if (svnCommand == SvnCommandToUse.CHECKOUT) {
                 return delegateTo(new CheckoutUpdater());
