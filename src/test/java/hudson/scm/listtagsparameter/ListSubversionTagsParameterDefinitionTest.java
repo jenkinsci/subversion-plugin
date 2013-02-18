@@ -33,9 +33,15 @@ public class ListSubversionTagsParameterDefinitionTest extends AbstractSubversio
             List<String> expected = Arrays.asList("trunk", "tags/a", "tags/b", "tags/c");
             
             if (!expected.equals(tags))  {
-                dumpRepositoryContents();
+                // retry. Maybe the svnserve just didn't start up correctly, yet
+                System.out.println("First attempt failed. Retrying.");
+                Thread.sleep(300L);
+                tags = def.getTags();
+                if (!expected.equals(tags))  {
+                    dumpRepositoryContents();
                 
-                Assert.fail("Expected " + expected + ", but got " + tags);
+                    Assert.fail("Expected " + expected + ", but got " + tags);
+                }
             }
             
         } finally {
