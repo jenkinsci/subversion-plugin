@@ -1,0 +1,22 @@
+<div>
+  設定後，Jenkins 在輪詢判斷是否要觸發建置時，會略過<b><i>不在</i></b>這個清單裡的任何檔案或目錄。
+
+  <p>
+  每一筆排除設定都是要用來比對的正規表示式，一行一筆。
+
+  <p>
+  如果您在建置時需要 Check Out 完整的檔案，但只想在部分檔案有變更時才建置，就可以用這個功能。
+
+  <p>
+  <pre>
+    /trunk/myapp/c/library1/.*
+    /trunk/myapp/c/library2/.*
+  </pre>
+  假設 Check Out 了 /trunk/myapp，那只有在 c/library1 或 c/library2 子目錄裡有變更時才會建置。
+
+  <p>
+  如果同時也設定了要排除的區域，檔案同時在要包含的清單，而且<b><i>不在</i></b>要排除的清單中時才不會被略過。
+
+  <p>
+  <a href="http://www.regular-expressions.info/" target="_blank">這裡</a>有更多正規表示式的資訊。
+</div>

@@ -1,0 +1,23 @@
+<div>
+  使用本參數後，建置時會要使用者選擇將從 Subversion 複製到工作區的 Tag。
+
+  <p>
+  一但<strong>名稱</strong>及<strong>儲存庫 URL</strong>
+  兩個欄位設定了，就必須:
+  <ol>
+    <li>確認作業使用 <strong>Subversion</strong>
+    <li>將 <strong>Subversion</strong> 的<strong>儲存庫 URL</strong>
+        欄位設定成本參數裡兩個欄位值串接起來的值。
+  </ol>
+  舉例來說，如果<strong>名稱</strong>是 <code>SVN_TAG</code> ，而<strong>儲存庫 URL</strong> 是
+  <code>https://svn.jenkins-ci.org/tags</code>，那麼
+  <strong>Subversion</strong> 的<strong>儲存庫 URL</strong> 就要設定成
+  <code>https://svn.jenkins-ci.org/tags/$SVN_TAG</code>。
+
+  <p>
+  注意，要是您把<strong>儲存庫 URL</strong>欄位設定成 Subversion 儲存庫的最上層，而不是指到
+  <code>tags</code> 目錄 (例如設定成 <code>https://svn.jenkins-ci.org</code>，而不是
+  <code>https://svn.jenkins-ci.org/tags</code>)。如果儲存庫根目錄裡有 <code>trunk</code>,
+  <code>branches</code> 及 <code>tags</code> 三個目錄，那麼這個下拉選單就會讓使用者選擇要用
+  trunk 或是某一版的 branch 或 tag。
+</div>
