@@ -26,15 +26,22 @@
 <div>
   When used, this parameter will display a field at build-time so that the user
   is able to select a Subversion tag from which to create the working copy for
-  this project.<br/>
+  this project.
+
+  <p>
   Once the two fields <strong>Name</strong> and <strong>Repository URL</strong>
-  are set, you must (1) ensure the job uses <strong>Subversion</strong> and (2)
-  set the <strong>Repository URL</strong> field of <strong>Subversion</strong>
-  by concatenating the two fields of this parameter. For instance, if <strong>
-  Name</strong> is set to <code>SVN_TAG</code> and <strong>Repository URL
-  </strong> is set to <code>https://svn.jenkins-ci.org/tags</code>, then
-  <strong>Subversion</strong>'s <strong>Repository URL</strong> must be set to
-  <code>https://svn.jenkins-ci.org/tags/$SVN_TAG</code>.<br/>
+  are set, you must
+  <ol>
+    <li>ensure the job uses <strong>Subversion</strong> and
+    <li>set the <strong>Repository URL</strong> field of <strong>Subversion</strong>
+        by concatenating the two fields of this parameter.
+  </ol>
+  For instance, if <strong> Name</strong> is set to <code>SVN_TAG</code> and
+  <strong>Repository URL</strong> is set to <code>https://svn.jenkins-ci.org/tags</code>,
+  then <strong>Subversion</strong>'s <strong>Repository URL</strong> must be set to
+  <code>https://svn.jenkins-ci.org/tags/$SVN_TAG</code>.
+
+  <p>
   Notice that you can set the <strong>Repository URL</strong> field to a Subversion
   repository root rather than just pointing to a <code>tags</code> dir (ie, you
   can set it to <code>https://svn.jenkins-ci.org</code> rather than
