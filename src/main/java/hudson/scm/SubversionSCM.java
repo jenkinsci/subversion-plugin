@@ -1961,7 +1961,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 return FormValidation.errorWithMarkup(
                     Messages.SubversionSCM_doCheckRemote_invalidUrl());
 
-            // Test the connection only if we have job cuonfigure permission
+            // Test the connection only if we have job configure permission
             if (!context.hasPermission(Item.CONFIGURE))
                 return FormValidation.ok();
 
