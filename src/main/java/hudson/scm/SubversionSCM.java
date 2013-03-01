@@ -1962,7 +1962,7 @@ public class SubversionSCM extends SCM implements Serializable {
                     Messages.SubversionSCM_doCheckRemote_invalidUrl());
 
             // Test the connection only if we have job cuonfigure permission
-            if (!Hudson.getInstance().hasPermission(Item.CONFIGURE))
+            if (!context.hasPermission(Item.CONFIGURE))
                 return FormValidation.ok();
 
             try {
