@@ -1955,6 +1955,8 @@ public class SubversionSCM extends SCM implements Serializable {
 
             if(isValidateRemoteUpToVar()) {
                 url = (url.indexOf('$') != -1) ? url.substring(0, url.indexOf('$')) : url;
+            } else {
+                url = new EnvVars(EnvVars.masterEnvVars).expand(url);
             }
 
             if(!URL_PATTERN.matcher(url).matches())
