@@ -2171,7 +2171,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 return FormValidation.ok();
 
             try {
-                SVNURL repoURL = SVNURL.parseURIDecoded(v);
+                SVNURL repoURL = SVNURL.parseURIDecoded(new EnvVars(EnvVars.masterEnvVars).expand(v));
                 if (checkRepositoryPath(context,repoURL)!=SVNNodeKind.NONE)
                     // something exists
                     return FormValidation.ok();
