@@ -54,7 +54,7 @@ public class SubversionSCMUnitTest {
         SubversionSCM scm = mockSCMForBuildEnvVars();
         
         ModuleLocation[] singleLocation = new ModuleLocation[] {new ModuleLocation("/remotepath", "")};
-        when(scm.getLocations(any(AbstractBuild.class))).thenReturn(singleLocation);
+        when(scm.getLocations(any(EnvVars.class), any(AbstractBuild.class))).thenReturn(singleLocation);
         
         Map<String, Long> revisions = new HashMap<String, Long>();
         revisions.put("/remotepath", 4711L);
@@ -83,7 +83,7 @@ public class SubversionSCMUnitTest {
         ModuleLocation[] locations = new ModuleLocation[] {
                 new ModuleLocation("/remotepath1", ""),
                 new ModuleLocation("/remotepath2", "")};
-        when(scm.getLocations(any(AbstractBuild.class))).thenReturn(locations);
+        when(scm.getLocations(any(EnvVars.class), any(AbstractBuild.class))).thenReturn(locations);
         
         Map<String, Long> revisions = new HashMap<String, Long>();
         revisions.put("/remotepath1", 4711L);
