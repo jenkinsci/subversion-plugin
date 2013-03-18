@@ -604,7 +604,7 @@ public class SubversionSCM extends SCM implements Serializable {
     public void buildEnvVars(AbstractBuild<?, ?> build, Map<String, String> env) {
         super.buildEnvVars(build, env);
         
-        ModuleLocation[] svnLocations = getLocations(build);
+        ModuleLocation[] svnLocations = getLocations(new EnvVars(EnvVars.masterEnvVars), build);
 
         try {
             Map<String,Long> revisions = parseSvnRevisionFile(build);
