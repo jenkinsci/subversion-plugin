@@ -77,7 +77,7 @@ public class ListSubversionTagsParameterDefinitionTest extends AbstractSubversio
 			, false  
 			, null);
             List<String> tags = def.getTags();
-            List<String> expected = Arrays.asList("tags/d");
+            List<String> expected = Arrays.asList("d");
             
             if (!expected.equals(tags))  {
                 // retry. Maybe the svnserve just didn't start up correctly, yet
