@@ -660,7 +660,7 @@ public class SubversionSCM extends SCM implements Serializable {
      * Please consider using the non-static version {@link #parseSvnRevisionFile(AbstractBuild)}!
      */
     /*package*/ static Map<String,Long> parseRevisionFile(AbstractBuild<?,?> build) throws IOException {
-        return parseRevisionFile(build,false,false);
+        return parseRevisionFile(build,true,false);
     }
     
     /*package*/ Map<String,Long> parseSvnRevisionFile(AbstractBuild<?,?> build) throws IOException {
