@@ -32,7 +32,7 @@ THE SOFTWARE.
   </parent>
 
   <artifactId>subversion</artifactId>
-  <version>1.48</version>
+  <version>1.49-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
   <name>Jenkins Subversion Plug-in</name>
@@ -114,7 +114,7 @@ THE SOFTWARE.
     <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
     <url>http://github.com/jenkinsci/${project.artifactId}-plugin</url>
-    <tag>subversion-1.48</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <repositories>
