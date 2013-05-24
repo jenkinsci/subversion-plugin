@@ -32,7 +32,7 @@ THE SOFTWARE.
   </parent>
 
   <artifactId>subversion</artifactId>
-  <version>1.46-SNAPSHOT</version>
+  <version>1.49-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
   <name>Jenkins Subversion Plug-in</name>
@@ -63,6 +63,24 @@ THE SOFTWARE.
             <artifactId>maven-hpi-plugin</artifactId>
             <version>${maven-hpi-plugin.version}</version>
         </plugin>
+        <plugin>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>1.2</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireMavenVersion>
+                  <version>3.0</version>
+                </requireMavenVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   	<pluginManagement>
   		<plugins>
