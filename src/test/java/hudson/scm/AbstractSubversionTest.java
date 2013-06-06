@@ -10,6 +10,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import net.sf.json.JSONObject;
 
+import org.junit.Assert;
 import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
 import org.jvnet.hudson.test.HudsonTestCase;
 import org.kohsuke.stapler.StaplerRequest;
@@ -58,8 +59,7 @@ public abstract class AbstractSubversionTest extends HudsonTestCase  {
         try {
             launcher.launch().cmds("svnserve","--help").start().join();
         } catch (IOException e) {
-            // if we fail to launch svnserve, skip the test
-            return null;
+        	Assert.fail("Failed to launch svnserve. Do you have subversion installed?\n" + e);
         }
         return launcher.launch().cmds(
                 "svnserve","-d","--foreground","-r",repo.getAbsolutePath()).pwd(repo).start();

@@ -32,7 +32,7 @@ THE SOFTWARE.
   </parent>
 
   <artifactId>subversion</artifactId>
-  <version>1.46-SNAPSHOT</version>
+  <version>1.51-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
   <name>Jenkins Subversion Plug-in</name>
@@ -52,7 +52,7 @@ THE SOFTWARE.
   </developers>
   
   <properties>
-    <maven-hpi-plugin.version>1.91</maven-hpi-plugin.version>
+    <maven-hpi-plugin.version>1.96</maven-hpi-plugin.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
   
@@ -63,17 +63,43 @@ THE SOFTWARE.
             <artifactId>maven-hpi-plugin</artifactId>
             <version>${maven-hpi-plugin.version}</version>
         </plugin>
+        <plugin>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>1.2</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireMavenVersion>
+                  <version>3.0</version>
+                </requireMavenVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   	<pluginManagement>
   		<plugins>
   			<plugin>
   				<artifactId>maven-release-plugin</artifactId>
-  				<version>2.3.2</version>
+  				<version>2.4.1</version>
+                <dependencies>
+                    <dependency>
+                        <!-- Fix problem with localized git output: http://jira.codehaus.org/browse/SCM-686 -->
+                        <groupId>org.apache.maven.scm</groupId>
+                        <artifactId>maven-scm-api</artifactId>
+                        <version>1.8.1</version>
+                    </dependency>
+                </dependencies>
   			</plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.13</version>
+          <version>2.14.1</version>
           <configuration>
             <systemPropertyVariables>
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
@@ -115,7 +141,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.jenkins-ci.svnkit</groupId>
       <artifactId>svnkit</artifactId>
-      <version>1.7.6-jenkins-1</version>
+      <version>1.7.6-jenkins-2</version>
     </dependency>
 
     <dependency>
