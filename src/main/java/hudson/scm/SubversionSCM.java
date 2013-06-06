@@ -611,18 +611,24 @@ public class SubversionSCM extends SCM implements Serializable {
             if(svnLocations.length==1) {
                 // for backwards compatibility if there's only a single modulelocation, we also set
                 // SVN_REVISION and SVN_URL without '_n'
-                Long rev = revisions.get(SvnHelper.getUrlWithoutRevision(svnLocations[0].remote));
+                String url = SvnHelper.getUrlWithoutRevision(svnLocations[0].remote);
+                Long rev = revisions.get(url);
                 if(rev!=null) {
                     env.put("SVN_REVISION",rev.toString());
                     env.put("SVN_URL",svnLocations[0].getURL());
+                } else {
+                    LOGGER.log(WARNING, "no revision found corresponding to {0}; known: {1}", new Object[] {url, revisions.keySet()});
                 }
             }
             
             for(int i=0;i<svnLocations.length;i++) {
-                Long rev = revisions.get(SvnHelper.getUrlWithoutRevision(svnLocations[i].remote));
+                String url = SvnHelper.getUrlWithoutRevision(svnLocations[i].remote);
+                Long rev = revisions.get(url);
                 if(rev!=null) {
                     env.put("SVN_REVISION_"+(i+1),rev.toString());
                     env.put("SVN_URL_"+(i+1),svnLocations[i].getURL());
+                } else {
+                    LOGGER.log(WARNING, "no revision found corresponding to {0}; known: {1}", new Object[] {url, revisions.keySet()});
                 }
             }
 
