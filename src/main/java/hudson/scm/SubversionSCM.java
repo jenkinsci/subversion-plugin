@@ -604,7 +604,7 @@ public class SubversionSCM extends SCM implements Serializable {
     public void buildEnvVars(AbstractBuild<?, ?> build, Map<String, String> env) {
         super.buildEnvVars(build, env);
         
-        ModuleLocation[] svnLocations = getLocations(new EnvVars(EnvVars.masterEnvVars), build);
+        ModuleLocation[] svnLocations = getLocations(null, build);
 
         try {
             Map<String,Long> revisions = parseSvnRevisionFile(build);
@@ -2394,31 +2394,6 @@ public class SubversionSCM extends SCM implements Serializable {
             return revision != null ? revision : defaultValue;
         }
 
-        private String getExpandedRemote(AbstractBuild<?,?> build) {
-            String outRemote = remote;
-
-            ParametersAction parameters = build.getAction(ParametersAction.class);
-            if (parameters != null)
-                outRemote = parameters.substitute(build, remote);
-
-            return outRemote;
-        }
-
-        /**
-         * @deprecated This method is used by {@link #getExpandedLocation(AbstractBuild)}
-         *             which is deprecated since it expands variables only based
-         *             on build parameters.
-         */
-        private String getExpandedLocalDir(AbstractBuild<?,?> build) {
-            String outLocalDir = getLocalDir();
-
-            ParametersAction parameters = build.getAction(ParametersAction.class);
-            if (parameters != null)
-                outLocalDir = parameters.substitute(build, getLocalDir());
-
-            return outLocalDir;
-        }
-
         /**
          * Returns the value of remote depth option.
          *
@@ -2446,7 +2421,9 @@ public class SubversionSCM extends SCM implements Serializable {
          *             to be performed on all env vars rather than just build parameters.
          */
         public ModuleLocation getExpandedLocation(AbstractBuild<?, ?> build) {
-            return new ModuleLocation(getExpandedRemote(build), getExpandedLocalDir(build));
+            EnvVars env = new EnvVars(EnvVars.masterEnvVars);
+            env.putAll(build.getBuildVariables());
+            return getExpandedLocation(env);
         }
         
         /**
