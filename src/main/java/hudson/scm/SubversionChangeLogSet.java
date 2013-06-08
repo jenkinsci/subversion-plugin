@@ -23,10 +23,10 @@
  */
 package hudson.scm;
 
+import hudson.EnvVars;
 import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.model.User;
-import hudson.scm.SubversionChangeLogSet.LogEntry;
 import hudson.scm.SubversionSCM.ModuleLocation;
 
 import java.io.IOException;
@@ -51,7 +51,8 @@ import org.tmatesoft.svn.core.internal.util.SVNDate;
  *
  * @author Kohsuke Kawaguchi
  */
-public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
+public final class SubversionChangeLogSet extends ChangeLogSet<SubversionChangeLogSet.LogEntry> {
+
     private final List<LogEntry> logs;
 
     /**
@@ -60,7 +61,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
     private Map<String,Long> revisionMap;
 
     private boolean ignoreDirPropChanges;
-    
+
     @Deprecated
     /*package*/ SubversionChangeLogSet(AbstractBuild<?,?> build, List<LogEntry> logs) {
       this(build, logs, false);
@@ -197,7 +198,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         public void setRevision(int revision) {
             this.revision = revision;
         }
-        
+
         @Override
         public String getCommitId() {
             return String.valueOf(revision);
@@ -226,13 +227,14 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
                 }
             };
         }
-        
+
         private String preparePath(String path) {
             SCM scm = getParent().build.getProject().getScm();
             if (!(scm instanceof SubversionSCM)) return path;
             ModuleLocation[] locations = ((SubversionSCM)scm).getLocations();
-            for (int i = 0; i < locations.length; i++) {
-                String commonPart = findCommonPart(locations[i].remote, path);
+            for (ModuleLocation location : locations) {
+                EnvVars env = EnvVarsUtils.getEnvVarsFromGlobalNodeProperties();
+                String commonPart = findCommonPart(location.getExpandedLocation(env).remote, path);
                 if (commonPart != null) {
                     if (path.startsWith("/")) {
                         path = path.substring(1);
@@ -246,7 +248,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
             }
             return path;
         }
-        
+
         private String findCommonPart(String folder, String filePath) {
             if (folder == null || filePath == null) {
                 return null;
@@ -304,7 +306,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         public List<Path> getPaths() {
             return paths;
         }
-        
+
         @Override
         public Collection<Path> getAffectedFiles() {
 	        return paths;
@@ -312,7 +314,6 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         
         void finish() {
             Collections.sort(paths, new Comparator<Path>() {
-                @Override
                 public int compare(Path o1, Path o2) {
                     String path1 = Util.fixNull(o1.getValue());
                     String path2 = Util.fixNull(o2.getValue());
@@ -320,7 +321,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
                 }
             });
         }
-        
+
         @Override
         public boolean equals(Object o) {
             if (this == o) {

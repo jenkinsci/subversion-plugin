@@ -26,7 +26,11 @@ package hudson.scm;
 
 import hudson.EnvVars;
 import hudson.Platform;
+import hudson.model.Hudson;
+import hudson.slaves.EnvironmentVariablesNodeProperty;
+
 import java.io.File;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -86,4 +90,13 @@ public class EnvVarsUtils {
         env.put(key, value);
     }
 
+    public static EnvVars getEnvVarsFromGlobalNodeProperties() {
+        List<EnvironmentVariablesNodeProperty> list = Hudson.getInstance().getGlobalNodeProperties()
+            .getAll(EnvironmentVariablesNodeProperty.class);
+        EnvVars envVars = new EnvVars();
+        for (EnvironmentVariablesNodeProperty environmentVariablesNodeProperty : list) {
+            envVars.putAll(environmentVariablesNodeProperty.getEnvVars().descendingMap());
+        }
+        return envVars;
+    }
 }
