@@ -403,9 +403,9 @@ public class SubversionSCM extends SCM implements Serializable {
     /**
      * List of all configured svn locations, expanded according to all env vars
      * or, if none defined, according to only build parameters values.
-     *
+     * Both may be defined, in which case the variables are combined.
      * @param env If non-null, variable expansions are performed against these vars
-     * @param build If non-null (and if env is null), variable expansions are
+     * @param build If non-null, variable expansions are
      *              performed against the build parameters
      */
     public ModuleLocation[] getLocations(EnvVars env, AbstractBuild<?,?> build) {
@@ -430,15 +430,12 @@ public class SubversionSCM extends SCM implements Serializable {
             return locations;
 
         ModuleLocation[] outLocations = new ModuleLocation[locations.length];
-        if(env != null) {
-            for (int i = 0; i < outLocations.length; i++) {
-                outLocations[i] = locations[i].getExpandedLocation(env);
-            }
+        EnvVars env2 = env != null ? new EnvVars(env) : new EnvVars();
+        if (build != null) {
+            env2.putAll(build.getBuildVariables());
         }
-        else {
-            for (int i = 0; i < outLocations.length; i++) {
-                outLocations[i] = locations[i].getExpandedLocation(build);
-            }
+        for (int i = 0; i < outLocations.length; i++) {
+            outLocations[i] = locations[i].getExpandedLocation(env2);
         }
 
         return outLocations;
@@ -604,7 +601,7 @@ public class SubversionSCM extends SCM implements Serializable {
     public void buildEnvVars(AbstractBuild<?, ?> build, Map<String, String> env) {
         super.buildEnvVars(build, env);
         
-        ModuleLocation[] svnLocations = getLocations(null, build);
+        ModuleLocation[] svnLocations = getLocations(new EnvVars(env), build);
 
         try {
             Map<String,Long> revisions = parseSvnRevisionFile(build);
