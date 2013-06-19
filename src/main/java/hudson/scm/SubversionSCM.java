@@ -184,6 +184,7 @@ import org.tmatesoft.svn.core.wc.SVNWCClient;
 import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Lists;
 import com.trilead.ssh2.DebugLogger;
 import com.trilead.ssh2.SCPClient;
 import com.trilead.ssh2.crypto.Base64;
@@ -912,6 +913,30 @@ public class SubversionSCM extends SCM implements Serializable {
         	 service = new CurrentThreadExecutorService();
         }
         
+        ModuleLocation[] expandedLocations = getLocations(env, build);
+        
+        int numberOfExecutors = Math.min(4, expandedLocations.length);
+        
+        final ExecutorService service;
+        if (numberOfExecutors > 1) {
+        	 service = Executors.newFixedThreadPool(numberOfExecutors);
+        	 listener.getLogger().println("checking out/updating with " + numberOfExecutors + " parallel threads");
+        } else {
+        	 service = new CurrentThreadExecutorService();
+        }
+        
+        List<java.util.concurrent.Callable<List<External>>> callables = Lists.newArrayListWithExpectedSize(expandedLocations.length);
+        for (final ModuleLocation location : expandedLocations) {
+        	callables.add(new java.util.concurrent.Callable<List<External>>() {
+				
+				public List<External> call() throws Exception {
+					return workspace.act(new CheckOutTask(build,SubversionSCM.this, location, build.getTimestamp().getTime(), listener, env));
+				}
+			});
+        }
+        
+        List<Future<List<External>>> futures = service.invokeAll(callables);
+        
         List<java.util.concurrent.Callable<List<External>>> callables = Lists.newArrayListWithExpectedSize(expandedLocations.length);
         for (final ModuleLocation location : expandedLocations) {
         	callables.add(new java.util.concurrent.Callable<List<External>>() {
@@ -943,6 +968,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 externals.addAll( new ArrayList<External>( 0 ) );
             }*/
         }
+        service.shutdownNow();
         
         if (additionalCredentials != null) {
             for (AdditionalCredentials c : additionalCredentials) {
