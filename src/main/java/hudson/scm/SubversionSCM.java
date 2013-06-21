@@ -94,6 +94,7 @@ import hudson.scm.subversion.UpdateWithRevertUpdater;
 import hudson.scm.subversion.WorkspaceUpdater;
 import hudson.scm.subversion.WorkspaceUpdater.UpdateTask;
 import hudson.scm.subversion.WorkspaceUpdaterDescriptor;
+import hudson.util.AbstractTaskListener;
 import hudson.util.EditDistance;
 import hudson.util.FormValidation;
 import hudson.util.IOException2;
@@ -101,13 +102,16 @@ import hudson.util.LogTaskListener;
 import hudson.util.MultipartFormDataParser;
 import hudson.util.Scrambler;
 import hudson.util.Secret;
+import hudson.util.StreamTaskListener;
 import hudson.util.TimeUnit2;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
@@ -183,6 +187,7 @@ import org.tmatesoft.svn.core.wc.SVNRevision;
 import org.tmatesoft.svn.core.wc.SVNWCClient;
 import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Lists;
 import com.trilead.ssh2.DebugLogger;
@@ -913,29 +918,8 @@ public class SubversionSCM extends SCM implements Serializable {
         	 service = new CurrentThreadExecutorService();
         }
         
-        ModuleLocation[] expandedLocations = getLocations(env, build);
-        
-        int numberOfExecutors = Math.min(4, expandedLocations.length);
-        
-        final ExecutorService service;
-        if (numberOfExecutors > 1) {
-        	 service = Executors.newFixedThreadPool(numberOfExecutors);
-        	 listener.getLogger().println("checking out/updating with " + numberOfExecutors + " parallel threads");
-        } else {
-        	 service = new CurrentThreadExecutorService();
-        }
-        
-        List<java.util.concurrent.Callable<List<External>>> callables = Lists.newArrayListWithExpectedSize(expandedLocations.length);
-        for (final ModuleLocation location : expandedLocations) {
-        	callables.add(new java.util.concurrent.Callable<List<External>>() {
-				
-				public List<External> call() throws Exception {
-					return workspace.act(new CheckOutTask(build,SubversionSCM.this, location, build.getTimestamp().getTime(), listener, env));
-				}
-			});
-        }
-        
-        List<Future<List<External>>> futures = service.invokeAll(callables);
+        @SuppressWarnings("deprecation")
+		final TaskListener syncedListener = new StreamTaskListener(new SynchronizedPrintStream(listener.getLogger()));
         
         List<java.util.concurrent.Callable<List<External>>> callables = Lists.newArrayListWithExpectedSize(expandedLocations.length);
         for (final ModuleLocation location : expandedLocations) {
@@ -943,7 +927,7 @@ public class SubversionSCM extends SCM implements Serializable {
 				
 				public List<External> call() throws Exception {
 					CheckOutTask checkOutTask =
-		                    new CheckOutTask(build, SubversionSCM.this, location, build.getTimestamp().getTime(), listener, env);
+		                    new CheckOutTask(build, SubversionSCM.this, location, build.getTimestamp().getTime(), syncedListener, env);
 					List<External> externals = workspace.act(checkOutTask);
 					unauthenticatedRealms.addAll(checkOutTask.getUnauthenticatedRealms());
 					return externals;
@@ -998,6 +982,63 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         return externals;
+    }
+    
+    /**
+     * {@link PrintStream} which is synchronized on line level.
+     * 
+     * @author ckutz
+     */
+    private static class SynchronizedPrintStream extends PrintStream {
+
+		public SynchronizedPrintStream(OutputStream out) {
+			super(out);
+		}
+
+		@Override
+		public synchronized void println(boolean x) {
+			super.println(x);
+		}
+
+		@Override
+		public synchronized void println(char x) {
+			super.println(x);
+		}
+
+		@Override
+		public synchronized void println(int x) {
+			super.println(x);
+		}
+
+		@Override
+		public synchronized void println(long x) {
+			super.println(x);
+		}
+
+		@Override
+		public synchronized void println(float x) {
+			super.println(x);
+		}
+
+		@Override
+		public synchronized void println(double x) {
+			super.println(x);
+		}
+
+		@Override
+		public synchronized void println(char[] x) {
+			super.println(x);
+		}
+
+		@Override
+		public synchronized void println(String x) {
+			super.println(x);
+		}
+
+		@Override
+		public synchronized void println(Object x) {
+			super.println(x);
+		}
     }
     
     private static class CurrentThreadExecutorService extends AbstractExecutorService {

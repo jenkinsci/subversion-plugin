@@ -31,7 +31,6 @@ import hudson.Util;
 import hudson.scm.SubversionSCM.External;
 import hudson.scm.SubversionWorkspaceSelector;
 import hudson.util.IOException2;
-import hudson.util.StreamCopyThread;
 
 import org.apache.commons.lang.time.FastDateFormat;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -45,8 +44,11 @@ import org.tmatesoft.svn.core.wc.SVNUpdateClient;
 import org.tmatesoft.svn.core.wc2.SvnCheckout;
 import org.tmatesoft.svn.core.wc2.SvnTarget;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.io.PrintStream;
@@ -82,6 +84,7 @@ public class CheckoutUpdater extends WorkspaceUpdater {
                 // buffer the output by a separate thread so that the update operation
                 // won't be blocked by the remoting of the data
                 PipedOutputStream pos = new PipedOutputStream();
+                
                 StreamCopyThread sct = new StreamCopyThread("svn log copier", new PipedInputStream(pos), listener.getLogger());
                 sct.start();
 
@@ -139,6 +142,43 @@ public class CheckoutUpdater extends WorkspaceUpdater {
                 return externals;
             }
         };
+    }
+    
+    /**
+     * {@link Thread} that copies an {@link InputStream} line wise to a {@link PrintStream}.
+     *
+     * @author Kohsuke Kawaguchi
+     * @author Christoph Kutzinski
+     */
+    private static class StreamCopyThread extends Thread {
+        private final BufferedReader in;
+        private final PrintStream out;
+
+        public StreamCopyThread(String threadName, InputStream in, PrintStream out) {
+            super(threadName);
+			this.in = new BufferedReader(new InputStreamReader(in));
+            if (out == null) {
+                throw new NullPointerException("out is null");
+            }
+            this.out = out;
+        }
+
+        @Override
+        public void run() {
+            try {
+                try {
+                    String line;
+                    while ((line = in.readLine()) != null)
+                        out.println(line);
+                } finally {
+                    // it doesn't make sense not to close InputStream that's already EOF-ed,
+                    // so there's no 'closeIn' flag.
+                    in.close();
+                }
+            } catch (IOException e) {
+            	e.printStackTrace(out);
+            }
+        }
     }
 
     @Extension
