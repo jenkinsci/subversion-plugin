@@ -5,7 +5,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import hudson.model.AbstractProject;
-import hudson.scm.SubversionRepositoryStatus.JobProvider;
+import hudson.scm.AbstractPostCommitHookReceiver.JobProvider;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -37,7 +37,7 @@ public class SubversionRepositoryStatusTest {
         when(project.isDisabled()).thenReturn(true);
         
         JobProvider jobProvider = new JobProvider() {
-            @Override
+            //@Override
             public List<AbstractProject> getAllJobs() {
                 return Collections.singletonList(project);
             }
