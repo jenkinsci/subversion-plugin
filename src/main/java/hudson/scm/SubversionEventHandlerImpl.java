@@ -117,7 +117,7 @@ public class SubversionEventHandlerImpl extends SVNEventAdapter {
             }
         } else if (action == SVNEventAction.UPDATE_COMPLETED) {
             // finished updating
-            out.println("At revision " + event.getRevision());
+            out.println(baseDir+": At revision " + event.getRevision());
             return;
         } else if (action == SVNEventAction.ADD){
             out.println("A     " + path);
