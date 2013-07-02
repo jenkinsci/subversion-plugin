@@ -44,7 +44,11 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
 
   private SVNLogFilter filter = new NullSVNLogFilter();
 
-  public DirAwareSVNXMLLogHandler(ContentHandler contentHandler, SVNLogFilter filter) {
+  /** Relative path to repository root */
+  private String relativePath;
+    private String relativeUrl;
+
+    public DirAwareSVNXMLLogHandler(ContentHandler contentHandler, SVNLogFilter filter) {
     super(contentHandler);
     this.filter = filter;
   }
@@ -74,6 +78,17 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
    * @throws SVNException 
    */
   public void handleLogEntry(SVNLogEntry logEntry) throws SVNException {
+
+      if (logEntry.getChangedPaths() != null) {
+          for (String key : logEntry.getChangedPaths().keySet()) {
+              SVNLogEntryPath path = logEntry.getChangedPaths().get(key);
+              String localPath = path.getPath().substring(1); // path in svn log start with a '/'
+              if (relativePath != null)
+                  localPath = relativePath + localPath.substring(relativeUrl.length());
+              path.setPath(localPath);
+          }
+      }
+
       try {
           if (filter == null || !filter.hasExclusionRule() || filter.isIncluded(logEntry)) {
               sendToHandler(logEntry);
@@ -147,7 +162,17 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
         closeTag(LOGENTRY_TAG);
     }
   }
-  private class MergeFrame {
+
+    public void setRelativePath(String relativePath) {
+        this.relativePath = relativePath;
+    }
+
+    public void setRelativeUrl(String relativeUrl) {
+        this.relativeUrl = relativeUrl.startsWith("/") ? relativeUrl.substring(1) : relativeUrl;
+    }
+
+
+    private class MergeFrame {
     private long myNumberOfChildrenRemaining;
   }
 
