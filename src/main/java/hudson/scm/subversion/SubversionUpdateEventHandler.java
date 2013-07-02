@@ -93,7 +93,7 @@ final class SubversionUpdateEventHandler extends SubversionEventHandlerImpl impl
                     throw new SVNException(SVNErrorMessage.create(SVNErrorCode.FS_GENERAL, e));
                 }
 
-                out.println(Messages.SubversionUpdateEventHandler_FetchExternal(details, event.getRevision(), file));
+                out.println(Messages.SubversionUpdateEventHandler_FetchExternal(details.getUrl(), event.getRevision(), file));
                 externals.add(new External(modulePath + '/' + path, details.getUrl(), details.getRevision()));
             }
         }
