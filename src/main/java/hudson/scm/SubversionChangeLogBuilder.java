@@ -115,7 +115,7 @@ public final class SubversionChangeLogBuilder {
             }
             for(SubversionSCM.External ext : externals) {
                 ExternalPath e = getUrlForPath(build.getWorkspace().child(ext.path));
-                logHandler.setRelativePath(ext.path);
+                logHandler.setRelativePath( ext.path.startsWith("./") ? ext.path.substring(2) : ext.path );
                 logHandler.setRelativeUrl(e.path);
                 changelogFileCreated |= buildModule(e.url, svnlc, logHandler);
             }

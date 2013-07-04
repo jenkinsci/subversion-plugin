@@ -11,8 +11,11 @@
  */
 package hudson.scm;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Map;
 
 import org.tmatesoft.svn.core.ISVNLogEntryHandler;
 import org.tmatesoft.svn.core.SVNErrorCode;
@@ -79,11 +82,17 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
    */
   public void handleLogEntry(SVNLogEntry logEntry) throws SVNException {
 
-      if (relativePath != null && logEntry.getChangedPaths() != null) {
-          for (String key : logEntry.getChangedPaths().keySet()) {
-              SVNLogEntryPath path = logEntry.getChangedPaths().get(key);
-              path.setPath(relativePath + path.getPath().substring(relativeUrl.length()));
+      if (logEntry.getChangedPaths() != null && relativePath != null) {
+          // convert external path reference to local relative path
+          Map<String, SVNLogEntryPath> changedPaths = new HashMap<String, SVNLogEntryPath>();
+          for (SVNLogEntryPath entry : logEntry.getChangedPaths().values()) {
+              String localPath = entry.getPath().substring(1); // path in svn log start with a '/'
+              localPath = relativePath + localPath.substring(relativeUrl.length());
+              // can't use entry.setPath(localPath) as FSPathChange duplicate myPath attribute then setPath().getPath() don't return same value
+              changedPaths.put(localPath, new SVNLogEntryPath(localPath, entry.getType(), entry.getCopyPath(), entry.getCopyRevision()));
           }
+          logEntry.getChangedPaths().clear();
+          logEntry.getChangedPaths().putAll(changedPaths);
       }
 
       try {
@@ -165,7 +174,7 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
     }
 
     public void setRelativeUrl(String relativeUrl) {
-        this.relativeUrl = relativeUrl;
+        this.relativeUrl = relativeUrl.startsWith("/") ? relativeUrl.substring(1) : relativeUrl;
     }
 
 
