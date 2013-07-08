@@ -918,6 +918,86 @@ public class SubversionSCM extends SCM implements Serializable {
         	 service = new CurrentThreadExecutorService();
         }
         
+        
+        /* TODO: when previously there were 2 repository locations which were 'equal' i.e. checking out the same SVN module to the same local
+         * directory, this would succeed previously, but can now fail under unlucky timing with:
+         * (should at least detect this situation and give a better error message?)
+         * 
+         * 15:10:44  ERROR: Failed to update http://xyz
+15:10:44  org.tmatesoft.svn.core.SVNException: svn: E200030: BUSY
+15:10:44    at org.tmatesoft.svn.core.internal.wc.SVNErrorManager.error(SVNErrorManager.java:64)
+15:10:44    at org.tmatesoft.svn.core.internal.wc.SVNErrorManager.error(SVNErrorManager.java:51)
+15:10:44    at org.tmatesoft.svn.core.internal.db.SVNSqlJetDb.createSqlJetError(SVNSqlJetDb.java:176)
+15:10:44    at org.tmatesoft.svn.core.internal.wc17.db.statement.SVNWCDbInsertWorkItem.exec(SVNWCDbInsertWorkItem.java:48)
+15:10:44    at org.tmatesoft.svn.core.internal.db.SVNSqlJetStatement.done(SVNSqlJetStatement.java:367)
+15:10:44    at org.tmatesoft.svn.core.internal.wc17.db.SVNWCDb.addSingleWorkItem(SVNWCDb.java:267)
+15:10:44    at org.tmatesoft.svn.core.internal.wc17.db.SVNWCDb.addWorkItems(SVNWCDb.java:256)
+15:10:44    at org.tmatesoft.svn.core.internal.wc17.db.SVNWCDb.addWorkQueue(SVNWCDb.java:961)
+15:10:44    at org.tmatesoft.svn.core.internal.wc17.SVNReporter17.restoreFile(SVNReporter17.java:399)
+15:10:44    at org.tmatesoft.svn.core.internal.wc17.SVNReporter17.restoreNode(SVNReporter17.java:224)
+15:10:44    at org.tmatesoft.svn.core.internal.wc17.SVNReporter17.reportRevisionsAndDepths(SVNReporter17.java:309)
+15:10:44    at org.tmatesoft.svn.core.internal.wc17.SVNReporter17.reportRevisionsAndDepths(SVNReporter17.java:387)
+15:10:44    at org.tmatesoft.svn.core.internal.wc17.SVNReporter17.reportRevisionsAndDepths(SVNReporter17.java:387)
+15:10:44    at org.tmatesoft.svn.core.internal.wc17.SVNReporter17.reportRevisionsAndDepths(SVNReporter17.java:387)
+15:10:44    at org.tmatesoft.svn.core.internal.wc17.SVNReporter17.reportRevisionsAndDepths(SVNReporter17.java:387)
+15:10:44    at org.tmatesoft.svn.core.internal.wc17.SVNReporter17.reportRevisionsAndDepths(SVNReporter17.java:387)
+15:10:44    at org.tmatesoft.svn.core.internal.wc17.SVNReporter17.reportRevisionsAndDepths(SVNReporter17.java:387)
+15:10:44    at org.tmatesoft.svn.core.internal.wc17.SVNReporter17.reportRevisionsAndDepths(SVNReporter17.java:387)
+15:10:44    at org.tmatesoft.svn.core.internal.wc17.SVNReporter17.reportRevisionsAndDepths(SVNReporter17.java:387)
+15:10:44    at org.tmatesoft.svn.core.internal.wc17.SVNReporter17.reportRevisionsAndDepths(SVNReporter17.java:387)
+15:10:44    at org.tmatesoft.svn.core.internal.wc17.SVNReporter17.report(SVNReporter17.java:188)
+15:10:44    at org.tmatesoft.svn.core.internal.io.dav.handlers.DAVEditorHandler.generateEditorRequest(DAVEditorHandler.java:106)
+15:10:44    at org.tmatesoft.svn.core.internal.io.dav.DAVRepository.runReport(DAVRepository.java:1275)
+15:10:44    at org.tmatesoft.svn.core.internal.io.dav.DAVRepository.update(DAVRepository.java:837)
+15:10:44    at org.tmatesoft.svn.core.internal.wc2.ng.SvnNgAbstractUpdate.updateInternal(SvnNgAbstractUpdate.java:192)
+15:10:44    at org.tmatesoft.svn.core.internal.wc2.ng.SvnNgAbstractUpdate.update(SvnNgAbstractUpdate.java:76)
+15:10:44    at org.tmatesoft.svn.core.internal.wc2.ng.SvnNgUpdate.run(SvnNgUpdate.java:38)
+15:10:44    at org.tmatesoft.svn.core.internal.wc2.ng.SvnNgUpdate.run(SvnNgUpdate.java:18)
+15:10:44    at org.tmatesoft.svn.core.internal.wc2.ng.SvnNgOperationRunner.run(SvnNgOperationRunner.java:20)
+15:10:44    at org.tmatesoft.svn.core.internal.wc2.SvnOperationRunner.run(SvnOperationRunner.java:20)
+15:10:44    at org.tmatesoft.svn.core.wc2.SvnOperationFactory.run(SvnOperationFactory.java:1235)
+15:10:44    at org.tmatesoft.svn.core.wc2.SvnOperation.run(SvnOperation.java:291)
+15:10:44    at org.tmatesoft.svn.core.wc.SVNUpdateClient.doUpdate(SVNUpdateClient.java:311)
+15:10:44    at org.tmatesoft.svn.core.wc.SVNUpdateClient.doUpdate(SVNUpdateClient.java:291)
+15:10:44    at org.tmatesoft.svn.core.wc.SVNUpdateClient.doUpdate(SVNUpdateClient.java:387)
+15:10:44    at hudson.scm.subversion.UpdateUpdater$TaskImpl.perform(UpdateUpdater.java:157)
+15:10:44    at hudson.scm.subversion.WorkspaceUpdater$UpdateTask.delegateTo(WorkspaceUpdater.java:153)
+15:10:44    at hudson.scm.SubversionSCM$CheckOutTask.perform(SubversionSCM.java:1041)
+15:10:44    at hudson.scm.SubversionSCM$CheckOutTask.invoke(SubversionSCM.java:1022)
+15:10:44    at hudson.scm.SubversionSCM$CheckOutTask.invoke(SubversionSCM.java:1005)
+15:10:44    at hudson.FilePath$FileCallableWrapper.call(FilePath.java:2246)
+15:10:44    at hudson.remoting.UserRequest.perform(UserRequest.java:118)
+15:10:44    at hudson.remoting.UserRequest.perform(UserRequest.java:48)
+15:10:44    at hudson.remoting.Request$2.run(Request.java:326)
+15:10:44    at hudson.remoting.InterceptingExecutorService$1.call(InterceptingExecutorService.java:72)
+15:10:44    at java.util.concurrent.FutureTask$Sync.innerRun(FutureTask.java:303)
+15:10:44    at java.util.concurrent.FutureTask.run(FutureTask.java:138)
+15:10:44    at java.util.concurrent.ThreadPoolExecutor$Worker.runTask(ThreadPoolExecutor.java:895)
+15:10:44    at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:918)
+15:10:44    at java.lang.Thread.run(Thread.java:662)
+15:10:44  Caused by: svn: E200030: BUSY
+15:10:44    at org.tmatesoft.svn.core.SVNErrorMessage.create(SVNErrorMessage.java:109)
+15:10:44    at org.tmatesoft.svn.core.internal.db.SVNSqlJetDb.createSqlJetError(SVNSqlJetDb.java:175)
+15:10:44    ... 47 more
+15:10:44  Caused by: org.tmatesoft.sqljet.core.SqlJetException: BUSY: error code is BUSY
+15:10:44    at org.tmatesoft.sqljet.core.internal.pager.SqlJetPager.begin(SqlJetPager.java:2785)
+15:10:44    at org.tmatesoft.sqljet.core.internal.btree.SqlJetBtree.beginTrans(SqlJetBtree.java:929)
+15:10:44    at org.tmatesoft.sqljet.core.table.engine.SqlJetEngine.doBeginTransaction(SqlJetEngine.java:561)
+15:10:44    at org.tmatesoft.sqljet.core.table.engine.SqlJetEngine.access$100(SqlJetEngine.java:55)
+15:10:44    at org.tmatesoft.sqljet.core.table.engine.SqlJetEngine$12.runSynchronized(SqlJetEngine.java:535)
+15:10:44    at org.tmatesoft.sqljet.core.table.engine.SqlJetEngine.runSynchronized(SqlJetEngine.java:217)
+15:10:44    at org.tmatesoft.sqljet.core.table.engine.SqlJetEngine.runEngineTransaction(SqlJetEngine.java:529)
+15:10:44    at org.tmatesoft.sqljet.core.table.SqlJetDb.runTransaction(SqlJetDb.java:238)
+15:10:44    at org.tmatesoft.sqljet.core.table.SqlJetDb.runWriteTransaction(SqlJetDb.java:211)
+15:10:44    at org.tmatesoft.sqljet.core.internal.table.SqlJetTable.runWriteTransaction(SqlJetTable.java:156)
+15:10:44    at org.tmatesoft.sqljet.core.internal.table.SqlJetTable.insertByFieldNamesOr(SqlJetTable.java:190)
+15:10:44    at org.tmatesoft.sqljet.core.internal.table.SqlJetTable.insertByFieldNames(SqlJetTable.java:173)
+15:10:44    at org.tmatesoft.svn.core.internal.wc17.db.statement.SVNWCDbInsertWorkItem.exec(SVNWCDbInsertWorkItem.java:46)
+15:10:44    ... 46 more
+15:10:44  ERROR: Subversion update failed
+         * 
+         */
+        
         @SuppressWarnings("deprecation")
 		final TaskListener syncedListener = new StreamTaskListener(new SynchronizedPrintStream(listener.getLogger()));
         
