@@ -34,11 +34,11 @@ THE SOFTWARE.
         </f:entry>
         <f:entry title="${%Repository depth option}" field="depthOption">
             <select name="depthOption">
-                <f:option value="unknown" selected="${loc.depthOption=='unknown'}">as-it-is</f:option>
                 <f:option value="infinity" selected="${loc.depthOption=='infinity'}">infinity</f:option>
                 <f:option value="empty" selected="${loc.depthOption=='empty'}">empty</f:option>
                 <f:option value="files" selected="${loc.depthOption=='files'}">files</f:option>
                 <f:option value="immediates" selected="${loc.depthOption=='immediates'}">immediates</f:option>
+                <f:option value="unknown" selected="${loc.depthOption=='unknown'}">as-it-is</f:option>
             </select>
         </f:entry>
         <f:entry title="${%Ignore externals option}" field="ignoreExternalsOption">
