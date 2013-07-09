@@ -1533,4 +1533,50 @@ public class SubversionSCMTest extends AbstractSubversionTest {
             p.kill();
         }
     }
+
+    @Bug(17974)
+    public void testChangingDepthInJob() throws Exception {
+        Proc p = runSvnServe(getClass().getResource("JENKINS-777.zip"));
+
+        try {
+            // enable 1.6 mode
+            HtmlForm f = createWebClient().goTo("configure").getFormByName("config");
+            f.getSelectByName("svn.workspaceFormat").setSelectedAttribute("10",true);
+            submit(f);
+
+            FreeStyleProject b = createFreeStyleProject();
+
+            ModuleLocation[] locations = {
+                    new ModuleLocation("svn://localhost/jenkins-777/proja", "proja", "infinity", true)
+                };
+
+            // Do initial update with infinite depth and check that subdir exists
+            b.setScm(new SubversionSCM(Arrays.asList(locations), new UpdateUpdater(), null, null, null, null, null, null));
+            FreeStyleBuild build = assertBuildStatusSuccess(b.scheduleBuild2(0));
+            FilePath ws = build.getWorkspace();
+            assertTrue(ws.child("proja").child("subdir").exists());
+
+            // Simulate job using 'svn update --set-depth=files' and check that subdir no longer exists
+            SvnClientManager svnm = SubversionSCM.createClientManager(b);
+            svnm
+            .getUpdateClient()
+            .doUpdate(new File(ws.child("proja").getRemote()), SVNRevision.HEAD, SVNDepth.FILES, false, true);
+            
+            assertTrue(ws.child("proja").exists());
+            assertTrue(!(ws.child("proja").child("subdir").exists()));
+
+            // Trigger new build with depth unknown and check that subdir still does not exist
+            ModuleLocation[] locations2 = {
+                    new ModuleLocation("svn://localhost/jenkins-777/proja", "proja", "undefined", true)
+                };
+            b.setScm(new SubversionSCM(Arrays.asList(locations2), new UpdateUpdater(), null, null, null, null, null, null));
+            FreeStyleBuild build2 = assertBuildStatusSuccess(b.scheduleBuild2(0));
+            ws = build2.getWorkspace();
+            assertTrue(!(ws.child("proja").child("subdir").exists()));
+
+        } finally {
+            p.kill();
+        }
+    }
+
 }    
