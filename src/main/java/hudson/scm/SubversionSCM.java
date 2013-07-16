@@ -434,6 +434,7 @@ public class SubversionSCM extends SCM implements Serializable {
         if (build != null) {
             env2.putAll(build.getBuildVariables());
         }
+        EnvVars.resolve(env2);
         for (int i = 0; i < outLocations.length; i++) {
             outLocations[i] = locations[i].getExpandedLocation(env2);
         }
