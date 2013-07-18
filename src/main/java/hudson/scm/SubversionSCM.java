@@ -907,6 +907,8 @@ public class SubversionSCM extends SCM implements Serializable {
         final Set<String> unauthenticatedRealms = new LinkedHashSet<String>();
         ModuleLocation[] expandedLocations = getLocations(env, build);
         
+        checkForLocationDuplicates(expandedLocations,listener);
+        
         int numberOfExecutors = Math.min(4, expandedLocations.length);
         
         final ExecutorService service;
@@ -1064,6 +1066,25 @@ public class SubversionSCM extends SCM implements Serializable {
         return externals;
     }
     
+    /**
+     * Checks that there a no 2 locations which try to checkout to the same local location, 
+     * as that may cause E200030: BUSY errors.
+     */
+    private void checkForLocationDuplicates(ModuleLocation[] expandedLocations,
+            TaskListener listener) {
+        if (locations.length < 2) {
+            return;
+        }
+        
+        Set<String> localPaths = new HashSet<String>();
+        for (ModuleLocation loc : expandedLocations) {
+            if (!localPaths.add(loc.getLocalDir())) {
+                listener.getLogger().println("WARN: you have 2 repository locations pointing to the same local path: " + loc.getLocalDir()
+                        +".\n This may cause subsequent errors - e.g. E200030: BUSY");
+            }
+        }
+    }
+
     /**
      * {@link PrintStream} which is synchronized on line level.
      * 
