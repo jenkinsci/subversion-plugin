@@ -141,7 +141,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.jenkins-ci.svnkit</groupId>
       <artifactId>svnkit</artifactId>
-      <version>1.7.6-jenkins-2</version>
+      <version>1.7.10-jenkins-1</version>
     </dependency>
 
     <dependency>
