@@ -143,6 +143,11 @@ THE SOFTWARE.
       <artifactId>svnkit</artifactId>
       <version>1.7.10-jenkins-1</version>
     </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci</groupId>
+      <artifactId>trilead-ssh2</artifactId>
+      <version>build217-jenkins-1</version>
+    </dependency>
 
     <dependency>
       <groupId>junit</groupId>
