@@ -22,7 +22,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -50,73 +51,6 @@ THE SOFTWARE.
       <id>kohsuke abayer dodok1 dty huybrechts mindless pgweiss stephenconnolly rseguy kutzi etc</id>
     </developer>
   </developers>
-  
-  <properties>
-    <maven-hpi-plugin.version>1.96</maven-hpi-plugin.version>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
-  
-  <build>
-    <plugins>
-        <plugin>
-            <groupId>org.jenkins-ci.tools</groupId>
-            <artifactId>maven-hpi-plugin</artifactId>
-            <version>${maven-hpi-plugin.version}</version>
-        </plugin>
-        <plugin>
-        <artifactId>maven-enforcer-plugin</artifactId>
-        <version>1.2</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>enforce</goal>
-            </goals>
-            <configuration>
-              <rules>
-                <requireMavenVersion>
-                  <version>3.0</version>
-                </requireMavenVersion>
-              </rules>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  	<pluginManagement>
-  		<plugins>
-  			<plugin>
-  				<artifactId>maven-release-plugin</artifactId>
-  				<version>2.4.1</version>
-                <dependencies>
-                    <dependency>
-                        <!-- Fix problem with localized git output: http://jira.codehaus.org/browse/SCM-686 -->
-                        <groupId>org.apache.maven.scm</groupId>
-                        <artifactId>maven-scm-api</artifactId>
-                        <version>1.8.1</version>
-                    </dependency>
-                </dependencies>
-  			</plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.14.1</version>
-          <configuration>
-            <systemPropertyVariables>
-              <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
-              <java.awt.headless>true</java.awt.headless>
-            </systemPropertyVariables>
-          </configuration>
-        </plugin>
-  		</plugins>
-  	</pluginManagement>
-  </build>
-
-  <distributionManagement>
-    <repository>
-      <id>maven.jenkins-ci.org</id>
-      <url>http://maven.jenkins-ci.org/content/repositories/releases/</url>
-    </repository>
-  </distributionManagement>
 
   <scm>
     <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
@@ -124,18 +58,35 @@ THE SOFTWARE.
     <url>http://github.com/jenkinsci/${project.artifactId}-plugin</url>
     <tag>HEAD</tag>
   </scm>
+  <distributionManagement>
+    <repository>
+      <id>maven.jenkins-ci.org</id>
+      <url>http://maven.jenkins-ci.org/content/repositories/releases/</url>
+    </repository>
+  </distributionManagement>
+
+  <properties>
+    <maven-hpi-plugin.version>1.96</maven-hpi-plugin.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
 
   <repositories>
     <repository>
       <id>repo.jenkins-ci.org</id>
       <url>http://repo.jenkins-ci.org/public/</url>
     </repository>
-    
+
     <repository>
-    	<id>mavenTMateSoftReleasesRepository</id>
-    	<url>http://maven.tmatesoft.com/content/repositories/releases/</url>
+      <id>mavenTMateSoftReleasesRepository</id>
+      <url>http://maven.tmatesoft.com/content/repositories/releases/</url>
     </repository>
   </repositories>
+  <pluginRepositories>
+    <pluginRepository>
+      <id>repo.jenkins-ci.org</id>
+      <url>http://repo.jenkins-ci.org/public/</url>
+    </pluginRepository>
+  </pluginRepositories>
 
   <dependencies>
     <dependency>
@@ -156,10 +107,10 @@ THE SOFTWARE.
       <scope>test</scope>
     </dependency>
     <dependency>
-        <groupId>org.mockito</groupId>
-        <artifactId>mockito-core</artifactId>
-        <version>1.9.5</version>
-        <scope>test</scope>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>1.9.5</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.powermock</groupId>
@@ -188,11 +139,59 @@ THE SOFTWARE.
     </dependency>
   </dependencies>
 
-  <pluginRepositories>
-    <pluginRepository>
-      <id>repo.jenkins-ci.org</id>
-      <url>http://repo.jenkins-ci.org/public/</url>
-    </pluginRepository>
-  </pluginRepositories>
-</project>  
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <artifactId>maven-release-plugin</artifactId>
+          <version>2.4.1</version>
+          <dependencies>
+            <dependency>
+              <!-- Fix problem with localized git output: http://jira.codehaus.org/browse/SCM-686 -->
+              <groupId>org.apache.maven.scm</groupId>
+              <artifactId>maven-scm-api</artifactId>
+              <version>1.8.1</version>
+            </dependency>
+          </dependencies>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>2.14.1</version>
+          <configuration>
+            <systemPropertyVariables>
+              <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
+              <java.awt.headless>true</java.awt.headless>
+            </systemPropertyVariables>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.jenkins-ci.tools</groupId>
+        <artifactId>maven-hpi-plugin</artifactId>
+        <version>${maven-hpi-plugin.version}</version>
+      </plugin>
+      <plugin>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>1.2</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireMavenVersion>
+                  <version>3.0</version>
+                </requireMavenVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 
+</project>
