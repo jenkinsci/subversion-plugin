@@ -309,8 +309,11 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
 
         public List<SVNAuthentication> build(String kind, SVNURL url) {
             if (ISVNAuthenticationManager.SSL.equals(kind)) {
+                SVNSSLAuthentication authentication =
+                        new SVNSSLAuthentication(certificateFile, Scrambler.descramble(password), false, url, false);
+                authentication.setCertificatePath("dummy"); // TODO: remove this JENKINS-19175 workaround
                 return Collections.<SVNAuthentication>singletonList(
-                        new SVNSSLAuthentication(certificateFile, Scrambler.descramble(password), false, url, false));
+                        authentication);
             }
             return Collections.emptyList();
         }
