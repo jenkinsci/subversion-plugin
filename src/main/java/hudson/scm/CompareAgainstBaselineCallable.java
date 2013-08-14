@@ -28,17 +28,20 @@ final class CompareAgainstBaselineCallable implements DelegatingCallable<Polling
     private final String projectName;
     private final SVNRevisionState baseline;
     private final TaskListener listener;
-    private final ISVNAuthenticationProvider authProvider;
+    private final ISVNAuthenticationProvider defaultAuthProvider;
+    private final Map<String, ISVNAuthenticationProvider> authProviders;
     private final String nodeName;
     private static final long serialVersionUID = 8200959096894789583L;
 
-    CompareAgainstBaselineCallable( SVNRevisionState baseline, SVNLogHandler logHandler, String projectName,
-            TaskListener listener, ISVNAuthenticationProvider authProvider, String nodeName) {
+    CompareAgainstBaselineCallable(SVNRevisionState baseline, SVNLogHandler logHandler, String projectName,
+                                   TaskListener listener, ISVNAuthenticationProvider defaultAuthProvider,
+                                   Map<String, ISVNAuthenticationProvider> authProviders, String nodeName) {
         this.logHandler = logHandler;
         this.projectName = projectName;
         this.baseline = baseline;
         this.listener = listener;
-        this.authProvider = authProvider;
+        this.defaultAuthProvider = defaultAuthProvider;
+        this.authProviders = authProviders;
         this.nodeName = nodeName;
     }
 
@@ -67,16 +70,19 @@ final class CompareAgainstBaselineCallable implements DelegatingCallable<Polling
              */
             revs.put(url, baseRev);
             try {
+                ISVNAuthenticationProvider authProvider = authProviders.get(url);
+                if (authProvider == null) {
+                    authProvider = defaultAuthProvider;
+                }
                 final SVNURL svnurl = SVNURL.parseURIDecoded(url);
-                long nowRev = new SvnInfo(SubversionSCM.parseSvnInfo(svnurl,authProvider)).revision;
+                long nowRev = new SvnInfo(SubversionSCM.parseSvnInfo(svnurl, authProvider)).revision;
 
                 changes |= (nowRev>baseRev);
 
                 listener.getLogger().println(Messages.SubversionSCM_pollChanges_remoteRevisionAt(url, nowRev));
                 revs.put(url, nowRev);
                 // make sure there's a change and it isn't excluded
-                if (logHandler.findNonExcludedChanges(svnurl,
-                        baseRev+1, nowRev, authProvider)) {
+                if (logHandler.findNonExcludedChanges(svnurl, baseRev+1, nowRev, authProvider)) {
                     listener.getLogger().println(Messages.SubversionSCM_pollChanges_changedFrom(baseRev));
                     significantChanges = true;
                 }

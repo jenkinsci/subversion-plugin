@@ -27,7 +27,6 @@ import hudson.EnvVars;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
-import hudson.model.Hudson;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.FilePath;
 import hudson.util.IOException2;
@@ -98,41 +97,49 @@ public final class SubversionChangeLogBuilder {
     public boolean run(Collection<SubversionSCM.External> externals, Result changeLog) throws IOException, InterruptedException {
         boolean changelogFileCreated = false;
 
-        final SVNClientManager manager = SubversionSCM.createSvnClientManager(build.getProject());
+        TransformerHandler th = createTransformerHandler();
+        th.setResult(changeLog);
+        SVNLogFilter logFilter = scm.isFilterChangelog() ? scm.createSVNLogFilter() : new NullSVNLogFilter();
+        SVNXMLLogHandler logHandler = new DirAwareSVNXMLLogHandler(th, logFilter);
+        // work around for http://svnkit.com/tracker/view.php?id=175
+        th.setDocumentLocator(DUMMY_LOCATOR);
+        logHandler.startDocument();
+
+        for (ModuleLocation l : scm.getLocations(env, build)) {
+            ISVNAuthenticationProvider authProvider =
+                    CredentialsSVNAuthenticationProviderImpl
+                            .createAuthenticationProvider(build.getProject(), scm, l);
+            final SVNClientManager manager = SubversionSCM.createClientManager(authProvider).getCore();
+            try {
+                SVNLogClient svnlc = manager.getLogClient();
+                changelogFileCreated |= buildModule(l.getURL(), svnlc, logHandler);
+            } finally {
+                manager.dispose();
+            }
+        }
+        ISVNAuthenticationProvider authProvider =
+                CredentialsSVNAuthenticationProviderImpl
+                        .createAuthenticationProvider(build.getProject(), scm, null);
+        final SVNClientManager manager = SubversionSCM.createClientManager(authProvider).getCore();
         try {
             SVNLogClient svnlc = manager.getLogClient();
-            TransformerHandler th = createTransformerHandler();
-            th.setResult(changeLog);
-            SVNLogFilter logFilter = scm.isFilterChangelog()? scm.createSVNLogFilter() : new NullSVNLogFilter();
-            SVNXMLLogHandler logHandler = new DirAwareSVNXMLLogHandler(th, logFilter);
-            // work around for http://svnkit.com/tracker/view.php?id=175
-            th.setDocumentLocator(DUMMY_LOCATOR);
-            logHandler.startDocument();
-
-            for (ModuleLocation l : scm.getLocations(env, build)) {
-                changelogFileCreated |= buildModule(l.getURL(), svnlc, logHandler);
-            }
-            for(SubversionSCM.External ext : externals) {
+            for (SubversionSCM.External ext : externals) {
                 changelogFileCreated |= buildModule(
-                        getUrlForPath(build.getWorkspace().child(ext.path)), svnlc, logHandler);
+                        getUrlForPath(build.getWorkspace().child(ext.path), authProvider), svnlc, logHandler);
             }
-
-            if(changelogFileCreated) {
-                logHandler.endDocument();
-            }
-
-            return changelogFileCreated;
         } finally {
             manager.dispose();
         }
+
+        if (changelogFileCreated) {
+            logHandler.endDocument();
+        }
+
+        return changelogFileCreated;
     }
 
-    private String getUrlForPath(FilePath path) throws IOException, InterruptedException {
-        return path.act(new GetUrlForPath(createAuthenticationProvider(build.getProject())));
-    }
-
-    private ISVNAuthenticationProvider createAuthenticationProvider(AbstractProject context) {
-        return Hudson.getInstance().getDescriptorByType(SubversionSCM.DescriptorImpl.class).createAuthenticationProvider(context);
+    private String getUrlForPath(FilePath path, ISVNAuthenticationProvider authProvider) throws IOException, InterruptedException {
+        return path.act(new GetUrlForPath(authProvider));
     }
 
     private boolean buildModule(String url, SVNLogClient svnlc, SVNXMLLogHandler logHandler) throws IOException2 {

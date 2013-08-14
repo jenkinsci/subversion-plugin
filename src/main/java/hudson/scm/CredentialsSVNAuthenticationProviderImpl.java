@@ -2,10 +2,18 @@ package hudson.scm;
 
 import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
 import com.cloudbees.plugins.credentials.Credentials;
+import com.cloudbees.plugins.credentials.CredentialsMatcher;
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.CertificateCredentials;
+import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.UsernameCredentials;
 import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.domains.DomainRequirement;
+import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import hudson.model.Item;
 import hudson.remoting.Channel;
+import hudson.security.ACL;
 import hudson.util.Scrambler;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.tmatesoft.svn.core.SVNErrorCode;
@@ -19,6 +27,7 @@ import org.tmatesoft.svn.core.auth.SVNSSHAuthentication;
 import org.tmatesoft.svn.core.auth.SVNSSLAuthentication;
 import org.tmatesoft.svn.core.auth.SVNUserNameAuthentication;
 
+import javax.security.auth.DestroyFailedException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
@@ -29,8 +38,10 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -51,7 +62,47 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
 
     public CredentialsSVNAuthenticationProviderImpl(Credentials credentials,
                                                     Map<String, Credentials> credentialsByRealm) {
-        this.provider = new RemotableSVNAuthenticationBuilderProvider(credentials, credentialsByRealm);
+        this.provider = new RemotableSVNAuthenticationBuilderProvider(credentials,
+                credentialsByRealm == null ? Collections.<String, Credentials>emptyMap() : credentialsByRealm);
+    }
+
+    public static CredentialsSVNAuthenticationProviderImpl createAuthenticationProvider(Item context, SubversionSCM scm,
+                                                                                        SubversionSCM.ModuleLocation
+                                                                                                location) {
+        StandardCredentials defaultCredentials;
+        if (location == null) {
+            defaultCredentials = null;
+        } else {
+            defaultCredentials = CredentialsMatchers
+                    .firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class, context,
+                            ACL.SYSTEM, URIRequirementBuilder.fromUri(location.remote).build()),
+                            CredentialsMatchers.allOf(idMatcher(location.credentialsId),
+                                    CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(
+                                            StandardCredentials.class), CredentialsMatchers.instanceOf(
+                                            SSHUserPrivateKey.class))));
+        }
+        Map<String, Credentials> additional = new HashMap<String, Credentials>();
+        if (scm != null) {
+            for (SubversionSCM.AdditionalCredentials c : scm.getAdditionalCredentials()) {
+                if (c.getCredentialsId() != null) {
+                    StandardCredentials cred = CredentialsMatchers
+                            .firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class, context,
+                                    ACL.SYSTEM, Collections.<DomainRequirement>emptyList()),
+                                    CredentialsMatchers.allOf(idMatcher(c.getCredentialsId()),
+                                            CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(
+                                                    StandardCredentials.class), CredentialsMatchers.instanceOf(
+                                                    SSHUserPrivateKey.class))));
+                    if (cred != null) {
+                        additional.put(c.getRealm(), cred);
+                    }
+                }
+            }
+        }
+        return new CredentialsSVNAuthenticationProviderImpl(defaultCredentials, additional);
+    }
+
+    private static CredentialsMatcher idMatcher(String credentialsId) {
+        return credentialsId == null ? CredentialsMatchers.always() : CredentialsMatchers.withId(credentialsId);
     }
 
     public SVNAuthentication requestClientAuthentication(String kind, SVNURL url, String realm,
@@ -262,11 +313,13 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
         public SVNCertificateAuthenticationBuilder(CertificateCredentials c) {
             String password = c.getPassword().getPlainText();
             this.password = Scrambler.scramble(password);
+            char[] passwordChars = password.toCharArray();
             KeyStore.PasswordProtection passwordProtection =
-                    new KeyStore.PasswordProtection(password.toCharArray());
+                    new KeyStore.PasswordProtection(passwordChars);
             try {
                 // ensure we map the keystore to the correct type
                 KeyStore dst = KeyStore.getInstance("PKCS12");
+                dst.load(null, null);
                 KeyStore src = c.getKeyStore();
                 for (Enumeration<String> e = src.aliases(); e.hasMoreElements(); ) {
                     String alias = e.nextElement();
@@ -286,7 +339,7 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
                     dst.setEntry(alias, entry, passwordProtection);
                 }
                 ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                dst.store(bos, password.toCharArray());
+                dst.store(bos, passwordChars);
                 certificateFile = bos.toByteArray();
             } catch (KeyStoreException e) {
                 throw new RuntimeException(
@@ -304,6 +357,13 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
                 throw new RuntimeException(
                         SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE, "Unable to save certificate")
                                 .initCause(e));
+            } finally {
+                try {
+                    passwordProtection.destroy();
+                } catch (DestroyFailedException e) {
+                    // ignore
+                }
+                Arrays.fill(passwordChars, ' ');
             }
         }
 
