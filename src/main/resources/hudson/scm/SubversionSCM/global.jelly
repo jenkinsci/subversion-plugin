@@ -44,6 +44,7 @@ THE SOFTWARE.
         <f:optionalBlock
             name="svn.storeAuthToDisk"
             checked="${descriptor.storeAuthToDisk}"
-            title="${%Update default Subversion credentials cache after successful authentication}"/>
+            title="${%Update default Subversion credentials cache after successful authentication}"
+            help="/descriptor/hudson.scm.SubversionSCM/help/storeAuthToDisk"/>
     </f:section>
 </j:jelly>
