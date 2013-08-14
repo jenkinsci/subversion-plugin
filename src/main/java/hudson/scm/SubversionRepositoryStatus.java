@@ -175,7 +175,7 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                 }
                 
             } catch (SVNException e) {
-                LOGGER.log(WARNING,"Failed to handle Subversion commit notification",e);
+                LOGGER.log(WARNING, "Failed to handle Subversion commit notification: {0}", e.getMessage());
             }
         }
 
