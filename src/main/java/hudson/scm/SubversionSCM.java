@@ -2125,9 +2125,7 @@ public class SubversionSCM extends SCM implements Serializable {
                       + "document.getElementById('svnerrorlink').style.display='none';"
                       + "return false;")
                   + "<br/><pre id=\"svnerror\" style=\"display:none\">"
-                  + Functions.printThrowable(e) + "</pre>"
-                  + Messages.SubversionSCM_doCheckRemote_exceptionMsg2(
-                      "descriptorByName/"+SubversionSCM.class.getName()+"/enterCredential?" + url);
+                  + Functions.printThrowable(e) + "</pre>";
                 return FormValidation.errorWithMarkup(message);
             }
         }
