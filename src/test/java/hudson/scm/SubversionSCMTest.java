@@ -855,7 +855,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
           File repo = new CopyExisting(getClass().getResource("JENKINS-10449.zip")).allocate();
           SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.toURI().toURL().getPath()},
                                                                      new String[]{"."},null,null),
-                                                new UpdateUpdater(), null, "/z.*", "", "", "", "", false, shouldFilterLog);
+                                                new UpdateUpdater(), null, "/z.*", "", "", "", "", false, shouldFilterLog, null);
 
           FreeStyleProject p = createFreeStyleProject(String.format("testFilterChangelog-%s", shouldFilterLog));
           p.setScm(scm);
