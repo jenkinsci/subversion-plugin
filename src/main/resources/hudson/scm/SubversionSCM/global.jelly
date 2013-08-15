@@ -41,9 +41,5 @@ THE SOFTWARE.
             checked="${descriptor.validateRemoteUpToVar}"
             title="${%Validate repository URLs up to the first variable name}"
             help="/descriptor/hudson.scm.SubversionSCM/help/validateRemoteUpToVar"/>
-        <f:optionalBlock
-            name="svn.storeAuthToDisk"
-            checked="${descriptor.storeAuthToDisk}"
-            title="${%Update default Subversion credentials cache after successful authentication}"/>
     </f:section>
 </j:jelly>

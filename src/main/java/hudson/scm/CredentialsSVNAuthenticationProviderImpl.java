@@ -42,8 +42,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author stephenc
@@ -54,6 +56,8 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
     private static final long serialVersionUID = 1L;
 
     private final SVNAuthenticationBuilderProvider provider;
+
+    private final SVNUnauthenticatedRealmObserver realmObserver = new RemotableSVNUnauthenticatedRealmObserver();
 
     public CredentialsSVNAuthenticationProviderImpl(Credentials credentials) {
         this.provider =
@@ -110,15 +114,25 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
                                                          boolean authMayBeStored) {
         SVNAuthenticationBuilder builder = provider.getBuilder(realm);
         if (builder == null) {
+            realmObserver.observe(realm);
             // finished all auth strategies, we are out of luck
             return null;
         }
         List<SVNAuthentication> authentications = builder.build(kind, url);
         int index = previousAuth == null ? 0 : indexOf(authentications, previousAuth) + 1;
         if (index >= authentications.size()) {
+            realmObserver.observe(realm);
             return null;
         }
         return authentications.get(index);
+    }
+
+    public void resetUnauthenticatedRealms() {
+        realmObserver.reset();
+    }
+
+    public Set<String> getUnauthenticatedRealms() {
+        return realmObserver.get();
     }
 
     private static int indexOf(List<SVNAuthentication> list, SVNAuthentication o) {
@@ -174,6 +188,44 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
 
     public int acceptServerAuthentication(SVNURL url, String realm, Object certificate, boolean resultMayBeStored) {
         return ACCEPTED_TEMPORARY;
+    }
+
+    public static interface SVNUnauthenticatedRealmObserver extends Serializable {
+        void observe(String realm);
+
+        void reset();
+
+        Set<String> get();
+    }
+
+    public static class RemotableSVNUnauthenticatedRealmObserver implements SVNUnauthenticatedRealmObserver {
+
+        private final Set<String> realms = new LinkedHashSet<String>();
+
+        /**
+         * When sent to the remote node, send a proxy.
+         */
+        private Object writeReplace() {
+            return Channel.current().export(SVNUnauthenticatedRealmObserver.class, this);
+        }
+
+        public void observe(String realm) {
+            synchronized (realms) {
+                realms.add(realm);
+            }
+        }
+
+        public void reset() {
+            synchronized (realms) {
+                realms.clear();
+            }
+        }
+
+        public Set<String> get() {
+            synchronized (realms) {
+                return new LinkedHashSet<String>(realms);
+            }
+        }
     }
 
     public static interface SVNAuthenticationBuilderProvider extends Serializable {

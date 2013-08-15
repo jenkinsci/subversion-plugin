@@ -64,6 +64,7 @@ import hudson.model.Hudson;
 
 import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.WeakHashMap;
 
 import hudson.security.ACL;
@@ -890,9 +891,12 @@ public class SubversionSCM extends SCM implements Serializable {
         }
         
         List<External> externals = new ArrayList<External>();
+        Set<String> unauthenticatedRealms = new LinkedHashSet<String>();
         for (ModuleLocation location : getLocations(env, build)) {
-            externals.addAll( workspace.act(
-                    new CheckOutTask(build, this, location, build.getTimestamp().getTime(), listener, env)));
+            CheckOutTask checkOutTask =
+                    new CheckOutTask(build, this, location, build.getTimestamp().getTime(), listener, env);
+            externals.addAll(workspace.act(checkOutTask));
+            unauthenticatedRealms.addAll(checkOutTask.getUnauthenticatedRealms());
             // olamy: remove null check at it cause test failure
             // see https://github.com/jenkinsci/subversion-plugin/commit/de23a2b781b7b86f41319977ce4c11faee75179b#commitcomment-1551273
             /*if ( externalsFound != null ){
@@ -900,6 +904,32 @@ public class SubversionSCM extends SCM implements Serializable {
             } else {
                 externals.addAll( new ArrayList<External>( 0 ) );
             }*/
+        }
+        if (additionalCredentials != null) {
+            for (AdditionalCredentials c : additionalCredentials) {
+                unauthenticatedRealms.remove(c.getRealm());
+            }
+        }
+        if (!unauthenticatedRealms.isEmpty()) {
+            listener.getLogger().println("WARNING: The following realms could not be authenticated:");
+            for (String realm : unauthenticatedRealms) {
+                listener.getLogger().println(" * " + realm);
+            }
+            if (build == build.getProject().getLastBuild()) {
+                if (additionalCredentials == null) {
+                    additionalCredentials = new ArrayList<AdditionalCredentials>();
+                }
+                for (String realm : unauthenticatedRealms) {
+                    additionalCredentials.add(new AdditionalCredentials(realm, null));
+                }
+                try {
+                    listener.getLogger().println("Adding missing realms to configuration...");
+                    build.getProject().save();
+                    listener.getLogger().println("Updated project configuration saved.");
+                } catch (IOException e) {
+                    listener.getLogger().println("Could not update project configuration: " + e.getMessage());
+                }
+            }
         }
 
         return externals;
@@ -926,6 +956,13 @@ public class SubversionSCM extends SCM implements Serializable {
             this.location = location;
             this.revisions = build.getAction(RevisionParameterAction.class);
             this.task = parent.getWorkspaceUpdater().createTask();
+        }
+
+        public Set<String> getUnauthenticatedRealms() {
+            if (authProvider instanceof CredentialsSVNAuthenticationProviderImpl) {
+                return ((CredentialsSVNAuthenticationProviderImpl) authProvider).getUnauthenticatedRealms();
+            }
+            return Collections.emptySet();
         }
         
         public List<External> invoke(File ws, VirtualChannel channel) throws IOException {
@@ -1972,10 +2009,22 @@ public class SubversionSCM extends SCM implements Serializable {
             }
         }
 
-        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath AbstractProject context, @QueryParameter String remote) {
+        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath AbstractProject context,
+                                                     @QueryParameter String remote,
+                                                     @QueryParameter String realm) {
             List<DomainRequirement> domainRequirements;
             if (remote == null) {
-                domainRequirements = Collections.<DomainRequirement>emptyList();
+                if (realm == null) {
+                    domainRequirements = Collections.<DomainRequirement>emptyList();
+                } else {
+                    if (realm.startsWith("<") && realm.contains(">")) {
+                        int index = realm.indexOf('>');
+                        assert index > 1;
+                        domainRequirements = URIRequirementBuilder.fromUri(realm.substring(1, index).trim()).build();
+                    } else {
+                        domainRequirements = Collections.<DomainRequirement>emptyList();
+                    }
+                }
             } else {
                 domainRequirements = URIRequirementBuilder.fromUri(remote.trim()).build();
             }
