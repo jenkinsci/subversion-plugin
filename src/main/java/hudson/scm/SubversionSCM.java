@@ -31,6 +31,7 @@ import static hudson.scm.PollingResult.BUILD_NOW;
 import static hudson.scm.PollingResult.NO_CHANGES;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.WARNING;
+import static java.util.logging.Level.parse;
 
 import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
 import com.cloudbees.plugins.credentials.Credentials;
@@ -383,14 +384,28 @@ public class SubversionSCM extends SCM implements Serializable {
      * Convenience constructor, especially during testing.
      */
     public SubversionSCM(String svnUrl, String local) {
-        this(new String[]{svnUrl},new String[]{local},true,null,null,null,null);
+        this(new String[]{svnUrl},new String[]{local},null);
     }
     
     /**
      * Convenience constructor, especially during testing.
      */
+    public SubversionSCM(String svnUrl, String local, String credentialId) {
+        this(new String[]{svnUrl},new String[]{local},new String[]{credentialId});
+    }
+
+    /**
+     * Convenience constructor, especially during testing.
+     */
     public SubversionSCM(String[] svnUrls, String[] locals) {
-        this(svnUrls,locals,true,null,null,null,null);
+        this(svnUrls,locals,null);
+    }
+
+    /**
+     * Convenience constructor, especially during testing.
+     */
+    public SubversionSCM(String[] svnUrls, String[] locals, String[] credentialIds) {
+        this(ModuleLocation.parse(svnUrls,locals,credentialIds,null,null), true, false, null, null, null, null, null);
     }
 
     /**
@@ -2596,7 +2611,12 @@ public class SubversionSCM extends SCM implements Serializable {
 
         private static final long serialVersionUID = 1L;
 
+        @Deprecated
         public static List<ModuleLocation> parse(String[] remoteLocations, String[] localLocations, String[] depthOptions, boolean[] isIgnoreExternals) {
+            return parse(remoteLocations, localLocations, null, depthOptions, isIgnoreExternals);
+        }
+
+        public static List<ModuleLocation> parse(String[] remoteLocations, String[] localLocations, String[] credentialIds, String[] depthOptions, boolean[] isIgnoreExternals) {
             List<ModuleLocation> modules = new ArrayList<ModuleLocation>();
             if (remoteLocations != null && localLocations != null) {
                 int entries = Math.min(remoteLocations.length, localLocations.length);
@@ -2608,6 +2628,7 @@ public class SubversionSCM extends SCM implements Serializable {
                     if (remoteLoc != null) {// null if skipped
                         remoteLoc = Util.removeTrailingSlash(remoteLoc.trim());
                         modules.add(new ModuleLocation(remoteLoc, Util.nullify(localLocations[i]),
+                                credentialIds != null && credentialIds.length > i? credentialIds[i] : null,
                             depthOptions != null ? depthOptions[i] : null,
                             isIgnoreExternals != null && isIgnoreExternals[i]));
                     }

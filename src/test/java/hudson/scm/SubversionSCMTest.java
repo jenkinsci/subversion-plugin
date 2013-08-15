@@ -27,6 +27,12 @@ package hudson.scm;
 
 import static hudson.scm.SubversionSCM.compareSVNAuthentications;
 import static org.jvnet.hudson.test.recipes.PresetData.DataSet.ANONYMOUS_READONLY;
+
+import com.cloudbees.plugins.credentials.Credentials;
+import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
+import com.cloudbees.plugins.credentials.domains.Domain;
+import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Proc;
@@ -66,6 +72,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -1236,6 +1243,12 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     public void testMultipleCredentialsPerRepo() throws Exception {
         Proc p = runSvnServe(getClass().getResource("HUDSON-1379.zip"));
         try {
+            SystemCredentialsProvider.getInstance().setDomainCredentialsMap(Collections.singletonMap(Domain.global(),
+                    Arrays.<Credentials>asList(
+                    new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "1-bob", null, "bob","bob"),
+                    new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "2-charlie", null, "charlie","charlie")
+                    )
+            ));
             FreeStyleProject b = createFreeStyleProject();
             b.setScm(new SubversionSCM("svn://localhost/bob"));
 
@@ -1244,11 +1257,11 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
             // should fail without a credential
             assertBuildStatus(Result.FAILURE,b.scheduleBuild2(0).get());
-            descriptor.postCredential(b,"svn://localhost/bob","bob","bob",null,new PrintWriter(System.out));
+            b.setScm(new SubversionSCM("svn://localhost/bob", ".", "1-bob"));
             buildAndAssertSuccess(b);
 
             assertBuildStatus(Result.FAILURE,c.scheduleBuild2(0).get());
-            descriptor.postCredential(c,"svn://localhost/charlie","charlie","charlie",null,new PrintWriter(System.out));
+            c.setScm(new SubversionSCM("svn://localhost/charlie", ".", "2-charlie"));
             buildAndAssertSuccess(c);
 
             // b should still build fine.
