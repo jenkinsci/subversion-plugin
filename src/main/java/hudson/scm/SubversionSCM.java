@@ -31,7 +31,6 @@ import static hudson.scm.PollingResult.BUILD_NOW;
 import static hudson.scm.PollingResult.NO_CHANGES;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.WARNING;
-import static java.util.logging.Level.parse;
 
 import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
 import com.cloudbees.plugins.credentials.Credentials;
@@ -40,8 +39,6 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCertificateCredentials;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
-import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
-import com.cloudbees.plugins.credentials.common.StandardUsernameListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
@@ -158,13 +155,11 @@ import org.tmatesoft.svn.core.SVNLogEntry;
 import org.tmatesoft.svn.core.SVNNodeKind;
 import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
-import org.tmatesoft.svn.core.auth.ISVNAuthenticationOutcomeListener;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
 import org.tmatesoft.svn.core.auth.SVNAuthentication;
 import org.tmatesoft.svn.core.auth.SVNPasswordAuthentication;
 import org.tmatesoft.svn.core.auth.SVNSSHAuthentication;
 import org.tmatesoft.svn.core.auth.SVNSSLAuthentication;
-import org.tmatesoft.svn.core.auth.SVNUserNameAuthentication;
 import org.tmatesoft.svn.core.internal.io.dav.DAVRepositoryFactory;
 import org.tmatesoft.svn.core.internal.io.dav.http.DefaultHTTPConnectionFactory;
 import org.tmatesoft.svn.core.internal.io.fs.FSRepositoryFactory;
@@ -377,35 +372,35 @@ public class SubversionSCM extends SCM implements Serializable {
      * Convenience constructor, especially during testing.
      */
     public SubversionSCM(String svnUrl) {
-        this(svnUrl,".");
+        this(svnUrl, null, ".");
     }
 
     /**
      * Convenience constructor, especially during testing.
      */
     public SubversionSCM(String svnUrl, String local) {
-        this(new String[]{svnUrl},new String[]{local},null);
+        this(svnUrl, null, local);
     }
     
     /**
      * Convenience constructor, especially during testing.
      */
-    public SubversionSCM(String svnUrl, String local, String credentialId) {
-        this(new String[]{svnUrl},new String[]{local},new String[]{credentialId});
+    public SubversionSCM(String svnUrl, String credentialId, String local) {
+        this(new String[]{svnUrl}, new String[]{credentialId}, new String[]{local});
     }
 
     /**
      * Convenience constructor, especially during testing.
      */
     public SubversionSCM(String[] svnUrls, String[] locals) {
-        this(svnUrls,locals,null);
+        this(svnUrls, null, locals);
     }
 
     /**
      * Convenience constructor, especially during testing.
      */
-    public SubversionSCM(String[] svnUrls, String[] locals, String[] credentialIds) {
-        this(ModuleLocation.parse(svnUrls,locals,credentialIds,null,null), true, false, null, null, null, null, null);
+    public SubversionSCM(String[] svnUrls, String[] credentialIds, String[] locals) {
+        this(ModuleLocation.parse(svnUrls, credentialIds, locals, null,null), true, false, null, null, null, null, null);
     }
 
     /**
@@ -2613,10 +2608,12 @@ public class SubversionSCM extends SCM implements Serializable {
 
         @Deprecated
         public static List<ModuleLocation> parse(String[] remoteLocations, String[] localLocations, String[] depthOptions, boolean[] isIgnoreExternals) {
-            return parse(remoteLocations, localLocations, null, depthOptions, isIgnoreExternals);
+            return parse(remoteLocations, null, localLocations, depthOptions, isIgnoreExternals);
         }
 
-        public static List<ModuleLocation> parse(String[] remoteLocations, String[] localLocations, String[] credentialIds, String[] depthOptions, boolean[] isIgnoreExternals) {
+        public static List<ModuleLocation> parse(String[] remoteLocations, String[] credentialIds,
+                                                 String[] localLocations, String[] depthOptions,
+                                                 boolean[] isIgnoreExternals) {
             List<ModuleLocation> modules = new ArrayList<ModuleLocation>();
             if (remoteLocations != null && localLocations != null) {
                 int entries = Math.min(remoteLocations.length, localLocations.length);
@@ -2627,8 +2624,9 @@ public class SubversionSCM extends SCM implements Serializable {
 
                     if (remoteLoc != null) {// null if skipped
                         remoteLoc = Util.removeTrailingSlash(remoteLoc.trim());
-                        modules.add(new ModuleLocation(remoteLoc, Util.nullify(localLocations[i]),
-                                credentialIds != null && credentialIds.length > i? credentialIds[i] : null,
+                        modules.add(new ModuleLocation(remoteLoc,
+                                credentialIds != null && credentialIds.length > i ? credentialIds[i] : null,
+                                Util.nullify(localLocations[i]),
                             depthOptions != null ? depthOptions[i] : null,
                             isIgnoreExternals != null && isIgnoreExternals[i]));
                     }

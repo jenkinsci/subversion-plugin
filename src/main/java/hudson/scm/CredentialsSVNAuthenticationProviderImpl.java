@@ -59,6 +59,8 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
 
     private final SVNUnauthenticatedRealmObserver realmObserver = new RemotableSVNUnauthenticatedRealmObserver();
 
+    private static final SVNAuthentication ANONYMOUS = new SVNUserNameAuthentication("", false, null, false);
+
     public CredentialsSVNAuthenticationProviderImpl(Credentials credentials) {
         this.provider =
                 new RemotableSVNAuthenticationBuilderProvider(credentials, Collections.<String, Credentials>emptyMap());
@@ -114,6 +116,9 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
                                                          boolean authMayBeStored) {
         SVNAuthenticationBuilder builder = provider.getBuilder(realm);
         if (builder == null) {
+            if (previousAuth == null && ISVNAuthenticationManager.USERNAME.equals(kind)) {
+                return ANONYMOUS;
+            }
             realmObserver.observe(realm);
             // finished all auth strategies, we are out of luck
             return null;
@@ -121,6 +126,9 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
         List<SVNAuthentication> authentications = builder.build(kind, url);
         int index = previousAuth == null ? 0 : indexOf(authentications, previousAuth) + 1;
         if (index >= authentications.size()) {
+            if (previousAuth == null && ISVNAuthenticationManager.USERNAME.equals(kind)) {
+                return ANONYMOUS;
+            }
             realmObserver.observe(realm);
             return null;
         }

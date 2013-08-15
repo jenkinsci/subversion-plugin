@@ -1256,12 +1256,12 @@ public class SubversionSCMTest extends AbstractSubversionTest {
             c.setScm(new SubversionSCM("svn://localhost/charlie"));
 
             // should fail without a credential
-            assertBuildStatus(Result.FAILURE,b.scheduleBuild2(0).get());
-            b.setScm(new SubversionSCM("svn://localhost/bob", ".", "1-bob"));
+            assertBuildStatus(Result.FAILURE, b.scheduleBuild2(0).get());
+            b.setScm(new SubversionSCM("svn://localhost/bob", "1-bob", "."));
             buildAndAssertSuccess(b);
 
-            assertBuildStatus(Result.FAILURE,c.scheduleBuild2(0).get());
-            c.setScm(new SubversionSCM("svn://localhost/charlie", ".", "2-charlie"));
+            assertBuildStatus(Result.FAILURE, c.scheduleBuild2(0).get());
+            c.setScm(new SubversionSCM("svn://localhost/charlie", "2-charlie", "."));
             buildAndAssertSuccess(c);
 
             // b should still build fine.

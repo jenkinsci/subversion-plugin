@@ -9,7 +9,6 @@ import hudson.Proc;
 import hudson.model.FreeStyleProject;
 import org.jvnet.hudson.test.Bug;
 
-import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -30,7 +29,7 @@ public class PerJobCredentialStoreTest extends AbstractSubversionTest {
                     )
             ));
             FreeStyleProject b = createFreeStyleProject();
-            b.setScm(new SubversionSCM("svn://localhost/bob", ".", "1-alice"));
+            b.setScm(new SubversionSCM("svn://localhost/bob", "1-alice", "."));
             b.setAssignedNode(createSlave());
 
             buildAndAssertSuccess(b);
