@@ -108,7 +108,7 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
     }
 
     private static CredentialsMatcher idMatcher(String credentialsId) {
-        return credentialsId == null ? CredentialsMatchers.always() : CredentialsMatchers.withId(credentialsId);
+        return credentialsId == null ? CredentialsMatchers.never() : CredentialsMatchers.withId(credentialsId);
     }
 
     public SVNAuthentication requestClientAuthentication(String kind, SVNURL url, String realm,

@@ -2469,6 +2469,26 @@ public class SubversionSCM extends SCM implements Serializable {
             this.ignoreExternalsOption = ignoreExternalsOption;
         }
 
+        public ModuleLocation withRemote(String remote) {
+            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption);
+        }
+
+        public ModuleLocation withCredentialsId(String credentialsId) {
+            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption);
+        }
+
+        public ModuleLocation withLocal(String local) {
+            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption);
+        }
+
+        public ModuleLocation withDepthOption(String depthOption) {
+            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption);
+        }
+
+        public ModuleLocation withIgnoreExternalsOption(boolean ignoreExternalsOption) {
+            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption);
+        }
+
         /**
          * Local directory to place the file to.
          * Relative to the workspace root.
@@ -2587,7 +2607,7 @@ public class SubversionSCM extends SCM implements Serializable {
          *             to be performed on all env vars rather than just build parameters.
          */
         public ModuleLocation getExpandedLocation(AbstractBuild<?, ?> build) {
-            return new ModuleLocation(getExpandedRemote(build), getExpandedLocalDir(build));
+            return new ModuleLocation(getExpandedRemote(build), credentialsId, getExpandedLocalDir(build), null, false);
         }
         
         /**
@@ -2596,7 +2616,8 @@ public class SubversionSCM extends SCM implements Serializable {
          * @return Output ModuleLocation expanded according to specified env vars.
          */
         public ModuleLocation getExpandedLocation(EnvVars env) {
-            return new ModuleLocation(env.expand(remote), env.expand(getLocalDir()), getDepthOption(), isIgnoreExternalsOption());
+            return new ModuleLocation(env.expand(remote), credentialsId, env.expand(getLocalDir()), getDepthOption(),
+                    isIgnoreExternalsOption());
         }
 
         @Override
