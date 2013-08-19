@@ -30,28 +30,23 @@ public class SubversionRepositoryStatusTest {
     @Test
     @Bug(15794)
     public void shouldIgnoreDisabledJobs() throws ServletException, IOException {
-        SubversionRepositoryStatus repositoryStatus = new SubversionRepositoryStatus(UUID.randomUUID());
+        SubversionRepositoryStatus.JobTriggerListenerImpl listener = new SubversionRepositoryStatus.JobTriggerListenerImpl();
 
         // GIVEN: a disabled project
         final AbstractProject project = mock(AbstractProject.class);
         when(project.isDisabled()).thenReturn(true);
         
         JobProvider jobProvider = new JobProvider() {
-            @Override
             public List<AbstractProject> getAllJobs() {
                 return Collections.singletonList(project);
             }
         };
         
-        repositoryStatus.setJobProvider(jobProvider);
+        listener.setJobProvider(jobProvider);
         
         // WHEN: post-commit hook is triggered
-        StaplerRequest request = mock(StaplerRequest.class);
-        when(request.getReader()).thenReturn(new BufferedReader(new StringReader("/somepath\n")));
-        StaplerResponse response = mock(StaplerResponse.class);
-        
-        repositoryStatus.doNotifyCommit(request, response);
-        
+        listener.onNotify(UUID.randomUUID(), -1, Collections.singleton("/somepath"));
+
         // THEN: disabled project is not considered at all
         verify(project, never()).getScm();
     }
