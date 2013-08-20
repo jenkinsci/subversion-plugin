@@ -44,6 +44,9 @@ THE SOFTWARE.
         <f:entry title="${%Ignore externals}" field="ignoreExternalsOption">
           <f:checkbox default="false" checked="${loc.ignoreExternalsOption}"/>
         </f:entry>
+        <f:entry title="${%Use commit times}" description="${%updateDescription}" field="useCommitTimes">
+    		<f:checkbox default="false" checked="${loc.useCommitTimes}"/>
+  		</f:entry>
         <f:entry>
           <div align="right">
             <input type="button" value="${%Add more locations...}" class="repeatable-add show-if-last" />
@@ -78,6 +81,6 @@ THE SOFTWARE.
     </f:entry>
     <f:entry title="${%Filter changelog}" field="filterChangelog">
         <f:checkbox />
-    </f:entry>
+    </f:entry>    
   </f:advanced>
 </j:jelly>

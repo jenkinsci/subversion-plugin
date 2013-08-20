@@ -244,7 +244,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
         protected void perform(TaskListener listener) {
             try {
                 final SvnClientManager cm = upc!=null
-                        ? new SvnClientManager(SVNClientManager.newInstance(SubversionSCM.createDefaultSVNOptions(),upc.new AuthenticationManagerImpl(listener)))
+                        ? new SvnClientManager(SVNClientManager.newInstance(SubversionSCM.createDefaultSVNOptions(false),upc.new AuthenticationManagerImpl(listener)))
                         : SubversionSCM.createClientManager(getBuild().getProject());
                 try {
                     for (Entry<SvnInfo, String> e : tagSet.entrySet()) {
