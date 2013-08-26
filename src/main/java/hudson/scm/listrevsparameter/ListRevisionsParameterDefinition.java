@@ -29,6 +29,7 @@ import hudson.Extension;
 import hudson.Util;
 import hudson.model.*;
 import hudson.scm.SubversionSCM;
+import hudson.scm.parameter.ProjectBoundParameterDefinition;
 import hudson.util.FormValidation;
 import net.sf.json.JSONObject;
 import org.jvnet.localizer.ResourceBundleHolder;
@@ -58,7 +59,7 @@ import java.util.logging.Logger;
  * at build-time for specific directory in repository. See
  * {@link ListRevisionsParameterValue}.</p>
  */
-public class ListRevisionsParameterDefinition extends ParameterDefinition implements Comparable<ListRevisionsParameterDefinition> {
+public class ListRevisionsParameterDefinition extends ProjectBoundParameterDefinition {
   private static final long serialVersionUID = 1L;
 
   /**
@@ -66,24 +67,10 @@ public class ListRevisionsParameterDefinition extends ParameterDefinition implem
    */
   private final String revisionsDir;
 
-  /**
-   * We use a UUID to uniquely identify each use of this parameter: We need this
-   * to find the project using this parameter in the getTags() method (which is
-   * called before the build takes place).
-   */
-  private final UUID uuid;
-
   @DataBoundConstructor
   public ListRevisionsParameterDefinition(String name, String revisionsDir, String uuid) {
-    super(name);
+    super(name, null, uuid);
     this.revisionsDir = Util.removeTrailingSlash(revisionsDir);
-
-    if (uuid == null || uuid.length() == 0) {
-      this.uuid = UUID.randomUUID();
-    }
-    else {
-      this.uuid = UUID.fromString(uuid);
-    }
   }
 
   @Override
@@ -143,31 +130,10 @@ public class ListRevisionsParameterDefinition extends ParameterDefinition implem
    * defined when configuring the Subversion SCM.</p>
    */
   public List<Long> getFirstLastRevisions() {
-    AbstractProject context = null;
-    List<AbstractProject> jobs = Hudson.getInstance().getItems(AbstractProject.class);
-
-    // which project is this parameter bound to? (I should take time to move
-    // this code to Hudson core one day)
-    for(AbstractProject project : jobs) {
-      @SuppressWarnings("unchecked")
-      ParametersDefinitionProperty property = (ParametersDefinitionProperty) project.getProperty(ParametersDefinitionProperty.class);
-      if(property != null) {
-        List<ParameterDefinition> parameterDefinitions = property.getParameterDefinitions();
-        if(parameterDefinitions != null) {
-          for(ParameterDefinition pd : parameterDefinitions) {
-            if(pd instanceof ListRevisionsParameterDefinition && ((ListRevisionsParameterDefinition) pd).compareTo(this) == 0) {
-              context = project;
-              break;
-            }
-          }
-        }
-      }
-    }
-
     final List<Long> revisions = new ArrayList<Long>();
 
     try {
-      ISVNAuthenticationProvider authProvider = getDescriptor().createAuthenticationProvider(context);
+      ISVNAuthenticationProvider authProvider = getDescriptor().createAuthenticationProvider(getProject());
       ISVNAuthenticationManager authManager = SubversionSCM.createSvnAuthenticationManager(authProvider);
       SVNURL repoURL = SVNURL.parseURIEncoded(getRevisionsDir());
 
@@ -196,13 +162,6 @@ public class ListRevisionsParameterDefinition extends ParameterDefinition implem
 
   public String getRevisionsDir() {
     return revisionsDir;
-  }
-
-  public int compareTo(ListRevisionsParameterDefinition pd) {
-    if(pd.uuid.equals(uuid)) {
-      return 0;
-    }
-    return -1;
   }
 
   @Extension
