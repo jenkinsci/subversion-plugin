@@ -1,4 +1,4 @@
-package hudson.scm.listtagsparameter;
+package hudson.scm.parameter.listdirs;
 
 import hudson.Proc;
 import hudson.scm.AbstractSubversionTest;
@@ -20,7 +20,7 @@ import org.tmatesoft.svn.core.wc.SVNRevision;
 /**
  * @author Kohsuke Kawaguchi
  */
-public class ListSubversionTagsParameterDefinitionTest extends AbstractSubversionTest {
+public class ListDirectoriesParameterDefinitionTest extends AbstractSubversionTest {
     /**
      * Make sure we are actually listing tags correctly.
      */
@@ -28,7 +28,7 @@ public class ListSubversionTagsParameterDefinitionTest extends AbstractSubversio
     public void testListTags() throws Exception {
         Proc p = runSvnServe(getClass().getResource("JENKINS-11933.zip"));
         try {
-            ListSubversionTagsParameterDefinition def = new ListSubversionTagsParameterDefinition("FOO", "svn://localhost/", "", "", "", false, false, null);
+            ListDirectoriesParameterDefinition def = new ListDirectoriesParameterDefinition("FOO", "svn://localhost/", "", "", "", false, false, null);
             List<String> tags = def.getTags();
             List<String> expected = Arrays.asList("trunk", "tags/a", "tags/b", "tags/c");
             
@@ -54,7 +54,6 @@ public class ListSubversionTagsParameterDefinitionTest extends AbstractSubversio
         SVNURL repoURL = SVNURL.parseURIEncoded( "svn://localhost/");
         SVNLogClient logClient = new SVNLogClient((ISVNAuthenticationManager)null, null);
         logClient.doList(repoURL, SVNRevision.HEAD, SVNRevision.HEAD, false, true, new ISVNDirEntryHandler() {
-            @Override
             public void handleDirEntry(SVNDirEntry dirEntry) throws SVNException {
                 System.out.println(dirEntry.getRelativePath());
             }

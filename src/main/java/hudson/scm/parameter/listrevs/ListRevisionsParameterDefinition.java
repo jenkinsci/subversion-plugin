@@ -23,7 +23,7 @@
  * THE SOFTWARE.
  */
 
-package hudson.scm.listrevsparameter;
+package hudson.scm.parameter.listrevs;
 
 import hudson.Extension;
 import hudson.Util;
@@ -47,7 +47,6 @@ import org.tmatesoft.svn.core.wc.SVNRevision;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -65,12 +64,12 @@ public class ListRevisionsParameterDefinition extends ProjectBoundParameterDefin
   /**
    * The Subversion repository which contains the revision to be selected.
    */
-  private final String revisionsDir;
+  private final String repositoryURL;
 
   @DataBoundConstructor
-  public ListRevisionsParameterDefinition(String name, String revisionsDir, String uuid) {
+  public ListRevisionsParameterDefinition(String name, String repositoryURL, String uuid) {
     super(name, null, uuid);
-    this.revisionsDir = Util.removeTrailingSlash(revisionsDir);
+    this.repositoryURL = Util.removeTrailingSlash(repositoryURL);
   }
 
   @Override
@@ -81,7 +80,7 @@ public class ListRevisionsParameterDefinition extends ProjectBoundParameterDefin
           "TagDescription", firstLastRevisions.get(0).toString(), firstLastRevisions.get(1).toString());
     } else {
       return ResourceBundleHolder.get(ListRevisionsParameterDefinition.class).format(
-          "SVNException", getRevisionsDir());
+          "SVNException", getRepositoryURL());
     }
   }
 
@@ -93,7 +92,7 @@ public class ListRevisionsParameterDefinition extends ProjectBoundParameterDefin
         return this.getDefaultParameterValue();
     }
     else {
-      return new ListRevisionsParameterValue(getName(), getRevisionsDir(), Long.valueOf(values[0]));
+      return new ListRevisionsParameterValue(getName(), getRepositoryURL(), Long.valueOf(values[0]));
     }
   }
 
@@ -101,7 +100,7 @@ public class ListRevisionsParameterDefinition extends ProjectBoundParameterDefin
   @Override
   public ParameterValue createValue(StaplerRequest req, JSONObject formData) {
     ListRevisionsParameterValue value = req.bindJSON(ListRevisionsParameterValue.class, formData);
-    value.setRevisionsDir(getRevisionsDir());
+    value.setRepositoryURL(getRepositoryURL());
     // here, we could have checked for the value of the "tag" attribute of the
     // parameter value, but it's of no use because if we return null the build
     // still goes on...
@@ -110,7 +109,7 @@ public class ListRevisionsParameterDefinition extends ProjectBoundParameterDefin
 
   @Override
   public ParameterValue getDefaultParameterValue() {
-    return new ListRevisionsParameterValue(getName(), getRevisionsDir(), getLastRevision());
+    return new ListRevisionsParameterValue(getName(), getRepositoryURL(), getLastRevision());
   }
 
   @Override
@@ -135,7 +134,7 @@ public class ListRevisionsParameterDefinition extends ProjectBoundParameterDefin
     try {
       ISVNAuthenticationProvider authProvider = getDescriptor().createAuthenticationProvider(getProject());
       ISVNAuthenticationManager authManager = SubversionSCM.createSvnAuthenticationManager(authProvider);
-      SVNURL repoURL = SVNURL.parseURIEncoded(getRevisionsDir());
+      SVNURL repoURL = SVNURL.parseURIEncoded(getRepositoryURL());
 
       SVNRepository repo = SVNRepositoryFactory.create(repoURL);
       repo.setAuthenticationManager(authManager);
@@ -155,13 +154,13 @@ public class ListRevisionsParameterDefinition extends ProjectBoundParameterDefin
       return revisions;
     }
     catch(SVNException e) {
-      LOGGER.log(Level.SEVERE, "An SVN exception occurred while getting log at " + getRevisionsDir(), e);
+      LOGGER.log(Level.SEVERE, "An SVN exception occurred while getting log at " + getRepositoryURL(), e);
       return null;
     }
   }
 
-  public String getRevisionsDir() {
-    return revisionsDir;
+  public String getRepositoryURL() {
+    return repositoryURL;
   }
 
   @Extension
@@ -173,7 +172,7 @@ public class ListRevisionsParameterDefinition extends ProjectBoundParameterDefin
       return getSubversionSCMDescriptor().createAuthenticationProvider(context);
     }
 
-    public FormValidation doCheckRevisionsDir(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value) {
+    public FormValidation doCheckRepositoryURL(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value) {
       return getSubversionSCMDescriptor().doCheckRemote(req, context, value);
     }
 

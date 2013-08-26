@@ -23,7 +23,7 @@
  * THE SOFTWARE.
  */
 
-package hudson.scm.listrevsparameter;
+package hudson.scm.parameter.listdirs;
 
 import hudson.EnvVars;
 import hudson.model.AbstractBuild;
@@ -33,53 +33,55 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.export.Exported;
 
 /**
- * This class represents the actual {@link hudson.model.ParameterValue} for the
- * {@link ListRevisionsParameterDefinition} parameter.
+ * This class represents the actual {@link ParameterValue} for the
+ * {@link ListDirectoriesParameterDefinition} parameter.
+ *
+ * @author Romain Seguy (http://openromain.blogspot.com)
  */
-public class ListRevisionsParameterValue extends ParameterValue {
+public class ListDirectoriesParameterValue extends ParameterValue {
 
-  @Exported(visibility=3) private String revisionsDir; // this att comes from ListRevisionsParameterDefinition
-  @Exported(visibility=3) private Long revision;
+  @Exported(visibility=3) private String repositoryURL; // this att comes from ListDirectoriesParameterDefinition
+  @Exported(visibility=3) private String tag;
 
   @DataBoundConstructor
-  public ListRevisionsParameterValue(String name, String revisionsDir, Long revision) {
+  public ListDirectoriesParameterValue(String name, String repositoryURL, String tag) {
     super(name);
-    this.revisionsDir = revisionsDir;
-    this.revision = revision;
+    this.repositoryURL = repositoryURL;
+    this.tag = tag;
   }
 
   @Override
   public void buildEnvVars(AbstractBuild<?,?> build, EnvVars env) {
-    env.put(getName(), getRevision().toString());
+    env.put(getName(), getTag());
   }
 
   @Override
   public VariableResolver<String> createVariableResolver(AbstractBuild<?, ?> build) {
     return new VariableResolver<String>() {
       public String resolve(String name) {
-        return ListRevisionsParameterValue.this.name.equals(name) ? getRevision().toString() : null;
+        return ListDirectoriesParameterValue.this.name.equals(name) ? getTag() : null;
       }
     };
   }
 
-  public Long getRevision() {
-    return revision;
+  public String getTag() {
+    return tag;
   }
 
-  public void setRevision(Long revision) {
-    this.revision = revision;
+  public void setTag(String tag) {
+    this.tag = tag;
   }
 
-  public String getRevisionsDir() {
-    return revisionsDir;
+  public String getRepositoryURL() {
+    return repositoryURL;
   }
 
-  public void setRevisionsDir(String revisionsDir) {
-    this.revisionsDir = revisionsDir;
+  public void setRepositoryURL(String repositoryURL) {
+    this.repositoryURL = repositoryURL;
   }
 
   @Override
   public String toString() {
-      return "(ListRevisionsParameterValue) " + getName() + ": Repository URL='" + revisionsDir + "' Revision='" + revision + "'";
+      return "(ListDirectoriesParameterValue) " + getName() + ": Repository URL='" + repositoryURL + "' Tag='" + tag + "'";
   }
 }

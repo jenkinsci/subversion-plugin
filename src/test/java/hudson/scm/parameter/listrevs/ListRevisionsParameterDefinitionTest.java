@@ -1,4 +1,4 @@
-package hudson.scm.listrevsparameter;
+package hudson.scm.parameter.listrevs;
 
 import hudson.Proc;
 import hudson.scm.AbstractSubversionTest;
@@ -6,12 +6,12 @@ import hudson.scm.AbstractSubversionTest;
 import java.util.Arrays;
 import java.util.List;
 
-public class ListSubversionRevisionsParameterDefinitionTest extends AbstractSubversionTest {
+public class ListRevisionsParameterDefinitionTest extends AbstractSubversionTest {
     /**
      * Make sure we are actually listing revisions correctly.
      */
     public void testListTags() throws Exception {
-        Proc p = runSvnServe(getClass().getResource("../small.zip"));
+        Proc p = runSvnServe(getClass().getResource("../../small.zip"));
         try {
             ListRevisionsParameterDefinition def = new ListRevisionsParameterDefinition("FOO", "svn://localhost/", null);
             List<Long> actual = def.getFirstLastRevisions();

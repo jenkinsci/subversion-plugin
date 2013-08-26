@@ -2,7 +2,7 @@
   - The MIT License
   -
   - Copyright (c) 2010-2011, Manufacture Francaise des Pneumatiques Michelin,
-  - Romain Seguy
+  - Romain Seguy, Jeff Blaisdell
   -
   - Permission is hereby granted, free of charge, to any person obtaining a copy
   - of this software and associated documentation files (the "Software"), to deal
@@ -23,11 +23,12 @@
   - THE SOFTWARE.
   -->
 
+<!-- this is the page fragment displayed to set up a job -->
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
-    <f:entry title="${%Repository URL}">
-        <f:textbox name="revisionsDir" value="${it.revisionsDir}"/>
+    <f:entry title="${%Name}" field="name">
+        <f:textbox name="parameter.name" value="${instance.name}" />
     </f:entry>
-    <f:entry title="${%Revision}">
-        <f:textbox name="revision" value="${it.revision}"/>
+    <f:entry title="${%Repository URL}" field="repositoryURL">
+        <f:textbox name="parameter.repositoryURL" value="${instance.repositoryURL}" />
     </f:entry>
 </j:jelly>

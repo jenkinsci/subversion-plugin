@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-package hudson.scm.listtagsparameter;
+package hudson.scm.parameter.listdirs;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
