@@ -129,7 +129,9 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
         boolean listenerDidSomething = false;
         for (Listener listener : Jenkins.getInstance().getExtensionList(Listener.class)) {
             try {
-                listenerDidSomething = listenerDidSomething || listener.onNotify(uuid, rev, affectedPath);
+                if (listener.onNotify(uuid, rev, affectedPath)) {
+                    listenerDidSomething = true;
+                }
             } catch (Throwable t) {
                 LOGGER.log(WARNING,"Listener " + listener.getClass().getName() + " threw an uncaught exception",t);
             }
