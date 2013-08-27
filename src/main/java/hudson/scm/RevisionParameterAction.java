@@ -34,6 +34,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.tmatesoft.svn.core.wc.SVNRevision;
@@ -93,7 +94,7 @@ public class RevisionParameterAction extends InvisibleAction implements Serializ
 			for (SvnInfo oldRev : this.revisions) {
 				if (oldRev.url.equals(newRev.url)) {
 
-					LOGGER.info("Updating revision parameter for " + oldRev.url + " from " + oldRev.revision + " to " + newRev.revision);
+					LOGGER.log(Level.FINE, "Updating revision parameter for {0} from {1} to {2}", new Object[] {oldRev.url, oldRev.revision, newRev.revision});
 
 					this.revisions.add(new SvnInfo(oldRev.url, newRev.revision));
 					this.revisions.remove(oldRev);
