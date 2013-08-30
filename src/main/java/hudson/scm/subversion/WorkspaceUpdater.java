@@ -73,7 +73,15 @@ public abstract class WorkspaceUpdater extends AbstractDescribableImpl<Workspace
         // this is very ugly. SVNKit (1.7.4 at least) reports missing authentication data as a cancel exception
         // "No credential to try. Authentication failed"
         // See DefaultSVNAuthenticationManager#getFirstAuthentication
-        return e.getMessage().contains("No credential to try");
+        if (String.valueOf(e.getMessage()).contains("No credential to try")) {
+            return true;
+        }
+        Throwable cause = e.getCause();
+        if (cause instanceof SVNCancelException) {
+            return isAuthenticationFailedError((SVNCancelException) cause);
+        } else {
+            return false;
+        }
     }
 
     /**
