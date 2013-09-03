@@ -608,6 +608,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
         try {
             Map<String,Long> revisions = parseSvnRevisionFile(build);
+            Set<String> knownURLs = revisions.keySet();
             if(svnLocations.length==1) {
                 // for backwards compatibility if there's only a single modulelocation, we also set
                 // SVN_REVISION and SVN_URL without '_n'
@@ -616,8 +617,8 @@ public class SubversionSCM extends SCM implements Serializable {
                 if(rev!=null) {
                     env.put("SVN_REVISION",rev.toString());
                     env.put("SVN_URL",url);
-                } else {
-                    LOGGER.log(WARNING, "no revision found corresponding to {0}; known: {1}", new Object[] {url, revisions.keySet()});
+                } else if (!knownURLs.isEmpty()) {
+                    LOGGER.log(WARNING, "no revision found corresponding to {0}; known: {1}", new Object[] {url, knownURLs});
                 }
             }
             
@@ -627,8 +628,8 @@ public class SubversionSCM extends SCM implements Serializable {
                 if(rev!=null) {
                     env.put("SVN_REVISION_"+(i+1),rev.toString());
                     env.put("SVN_URL_"+(i+1),url);
-                } else {
-                    LOGGER.log(WARNING, "no revision found corresponding to {0}; known: {1}", new Object[] {url, revisions.keySet()});
+                } else if (!knownURLs.isEmpty()) {
+                    LOGGER.log(WARNING, "no revision found corresponding to {0}; known: {1}", new Object[] {url, knownURLs});
                 }
             }
 
