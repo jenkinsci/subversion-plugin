@@ -240,7 +240,7 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     public SubversionSCM(String[] remoteLocations, String[] localLocations,
                          boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions) {
-        this(ModuleLocation.parse(remoteLocations,localLocations,null,null), useUpdate, false, browser, excludedRegions, null, null, null);
+        this(ModuleLocation.parse(remoteLocations,localLocations,null,null,null), useUpdate, false, browser, excludedRegions, null, null, null);
     }
 
     /**
@@ -248,7 +248,7 @@ public class SubversionSCM extends SCM implements Serializable {
      */
      public SubversionSCM(String[] remoteLocations, String[] localLocations,
                          boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop) {
-        this(ModuleLocation.parse(remoteLocations,localLocations,null,null), useUpdate, false, browser, excludedRegions, excludedUsers, excludedRevprop, null);
+        this(ModuleLocation.parse(remoteLocations,localLocations,null,null,null), useUpdate, false, browser, excludedRegions, excludedUsers, excludedRevprop, null);
     }
 
    /**
@@ -883,7 +883,7 @@ public class SubversionSCM extends SCM implements Serializable {
         }
         
         public List<External> invoke(File ws, VirtualChannel channel) throws IOException {
-            clientManager = createClientManager(authProvider);
+            clientManager = createClientManager(authProvider, this.location.isUseCommitTimes());
             manager = clientManager.getCore();
             this.ws = ws;
             try {
@@ -935,7 +935,7 @@ public class SubversionSCM extends SCM implements Serializable {
      *      Use {@link #createClientManager(ISVNAuthenticationProvider)}
      */
     public static SVNClientManager createSvnClientManager(ISVNAuthenticationProvider authProvider) {
-        return createClientManager(authProvider).getCore();
+        return createClientManager(authProvider, false).getCore();
     }
 
     /**
@@ -944,26 +944,31 @@ public class SubversionSCM extends SCM implements Serializable {
      * <p>
      * This method must be executed on the slave where svn operations are performed.
      *
+     * @param useCommitTimes us the commit time in checkout/update action
      * @param authProvider
      *      The value obtained from {@link DescriptorImpl#createAuthenticationProvider(AbstractProject)}.
      *      If the operation runs on slaves,
      *      (and properly remoted, if the svn operations run on slaves.)
      */
-    public static SvnClientManager createClientManager(ISVNAuthenticationProvider authProvider) {
+    public static SvnClientManager createClientManager(ISVNAuthenticationProvider authProvider, boolean useCommitTimes) {
         ISVNAuthenticationManager sam = createSvnAuthenticationManager(authProvider);
-        return new SvnClientManager(SVNClientManager.newInstance(createDefaultSVNOptions(), sam));
+        return new SvnClientManager(SVNClientManager.newInstance(createDefaultSVNOptions(useCommitTimes), sam));
     }
 
     /**
      * Creates the {@link DefaultSVNOptions}.
+     * @param useCommitTimes us the commit time in checkout/update action
      *
      * @return the {@link DefaultSVNOptions}.
      */
-    public static DefaultSVNOptions createDefaultSVNOptions() {
+    public static DefaultSVNOptions createDefaultSVNOptions(boolean useCommitTimes) {
         DefaultSVNOptions defaultOptions = SVNWCUtil.createDefaultOptions(true);
         DescriptorImpl descriptor = Hudson.getInstance() == null ? null : Hudson.getInstance().getDescriptorByType(DescriptorImpl.class);
         if (defaultOptions != null && descriptor != null) {
             defaultOptions.setAuthStorageEnabled(descriptor.isStoreAuthToDisk());
+        }
+        if (defaultOptions != null) {
+            defaultOptions.setUseCommitTimes(useCommitTimes);
         }
         return defaultOptions;
     }
@@ -1122,7 +1127,7 @@ public class SubversionSCM extends SCM implements Serializable {
      *      The target to run "svn info".
      */
     static SVNInfo parseSvnInfo(SVNURL remoteUrl, ISVNAuthenticationProvider authProvider) throws SVNException {
-        final SvnClientManager manager = createClientManager(authProvider);
+        final SvnClientManager manager = createClientManager(authProvider, false);
         try {
             final SVNWCClient svnWc = manager.getWCClient();
             return svnWc.doInfo(remoteUrl, SVNRevision.HEAD, SVNRevision.HEAD);
@@ -1154,7 +1159,7 @@ public class SubversionSCM extends SCM implements Serializable {
         public List<SvnInfoP> invoke(File ws, VirtualChannel channel) throws IOException {
             List<SvnInfoP> revisions = new ArrayList<SvnInfoP>();
 
-            final SvnClientManager manager = createClientManager(authProvider);
+            final SvnClientManager manager = createClientManager(authProvider, false);
             try {
                 final SVNWCClient svnWc = manager.getWCClient();
                 // invoke the "svn info"
@@ -1316,7 +1321,7 @@ public class SubversionSCM extends SCM implements Serializable {
             // if no exclusion rules are defined, don't waste time going through "svn log".
             if (!filter.hasExclusionRule())    return true;
 
-            final SvnClientManager manager = createClientManager(authProvider);
+            final SvnClientManager manager = createClientManager(authProvider, false);
             try {
                 manager.getLogClient().doLog(url, null, SVNRevision.UNDEFINED,
                         SVNRevision.create(from), // get log entries from the local revision + 1
@@ -1930,7 +1935,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 // 3) if the authentication is successful, svnkit calls back acknowledgeAuthentication
                 //    (so we store the password info here)
                 repository = SVNRepositoryFactory.create(SVNURL.parseURIDecoded(url));
-                repository.setTunnelProvider( createDefaultSVNOptions() );
+                repository.setTunnelProvider( createDefaultSVNOptions(false) );
                 AuthenticationManagerImpl authManager = upc.new AuthenticationManagerImpl(logWriter) {
                     @Override
                     protected void onSuccess(String realm, Credential cred) {
@@ -2069,7 +2074,7 @@ public class SubversionSCM extends SCM implements Serializable {
                     return r;
                 }
             };
-            repository.setTunnelProvider(createDefaultSVNOptions());
+            repository.setTunnelProvider(createDefaultSVNOptions(false));
             repository.setAuthenticationManager(sam);
 
             return repository;
@@ -2314,6 +2319,13 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         @Exported
         public boolean ignoreExternalsOption;
+        
+
+        /**
+         * Flag to indicates if checkout/update should be done with commit time.
+         */
+        @Exported
+        public boolean useCommitTimes;
 
         /**
          * Cache of the repository UUID.
@@ -2325,15 +2337,16 @@ public class SubversionSCM extends SCM implements Serializable {
          * Constructor to support backwards compatibility.
          */
         public ModuleLocation(String remote, String local) {
-            this(remote, local, null, false);
+            this(remote, local, null, false, false);
         }
 
         @DataBoundConstructor
-        public ModuleLocation(String remote, String local, String depthOption, boolean ignoreExternalsOption) {
+        public ModuleLocation(String remote, String local, String depthOption, boolean ignoreExternalsOption, boolean useCommitTimes) {
             this.remote = Util.removeTrailingSlash(Util.fixNull(remote).trim());
             this.local = fixEmptyAndTrim(local);
             this.depthOption = StringUtils.isEmpty(depthOption) ? SVNDepth.INFINITY.getName() : depthOption;
             this.ignoreExternalsOption = ignoreExternalsOption;
+            this.useCommitTimes = useCommitTimes;
         }
 
         /**
@@ -2442,6 +2455,15 @@ public class SubversionSCM extends SCM implements Serializable {
         public boolean isIgnoreExternalsOption() {
             return ignoreExternalsOption;
         }
+        
+        /**
+         * Determines if commit time should be used when checkout/update is done
+         *
+         * @return true if commit time should be used when checkout/update is done.
+         */
+        public boolean isUseCommitTimes() {
+            return useCommitTimes;
+        }
 
         /**
          * Expand location value based on Build parametric execution.
@@ -2461,7 +2483,7 @@ public class SubversionSCM extends SCM implements Serializable {
          * @return Output ModuleLocation expanded according to specified env vars.
          */
         public ModuleLocation getExpandedLocation(EnvVars env) {
-            return new ModuleLocation(env.expand(remote), env.expand(getLocalDir()), getDepthOption(), isIgnoreExternalsOption());
+            return new ModuleLocation(env.expand(remote), env.expand(getLocalDir()), getDepthOption(), isIgnoreExternalsOption(), isUseCommitTimes());
         }
 
         @Override
@@ -2471,7 +2493,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
         private static final long serialVersionUID = 1L;
 
-        public static List<ModuleLocation> parse(String[] remoteLocations, String[] localLocations, String[] depthOptions, boolean[] isIgnoreExternals) {
+        public static List<ModuleLocation> parse(String[] remoteLocations, String[] localLocations, String[] depthOptions, boolean[] isIgnoreExternals,  boolean[] isUseCommitTimes) {
             List<ModuleLocation> modules = new ArrayList<ModuleLocation>();
             if (remoteLocations != null && localLocations != null) {
                 int entries = Math.min(remoteLocations.length, localLocations.length);
@@ -2484,7 +2506,8 @@ public class SubversionSCM extends SCM implements Serializable {
                         remoteLoc = Util.removeTrailingSlash(remoteLoc.trim());
                         modules.add(new ModuleLocation(remoteLoc, Util.nullify(localLocations[i]),
                             depthOptions != null ? depthOptions[i] : null,
-                            isIgnoreExternals != null && isIgnoreExternals[i]));
+                            isIgnoreExternals != null && isIgnoreExternals[i],
+                            isUseCommitTimes != null && isUseCommitTimes[i]));
                     }
                 }
             }

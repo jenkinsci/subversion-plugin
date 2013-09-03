@@ -787,7 +787,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 //        SLAVE_DEBUG_PORT = 8001;
         File repo = new CopyExisting(getClass().getResource("HUDSON-6030.zip")).allocate();
         SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.toURI().toURL().getPath()},
-                                                                   new String[]{"."}, null, null),
+                                                                   new String[]{"."}, null, null,null),
                                               new UpdateUpdater(), null, ".*/bar", "", "", "", "");
 
         FreeStyleProject p = createFreeStyleProject("testExcludedRegions");
@@ -819,7 +819,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 //        SLAVE_DEBUG_PORT = 8001;
         File repo = new CopyExisting(getClass().getResource("HUDSON-6030.zip")).allocate();
         SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.toURI().toURL().getPath()},
-                                                                   new String[]{"."}, null, null),
+                                                                   new String[]{"."}, null, null,null),
                                               new UpdateUpdater(), null, "", "", "", "", ".*/foo");
 
         FreeStyleProject p = createFreeStyleProject("testExcludedRegions");
@@ -854,7 +854,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
             ExecutionException {
           File repo = new CopyExisting(getClass().getResource("JENKINS-10449.zip")).allocate();
           SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.toURI().toURL().getPath()},
-                                                                     new String[]{"."},null,null),
+                                                                     new String[]{"."},null,null,null),
                                                 new UpdateUpdater(), null, "/z.*", "", "", "", "", false, shouldFilterLog);
 
           FreeStyleProject p = createFreeStyleProject(String.format("testFilterChangelog-%s", shouldFilterLog));
@@ -1434,8 +1434,8 @@ public class SubversionSCMTest extends AbstractSubversionTest {
             FreeStyleProject b = createFreeStyleProject();
 
             ModuleLocation[] locations = {
-                    new ModuleLocation("svn://localhost/jenkins-777/proja", "no_externals", "infinity", true),
-                    new ModuleLocation("svn://localhost/jenkins-777/proja", "with_externals", "infinity", false)
+                    new ModuleLocation("svn://localhost/jenkins-777/proja", "no_externals", "infinity", true, false),
+                    new ModuleLocation("svn://localhost/jenkins-777/proja", "with_externals", "infinity", false, false)
                 };
 
             b.setScm(new SubversionSCM(Arrays.asList(locations), new CheckoutUpdater(), null, null, null, null, null, null));
@@ -1461,10 +1461,10 @@ public class SubversionSCMTest extends AbstractSubversionTest {
             FreeStyleProject b = createFreeStyleProject();
 
             ModuleLocation[] locations = {
-                    new ModuleLocation("svn://localhost/jenkins-777/proja", "empty", "empty", true),
-                    new ModuleLocation("svn://localhost/jenkins-777/proja", "files", "files", true),
-                    new ModuleLocation("svn://localhost/jenkins-777/proja", "immediates", "immediates", true),
-                    new ModuleLocation("svn://localhost/jenkins-777/proja", "infinity", "infinity", true)
+                    new ModuleLocation("svn://localhost/jenkins-777/proja", "empty", "empty", true, false),
+                    new ModuleLocation("svn://localhost/jenkins-777/proja", "files", "files", true, false),
+                    new ModuleLocation("svn://localhost/jenkins-777/proja", "immediates", "immediates", true, false),
+                    new ModuleLocation("svn://localhost/jenkins-777/proja", "infinity", "infinity", true, false)
                 };
 
             b.setScm(new SubversionSCM(Arrays.asList(locations), new CheckoutUpdater(), null, null, null, null, null, null));
@@ -1511,7 +1511,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
             FreeStyleProject b = createFreeStyleProject();
 
             ModuleLocation[] locations = {
-                    new ModuleLocation("svn://localhost/jenkins-777/proja", "proja", "infinity", true)
+                    new ModuleLocation("svn://localhost/jenkins-777/proja", "proja", "infinity", true, false)
                 };
 
             // Do initial update with infinite depth and check that file1 exists
@@ -1522,7 +1522,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
             // Trigger new build with depth empty and check that file1 no longer exists
             ModuleLocation[] locations2 = {
-                    new ModuleLocation("svn://localhost/jenkins-777/proja", "proja", "empty", true)
+                    new ModuleLocation("svn://localhost/jenkins-777/proja", "proja", "empty", true, false)
                 };
             b.setScm(new SubversionSCM(Arrays.asList(locations2), new UpdateUpdater(), null, null, null, null, null, null));
             FreeStyleBuild build2 = assertBuildStatusSuccess(b.scheduleBuild2(0));

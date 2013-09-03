@@ -107,7 +107,7 @@ public class CheckoutUpdater extends WorkspaceUpdater {
                     }
                 } catch (SVNException e) {
                     e.printStackTrace(listener.error("Failed to check out " + location.remote));
-                    throw new IOException("Failed to check out " + location.remote, e) ;
+                    throw new IOException("Failed to check out " + location.remote) ;
                 } finally {
                     try {
                         pos.close();

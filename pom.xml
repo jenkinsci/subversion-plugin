@@ -132,7 +132,7 @@ THE SOFTWARE.
       <scope>test</scope>
       <exclusions>
         <exclusion>
-          <groupId>org.jvnet.hudson.plugins</groupId>
+          <groupId>org.jenkins-ci.plugins</groupId>
           <artifactId>subversion</artifactId>
         </exclusion>
       </exclusions>
