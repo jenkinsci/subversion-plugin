@@ -90,6 +90,9 @@ public class SubversionEventHandlerImpl extends SVNEventAdapter {
             } else if (contentsStatus == SVNStatusType.MERGED) {
                 pathChangeType = "G";
             }
+        } else if (action == SVNEventAction.FAILED_EXTERNAL) {
+            String msg = String.format("Error handling external %s to url %s", event.getExternalInfo().getPath(), event.getExternalInfo().getUnresolvedUrl());
+            throw new SVNException(SVNErrorMessage.create(SVNErrorCode.CLIENT_INVALID_EXTERNALS_DESCRIPTION, msg));
         } else if (action == SVNEventAction.UPDATE_DELETE) {
             pathChangeType = "D";
         } else if (action == SVNEventAction.UPDATE_UPDATE) {
