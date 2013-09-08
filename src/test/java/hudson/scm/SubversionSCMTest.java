@@ -1579,4 +1579,17 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         }
     }
 
+    @Bug(16533)
+    public void testPollingRespectExternalsWithRevision() throws Exception {
+        File repo = new CopyExisting(getClass().getResource("JENKINS-16533.zip")).allocate();
+        SubversionSCM scm = new SubversionSCM("file://" + repo.toURI().toURL().getPath() + "trunk");
+
+        FreeStyleProject p = createFreeStyleProject();
+        p.setScm(scm);
+        p.setAssignedLabel(createSlave().getSelfLabel());
+        assertBuildStatusSuccess(p.scheduleBuild2(0).get());
+
+        // should not find any change
+        assertFalse(p.poll(StreamTaskListener.fromStdout()).hasChanges());
+    }
 }    
