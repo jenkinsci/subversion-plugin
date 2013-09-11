@@ -64,7 +64,12 @@ import hudson.model.AbstractProject;
 import hudson.model.Computer;
 import hudson.model.Hudson;
 
+import java.io.ByteArrayOutputStream;
 import java.nio.charset.UnsupportedCharsetException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -1646,6 +1651,9 @@ public class SubversionSCM extends SCM implements Serializable {
             public abstract SVNAuthentication createSVNAuthentication(String kind) throws SVNException;
 
             public abstract StandardCredentials toCredentials() throws IOException;
+
+            public abstract StandardCredentials toCredentials(Item context) throws IOException;
+
         }
 
         /**
@@ -1676,6 +1684,21 @@ public class SubversionSCM extends SCM implements Serializable {
             public StandardCredentials toCredentials() {
                 return new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, null, null, userName,
                         Scrambler.descramble(password));
+            }
+
+            @Override
+            public StandardCredentials toCredentials(Item context) throws IOException {
+                for (StandardUsernamePasswordCredentials c : CredentialsProvider.lookupCredentials(
+                        StandardUsernamePasswordCredentials.class,
+                        context,
+                        ACL.SYSTEM,
+                        Collections.<DomainRequirement>emptyList())) {
+                    if (userName.equals(c.getUsername())
+                            && Scrambler.descramble(password).equals(c.getPassword().getPlainText())) {
+                        return c;
+                    }
+                }
+                return toCredentials();
             }
         }
 
@@ -1798,6 +1821,21 @@ public class SubversionSCM extends SCM implements Serializable {
                     );
                 }
             }
+
+            @Override
+            public StandardCredentials toCredentials(Item context) throws IOException {
+                String key = FileUtils.readFileToString(getKeyFile(), "iso-8859-1");
+                for (SSHUserPrivateKey c : CredentialsProvider.lookupCredentials(
+                        SSHUserPrivateKey.class,
+                        context,
+                        ACL.SYSTEM,
+                        Collections.<DomainRequirement>emptyList())) {
+                    if (userName.equals(c.getUsername()) && c.getPrivateKeys().contains(key)) {
+                        return c;
+                    }
+                }
+                return toCredentials();
+            }
         }
 
         /**
@@ -1833,10 +1871,49 @@ public class SubversionSCM extends SCM implements Serializable {
             }
 
             @Override
-            public StandardCredentials toCredentials() {
+            public StandardCertificateCredentials toCredentials() {
                 return new CertificateCredentialsImpl(CredentialsScope.GLOBAL, null, null,
                         Scrambler.descramble(password),
                         new CertificateCredentialsImpl.UploadedKeyStoreSource(certificate.getEncryptedValue()));
+            }
+
+            @Override
+            public StandardCredentials toCredentials(Item context) throws IOException {
+                StandardCertificateCredentials result = toCredentials();
+                for (StandardCertificateCredentials c : CredentialsProvider.lookupCredentials(
+                        StandardCertificateCredentials.class,
+                        context,
+                        ACL.SYSTEM,
+                        Collections.<DomainRequirement>emptyList())) {
+                    if (c.getPassword().equals(result.getPassword())) {
+                        // now for the more complex Keystore comparison
+                        KeyStore s1 = c.getKeyStore();
+                        KeyStore s2 = result.getKeyStore();
+                        try {
+                            // if the aliases differ we know it's not a match, this is a faster test than serial form
+                            Set<String> a1 = new HashSet<String>(Collections.list(s1.aliases()));
+                            Set<String> a2 = new HashSet<String>(Collections.list(s2.aliases()));
+                            if (!a1.equals(a2)) {
+                                continue;
+                            }
+                            // this may give false misses but it will not give false hits
+                            ByteArrayOutputStream bos1 = new ByteArrayOutputStream();
+                            ByteArrayOutputStream bos2 = new ByteArrayOutputStream();
+                            s1.store(bos1, c.getPassword().getPlainText().toCharArray());
+                            s2.store(bos2, c.getPassword().getPlainText().toCharArray());
+                            if (Arrays.equals(bos1.toByteArray(), bos2.toByteArray())) {
+                                return c;
+                            }
+                        } catch (KeyStoreException e) {
+                            continue;
+                        } catch (NoSuchAlgorithmException e) {
+                            continue;
+                        } catch (CertificateException e) {
+                            continue;
+                        }
+                    }
+                }
+                return result;
             }
         }
 
