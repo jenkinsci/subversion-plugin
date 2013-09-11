@@ -185,10 +185,9 @@ public class SubversionSCMSource extends SCMSource {
      */
     @NonNull
     @Override
-    public <O extends SCMHeadObserver> O fetch(@NonNull final O observer,
-                                               @CheckForNull TaskListener listener)
+    protected void retrieve(@NonNull final SCMHeadObserver observer,
+                            @NonNull TaskListener listener)
             throws IOException {
-        listener = defaultListener(listener);
         SVNRepositoryView repository = null;
         try {
             listener.getLogger().println("Opening conection to " + remoteBase);
@@ -212,16 +211,14 @@ public class SubversionSCMSource extends SCMSource {
         } finally {
             closeSession(repository);
         }
-        return observer;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public SCMRevision fetch(@NonNull SCMHead head, @CheckForNull TaskListener listener)
+    protected SCMRevision retrieve(@NonNull SCMHead head, @NonNull TaskListener listener)
             throws IOException {
-        listener = defaultListener(listener);
         SVNRepositoryView repository = null;
         try {
             listener.getLogger().println("Opening conection to " + remoteBase);
