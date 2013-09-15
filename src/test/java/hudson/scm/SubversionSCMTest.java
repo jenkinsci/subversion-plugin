@@ -1581,15 +1581,19 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
     @Bug(16533)
     public void testPollingRespectExternalsWithRevision() throws Exception {
+        // trunk has svn:externals="-r 1 ^/vendor vendor" (pinned)
+        // latest commit on vendor is r3 (> r1)
         File repo = new CopyExisting(getClass().getResource("JENKINS-16533.zip")).allocate();
         SubversionSCM scm = new SubversionSCM("file://" + repo.toURI().toURL().getPath() + "trunk");
 
+        // pinned externals should be recorded with ::p in revisions.txt
         FreeStyleProject p = createFreeStyleProject();
         p.setScm(scm);
         p.setAssignedLabel(createSlave().getSelfLabel());
         assertBuildStatusSuccess(p.scheduleBuild2(0).get());
 
-        // should not find any change
+        // should not find any change (pinned externals should be skipped on poll)
+        // fail if it checks the revision of external URL larger than the pinned revision
         assertFalse(p.poll(StreamTaskListener.fromStdout()).hasChanges());
     }
 }    
