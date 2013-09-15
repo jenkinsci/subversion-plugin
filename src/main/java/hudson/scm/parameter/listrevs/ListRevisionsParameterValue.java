@@ -23,7 +23,7 @@
  * THE SOFTWARE.
  */
 
-package hudson.scm.listtagsparameter;
+package hudson.scm.parameter.listrevs;
 
 import hudson.EnvVars;
 import hudson.model.AbstractBuild;
@@ -33,55 +33,53 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.export.Exported;
 
 /**
- * This class represents the actual {@link ParameterValue} for the
- * {@link ListSubversionTagsParameterDefinition} parameter.
- *
- * @author Romain Seguy (http://openromain.blogspot.com)
+ * This class represents the actual {@link hudson.model.ParameterValue} for the
+ * {@link ListRevisionsParameterDefinition} parameter.
  */
-public class ListSubversionTagsParameterValue extends ParameterValue {
+public class ListRevisionsParameterValue extends ParameterValue {
 
-  @Exported(visibility=3) private String tagsDir; // this att comes from ListSubversionTagsParameterDefinition
-  @Exported(visibility=3) private String tag;
+  @Exported(visibility=3) private String repositoryURL; // this att comes from ListRevisionsParameterDefinition
+  @Exported(visibility=3) private Long revision;
 
   @DataBoundConstructor
-  public ListSubversionTagsParameterValue(String name, String tagsDir, String tag) {
+  public ListRevisionsParameterValue(String name, String repositoryURL, Long revision) {
     super(name);
-    this.tagsDir = tagsDir;
-    this.tag = tag;
+    this.repositoryURL = repositoryURL;
+    this.revision = revision;
   }
 
   @Override
   public void buildEnvVars(AbstractBuild<?,?> build, EnvVars env) {
-    env.put(getName(), getTag());
+    env.put(getName(), getRevision().toString());
   }
 
   @Override
   public VariableResolver<String> createVariableResolver(AbstractBuild<?, ?> build) {
     return new VariableResolver<String>() {
       public String resolve(String name) {
-        return ListSubversionTagsParameterValue.this.name.equals(name) ? getTag() : null;
+        return ListRevisionsParameterValue.this.name.equals(name) ? getRevision().toString() : null;
       }
     };
   }
 
-  public String getTag() {
-    return tag;
+  public Long getRevision() {
+    return revision;
   }
 
-  public void setTag(String tag) {
-    this.tag = tag;
+  public void setRevision(Long revision) {
+    this.revision = revision;
   }
 
-  public String getTagsDir() {
-    return tagsDir;
+  public String getRepositoryURL() {
+    return repositoryURL;
   }
 
-  public void setTagsDir(String tagsDir) {
-    this.tagsDir = tagsDir;
+  public void setRepositoryURL(String repositoryURL) {
+    this.repositoryURL = repositoryURL;
   }
 
   @Override
   public String toString() {
-      return "(ListSubversionTagsParameterValue) " + getName() + ": Repository URL='" + tagsDir + "' Tag='" + tag + "'";
+      return "(ListRevisionsParameterValue) " + getName() + ": Repository URL='" + repositoryURL + "' Revision='" + revision + "'";
   }
 }

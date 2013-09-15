@@ -23,7 +23,7 @@
  * THE SOFTWARE.
  */
 
-package hudson.scm.listtagsparameter;
+package hudson.scm.parameter.listdirs;
 
 import hudson.Extension;
 import hudson.Util;
@@ -31,13 +31,12 @@ import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import hudson.model.ParameterDefinition;
 import hudson.model.ParameterValue;
-import hudson.model.ParametersDefinitionProperty;
 import hudson.scm.SubversionSCM;
+import hudson.scm.parameter.ProjectBoundParameterDefinition;
 import hudson.util.FormValidation;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -66,18 +65,19 @@ import org.apache.commons.lang.StringUtils;
  * 
  * <p>When used, this parameter will request the user to select a Subversion tag
  * at build-time by displaying a drop-down list. See
- * {@link ListSubversionTagsParameterValue}.</p>
+ * {@link ListDirectoriesParameterValue}.</p>
  * 
  * @author Romain Seguy (http://openromain.blogspot.com)
  */
 @SuppressWarnings("rawtypes")
-public class ListSubversionTagsParameterDefinition extends ParameterDefinition implements Comparable<ListSubversionTagsParameterDefinition> {
+public class ListDirectoriesParameterDefinition extends ProjectBoundParameterDefinition {
 
-    private static final long serialVersionUID = 1L;
-/**
+  private static final long serialVersionUID = 1L;
+
+  /**
    * The Subversion repository which contains the tags to be listed.
    */
-  private final String tagsDir;
+  private final String repositoryURL;
   private final String tagsFilter;
   private final boolean reverseByDate;
   private final boolean reverseByName;
@@ -86,30 +86,16 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
   private static final String SVN_BRANCHES = "branches";
   private static final String SVN_TAGS = "tags";
   private static final String SVN_TRUNK = "trunk";
-  
-  /**
-   * We use a UUID to uniquely identify each use of this parameter: We need this
-   * to find the project using this parameter in the getTags() method (which is
-   * called before the build takes place).
-   */
-  private final UUID uuid;
 
   @DataBoundConstructor
-  public ListSubversionTagsParameterDefinition(String name, String tagsDir, String tagsFilter, String defaultValue, String maxTags, boolean reverseByDate, boolean reverseByName, String uuid) {
-    super(name, ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("TagDescription"));
-    this.tagsDir = Util.removeTrailingSlash(tagsDir);
+  public ListDirectoriesParameterDefinition(String name, String repositoryURL, String tagsFilter, String defaultValue, String maxTags, boolean reverseByDate, boolean reverseByName, String uuid) {
+    super(name, ResourceBundleHolder.get(ListDirectoriesParameterDefinition.class).format("TagDescription"), uuid);
+    this.repositoryURL = Util.removeTrailingSlash(repositoryURL);
     this.tagsFilter = tagsFilter;
     this.reverseByDate = reverseByDate;
     this.reverseByName = reverseByName;
     this.defaultValue = defaultValue;
     this.maxTags = maxTags;
-
-    if(uuid == null || uuid.length() == 0) {
-      this.uuid = UUID.randomUUID();
-    }
-    else {
-      this.uuid = UUID.fromString(uuid);
-    }
   }
 
   // This method is invoked from a GET or POST HTTP request
@@ -120,15 +106,15 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
         return this.getDefaultParameterValue(); 
     }
     else {
-      return new ListSubversionTagsParameterValue(getName(), getTagsDir(), values[0]);
+      return new ListDirectoriesParameterValue(getName(), getRepositoryURL(), values[0]);
     }
   }
 
   // This method is invoked when the user clicks on the "Build" button of Hudon's GUI
   @Override
   public ParameterValue createValue(StaplerRequest req, JSONObject formData) {
-    ListSubversionTagsParameterValue value = req.bindJSON(ListSubversionTagsParameterValue.class, formData);
-    value.setTagsDir(getTagsDir());
+    ListDirectoriesParameterValue value = req.bindJSON(ListDirectoriesParameterValue.class, formData);
+    value.setRepositoryURL(getRepositoryURL());
     // here, we could have checked for the value of the "tag" attribute of the
     // parameter value, but it's of no use because if we return null the build
     // still goes on...
@@ -140,7 +126,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
     if (StringUtils.isEmpty(this.defaultValue)) {
       return null;
     }
-    return new ListSubversionTagsParameterValue(getName(), getTagsDir(), this.defaultValue);
+    return new ListDirectoriesParameterValue(getName(), getRepositoryURL(), this.defaultValue);
   }
 
   @Override
@@ -150,7 +136,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
 
   /**
    * Returns a list of Subversion dirs to be displayed in
-   * {@code ListSubversionTagsParameterDefinition/index.jelly}.
+   * {@code ListDirectoriesParameterDefinition/index.jelly}.
    *
    * <p>This method plainly reuses settings that must have been previously
    * defined when configuring the Subversion SCM.</p>
@@ -158,35 +144,14 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
    * <p>This method never returns {@code null}. In case an error happens, the
    * returned list contains an error message surrounded by &lt; and &gt;.</p>
    */
-public List<String> getTags() {
-    AbstractProject context = null;
-    List<AbstractProject> jobs = Hudson.getInstance().getItems(AbstractProject.class);
-
-    // which project is this parameter bound to? (I should take time to move
-    // this code to Hudson core one day)
-    for(AbstractProject project : jobs) {
-      @SuppressWarnings("unchecked")
-    ParametersDefinitionProperty property = (ParametersDefinitionProperty) project.getProperty(ParametersDefinitionProperty.class);
-      if(property != null) {
-        List<ParameterDefinition> parameterDefinitions = property.getParameterDefinitions();
-        if(parameterDefinitions != null) {
-          for(ParameterDefinition pd : parameterDefinitions) {
-            if(pd instanceof ListSubversionTagsParameterDefinition && ((ListSubversionTagsParameterDefinition) pd).compareTo(this) == 0) {
-              context = project;
-              break;
-            }
-          }
-        }
-      }
-    }
-
+  public List<String> getTags() {
     SimpleSVNDirEntryHandler dirEntryHandler = new SimpleSVNDirEntryHandler(tagsFilter);
     List<String> dirs = new ArrayList<String>();
 
     try {
-      ISVNAuthenticationProvider authProvider = getDescriptor().createAuthenticationProvider(context);
+      ISVNAuthenticationProvider authProvider = getDescriptor().createAuthenticationProvider(getProject());
       ISVNAuthenticationManager authManager = SubversionSCM.createSvnAuthenticationManager(authProvider);
-      SVNURL repoURL = SVNURL.parseURIDecoded(getTagsDir());
+      SVNURL repoURL = SVNURL.parseURIDecoded(getRepositoryURL());
 
       SVNRepository repo = SVNRepositoryFactory.create(repoURL);
       repo.setAuthenticationManager(authManager);
@@ -201,8 +166,8 @@ public List<String> getTags() {
     }
     catch(SVNException e) {
       // logs are not translated (IMO, this is a bad idea to translate logs)
-      LOGGER.log(Level.SEVERE, "An SVN exception occurred while listing the directory entries at " + getTagsDir(), e);
-      return Collections.singletonList("&lt;" + ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("SVNException") + "&gt;");
+      LOGGER.log(Level.SEVERE, "An SVN exception occurred while listing the directory entries at " + getRepositoryURL(), e);
+      return Collections.singletonList("&lt;" + ResourceBundleHolder.get(ListDirectoriesParameterDefinition.class).format("SVNException") + "&gt;");
     }
 
     // SVNKit's doList() method returns also the parent dir, so we need to remove it
@@ -210,8 +175,8 @@ public List<String> getTags() {
       removeParentDir(dirs);
     }
     else {
-      LOGGER.log(Level.INFO, "No directory entries were found for the following SVN repository: {0}", getTagsDir());
-      return Collections.singletonList("&lt;" + ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("NoDirectoryEntriesFound") + "&gt;");
+      LOGGER.log(Level.INFO, "No directory entries were found for the following SVN repository: {0}", getRepositoryURL());
+      return Collections.singletonList("&lt;" + ResourceBundleHolder.get(ListDirectoriesParameterDefinition.class).format("NoDirectoryEntriesFound") + "&gt;");
     }
     
     // Conform list to the maxTags option.
@@ -223,8 +188,8 @@ public List<String> getTags() {
     return dirs;
   }
 
-  public String getTagsDir() {
-    return tagsDir;
+  public String getRepositoryURL() {
+    return repositoryURL;
   }
 
   public String getTagsFilter() {
@@ -350,18 +315,11 @@ public List<String> getTags() {
   protected void removeParentDir(List<String> dirs) {
     List<String> dirsToRemove = new ArrayList<String>();
     for(String dir : dirs) {
-      if(getTagsDir().endsWith(dir)) {
+      if(getRepositoryURL().endsWith(dir)) {
         dirsToRemove.add(dir);
       }
     }
     dirs.removeAll(dirsToRemove);
-  }
-
-  public int compareTo(ListSubversionTagsParameterDefinition pd) {
-    if(pd.uuid.equals(uuid)) {
-      return 0;
-    }
-    return -1;
   }
 
   @Extension
@@ -378,7 +336,7 @@ public List<String> getTags() {
       return getSubversionSCMDescriptor().doCheckRemote(req, context, value);
     }
 
-    public FormValidation doCheckTagsDir(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value) {
+    public FormValidation doCheckRepositoryURL(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value) {
       return getSubversionSCMDescriptor().doCheckRemote(req, context, value);
     }
 
@@ -388,7 +346,7 @@ public List<String> getTags() {
           Pattern.compile(value);
         }
         catch(PatternSyntaxException pse) {
-          FormValidation.error(ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("NotValidRegex"));
+          FormValidation.error(ResourceBundleHolder.get(ListDirectoriesParameterDefinition.class).format("NotValidRegex"));
         }
       }
       return FormValidation.ok();
@@ -396,7 +354,7 @@ public List<String> getTags() {
 
     @Override
     public String getDisplayName() {
-      return ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("DisplayName");
+      return ResourceBundleHolder.get(ListDirectoriesParameterDefinition.class).format("DisplayName");
     }
 
     /**
@@ -411,6 +369,6 @@ public List<String> getTags() {
 
   }
 
-  private final static Logger LOGGER = Logger.getLogger(ListSubversionTagsParameterDefinition.class.getName());
+  private final static Logger LOGGER = Logger.getLogger(ListDirectoriesParameterDefinition.class.getName());
 
 }

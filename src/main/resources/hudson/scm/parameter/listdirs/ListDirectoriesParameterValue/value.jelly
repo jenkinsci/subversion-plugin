@@ -2,7 +2,7 @@
   - The MIT License
   -
   - Copyright (c) 2010-2011, Manufacture Francaise des Pneumatiques Michelin,
-  - Romain Seguy, Jeff Blaisdell
+  - Romain Seguy
   -
   - Permission is hereby granted, free of charge, to any person obtaining a copy
   - of this software and associated documentation files (the "Software"), to deal
@@ -23,29 +23,11 @@
   - THE SOFTWARE.
   -->
 
-<!-- this is the page fragment displayed to set up a job -->
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
-    <f:entry title="${%Name}" field="name">
-        <f:textbox name="parameter.name" value="${instance.name}" />
+    <f:entry title="${%Repository URL}">
+        <f:textbox name="repositoryURL" value="${it.repositoryURL}" />
     </f:entry>
-    <f:entry title="${%Repository URL}" field="tagsDir">
-        <f:textbox name="parameter.tagsDir" value="${instance.tagsDir}" />
-    </f:entry>
-    <f:entry title="${%Tags filter}" field="tagsFilter">
-        <f:textbox field="parameter.tagsFilter" value="${instance.tagsFilter}" />
-    </f:entry>
-    <f:entry title="${%Default value}" field="defaultValue">
-        <f:textbox field="parameter.defaultValue" value="${instance.defaultValue}" />
-    </f:entry> 
-    <f:entry title="${%Maximum tags to display}" field="maxTags">
-        <f:textbox field="parameter.maxTags" value="${instance.maxTags}" />
-    </f:entry>       
-    <f:entry field="reverseByDate">
-        <f:checkbox name="reverseByDate" checked="${instance.reverseByDate}"/>
-        <label class="attach-previous">${%Sort newest first}</label>
-    </f:entry>
-    <f:entry field="reverseByName">
-        <f:checkbox name="reverseByName" checked="${instance.reverseByName}"/>
-        <label class="attach-previous">${%Sort Z to A}</label>
+    <f:entry title="${%Tag}">
+        <f:textbox name="tag" value="${it.tag}" />
     </f:entry>
 </j:jelly>
