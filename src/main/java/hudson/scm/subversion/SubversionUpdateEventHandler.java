@@ -72,7 +72,12 @@ final class SubversionUpdateEventHandler extends SubversionEventHandlerImpl impl
     public SVNRevision[] handleExternal(File externalPath, SVNURL externalURL, SVNRevision externalRevision,
                                         SVNRevision externalPegRevision, String externalsDefinition,
                                         SVNRevision externalsWorkingRevision) {
-        long revisionNumber = SVNRevision.isValidRevisionNumber(externalPegRevision.getNumber()) ? externalPegRevision.getNumber() : -1;
+        long revisionNumber = -1;
+        if (SVNRevision.isValidRevisionNumber(externalRevision.getNumber())) {
+            revisionNumber = externalRevision.getNumber();
+        } else if (SVNRevision.isValidRevisionNumber(externalPegRevision.getNumber())) {
+            revisionNumber = externalPegRevision.getNumber();
+        }
         SVNExternalDetails details = new SVNExternalDetails(externalURL, revisionNumber);
 
         externalDetails.put(externalPath, details);
