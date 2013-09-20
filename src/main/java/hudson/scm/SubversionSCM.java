@@ -38,16 +38,19 @@ import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.CredentialsStore;
 import com.cloudbees.plugins.credentials.common.StandardCertificateCredentials;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.cloudbees.plugins.credentials.impl.CertificateCredentialsImpl;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.BulkChange;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
@@ -1608,7 +1611,7 @@ public class SubversionSCM extends SCM implements Serializable {
          * SVN authentication realm to its associated credentials.
          * This is the global credential repository.
          */
-        private final Map<String,Credential> credentials = new Hashtable<String,Credential>();
+        private transient Map<String,Credential> credentials;
 
         /**
          * Stores name of Subversion revision property to globally exclude
@@ -1628,6 +1631,26 @@ public class SubversionSCM extends SCM implements Serializable {
          * @since 1.27
          */
         private boolean storeAuthToDisk = true;
+
+        @Override
+        public void load() {
+            super.load();
+            if (credentials != null && !credentials.isEmpty()) {
+                BulkChange bc = new BulkChange(Jenkins.getInstance());
+                try {
+                    CredentialsStore store = CredentialsProvider.lookupStores(Jenkins.getInstance()).iterator().next();
+                    for (Map.Entry<String,Credential> e : credentials.entrySet()) {
+                        store.addCredentials(Domain.global(), e.getValue().toCredentials(e.getKey()));
+                    }
+                    save();
+                    bc.commit();
+                } catch (IOException e) {
+                    LOGGER.log(Level.WARNING, "Could not migrate stored credentials", e);
+                } finally {
+                    bc.abort();
+                }
+            }
+        }
 
         /**
          * Stores {@link SVNAuthentication} for a single realm.
@@ -1650,9 +1673,9 @@ public class SubversionSCM extends SCM implements Serializable {
              */
             public abstract SVNAuthentication createSVNAuthentication(String kind) throws SVNException;
 
-            public abstract StandardCredentials toCredentials() throws IOException;
+            public abstract StandardCredentials toCredentials(String description) throws IOException;
 
-            public abstract StandardCredentials toCredentials(Item context) throws IOException;
+            public abstract StandardCredentials toCredentials(Item context, String description) throws IOException;
 
         }
 
@@ -1681,13 +1704,13 @@ public class SubversionSCM extends SCM implements Serializable {
             }
 
             @Override
-            public StandardCredentials toCredentials() {
-                return new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, null, null, userName,
+            public StandardCredentials toCredentials(String description) {
+                return new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, null, description, userName,
                         Scrambler.descramble(password));
             }
 
             @Override
-            public StandardCredentials toCredentials(Item context) throws IOException {
+            public StandardCredentials toCredentials(Item context, String description) throws IOException {
                 for (StandardUsernamePasswordCredentials c : CredentialsProvider.lookupCredentials(
                         StandardUsernamePasswordCredentials.class,
                         context,
@@ -1698,7 +1721,7 @@ public class SubversionSCM extends SCM implements Serializable {
                         return c;
                     }
                 }
-                return toCredentials();
+                return toCredentials(description);
             }
         }
 
@@ -1807,13 +1830,13 @@ public class SubversionSCM extends SCM implements Serializable {
             }
 
             @Override
-            public StandardCredentials toCredentials() throws IOException {
+            public StandardCredentials toCredentials(String description) throws IOException {
                 try {
                     return new BasicSSHUserPrivateKey(CredentialsScope.GLOBAL, null, userName,
                             new BasicSSHUserPrivateKey.DirectEntryPrivateKeySource(
                                     FileUtils.readFileToString(getKeyFile(), "iso-8859-1")
                             ),
-                            Scrambler.descramble(passphrase), null);
+                            Scrambler.descramble(passphrase), description);
                 } catch (UnsupportedCharsetException e) {
                     throw new IllegalStateException(
                             "Java Language Specification lists ISO-8859-1 as a required standard charset",
@@ -1823,7 +1846,7 @@ public class SubversionSCM extends SCM implements Serializable {
             }
 
             @Override
-            public StandardCredentials toCredentials(Item context) throws IOException {
+            public StandardCredentials toCredentials(Item context, String description) throws IOException {
                 String key = FileUtils.readFileToString(getKeyFile(), "iso-8859-1");
                 for (SSHUserPrivateKey c : CredentialsProvider.lookupCredentials(
                         SSHUserPrivateKey.class,
@@ -1834,7 +1857,7 @@ public class SubversionSCM extends SCM implements Serializable {
                         return c;
                     }
                 }
-                return toCredentials();
+                return toCredentials(description);
             }
         }
 
@@ -1871,15 +1894,15 @@ public class SubversionSCM extends SCM implements Serializable {
             }
 
             @Override
-            public StandardCertificateCredentials toCredentials() {
-                return new CertificateCredentialsImpl(CredentialsScope.GLOBAL, null, null,
+            public StandardCertificateCredentials toCredentials(String description) {
+                return new CertificateCredentialsImpl(CredentialsScope.GLOBAL, null, description,
                         Scrambler.descramble(password),
                         new CertificateCredentialsImpl.UploadedKeyStoreSource(certificate.getEncryptedValue()));
             }
 
             @Override
-            public StandardCredentials toCredentials(Item context) throws IOException {
-                StandardCertificateCredentials result = toCredentials();
+            public StandardCredentials toCredentials(Item context, String description) throws IOException {
+                StandardCertificateCredentials result = toCredentials(description);
                 for (StandardCertificateCredentials c : CredentialsProvider.lookupCredentials(
                         StandardCertificateCredentials.class,
                         context,
