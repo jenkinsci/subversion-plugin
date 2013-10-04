@@ -112,6 +112,8 @@ import com.gargoylesoftware.htmlunit.WebResponse;
 import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import hudson.EnvVars;
+import hudson.model.EnvironmentContributor;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -1230,6 +1232,25 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         assertBuildStatusSuccess(p.scheduleBuild2(0).get());
         assertEquals("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant", builder.getEnvVars().get("SVN_URL"));
         assertEquals(getActualRevision(p.getLastBuild(), "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant").toString(), builder.getEnvVars().get("SVN_REVISION"));
+    }
+
+    public void testRecursiveEnvironmentVariables() throws Exception {
+        EnvironmentContributor.all().add(new EnvironmentContributor() {
+            @Override public void buildEnvironmentFor(Run run, EnvVars ev, TaskListener tl) throws IOException, InterruptedException {
+                ev.put("TOOL", "ant");
+                ev.put("ROOT", "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-${TOOL}");
+            }
+        });
+        FreeStyleProject p = createFreeStyleProject("job-with-envs");
+        p.setScm(new SubversionSCM("$ROOT"));
+        CaptureEnvironmentBuilder builder = new CaptureEnvironmentBuilder();
+        p.getBuildersList().add(builder);
+        assertBuildStatusSuccess(p.scheduleBuild2(0));
+        assertTrue(p.getLastBuild().getWorkspace().child("build.xml").exists());
+        assertEquals("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant", builder.getEnvVars().get("SVN_URL"));
+        assertEquals(getActualRevision(p.getLastBuild(), "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant").toString(), builder.getEnvVars().get("SVN_REVISION"));
+        assertEquals("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant", builder.getEnvVars().get("SVN_URL_1"));
+        assertEquals(getActualRevision(p.getLastBuild(), "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant").toString(), builder.getEnvVars().get("SVN_REVISION_1"));
     }
 
     @Bug(1379)
