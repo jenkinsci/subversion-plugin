@@ -38,12 +38,18 @@ public class SVNUrlUtil {
 
     /**
      * Expand the SVN url according to the globally configured env vars.
-     * @param The orginal SVN url might or might not contain one or several env vars.
+     * @param The original SVN url might or might not contain one or several env vars.
      *
      * @return A URL with env vars expanded
      */
     public static String getExpandedUrl(String url) {
-        EnvVars globalConfiguredEnvVars = Jenkins.getInstance().getGlobalNodeProperties().get(EnvironmentVariablesNodeProperty.class).getEnvVars();
+        EnvironmentVariablesNodeProperty evnp = Jenkins.getInstance().getGlobalNodeProperties().get(EnvironmentVariablesNodeProperty.class);
+
+        if(evnp == null){
+            return url;
+        }
+
+        EnvVars globalConfiguredEnvVars = evnp.getEnvVars();
         return globalConfiguredEnvVars.expand(url);
     }
 }
