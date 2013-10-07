@@ -403,9 +403,9 @@ public class SubversionSCM extends SCM implements Serializable {
     /**
      * List of all configured svn locations, expanded according to all env vars
      * or, if none defined, according to only build parameters values.
-     *
+     * Both may be defined, in which case the variables are combined.
      * @param env If non-null, variable expansions are performed against these vars
-     * @param build If non-null (and if env is null), variable expansions are
+     * @param build If non-null, variable expansions are
      *              performed against the build parameters
      */
     public ModuleLocation[] getLocations(EnvVars env, AbstractBuild<?,?> build) {
@@ -430,15 +430,13 @@ public class SubversionSCM extends SCM implements Serializable {
             return locations;
 
         ModuleLocation[] outLocations = new ModuleLocation[locations.length];
-        if(env != null) {
-            for (int i = 0; i < outLocations.length; i++) {
-                outLocations[i] = locations[i].getExpandedLocation(env);
-            }
+        EnvVars env2 = env != null ? new EnvVars(env) : new EnvVars();
+        if (build != null) {
+            env2.putAll(build.getBuildVariables());
         }
-        else {
-            for (int i = 0; i < outLocations.length; i++) {
-                outLocations[i] = locations[i].getExpandedLocation(build);
-            }
+        EnvVars.resolve(env2);
+        for (int i = 0; i < outLocations.length; i++) {
+            outLocations[i] = locations[i].getExpandedLocation(env2);
         }
 
         return outLocations;
@@ -604,7 +602,7 @@ public class SubversionSCM extends SCM implements Serializable {
     public void buildEnvVars(AbstractBuild<?, ?> build, Map<String, String> env) {
         super.buildEnvVars(build, env);
         
-        ModuleLocation[] svnLocations = getLocations(build);
+        ModuleLocation[] svnLocations = getLocations(new EnvVars(env), build);
 
         try {
             Map<String,Long> revisions = parseSvnRevisionFile(build);
@@ -1964,6 +1962,8 @@ public class SubversionSCM extends SCM implements Serializable {
 
             if(isValidateRemoteUpToVar()) {
                 url = (url.indexOf('$') != -1) ? url.substring(0, url.indexOf('$')) : url;
+            } else {
+                url = new EnvVars(EnvVars.masterEnvVars).expand(url);
             }
 
             if(!URL_PATTERN.matcher(url).matches())
@@ -2178,7 +2178,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 return FormValidation.ok();
 
             try {
-                SVNURL repoURL = SVNURL.parseURIDecoded(v);
+                SVNURL repoURL = SVNURL.parseURIDecoded(new EnvVars(EnvVars.masterEnvVars).expand(v));
                 if (checkRepositoryPath(context,repoURL)!=SVNNodeKind.NONE)
                     // something exists
                     return FormValidation.ok();
@@ -2401,31 +2401,6 @@ public class SubversionSCM extends SCM implements Serializable {
             return revision != null ? revision : defaultValue;
         }
 
-        private String getExpandedRemote(AbstractBuild<?,?> build) {
-            String outRemote = remote;
-
-            ParametersAction parameters = build.getAction(ParametersAction.class);
-            if (parameters != null)
-                outRemote = parameters.substitute(build, remote);
-
-            return outRemote;
-        }
-
-        /**
-         * @deprecated This method is used by {@link #getExpandedLocation(AbstractBuild)}
-         *             which is deprecated since it expands variables only based
-         *             on build parameters.
-         */
-        private String getExpandedLocalDir(AbstractBuild<?,?> build) {
-            String outLocalDir = getLocalDir();
-
-            ParametersAction parameters = build.getAction(ParametersAction.class);
-            if (parameters != null)
-                outLocalDir = parameters.substitute(build, getLocalDir());
-
-            return outLocalDir;
-        }
-
         /**
          * Returns the value of remote depth option.
          *
@@ -2453,7 +2428,9 @@ public class SubversionSCM extends SCM implements Serializable {
          *             to be performed on all env vars rather than just build parameters.
          */
         public ModuleLocation getExpandedLocation(AbstractBuild<?, ?> build) {
-            return new ModuleLocation(getExpandedRemote(build), getExpandedLocalDir(build));
+            EnvVars env = new EnvVars(EnvVars.masterEnvVars);
+            env.putAll(build.getBuildVariables());
+            return getExpandedLocation(env);
         }
         
         /**
