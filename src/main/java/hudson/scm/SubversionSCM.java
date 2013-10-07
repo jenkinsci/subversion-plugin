@@ -1960,8 +1960,9 @@ public class SubversionSCM extends SCM implements Serializable {
             // syntax check first
             String url = Util.fixEmptyAndTrim(value);
             if (url == null)
-                return FormValidation.error(Messages.SubversionSCM_doCheckRemote_required()); 
+                return FormValidation.error(Messages.SubversionSCM_doCheckRemote_required());
 
+            url = SVNUrlUtil.getExpandedUrl(url);
             if(isValidateRemoteUpToVar()) {
                 url = (url.indexOf('$') != -1) ? url.substring(0, url.indexOf('$')) : url;
             }
@@ -1976,7 +1977,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
             try {
                 String urlWithoutRevision = SvnHelper.getUrlWithoutRevision(url);
-            	
+
                 SVNURL repoURL = SVNURL.parseURIDecoded(urlWithoutRevision);
                 if (checkRepositoryPath(context,repoURL)!=SVNNodeKind.NONE) {
                     // something exists; now check revision if any
@@ -2178,7 +2179,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 return FormValidation.ok();
 
             try {
-                SVNURL repoURL = SVNURL.parseURIDecoded(v);
+                SVNURL repoURL = SVNURL.parseURIDecoded(SVNUrlUtil.getExpandedUrl(v));
                 if (checkRepositoryPath(context,repoURL)!=SVNNodeKind.NONE)
                     // something exists
                     return FormValidation.ok();
