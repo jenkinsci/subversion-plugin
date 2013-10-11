@@ -171,6 +171,9 @@ THE SOFTWARE.
         <groupId>org.jenkins-ci.tools</groupId>
         <artifactId>maven-hpi-plugin</artifactId>
         <version>${maven-hpi-plugin.version}</version>
+        <configuration>
+          <maskClasses>com.trilead.ssh2.</maskClasses>
+        </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-enforcer-plugin</artifactId>
