@@ -2,8 +2,6 @@ package hudson.scm;
 
 import hudson.model.TaskListener;
 
-import java.io.PrintStream;
-
 import org.tmatesoft.svn.core.SVNLogEntry;
 
 /**
