@@ -1636,7 +1636,7 @@ public class SubversionSCM extends SCM implements Serializable {
         public void load() {
             super.load();
             if (credentials != null && !credentials.isEmpty()) {
-                BulkChange bc = new BulkChange(Jenkins.getInstance());
+                BulkChange bc = new BulkChange(this);
                 try {
                     CredentialsStore store = CredentialsProvider.lookupStores(Jenkins.getInstance()).iterator().next();
                     for (Map.Entry<String,Credential> e : credentials.entrySet()) {
