@@ -1711,27 +1711,36 @@ public class SubversionSCM extends SCM implements Serializable {
                             .startsWith("svn+ssh:")) {
                         // this is a reasonably valid URL
                         List<DomainRequirement> requirements = URIRequirementBuilder.fromUri(url).build();
-                        Domain domain = null;
-                        for (Domain d : store.getDomains()) {
-                            if (d.test(requirements)) {
-                                domain = d;
+                        HostnameRequirement hostnameRequirement = null;
+                        SchemeRequirement schemeRequirement = null;
+                        for (DomainRequirement r : requirements) {
+                            if (hostnameRequirement == null && r instanceof HostnameRequirement) {
+                                hostnameRequirement = (HostnameRequirement) r;
+                            }
+                            if (schemeRequirement == null && r instanceof SchemeRequirement) {
+                                schemeRequirement = (SchemeRequirement) r;
+                            }
+                            if (schemeRequirement != null && hostnameRequirement != null) {
                                 break;
                             }
                         }
-                        if (domain == null) {
-                            HostnameRequirement hostnameRequirement = null;
-                            SchemeRequirement schemeRequirement = null;
-                            for (DomainRequirement r : requirements) {
-                                if (hostnameRequirement == null && r instanceof HostnameRequirement) {
-                                    hostnameRequirement = (HostnameRequirement) r;
+                        Domain domain = null;
+                        if (hostnameRequirement != null) {
+                            for (Domain d : store.getDomains()) {
+                                HostnameSpecification spec = null;
+                                for (DomainSpecification s : d.getSpecifications()) {
+                                    if (s instanceof HostnameSpecification) {
+                                        spec = (HostnameSpecification) s;
+                                        break;
+                                    }
                                 }
-                                if (schemeRequirement == null && r instanceof SchemeRequirement) {
-                                    schemeRequirement = (SchemeRequirement) r;
-                                }
-                                if (schemeRequirement != null && hostnameRequirement != null) {
+                                if (spec != null && spec.test(hostnameRequirement).isMatch() && d.test(requirements)) {
+                                    domain = d;
                                     break;
                                 }
                             }
+                        }
+                        if (domain == null) {
                             if (hostnameRequirement != null) {
                                 List<DomainSpecification> specs = new ArrayList<DomainSpecification>();
                                 specs.add(
@@ -1830,7 +1839,7 @@ public class SubversionSCM extends SCM implements Serializable {
                         return c;
                     }
                 }
-                return toCredentials(description);
+                return null;
             }
 
         }
@@ -1967,7 +1976,7 @@ public class SubversionSCM extends SCM implements Serializable {
                         return c;
                     }
                 }
-                return toCredentials(description);
+                return null;
             }
         }
 
@@ -2046,7 +2055,7 @@ public class SubversionSCM extends SCM implements Serializable {
                         }
                     }
                 }
-                return result;
+                return null;
             }
         }
 
