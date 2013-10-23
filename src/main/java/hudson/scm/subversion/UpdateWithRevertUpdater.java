@@ -26,7 +26,6 @@ package hudson.scm.subversion;
 import hudson.Extension;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.wc.SVNWCClient;
 

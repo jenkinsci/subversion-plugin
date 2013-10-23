@@ -481,9 +481,9 @@ public class SubversionSCM extends SCM implements Serializable {
     /**
      * List of all configured svn locations, expanded according to all env vars
      * or, if none defined, according to only build parameters values.
-     *
+     * Both may be defined, in which case the variables are combined.
      * @param env If non-null, variable expansions are performed against these vars
-     * @param build If non-null (and if env is null), variable expansions are
+     * @param build If non-null, variable expansions are
      *              performed against the build parameters
      */
     public ModuleLocation[] getLocations(EnvVars env, AbstractBuild<?,?> build) {
@@ -508,15 +508,13 @@ public class SubversionSCM extends SCM implements Serializable {
             return locations;
 
         ModuleLocation[] outLocations = new ModuleLocation[locations.length];
-        if(env != null) {
-            for (int i = 0; i < outLocations.length; i++) {
-                outLocations[i] = locations[i].getExpandedLocation(env);
-            }
+        EnvVars env2 = env != null ? new EnvVars(env) : new EnvVars();
+        if (build != null) {
+            env2.putAll(build.getBuildVariables());
         }
-        else {
-            for (int i = 0; i < outLocations.length; i++) {
-                outLocations[i] = locations[i].getExpandedLocation(build);
-            }
+        EnvVars.resolve(env2);
+        for (int i = 0; i < outLocations.length; i++) {
+            outLocations[i] = locations[i].getExpandedLocation(env2);
         }
 
         return outLocations;
@@ -682,10 +680,11 @@ public class SubversionSCM extends SCM implements Serializable {
     public void buildEnvVars(AbstractBuild<?, ?> build, Map<String, String> env) {
         super.buildEnvVars(build, env);
 
-        ModuleLocation[] svnLocations = getLocations(build);
+        ModuleLocation[] svnLocations = getLocations(new EnvVars(env), build);
 
         try {
             Map<String,Long> revisions = parseSvnRevisionFile(build);
+            Set<String> knownURLs = revisions.keySet();
             if(svnLocations.length==1) {
                 // for backwards compatibility if there's only a single modulelocation, we also set
                 // SVN_REVISION and SVN_URL without '_n'
@@ -694,8 +693,8 @@ public class SubversionSCM extends SCM implements Serializable {
                 if(rev!=null) {
                     env.put("SVN_REVISION",rev.toString());
                     env.put("SVN_URL",url);
-                } else {
-                    LOGGER.log(WARNING, "no revision found corresponding to {0}; known: {1}", new Object[] {url, revisions.keySet()});
+                } else if (!knownURLs.isEmpty()) {
+                    LOGGER.log(WARNING, "no revision found corresponding to {0}; known: {1}", new Object[] {url, knownURLs});
                 }
             }
 
@@ -705,8 +704,8 @@ public class SubversionSCM extends SCM implements Serializable {
                 if(rev!=null) {
                     env.put("SVN_REVISION_"+(i+1),rev.toString());
                     env.put("SVN_URL_"+(i+1),url);
-                } else {
-                    LOGGER.log(WARNING, "no revision found corresponding to {0}; known: {1}", new Object[] {url, revisions.keySet()});
+                } else if (!knownURLs.isEmpty()) {
+                    LOGGER.log(WARNING, "no revision found corresponding to {0}; known: {1}", new Object[] {url, knownURLs});
                 }
             }
 
@@ -2312,6 +2311,8 @@ public class SubversionSCM extends SCM implements Serializable {
 
             if(isValidateRemoteUpToVar()) {
                 url = (url.indexOf('$') != -1) ? url.substring(0, url.indexOf('$')) : url;
+            } else {
+                url = new EnvVars(EnvVars.masterEnvVars).expand(url);
             }
 
             if(!URL_PATTERN.matcher(url).matches())
@@ -2540,7 +2541,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 return FormValidation.ok();
 
             try {
-                SVNURL repoURL = SVNURL.parseURIDecoded(v);
+                SVNURL repoURL = SVNURL.parseURIDecoded(new EnvVars(EnvVars.masterEnvVars).expand(v));
                 StandardCredentials credentials = lookupCredentials(context, credentialsId, repoURL);
                 if (checkRepositoryPath(context,repoURL, credentials)!=SVNNodeKind.NONE)
                     // something exists
@@ -2855,7 +2856,9 @@ public class SubversionSCM extends SCM implements Serializable {
          *             to be performed on all env vars rather than just build parameters.
          */
         public ModuleLocation getExpandedLocation(AbstractBuild<?, ?> build) {
-            return new ModuleLocation(getExpandedRemote(build), credentialsId, getExpandedLocalDir(build), null, false);
+            EnvVars env = new EnvVars(EnvVars.masterEnvVars);
+            env.putAll(build.getBuildVariables());
+            return getExpandedLocation(env);
         }
 
         /**

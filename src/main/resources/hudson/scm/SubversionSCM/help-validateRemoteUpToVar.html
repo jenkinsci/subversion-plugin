@@ -26,7 +26,7 @@
   When turned on, this option will allow validating Subversion's repository URLs
   only up to the first <code>$</code> sign, that is, up to the first encountered
   variable.<br/>
-  For example, the repository URL <code>https://svn.jenkins-ci.org/trunk/hudson/hudson/plugins/$PLUGIN</code>,
+  For example, the repository URL <code>https://svn.jenkins-ci.org/trunk/hudson/plugins/$PLUGIN</code>,
   which validation raises an error since <code>$PLUGIN</code> can't be resolved
   at validation-time, would be successfully validated as
   <code>https://svn.jenkins-ci.org/trunk/hudson/plugins/</code>. Also,

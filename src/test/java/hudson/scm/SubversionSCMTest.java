@@ -119,6 +119,8 @@ import com.gargoylesoftware.htmlunit.WebResponse;
 import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import hudson.EnvVars;
+import hudson.model.EnvironmentContributor;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -1243,6 +1245,25 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         assertEquals(getActualRevision(p.getLastBuild(), "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant").toString(), builder.getEnvVars().get("SVN_REVISION"));
     }
 
+    public void testRecursiveEnvironmentVariables() throws Exception {
+        EnvironmentContributor.all().add(new EnvironmentContributor() {
+            @Override public void buildEnvironmentFor(Run run, EnvVars ev, TaskListener tl) throws IOException, InterruptedException {
+                ev.put("TOOL", "ant");
+                ev.put("ROOT", "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-${TOOL}");
+            }
+        });
+        FreeStyleProject p = createFreeStyleProject("job-with-envs");
+        p.setScm(new SubversionSCM("$ROOT"));
+        CaptureEnvironmentBuilder builder = new CaptureEnvironmentBuilder();
+        p.getBuildersList().add(builder);
+        assertBuildStatusSuccess(p.scheduleBuild2(0));
+        assertTrue(p.getLastBuild().getWorkspace().child("build.xml").exists());
+        assertEquals("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant", builder.getEnvVars().get("SVN_URL"));
+        assertEquals(getActualRevision(p.getLastBuild(), "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant").toString(), builder.getEnvVars().get("SVN_REVISION"));
+        assertEquals("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant", builder.getEnvVars().get("SVN_URL_1"));
+        assertEquals(getActualRevision(p.getLastBuild(), "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant").toString(), builder.getEnvVars().get("SVN_REVISION_1"));
+    }
+
     @Bug(1379)
     public void testMultipleCredentialsPerRepo() throws Exception {
         Proc p = runSvnServe(getClass().getResource("HUDSON-1379.zip"));
@@ -1609,4 +1630,21 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         }
     }
 
+    @Bug(16533)
+    public void testPollingRespectExternalsWithRevision() throws Exception {
+        // trunk has svn:externals="-r 1 ^/vendor vendor" (pinned)
+        // latest commit on vendor is r3 (> r1)
+        File repo = new CopyExisting(getClass().getResource("JENKINS-16533.zip")).allocate();
+        SubversionSCM scm = new SubversionSCM("file://" + repo.toURI().toURL().getPath() + "trunk");
+
+        // pinned externals should be recorded with ::p in revisions.txt
+        FreeStyleProject p = createFreeStyleProject();
+        p.setScm(scm);
+        p.setAssignedLabel(createSlave().getSelfLabel());
+        assertBuildStatusSuccess(p.scheduleBuild2(0).get());
+
+        // should not find any change (pinned externals should be skipped on poll)
+        // fail if it checks the revision of external URL larger than the pinned revision
+        assertFalse(p.poll(StreamTaskListener.fromStdout()).hasChanges());
+    }
 }    

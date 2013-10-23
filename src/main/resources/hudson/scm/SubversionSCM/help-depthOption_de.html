@@ -1,0 +1,13 @@
+<div>
+  <tt>--depth</tt>-Option für Checkout- und Update-Befehle. Der Standardwert ist <tt>infinity</tt>.
+  <ul>
+    <li><tt>empty</tt> enthält nur das direkte Ziel der Operation, keine darin enthaltenen Dateien oder Verzeichnisse.</li>
+    <li><tt>files</tt> enthält das direkte Ziel der Operation und alle direkt darin enthaltenen Dateien.</li>
+    <li><tt>immediates</tt> enthält das direkte Ziel der Operation und alle direkt darin enthaltenen Dateien und Verzeichnisse.
+        Die Kindverzeichnisse werden leer ausgecheckt.</li>
+    <li><tt>infinity</tt> enthält das direkte Ziel, seine Dateien und Verzeichnisse, deren Kinder, and so weiter bis zur vollen Rekursion.</li>
+    <li><tt>as-it-is</tt> übernimmt die Tiefe aus der aktuellen Arbeitskopie. Die Tiefe kann manuell über die Option <tt>--set-depth</tt> gesetzt werden.</li>
+  </ul>
+  Mehr Informationen dazu finden Sie 
+  <a href="http://svnbook.red-bean.com/en/1.7/svn.advanced.sparsedirs.html" target="_blank">hier</a>.
+</div>
