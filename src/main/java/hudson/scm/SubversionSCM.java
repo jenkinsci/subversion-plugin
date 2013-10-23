@@ -45,6 +45,11 @@ import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
+import com.cloudbees.plugins.credentials.domains.DomainSpecification;
+import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
+import com.cloudbees.plugins.credentials.domains.HostnameSpecification;
+import com.cloudbees.plugins.credentials.domains.SchemeRequirement;
+import com.cloudbees.plugins.credentials.domains.SchemeSpecification;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.cloudbees.plugins.credentials.impl.CertificateCredentialsImpl;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
@@ -61,6 +66,8 @@ import hudson.Util;
 import hudson.XmlFile;
 import hudson.model.BuildListener;
 import hudson.model.Item;
+import hudson.model.ItemGroup;
+import hudson.model.ModelObject;
 import hudson.model.TaskListener;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
@@ -79,7 +86,6 @@ import java.util.LinkedHashSet;
 import java.util.WeakHashMap;
 
 import hudson.security.ACL;
-import hudson.util.IOUtils;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import jenkins.model.Jenkins.MasterComputer;
@@ -126,7 +132,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -137,6 +142,7 @@ import java.util.StringTokenizer;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -1638,9 +1644,8 @@ public class SubversionSCM extends SCM implements Serializable {
             if (credentials != null && !credentials.isEmpty()) {
                 BulkChange bc = new BulkChange(this);
                 try {
-                    CredentialsStore store = CredentialsProvider.lookupStores(Jenkins.getInstance()).iterator().next();
-                    for (Map.Entry<String,Credential> e : credentials.entrySet()) {
-                        store.addCredentials(Domain.global(), e.getValue().toCredentials(e.getKey()));
+                    for (Map.Entry<String, Credential> e : credentials.entrySet()) {
+                        migrateCredentials(Jenkins.getInstance(), e.getKey(), e.getValue());
                     }
                     save();
                     bc.commit();
@@ -1650,6 +1655,67 @@ public class SubversionSCM extends SCM implements Serializable {
                     bc.abort();
                 }
             }
+        }
+
+        /*package*/ StandardCredentials migrateCredentials(ModelObject context, String legacyScope, Credential legacyCredential)
+                throws IOException {
+            CredentialsStore store = CredentialsProvider.lookupStores(context).iterator().next();
+            StandardCredentials credential = legacyCredential.toCredentials(null, legacyScope);
+            if (credential != null) {
+                return credential;
+            }
+            credential = legacyCredential.toCredentials(legacyScope);
+            if (store.isDomainsModifiable()) {
+                Matcher matcher = Pattern.compile("\\s*<([^>]+)>.*").matcher(legacyScope);
+                if (matcher.matches()) {
+                    String url = matcher.group(1);
+                    if (url.startsWith("http:") || url.startsWith("svn:") || url.startsWith("https:") || url
+                            .startsWith("svn+ssh:")) {
+                        // this is a reasonably valid URL
+                        List<DomainRequirement> requirements = URIRequirementBuilder.fromUri(url).build();
+                        Domain domain = null;
+                        for (Domain d : store.getDomains()) {
+                            if (d.test(requirements)) {
+                                domain = d;
+                                break;
+                            }
+                        }
+                        if (domain == null) {
+                            HostnameRequirement hostnameRequirement = null;
+                            SchemeRequirement schemeRequirement = null;
+                            for (DomainRequirement r : requirements) {
+                                if (hostnameRequirement == null && r instanceof HostnameRequirement) {
+                                    hostnameRequirement = (HostnameRequirement) r;
+                                }
+                                if (schemeRequirement == null && r instanceof SchemeRequirement) {
+                                    schemeRequirement = (SchemeRequirement) r;
+                                }
+                                if (schemeRequirement != null && hostnameRequirement != null) {
+                                    break;
+                                }
+                            }
+                            if (hostnameRequirement != null) {
+                                List<DomainSpecification> specs = new ArrayList<DomainSpecification>();
+                                specs.add(
+                                        new HostnameSpecification(hostnameRequirement.getHostname(), null));
+                                if (schemeRequirement != null) {
+                                    specs.add(new SchemeSpecification(schemeRequirement.getScheme()));
+                                }
+                                domain = new Domain(hostnameRequirement.getHostname(), null, specs);
+                                if (store.addDomain(domain, credential)) {
+                                    return credential;
+                                }
+                            }
+                        } else {
+                            if (store.addCredentials(domain, credential)) {
+                                return credential;
+                            }
+                        }
+                    }
+                }
+            }
+            store.addCredentials(Domain.global(), credential);
+            return credential;
         }
 
         /**
@@ -1675,8 +1741,13 @@ public class SubversionSCM extends SCM implements Serializable {
 
             public abstract StandardCredentials toCredentials(String description) throws IOException;
 
-            public abstract StandardCredentials toCredentials(Item context, String description) throws IOException;
+            public abstract StandardCredentials toCredentials(ModelObject context, String description) throws IOException;
 
+            protected ItemGroup findItemGroup(ModelObject context) {
+                if (context instanceof ItemGroup) return (ItemGroup) context;
+                if (context instanceof Item) return ((Item) context).getParent();
+                return Jenkins.getInstance();
+            }
         }
 
         /**
@@ -1710,10 +1781,10 @@ public class SubversionSCM extends SCM implements Serializable {
             }
 
             @Override
-            public StandardCredentials toCredentials(Item context, String description) throws IOException {
+            public StandardCredentials toCredentials(ModelObject context, String description) throws IOException {
                 for (StandardUsernamePasswordCredentials c : CredentialsProvider.lookupCredentials(
                         StandardUsernamePasswordCredentials.class,
-                        context,
+                        findItemGroup(context),
                         ACL.SYSTEM,
                         Collections.<DomainRequirement>emptyList())) {
                     if (userName.equals(c.getUsername())
@@ -1723,6 +1794,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 }
                 return toCredentials(description);
             }
+
         }
 
         /**
@@ -1846,11 +1918,11 @@ public class SubversionSCM extends SCM implements Serializable {
             }
 
             @Override
-            public StandardCredentials toCredentials(Item context, String description) throws IOException {
+            public StandardCredentials toCredentials(ModelObject context, String description) throws IOException {
                 String key = FileUtils.readFileToString(getKeyFile(), "iso-8859-1");
                 for (SSHUserPrivateKey c : CredentialsProvider.lookupCredentials(
                         SSHUserPrivateKey.class,
-                        context,
+                        findItemGroup(context),
                         ACL.SYSTEM,
                         Collections.<DomainRequirement>emptyList())) {
                     if (userName.equals(c.getUsername()) && c.getPrivateKeys().contains(key)) {
@@ -1901,11 +1973,11 @@ public class SubversionSCM extends SCM implements Serializable {
             }
 
             @Override
-            public StandardCredentials toCredentials(Item context, String description) throws IOException {
+            public StandardCredentials toCredentials(ModelObject context, String description) throws IOException {
                 StandardCertificateCredentials result = toCredentials(description);
                 for (StandardCertificateCredentials c : CredentialsProvider.lookupCredentials(
                         StandardCertificateCredentials.class,
-                        context,
+                        findItemGroup(context),
                         ACL.SYSTEM,
                         Collections.<DomainRequirement>emptyList())) {
                     if (c.getPassword().equals(result.getPassword())) {
