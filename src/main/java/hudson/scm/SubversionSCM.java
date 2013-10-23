@@ -64,6 +64,7 @@ import hudson.Functions;
 import hudson.Launcher;
 import hudson.Util;
 import hudson.XmlFile;
+import hudson.init.InitMilestone;
 import hudson.model.BuildListener;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
@@ -151,6 +152,7 @@ import javax.xml.transform.stream.StreamResult;
 
 import net.sf.json.JSONObject;
 
+import org.acegisecurity.context.SecurityContextHolder;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
@@ -1611,6 +1613,14 @@ public class SubversionSCM extends SCM implements Serializable {
         return tokens[tokens.length-1]; // return the last token
     }
 
+    @hudson.init.Initializer(after = InitMilestone.JOB_LOADED, before = InitMilestone.COMPLETED)
+    public static void perJobCredentialsMigration() {
+        DescriptorImpl descriptor = Jenkins.getInstance().getDescriptorByType(DescriptorImpl.class);
+        if (descriptor != null) {
+            descriptor.migratePerJobCredentials();
+        }
+    }
+
     @Extension
     public static class DescriptorImpl extends SCMDescriptor<SubversionSCM> implements hudson.model.ModelObject {
         /**
@@ -1618,6 +1628,8 @@ public class SubversionSCM extends SCM implements Serializable {
          * This is the global credential repository.
          */
         private transient Map<String,Credential> credentials;
+
+        private boolean mayHaveLegacyPerJobCredentials;
 
         /**
          * Stores name of Subversion revision property to globally exclude
@@ -1644,6 +1656,7 @@ public class SubversionSCM extends SCM implements Serializable {
             if (credentials != null && !credentials.isEmpty()) {
                 BulkChange bc = new BulkChange(this);
                 try {
+                    mayHaveLegacyPerJobCredentials = true;
                     for (Map.Entry<String, Credential> e : credentials.entrySet()) {
                         migrateCredentials(Jenkins.getInstance(), e.getKey(), e.getValue());
                     }
@@ -1657,16 +1670,42 @@ public class SubversionSCM extends SCM implements Serializable {
             }
         }
 
-        /*package*/ StandardCredentials migrateCredentials(ModelObject context, String legacyScope, Credential legacyCredential)
+        /*package*/ void migratePerJobCredentials() {
+            if (credentials == null && !mayHaveLegacyPerJobCredentials ) {
+                // nothing to do here
+                return;
+            }
+            boolean allOk = true;
+            for (AbstractProject<?,?> job: Jenkins.getInstance().getAllItems(AbstractProject.class)) {
+                File jobCredentials = new File(job.getRootDir(), "subversion.credentials");
+                if (jobCredentials.isFile()) {
+                    try {
+                        new PerJobCredentialStore(job).migrateCredentials(this);
+                        if (!jobCredentials.delete()) {
+                            LOGGER.log(Level.WARNING, "Could not remove legacy per-job credentials store file: {0}",
+                                    jobCredentials);
+                            allOk = false;
+                        }
+                    } catch (IOException e) {
+                        LOGGER.log(Level.WARNING, "Could not migrate per-job credentials for " + job.getFullName(), e);
+                        allOk = false;
+                    }
+                }
+            }
+            mayHaveLegacyPerJobCredentials = !allOk;
+            save();
+        }
+
+        /*package*/ StandardCredentials migrateCredentials(ModelObject context, String legacyRealm, Credential legacyCredential)
                 throws IOException {
             CredentialsStore store = CredentialsProvider.lookupStores(context).iterator().next();
-            StandardCredentials credential = legacyCredential.toCredentials(null, legacyScope);
+            StandardCredentials credential = legacyCredential.toCredentials(null, legacyRealm);
             if (credential != null) {
                 return credential;
             }
-            credential = legacyCredential.toCredentials(legacyScope);
+            credential = legacyCredential.toCredentials(legacyRealm);
             if (store.isDomainsModifiable()) {
-                Matcher matcher = Pattern.compile("\\s*<([^>]+)>.*").matcher(legacyScope);
+                Matcher matcher = Pattern.compile("\\s*<([^>]+)>.*").matcher(legacyRealm);
                 if (matcher.matches()) {
                     String url = matcher.group(1);
                     if (url.startsWith("http:") || url.startsWith("svn:") || url.startsWith("https:") || url
