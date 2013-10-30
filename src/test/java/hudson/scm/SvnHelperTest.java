@@ -66,7 +66,7 @@ public class SvnHelperTest {
     }
     
     @Test
-    @Bug(12113)
+    @Bug(20344)
     public void testGetUrlWithoutRevision_withSlashAndSuffix() {
         testGetUrlWithoutRevision(URL_PREFIX+"/@HEAD");
         testGetUrlWithoutRevision(URL_PREFIX+"//@HEAD");       
