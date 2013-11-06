@@ -208,6 +208,7 @@ import com.thoughtworks.xstream.XStream;
 import com.trilead.ssh2.DebugLogger;
 import com.trilead.ssh2.SCPClient;
 import com.trilead.ssh2.crypto.Base64;
+import hudson.scm.subversion.ExternalsFileManager;
 
 /**
  * Subversion SCM.
@@ -557,7 +558,7 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         if (projectExternals == null) {
-            projectExternals = parseExternalsFile(context);
+            projectExternals = ExternalsFileManager.parseExternalsFile(context);
 
             synchronized (projectExternalsCache) {
                 if (!projectExternalsCache.containsKey(context)) {
@@ -827,30 +828,7 @@ public class SubversionSCM extends SCM implements Serializable {
         return revisions;
     }
 
-    /**
-     * Parses the file that stores the locations in the workspace where modules loaded by svn:external
-     * is placed.
-     *
-     * <p>
-     * Note that the format of the file has changed in 1.180 from simple text file to XML.
-     *
-     * @return
-     *      immutable list. Can be empty but never null.
-     */
-    /*package*/ @SuppressWarnings("unchecked")
-    static List<External> parseExternalsFile(AbstractProject project) throws IOException {
-        File file = getExternalsFile(project);
-        if(file.exists()) {
-            try {
-                return (List<External>)new XmlFile(External.XSTREAM,file).read();
-            } catch (IOException e) {
-                // in < 1.180 this file was a text file, so it may fail to parse as XML,
-                // in which case let's just fall back
-            }
-        }
-
-        return Collections.emptyList();
-    }
+    
 
     /**
      * Polling can happen on the master and does not require a workspace.
@@ -890,7 +868,7 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         // write out the externals info
-        new XmlFile(External.XSTREAM,getExternalsFile(build.getProject())).write(externals);
+        ExternalsFileManager.writeExternalsFile(build.getProject(), externals);
         Map<AbstractProject, List<External>> projectExternalsCache = getProjectExternalsCache();
         synchronized (projectExternalsCache) {
             projectExternalsCache.put(build.getProject(), externals);
@@ -1245,11 +1223,6 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         private static final long serialVersionUID = 1L;
-
-        private static final XStream XSTREAM = new XStream2();
-        static {
-            XSTREAM.alias("external",External.class);
-        }
     }
 
 
@@ -1345,12 +1318,7 @@ public class SubversionSCM extends SCM implements Serializable {
         return new File(build.getRootDir(),"revision.txt");
     }
 
-    /**
-     * Gets the file that stores the externals.
-     */
-    private static File getExternalsFile(AbstractProject project) {
-        return new File(project.getRootDir(),"svnexternals.txt");
-    }
+    
 
     @Override
     public SCMRevisionState calcRevisionsFromBuild(AbstractBuild<?, ?> build, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
