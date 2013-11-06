@@ -64,7 +64,6 @@ import hudson.FilePath.FileCallable;
 import hudson.Functions;
 import hudson.Launcher;
 import hudson.Util;
-import hudson.XmlFile;
 import hudson.init.InitMilestone;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.BuildListener;
@@ -116,7 +115,6 @@ import hudson.util.MultipartFormDataParser;
 import hudson.util.Scrambler;
 import hudson.util.Secret;
 import hudson.util.TimeUnit2;
-import hudson.util.XStream2;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
