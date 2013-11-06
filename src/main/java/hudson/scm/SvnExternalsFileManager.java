@@ -25,12 +25,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package hudson.scm.subversion;
+package hudson.scm;
 
 import com.thoughtworks.xstream.XStream;
 import hudson.XmlFile;
 import hudson.model.AbstractProject;
-import hudson.scm.SubversionSCM;
 import hudson.util.XStream2;
 import java.io.File;
 import java.io.IOException;
@@ -42,12 +41,13 @@ import java.util.WeakHashMap;
 /**
  * Implements local file storage of externals information.
  * Most of functionality has been copied from {@link SubversionSCM}. 
- * The class also prevents conflicts between 
+ * The class also prevents conflicts between read/write operations using
+ * {@link SVN_EXTERNALS_FILE}.
  * @author Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
  * @since TODO
  */
-public class ExternalsFileManager {
-
+//TODO: This class should also handle MultipleSCMs (JENKINS-20450)
+class SvnExternalsFileManager {
     private static final String SVN_EXTERNALS_FILE = "svnexternals.txt";
     private static final XStream XSTREAM = new XStream2();
     private static Map<AbstractProject, CacheItem> projectExternalsCache;    
@@ -58,7 +58,7 @@ public class ExternalsFileManager {
     /**
      * Provides a lock item for the project.
      * @param project Project to be used
-     * @return CacheItem (will be created on-demand)
+     * @return A lock object (will be created on-demand)
      */
     private static synchronized CacheItem getFileLockItem(AbstractProject project) {
         if (projectExternalsCache == null) {
@@ -90,10 +90,10 @@ public class ExternalsFileManager {
      *
      * @return immutable list. Can be empty but never null.
      */
-    /*package*/ @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked")
     public static List<SubversionSCM.External> parseExternalsFile(AbstractProject project) throws IOException {
         File file = getExternalsFile(project);
-        CacheItem lock = getFileLockItem(project);
+        Object lock = getFileLockItem(project);
         
         synchronized(lock) {
             if (file.exists()) {
@@ -108,8 +108,14 @@ public class ExternalsFileManager {
         }
     }
 
+    /**
+     * Writes a list of externals to the file.
+     * @param project Project, which uses provided externals.
+     * @param externals List of externals
+     * @throws IOException File write error
+     */
     public static void writeExternalsFile(AbstractProject project, List<SubversionSCM.External> externals) throws IOException {
-        CacheItem lock = getFileLockItem(project);
+        Object lock = getFileLockItem(project);
         
         synchronized (lock) {
             new XmlFile(XSTREAM, getExternalsFile(project)).write(externals);
@@ -121,6 +127,6 @@ public class ExternalsFileManager {
      * In the current state, class does not contain any specific data;
      */
     private static final class CacheItem {
-        
+        // Yes, the file is empty
     }
 }

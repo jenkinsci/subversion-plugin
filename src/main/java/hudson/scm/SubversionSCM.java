@@ -202,11 +202,9 @@ import org.tmatesoft.svn.core.wc.SVNRevision;
 import org.tmatesoft.svn.core.wc.SVNWCClient;
 import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
-import com.thoughtworks.xstream.XStream;
 import com.trilead.ssh2.DebugLogger;
 import com.trilead.ssh2.SCPClient;
 import com.trilead.ssh2.crypto.Base64;
-import hudson.scm.subversion.ExternalsFileManager;
 
 /**
  * Subversion SCM.
@@ -556,7 +554,7 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         if (projectExternals == null) {
-            projectExternals = ExternalsFileManager.parseExternalsFile(context);
+            projectExternals = SvnExternalsFileManager.parseExternalsFile(context);
 
             synchronized (projectExternalsCache) {
                 if (!projectExternalsCache.containsKey(context)) {
@@ -866,7 +864,7 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         // write out the externals info
-        ExternalsFileManager.writeExternalsFile(build.getProject(), externals);
+        SvnExternalsFileManager.writeExternalsFile(build.getProject(), externals);
         Map<AbstractProject, List<External>> projectExternalsCache = getProjectExternalsCache();
         synchronized (projectExternalsCache) {
             projectExternalsCache.put(build.getProject(), externals);
