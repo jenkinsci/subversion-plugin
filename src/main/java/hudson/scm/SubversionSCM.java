@@ -152,6 +152,7 @@ import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminAreaFactory;
 import org.tmatesoft.svn.core.io.SVNCapability;
 import org.tmatesoft.svn.core.io.SVNRepository;
 import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
+import org.tmatesoft.svn.core.io.ISVNSession;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNInfo;
 import org.tmatesoft.svn.core.wc.SVNRevision;
@@ -2060,7 +2061,11 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         protected SVNRepository getRepository(AbstractProject context, SVNURL repoURL) throws SVNException {
-            SVNRepository repository = SVNRepositoryFactory.create(repoURL);
+            return getRepository(context, repoURL, null);
+        }
+
+        protected SVNRepository getRepository(AbstractProject context, SVNURL repoURL, ISVNSession session) throws SVNException {
+            SVNRepository repository = SVNRepositoryFactory.create(repoURL, session);
 
             ISVNAuthenticationManager sam = createSvnAuthenticationManager(createAuthenticationProvider(context));
             sam = new FilterSVNAuthenticationManager(sam) {
@@ -2383,7 +2388,19 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         public SVNRepository openRepository(AbstractProject context) throws SVNException {
-            return Hudson.getInstance().getDescriptorByType(DescriptorImpl.class).getRepository(context,getSVNURL());
+            return Hudson.getInstance().getDescriptorByType(DescriptorImpl.class).getRepository(context,getSVNURL(), new ISVNSession() {
+                public boolean keepConnection(SVNRepository repository) {
+                    return false;
+                }
+                public void saveCommitMessage(SVNRepository repository, long revision, String message) {
+                }
+                public String getCommitMessage(SVNRepository repository, long revision) {
+                    return null;
+                }
+                public boolean hasCommitMessage(SVNRepository repository, long revision) {
+                    return false;
+                }
+            });
         }
 
         public SVNURL getRepositoryRoot(AbstractProject context) throws SVNException {
