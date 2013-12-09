@@ -1617,4 +1617,38 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         // fail if it checks the revision of external URL larger than the pinned revision
         assertFalse(p.poll(StreamTaskListener.fromStdout()).hasChanges());
     }
+
+    @Bug(20165)
+    public void testPollingExternalsForFileSvn16() throws Exception {
+        configureSvnWorkspaceFormat(10 /* 1.6 (svn:externals to file) */);
+        invokeTestPollingExternalsForFile();
+    }
+
+    @Bug(20165)
+    public void testPollingExternalsForFileSvn17() throws Exception {
+        configureSvnWorkspaceFormat(SubversionWorkspaceSelector.WC_FORMAT_17);
+        invokeTestPollingExternalsForFile();
+    }
+
+    private void invokeTestPollingExternalsForFile() throws Exception {
+        // trunk has svn:externals="^/vendor/target.txt target.txt"
+        File repo = new CopyExisting(getClass().getResource("JENKINS-20165.zip")).allocate();
+        String path = "file://" + repo.toURI().toURL().getPath();
+        SubversionSCM scm = new SubversionSCM(path + "trunk");
+
+        // first checkout
+        FreeStyleProject p = createFreeStyleProject();
+        p.setScm(scm);
+        p.setAssignedLabel(createSlave().getSelfLabel());
+        assertBuildStatusSuccess(p.scheduleBuild2(0).get());
+
+        // update target.txt in vendor
+        SubversionSCM vendor = new SubversionSCM(path + "vendor");
+        createWorkingCopy(vendor);
+        changeFiles("target.txt");
+        commitWorkingCopy("update");
+
+        // should detect change
+        assertTrue(p.poll(StreamTaskListener.fromStdout()).hasChanges());
+    }
 }    
