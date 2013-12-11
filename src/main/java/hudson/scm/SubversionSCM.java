@@ -2373,7 +2373,8 @@ public class SubversionSCM extends SCM implements Serializable {
             if(repositoryUUID==null || repositoryRoot==null) {
                 synchronized (this) {
                     SVNRepository r = openRepository(context);
-                    r.testConnection(); // make sure values are fetched
+                    if (r.getRepositoryUUID(false) == null)
+                        r.testConnection(); // make sure values are fetched
                     repositoryUUID = UUID.fromString(r.getRepositoryUUID(false));
                     repositoryRoot = r.getRepositoryRoot(false);
                 }
