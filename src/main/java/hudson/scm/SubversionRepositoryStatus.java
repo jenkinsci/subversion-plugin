@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Logger;
+import java.util.Map;
+import java.util.HashMap;
 
 import javax.servlet.ServletException;
 
@@ -120,6 +122,8 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
             rev = Long.parseLong(revParam);
         }
 
+        Map<String, UUID> remoteUUIDCache = new HashMap<String, UUID>();
+        LOGGER.fine("Starting subversion locations checks for all jobs");
         for (AbstractProject<?,?> p : this.jobProvider.getAllJobs()) {
             if(p.isDisabled()) continue;
             try {
@@ -133,9 +137,17 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                 
                 List<SvnInfo> infos = new ArrayList<SvnInfo>();
                 
+                //LOGGER.fine("Checking project locations check for "+p);
                 boolean projectMatches = false; 
                 for (ModuleLocation loc : sscm.getProjectLocations(p)) {
-                    if (loc.getUUID(p).equals(uuid)) uuidFound = true; else continue;
+                    //LOGGER.fine("Checking uuid for module location + " + loc + " of job "+ p);
+                    String url = loc.getURL();
+                    UUID remoteUUID = remoteUUIDCache.get(url);
+                    if ( remoteUUID == null ) {
+                        remoteUUID = loc.getUUID(p);
+                        remoteUUIDCache.put(url, remoteUUID);
+                    } else LOGGER.finer("Using cached uuid for module location " + url + " of job "+ p);
+                    if (remoteUUID.equals(uuid)) uuidFound = true; else continue;
 
                     String m = loc.getSVNURL().getPath();
                     String n = loc.getRepositoryRoot(p).getPath();
@@ -159,6 +171,7 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                         }
                     }
                 }
+                //LOGGER.fine("Ended project locations check for "+p);
                 
                 if (projectMatches) {
                     LOGGER.fine("Scheduling the immediate polling of "+p);
@@ -178,6 +191,7 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                 LOGGER.log(WARNING, "Failed to handle Subversion commit notification: {0}", e.getMessage());
             }
         }
+        LOGGER.fine("Ended subversion locations checks for all jobs");
 
         if (!scmFound)          LOGGER.warning("No subversion jobs found");
         else if (!triggerFound) LOGGER.warning("No subversion jobs using SCM polling or all jobs using SCM polling are ignoring post-commit hooks");
