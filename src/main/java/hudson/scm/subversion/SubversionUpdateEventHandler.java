@@ -87,7 +87,7 @@ final class SubversionUpdateEventHandler extends SubversionEventHandlerImpl impl
     @Override
     public void handleEvent(SVNEvent event, double progress) throws SVNException {
         SVNEventAction action = event.getAction();
-        if (action == SVNEventAction.UPDATE_COMPLETED) {
+        if (action == SVNEventAction.UPDATE_EXTERNAL || action == SVNEventAction.UPDATE_COMPLETED) {
             File file = event.getFile();
             SVNExternalDetails details = externalDetails.remove(file);
             if (details != null) {
