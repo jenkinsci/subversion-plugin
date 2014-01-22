@@ -11,8 +11,11 @@
  */
 package hudson.scm;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Map;
 
 import org.tmatesoft.svn.core.ISVNLogEntryHandler;
 import org.tmatesoft.svn.core.SVNErrorCode;
@@ -44,7 +47,11 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
 
   private SVNLogFilter filter = new NullSVNLogFilter();
 
-  public DirAwareSVNXMLLogHandler(ContentHandler contentHandler, SVNLogFilter filter) {
+  /** Relative path to repository root */
+  private String relativePath;
+    private String relativeUrl;
+
+    public DirAwareSVNXMLLogHandler(ContentHandler contentHandler, SVNLogFilter filter) {
     super(contentHandler);
     this.filter = filter;
   }
@@ -74,6 +81,20 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
    * @throws SVNException 
    */
   public void handleLogEntry(SVNLogEntry logEntry) throws SVNException {
+
+      if (logEntry.getChangedPaths() != null && relativePath != null) {
+          // convert external path reference to local relative path
+          Map<String, SVNLogEntryPath> changedPaths = new HashMap<String, SVNLogEntryPath>();
+          for (SVNLogEntryPath entry : logEntry.getChangedPaths().values()) {
+              String localPath = entry.getPath().substring(1); // path in svn log start with a '/'
+              localPath = relativePath + localPath.substring(relativeUrl.length());
+              // can't use entry.setPath(localPath) as FSPathChange duplicate myPath attribute then setPath().getPath() don't return same value
+              changedPaths.put(localPath, new SVNLogEntryPath(localPath, entry.getType(), entry.getCopyPath(), entry.getCopyRevision()));
+          }
+          logEntry.getChangedPaths().clear();
+          logEntry.getChangedPaths().putAll(changedPaths);
+      }
+
       try {
           if (filter == null || !filter.hasExclusionRule() || filter.isIncluded(logEntry)) {
               sendToHandler(logEntry);
@@ -147,7 +168,17 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
         closeTag(LOGENTRY_TAG);
     }
   }
-  private class MergeFrame {
+
+    public void setRelativePath(String relativePath) {
+        this.relativePath = relativePath;
+    }
+
+    public void setRelativeUrl(String relativeUrl) {
+        this.relativeUrl = relativeUrl.startsWith("/") ? relativeUrl.substring(1) : relativeUrl;
+    }
+
+
+    private class MergeFrame {
     private long myNumberOfChildrenRemaining;
   }
 
