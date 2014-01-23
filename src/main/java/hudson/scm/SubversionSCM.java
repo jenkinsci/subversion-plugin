@@ -2376,6 +2376,7 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         public UUID getUUID(AbstractProject context) throws SVNException {
             if(repositoryUUID==null || repositoryRoot==null) {
+                LOGGER.fine("UUID of " + remote + " not cached for " + context);
                 synchronized (this) {
                     SVNRepository r = openRepository(context);
                     if (r.getRepositoryUUID(false) == null)
