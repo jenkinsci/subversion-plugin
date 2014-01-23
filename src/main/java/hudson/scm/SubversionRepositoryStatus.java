@@ -137,7 +137,7 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                 
                 List<SvnInfo> infos = new ArrayList<SvnInfo>();
                 
-                //LOGGER.fine("Checking project locations check for "+p);
+                LOGGER.finer("Checking project locations check for "+p);
                 boolean projectMatches = false; 
                 for (ModuleLocation loc : sscm.getProjectLocations(p)) {
                     //LOGGER.fine("Checking uuid for module location + " + loc + " of job "+ p);
@@ -153,8 +153,11 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                     }
 
                     if (remoteUUID == null) {
+                        if (LOGGER.isLoggable(FINER)) {
+                            LOGGER.finer("Could not find " + loc.getURL() + " in " + remoteUUIDCache.keySet().toString());
+                        }
                         remoteUUID = loc.getUUID(p);
-                        remoteUUIDCache.put(loc.getRepositoryRoot(p).getPath(), remoteUUID);
+                        remoteUUIDCache.put(loc.getRepositoryRoot(p).toString(), remoteUUID);
                     }
 
                     if (remoteUUID.equals(uuid)) uuidFound = true; else continue;
