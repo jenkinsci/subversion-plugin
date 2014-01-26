@@ -2389,6 +2389,8 @@ public class SubversionSCM extends SCM implements Serializable {
 
         public SVNRepository openRepository(AbstractProject context) throws SVNException {
             return Hudson.getInstance().getDescriptorByType(DescriptorImpl.class).getRepository(context,getSVNURL(), new ISVNSession() {
+                // This is only used to determine the repo UUID.
+                // To prevent opening too many connections simultaneously, configure this session to not keep connections open.
                 public boolean keepConnection(SVNRepository repository) {
                     return false;
                 }
