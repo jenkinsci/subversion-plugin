@@ -2377,7 +2377,8 @@ public class SubversionSCM extends SCM implements Serializable {
         public UUID getUUID(AbstractProject context) throws SVNException {
             if(repositoryUUID==null || repositoryRoot==null) {
                 synchronized (this) {
-                    SVNRepository r = openRepository(context);
+                    // don't keep connections open for further use to prevent having too many open at the same time.
+                    SVNRepository r = openRepository(context, false);
                     if (r.getRepositoryUUID(false) == null)
                         r.testConnection(); // make sure values are fetched
                     repositoryUUID = UUID.fromString(r.getRepositoryUUID(false));
@@ -2388,9 +2389,14 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         public SVNRepository openRepository(AbstractProject context) throws SVNException {
+            return openRepository(context, true);
+        }
+
+        private SVNRepository openRepository(AbstractProject context, boolean keepConnection) throws SVNException {
+            if (keepConnection) {
+                return Hudson.getInstance().getDescriptorByType(DescriptorImpl.class).getRepository(context,getSVNURL());
+            }
             return Hudson.getInstance().getDescriptorByType(DescriptorImpl.class).getRepository(context,getSVNURL(), new ISVNSession() {
-                // This is only used to determine the repo UUID.
-                // To prevent opening too many connections simultaneously, configure this session to not keep connections open.
                 public boolean keepConnection(SVNRepository repository) {
                     return false;
                 }
