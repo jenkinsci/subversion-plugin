@@ -1,8 +1,30 @@
-/.settings
-/target
-/.classpath
-/.project
-*.iml
-.idea
-/work
 /bin
+/work*
+
+# Maven build files
+target/
+
+# Jenkins plugin development
+work/
+
+# IntelliJ project files
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Eclipse project files
+.settings/
+.classpath
+.project
+.metadata
+.loadpath
+
+# NetBeans project files
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+nbactions.xml
+nb-configuration.xml
