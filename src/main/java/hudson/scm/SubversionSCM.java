@@ -31,6 +31,31 @@ import static hudson.scm.PollingResult.BUILD_NOW;
 import static hudson.scm.PollingResult.NO_CHANGES;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.WARNING;
+
+import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
+import com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey;
+import com.cloudbees.plugins.credentials.Credentials;
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.CredentialsStore;
+import com.cloudbees.plugins.credentials.common.StandardCertificateCredentials;
+import com.cloudbees.plugins.credentials.common.StandardCredentials;
+import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.domains.Domain;
+import com.cloudbees.plugins.credentials.domains.DomainRequirement;
+import com.cloudbees.plugins.credentials.domains.DomainSpecification;
+import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
+import com.cloudbees.plugins.credentials.domains.HostnameSpecification;
+import com.cloudbees.plugins.credentials.domains.SchemeRequirement;
+import com.cloudbees.plugins.credentials.domains.SchemeSpecification;
+import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import com.cloudbees.plugins.credentials.impl.CertificateCredentialsImpl;
+import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.BulkChange;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
@@ -39,15 +64,31 @@ import hudson.Functions;
 import hudson.Launcher;
 import hudson.Util;
 import hudson.XmlFile;
+import hudson.init.InitMilestone;
 import hudson.model.BuildListener;
 import hudson.model.Item;
+import hudson.model.ItemGroup;
+import hudson.model.ModelObject;
 import hudson.model.TaskListener;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Computer;
 import hudson.model.Hudson;
+
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.UnsupportedCharsetException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.WeakHashMap;
+
+import hudson.security.ACL;
+import hudson.util.ListBoxModel;
+import jenkins.model.Jenkins;
 import jenkins.model.Jenkins.MasterComputer;
 import hudson.model.Node;
 import hudson.model.ParametersAction;
@@ -92,7 +133,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -103,6 +143,7 @@ import java.util.StringTokenizer;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -111,6 +152,7 @@ import javax.xml.transform.stream.StreamResult;
 
 import net.sf.json.JSONObject;
 
+import org.acegisecurity.context.SecurityContextHolder;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
@@ -135,13 +177,11 @@ import org.tmatesoft.svn.core.SVNLogEntry;
 import org.tmatesoft.svn.core.SVNNodeKind;
 import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
-import org.tmatesoft.svn.core.auth.ISVNAuthenticationOutcomeListener;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
 import org.tmatesoft.svn.core.auth.SVNAuthentication;
 import org.tmatesoft.svn.core.auth.SVNPasswordAuthentication;
 import org.tmatesoft.svn.core.auth.SVNSSHAuthentication;
 import org.tmatesoft.svn.core.auth.SVNSSLAuthentication;
-import org.tmatesoft.svn.core.auth.SVNUserNameAuthentication;
 import org.tmatesoft.svn.core.internal.io.dav.DAVRepositoryFactory;
 import org.tmatesoft.svn.core.internal.io.dav.http.DefaultHTTPConnectionFactory;
 import org.tmatesoft.svn.core.internal.io.fs.FSRepositoryFactory;
@@ -173,7 +213,7 @@ import com.trilead.ssh2.crypto.Base64;
  * so that it can use the credentials (username, password, etc.) that the user entered for Hudson.
  * See the javadoc of this method for the precautions you need to take if you run Subversion operations
  * remotely on slaves.
- * 
+ *
  * <h2>Implementation Notes</h2>
  * <p>
  * Because this instance refers to some other classes that are not necessarily
@@ -196,12 +236,19 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     private ModuleLocation[] locations = new ModuleLocation[0];
 
+    /**
+     * Additional credentials to use when checking out svn:externals
+     * @since 2.0
+     */
+    @CheckForNull
+    private List<AdditionalCredentials> additionalCredentials;
+
     private final SubversionRepositoryBrowser browser;
     private String excludedRegions;
     private String includedRegions;
     private String excludedUsers;
     /**
-     * Revision property names that are ignored for the sake of polling. Whitespace separated, possibly null. 
+     * Revision property names that are ignored for the sake of polling. Whitespace separated, possibly null.
      */
     private String excludedRevprop;
     private String excludedCommitMessages;
@@ -227,7 +274,7 @@ public class SubversionSCM extends SCM implements Serializable {
     private transient Map<AbstractProject, List<External>> projectExternalsCache;
 
     private transient boolean pollFromMaster = POLL_FROM_MASTER;
-    
+
     /**
      * @deprecated as of 1.286
      */
@@ -259,7 +306,7 @@ public class SubversionSCM extends SCM implements Serializable {
                          boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions) {
         this(locations, useUpdate, false, browser, excludedRegions, null, null, null);
     }
-    
+
     /**
      * @deprecated as of 1.324
      */
@@ -295,7 +342,7 @@ public class SubversionSCM extends SCM implements Serializable {
     }
 
     /**
-     * 
+     *
      * @deprecated as of ...
      */
     public SubversionSCM(List<ModuleLocation> locations, WorkspaceUpdater workspaceUpdater,
@@ -310,19 +357,28 @@ public class SubversionSCM extends SCM implements Serializable {
     public SubversionSCM(List<ModuleLocation> locations, WorkspaceUpdater workspaceUpdater,
             SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages,
             String includedRegions, boolean ignoreDirPropChanges) {
-        this(locations, workspaceUpdater, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages, includedRegions, ignoreDirPropChanges, false);
+        this(locations, workspaceUpdater, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages, includedRegions, ignoreDirPropChanges, false, null);
     }
 
     @DataBoundConstructor
     public SubversionSCM(List<ModuleLocation> locations, WorkspaceUpdater workspaceUpdater,
-                         SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages,
-                         String includedRegions, boolean ignoreDirPropChanges, boolean filterChangelog) {
-        for (Iterator<ModuleLocation> itr = locations.iterator(); itr.hasNext();) {
+                         SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers,
+                         String excludedRevprop, String excludedCommitMessages,
+                         String includedRegions, boolean ignoreDirPropChanges, boolean filterChangelog,
+                         List<AdditionalCredentials> additionalCredentials) {
+        for (Iterator<ModuleLocation> itr = locations.iterator(); itr.hasNext(); ) {
             ModuleLocation ml = itr.next();
             String remote = Util.fixEmptyAndTrim(ml.remote);
-            if(remote==null) itr.remove();
+            if (remote == null) {
+                itr.remove();
+            }
         }
         this.locations = locations.toArray(new ModuleLocation[locations.size()]);
+        if (additionalCredentials == null) {
+            this.additionalCredentials = null;
+        } else {
+            this.additionalCredentials = new ArrayList<AdditionalCredentials>(additionalCredentials);
+        }
 
         this.workspaceUpdater = workspaceUpdater;
         this.browser = browser;
@@ -339,21 +395,35 @@ public class SubversionSCM extends SCM implements Serializable {
      * Convenience constructor, especially during testing.
      */
     public SubversionSCM(String svnUrl) {
-        this(svnUrl,".");
+        this(svnUrl, null, ".");
     }
 
     /**
      * Convenience constructor, especially during testing.
      */
     public SubversionSCM(String svnUrl, String local) {
-        this(new String[]{svnUrl},new String[]{local},true,null,null,null,null);
+        this(svnUrl, null, local);
     }
-    
+
+    /**
+     * Convenience constructor, especially during testing.
+     */
+    public SubversionSCM(String svnUrl, String credentialId, String local) {
+        this(new String[]{svnUrl}, new String[]{credentialId}, new String[]{local});
+    }
+
     /**
      * Convenience constructor, especially during testing.
      */
     public SubversionSCM(String[] svnUrls, String[] locals) {
-        this(svnUrls,locals,true,null,null,null,null);
+        this(svnUrls, null, locals);
+    }
+
+    /**
+     * Convenience constructor, especially during testing.
+     */
+    public SubversionSCM(String[] svnUrls, String[] credentialIds, String[] locals) {
+        this(ModuleLocation.parse(svnUrls, credentialIds, locals, null,null), true, false, null, null, null, null, null);
     }
 
     /**
@@ -372,6 +442,14 @@ public class SubversionSCM extends SCM implements Serializable {
     @Exported
     public ModuleLocation[] getLocations() {
     	return getLocations(null, null);
+    }
+
+    public List<AdditionalCredentials> getAdditionalCredentials() {
+        List<AdditionalCredentials> result = new ArrayList<AdditionalCredentials>();
+        if (additionalCredentials != null) {
+            result.addAll(additionalCredentials);
+        }
+        return result;
     }
 
     @Exported
@@ -590,7 +668,7 @@ public class SubversionSCM extends SCM implements Serializable {
     public boolean isIgnoreDirPropChanges() {
       return ignoreDirPropChanges;
     }
-    
+
     @Exported
     public boolean isFilterChangelog() {
       return filterChangelog;
@@ -602,7 +680,7 @@ public class SubversionSCM extends SCM implements Serializable {
     @Override
     public void buildEnvVars(AbstractBuild<?, ?> build, Map<String, String> env) {
         super.buildEnvVars(build, env);
-        
+
         ModuleLocation[] svnLocations = getLocations(new EnvVars(env), build);
 
         try {
@@ -620,7 +698,7 @@ public class SubversionSCM extends SCM implements Serializable {
                     LOGGER.log(WARNING, "no revision found corresponding to {0}; known: {1}", new Object[] {url, knownURLs});
                 }
             }
-            
+
             for(int i=0;i<svnLocations.length;i++) {
                 String url = svnLocations[i].getURL();
                 Long rev = revisions.get(url);
@@ -668,7 +746,7 @@ public class SubversionSCM extends SCM implements Serializable {
     /*package*/ static Map<String,Long> parseRevisionFile(AbstractBuild<?,?> build) throws IOException {
         return parseRevisionFile(build,true,false);
     }
-    
+
     /*package*/ Map<String,Long> parseSvnRevisionFile(AbstractBuild<?,?> build) throws IOException {
         return parseRevisionFile(build);
     }
@@ -776,7 +854,7 @@ public class SubversionSCM extends SCM implements Serializable {
     public boolean requiresWorkspaceForPolling() {
         return false;
     }
-    
+
     @SuppressWarnings("unchecked")
     public boolean checkout(AbstractBuild build, Launcher launcher, FilePath workspace, final BuildListener listener, File changelogFile) throws IOException, InterruptedException {
         EnvVars env = build.getEnvironment(listener);
@@ -795,7 +873,7 @@ public class SubversionSCM extends SCM implements Serializable {
             List<SvnInfoP> pList = workspace.act(new BuildRevisionMapTask(build, this, listener, externals, env));
             List<SvnInfo> revList= new ArrayList<SvnInfo>(pList.size());
             for (SvnInfoP p: pList) {
-                if (p.pinned) 
+                if (p.pinned)
                     w.println( p.info.url +'/'+ p.info.revision + "::p");
                 else
                     w.println( p.info.url +'/'+ p.info.revision);
@@ -843,10 +921,14 @@ public class SubversionSCM extends SCM implements Serializable {
                 return null;
             }
         }
-        
+
         List<External> externals = new ArrayList<External>();
+        Set<String> unauthenticatedRealms = new LinkedHashSet<String>();
         for (ModuleLocation location : getLocations(env, build)) {
-            externals.addAll( workspace.act(new CheckOutTask(build, this, location, build.getTimestamp().getTime(), listener, env)));
+            CheckOutTask checkOutTask =
+                    new CheckOutTask(build, this, location, build.getTimestamp().getTime(), listener, env);
+            externals.addAll(workspace.act(checkOutTask));
+            unauthenticatedRealms.addAll(checkOutTask.getUnauthenticatedRealms());
             // olamy: remove null check at it cause test failure
             // see https://github.com/jenkinsci/subversion-plugin/commit/de23a2b781b7b86f41319977ce4c11faee75179b#commitcomment-1551273
             /*if ( externalsFound != null ){
@@ -854,6 +936,32 @@ public class SubversionSCM extends SCM implements Serializable {
             } else {
                 externals.addAll( new ArrayList<External>( 0 ) );
             }*/
+        }
+        if (additionalCredentials != null) {
+            for (AdditionalCredentials c : additionalCredentials) {
+                unauthenticatedRealms.remove(c.getRealm());
+            }
+        }
+        if (!unauthenticatedRealms.isEmpty()) {
+            listener.getLogger().println("WARNING: The following realms could not be authenticated:");
+            for (String realm : unauthenticatedRealms) {
+                listener.getLogger().println(" * " + realm);
+            }
+            if (build == build.getProject().getLastBuild()) {
+                if (additionalCredentials == null) {
+                    additionalCredentials = new ArrayList<AdditionalCredentials>();
+                }
+                for (String realm : unauthenticatedRealms) {
+                    additionalCredentials.add(new AdditionalCredentials(realm, null));
+                }
+                try {
+                    listener.getLogger().println("Adding missing realms to configuration...");
+                    build.getProject().save();
+                    listener.getLogger().println("Updated project configuration saved.");
+                } catch (IOException e) {
+                    listener.getLogger().println("Could not update project configuration: " + e.getMessage());
+                }
+            }
         }
 
         return externals;
@@ -874,14 +982,21 @@ public class SubversionSCM extends SCM implements Serializable {
         private final UpdateTask task;
 
          public CheckOutTask(AbstractBuild<?, ?> build, SubversionSCM parent, ModuleLocation location, Date timestamp, TaskListener listener, EnvVars env) {
-            this.authProvider = parent.getDescriptor().createAuthenticationProvider(build.getParent());
+            this.authProvider = parent.createAuthenticationProvider(build.getParent(), location);
             this.timestamp = timestamp;
             this.listener = listener;
             this.location = location;
             this.revisions = build.getAction(RevisionParameterAction.class);
             this.task = parent.getWorkspaceUpdater().createTask();
         }
-        
+
+        public Set<String> getUnauthenticatedRealms() {
+            if (authProvider instanceof CredentialsSVNAuthenticationProviderImpl) {
+                return ((CredentialsSVNAuthenticationProviderImpl) authProvider).getUnauthenticatedRealms();
+            }
+            return Collections.emptySet();
+        }
+
         public List<External> invoke(File ws, VirtualChannel channel) throws IOException {
             clientManager = createClientManager(authProvider);
             manager = clientManager.getCore();
@@ -945,7 +1060,7 @@ public class SubversionSCM extends SCM implements Serializable {
      * This method must be executed on the slave where svn operations are performed.
      *
      * @param authProvider
-     *      The value obtained from {@link DescriptorImpl#createAuthenticationProvider(AbstractProject)}.
+     *      The value obtained from {@link #createAuthenticationProvider(AbstractProject,ModuleLocation)}.
      *      If the operation runs on slaves,
      *      (and properly remoted, if the svn operations run on slaves.)
      */
@@ -974,7 +1089,7 @@ public class SubversionSCM extends SCM implements Serializable {
             configDir = new File(CONFIG_DIR);
         else
             configDir = SVNWCUtil.getDefaultConfigurationDirectory();
-        
+
         ISVNAuthenticationManager sam = SVNWCUtil.createDefaultAuthenticationManager(configDir, null, null);
         sam.setAuthenticationProvider(authProvider);
         SVNAuthStoreHandlerImpl.install(sam);
@@ -1000,6 +1115,24 @@ public class SubversionSCM extends SCM implements Serializable {
     public static SvnClientManager createClientManager(AbstractProject context) {
         return new SvnClientManager(createSvnClientManager(Hudson.getInstance().getDescriptorByType(DescriptorImpl.class).createAuthenticationProvider(context)));
     }
+
+    /**
+     * Creates {@link ISVNAuthenticationProvider}.
+     * This method must be invoked on the master, but the returned object is remotable.
+     *
+     * <p>
+     * Therefore, to access {@link ISVNAuthenticationProvider}, you need to call this method
+     * on the master, then pass the object to the slave side, then call
+     * {@link SubversionSCM#createSvnClientManager(ISVNAuthenticationProvider)} on the slave.
+     *
+     * @see SubversionSCM#createSvnClientManager(ISVNAuthenticationProvider)
+     */
+    public ISVNAuthenticationProvider createAuthenticationProvider(AbstractProject<?, ?> inContextOf,
+                                                                   ModuleLocation location) {
+        return CredentialsSVNAuthenticationProviderImpl.createAuthenticationProvider(inContextOf, this, location);
+    }
+
+
 
     public static final class SvnInfo implements Serializable, Comparable<SvnInfo> {
         /**
@@ -1078,7 +1211,7 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     public static final class External implements Serializable {
         /**
-         * Relative path within the workspace where this <tt>svn:exteranls</tt> exist. 
+         * Relative path within the workspace where this <tt>svn:exteranls</tt> exist.
          */
         public final String path;
 
@@ -1139,39 +1272,56 @@ public class SubversionSCM extends SCM implements Serializable {
      *      null if the parsing somehow fails. Otherwise a map from the repository URL to revisions.
      */
     private static class BuildRevisionMapTask implements FileCallable<List<SvnInfoP>> {
-        private final ISVNAuthenticationProvider authProvider;
+        private final ISVNAuthenticationProvider defaultAuthProvider;
+        private final Map<String,ISVNAuthenticationProvider> authProviders;
         private final TaskListener listener;
         private final List<External> externals;
         private final ModuleLocation[] locations;
 
         public BuildRevisionMapTask(AbstractBuild<?, ?> build, SubversionSCM parent, TaskListener listener, List<External> externals, EnvVars env) {
-            this.authProvider = parent.getDescriptor().createAuthenticationProvider(build.getParent());
             this.listener = listener;
             this.externals = externals;
             this.locations = parent.getLocations(env, build);
+            this.defaultAuthProvider = parent.createAuthenticationProvider(build.getParent(), null);
+            this.authProviders = new LinkedHashMap<String, ISVNAuthenticationProvider>();
+            for (ModuleLocation loc: locations) {
+                authProviders.put(loc.remote, parent.createAuthenticationProvider(build.getParent(), loc));
+            }
         }
 
         public List<SvnInfoP> invoke(File ws, VirtualChannel channel) throws IOException {
             List<SvnInfoP> revisions = new ArrayList<SvnInfoP>();
 
-            final SvnClientManager manager = createClientManager(authProvider);
-            try {
-                final SVNWCClient svnWc = manager.getWCClient();
-                // invoke the "svn info"
-                for( ModuleLocation module : locations ) {
+            for (ModuleLocation module : locations) {
+                ISVNAuthenticationProvider authProvider = authProviders.get(module.remote);
+                if (authProvider == null) {
+                    authProvider = defaultAuthProvider;
+                }
+                final SvnClientManager manager = createClientManager(authProvider);
+                try {
+                    final SVNWCClient svnWc = manager.getWCClient();
+                    // invoke the "svn info"
                     try {
-                        SvnInfo info = new SvnInfo(svnWc.doInfo(new File(ws,module.getLocalDir()), SVNRevision.WORKING));
+                        SvnInfo info =
+                                new SvnInfo(svnWc.doInfo(new File(ws, module.getLocalDir()), SVNRevision.WORKING));
                         revisions.add(new SvnInfoP(info, false));
                     } catch (SVNException e) {
-                        e.printStackTrace(listener.error("Failed to parse svn info for "+module.remote));
+                        e.printStackTrace(listener.error("Failed to parse svn info for " + module.remote));
                     }
+                } finally {
+                    manager.dispose();
                 }
-                for(External ext : externals){
+            }
+            final SvnClientManager manager = createClientManager(defaultAuthProvider);
+            try {
+                final SVNWCClient svnWc = manager.getWCClient();
+                for (External ext : externals) {
                     try {
-                        SvnInfo info = new SvnInfo(svnWc.doInfo(new File(ws,ext.path),SVNRevision.WORKING));
+                        SvnInfo info = new SvnInfo(svnWc.doInfo(new File(ws, ext.path), SVNRevision.WORKING));
                         revisions.add(new SvnInfoP(info, ext.isRevisionFixed()));
                     } catch (SVNException e) {
-                        e.printStackTrace(listener.error("Failed to parse svn info for external "+ext.url+" at "+ext.path));
+                        e.printStackTrace(
+                                listener.error("Failed to parse svn info for external " + ext.url + " at " + ext.path));
                     }
                 }
 
@@ -1203,11 +1353,11 @@ public class SubversionSCM extends SCM implements Serializable {
         Map<String,Long> wsRev = parseRevisionFile(build,true,true);
         return new SVNRevisionState(wsRev);
     }
-    
+
     private boolean isPollFromMaster() {
         return pollFromMaster;
     }
-    
+
     void setPollFromMaster(boolean pollFromMaster) {
         this.pollFromMaster = pollFromMaster;
     }
@@ -1224,7 +1374,7 @@ public class SubversionSCM extends SCM implements Serializable {
         else {
             baseline = new SVNRevisionState(null);
         }
-        
+
         if (project.getLastBuild() == null) {
             listener.getLogger().println(Messages.SubversionSCM_pollChanges_noBuilds());
             return BUILD_NOW;
@@ -1247,7 +1397,7 @@ public class SubversionSCM extends SCM implements Serializable {
             for (ModuleLocation loc : getLocations(env, lastCompletedBuild)) {
                 // baseline.revisions has URIdecoded URL
                 String url;
-                try { 
+                try {
                     url = loc.getSVNURL().toDecodedString();
                 } catch (SVNException ex) {
                     ex.printStackTrace(listener.error(Messages.SubversionSCM_pollChanges_exception(loc.getURL())));
@@ -1273,15 +1423,27 @@ public class SubversionSCM extends SCM implements Serializable {
             }
         }
         if (ch==null)   ch= MasterComputer.localChannel;
- 
+
         final String nodeName = n!=null ? n.getNodeName() : "master";
 
         final SVNLogHandler logHandler = new SVNLogHandler(createSVNLogFilter(), listener);
 
-        final ISVNAuthenticationProvider authProvider = getDescriptor().createAuthenticationProvider(project);
+        final Map<String,ISVNAuthenticationProvider> authProviders = new LinkedHashMap<String,
+                ISVNAuthenticationProvider>();
+        for (ModuleLocation loc: getLocations()) {
+            String url;
+            try {
+                url = loc.getSVNURL().toDecodedString();
+            } catch (SVNException ex) {
+                ex.printStackTrace(listener.error(Messages.SubversionSCM_pollChanges_exception(loc.getURL())));
+                return BUILD_NOW;
+            }
+            authProviders.put(url, createAuthenticationProvider(project, loc));
+        }
+        final ISVNAuthenticationProvider defaultAuthProvider = createAuthenticationProvider(project, null);
 
         // figure out the remote revisions
-        return ch.call(new CompareAgainstBaselineCallable(baseline, logHandler, project.getName(), listener, authProvider, nodeName));
+        return ch.call(new CompareAgainstBaselineCallable(baseline, logHandler, project.getName(), listener, defaultAuthProvider, authProviders, nodeName));
     }
 
     public SVNLogFilter createSVNLogFilter() {
@@ -1410,13 +1572,13 @@ public class SubversionSCM extends SCM implements Serializable {
         }
         return new FilePath[] { getModuleRoot(workspace) };
     }
-    
+
     @Override
     public FilePath[] getModuleRoots(FilePath workspace, AbstractBuild build) {
         if (build == null) {
             return getModuleRoots(workspace);
         }
-        
+
         // TODO: can't I get the build listener here?
         TaskListener listener = new LogTaskListener(LOGGER, WARNING);
         final EnvVars env;
@@ -1428,7 +1590,7 @@ public class SubversionSCM extends SCM implements Serializable {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
         }
-        
+
         final ModuleLocation[] moduleLocations = getLocations();
         if (moduleLocations.length > 0) {
             FilePath[] moduleRoots = new FilePath[moduleLocations.length];
@@ -1451,13 +1613,23 @@ public class SubversionSCM extends SCM implements Serializable {
         return tokens[tokens.length-1]; // return the last token
     }
 
+    @hudson.init.Initializer(after = InitMilestone.JOB_LOADED, before = InitMilestone.COMPLETED)
+    public static void perJobCredentialsMigration() {
+        DescriptorImpl descriptor = Jenkins.getInstance().getDescriptorByType(DescriptorImpl.class);
+        if (descriptor != null) {
+            descriptor.migratePerJobCredentials();
+        }
+    }
+
     @Extension
     public static class DescriptorImpl extends SCMDescriptor<SubversionSCM> implements hudson.model.ModelObject {
         /**
          * SVN authentication realm to its associated credentials.
          * This is the global credential repository.
          */
-        private final Map<String,Credential> credentials = new Hashtable<String,Credential>();
+        private transient Map<String,Credential> credentials;
+
+        private boolean mayHaveLegacyPerJobCredentials;
 
         /**
          * Stores name of Subversion revision property to globally exclude
@@ -1478,6 +1650,122 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         private boolean storeAuthToDisk = true;
 
+        @Override
+        public void load() {
+            super.load();
+            if (credentials != null && !credentials.isEmpty()) {
+                BulkChange bc = new BulkChange(this);
+                try {
+                    mayHaveLegacyPerJobCredentials = true;
+                    for (Map.Entry<String, Credential> e : credentials.entrySet()) {
+                        migrateCredentials(Jenkins.getInstance(), e.getKey(), e.getValue());
+                    }
+                    save();
+                    bc.commit();
+                } catch (IOException e) {
+                    LOGGER.log(Level.WARNING, "Could not migrate stored credentials", e);
+                } finally {
+                    bc.abort();
+                }
+            }
+        }
+
+        /*package*/ void migratePerJobCredentials() {
+            if (credentials == null && !mayHaveLegacyPerJobCredentials ) {
+                // nothing to do here
+                return;
+            }
+            boolean allOk = true;
+            for (AbstractProject<?,?> job: Jenkins.getInstance().getAllItems(AbstractProject.class)) {
+                File jobCredentials = new File(job.getRootDir(), "subversion.credentials");
+                if (jobCredentials.isFile()) {
+                    try {
+                        new PerJobCredentialStore(job).migrateCredentials(this);
+                        if (!jobCredentials.delete()) {
+                            LOGGER.log(Level.WARNING, "Could not remove legacy per-job credentials store file: {0}",
+                                    jobCredentials);
+                            allOk = false;
+                        }
+                    } catch (IOException e) {
+                        LOGGER.log(Level.WARNING, "Could not migrate per-job credentials for " + job.getFullName(), e);
+                        allOk = false;
+                    }
+                }
+            }
+            mayHaveLegacyPerJobCredentials = !allOk;
+            save();
+        }
+
+        /*package*/ StandardCredentials migrateCredentials(ModelObject context, String legacyRealm, Credential legacyCredential)
+                throws IOException {
+            CredentialsStore store = CredentialsProvider.lookupStores(context).iterator().next();
+            StandardCredentials credential = legacyCredential.toCredentials(null, legacyRealm);
+            if (credential != null) {
+                return credential;
+            }
+            credential = legacyCredential.toCredentials(legacyRealm);
+            if (store.isDomainsModifiable()) {
+                Matcher matcher = Pattern.compile("\\s*<([^>]+)>.*").matcher(legacyRealm);
+                if (matcher.matches()) {
+                    String url = matcher.group(1);
+                    if (url.startsWith("http:") || url.startsWith("svn:") || url.startsWith("https:") || url
+                            .startsWith("svn+ssh:")) {
+                        // this is a reasonably valid URL
+                        List<DomainRequirement> requirements = URIRequirementBuilder.fromUri(url).build();
+                        HostnameRequirement hostnameRequirement = null;
+                        SchemeRequirement schemeRequirement = null;
+                        for (DomainRequirement r : requirements) {
+                            if (hostnameRequirement == null && r instanceof HostnameRequirement) {
+                                hostnameRequirement = (HostnameRequirement) r;
+                            }
+                            if (schemeRequirement == null && r instanceof SchemeRequirement) {
+                                schemeRequirement = (SchemeRequirement) r;
+                            }
+                            if (schemeRequirement != null && hostnameRequirement != null) {
+                                break;
+                            }
+                        }
+                        Domain domain = null;
+                        if (hostnameRequirement != null) {
+                            for (Domain d : store.getDomains()) {
+                                HostnameSpecification spec = null;
+                                for (DomainSpecification s : d.getSpecifications()) {
+                                    if (s instanceof HostnameSpecification) {
+                                        spec = (HostnameSpecification) s;
+                                        break;
+                                    }
+                                }
+                                if (spec != null && spec.test(hostnameRequirement).isMatch() && d.test(requirements)) {
+                                    domain = d;
+                                    break;
+                                }
+                            }
+                        }
+                        if (domain == null) {
+                            if (hostnameRequirement != null) {
+                                List<DomainSpecification> specs = new ArrayList<DomainSpecification>();
+                                specs.add(
+                                        new HostnameSpecification(hostnameRequirement.getHostname(), null));
+                                if (schemeRequirement != null) {
+                                    specs.add(new SchemeSpecification(schemeRequirement.getScheme()));
+                                }
+                                domain = new Domain(hostnameRequirement.getHostname(), null, specs);
+                                if (store.addDomain(domain, credential)) {
+                                    return credential;
+                                }
+                            }
+                        } else {
+                            if (store.addCredentials(domain, credential)) {
+                                return credential;
+                            }
+                        }
+                    }
+                }
+            }
+            store.addCredentials(Domain.global(), credential);
+            return credential;
+        }
+
         /**
          * Stores {@link SVNAuthentication} for a single realm.
          *
@@ -1488,7 +1776,7 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         public static abstract class Credential implements Serializable {
             /**
-             * 
+             *
              */
             private static final long serialVersionUID = -3707951427730113110L;
 
@@ -1498,6 +1786,16 @@ public class SubversionSCM extends SCM implements Serializable {
              *      indicating what subtype of {@link SVNAuthentication} is expected.
              */
             public abstract SVNAuthentication createSVNAuthentication(String kind) throws SVNException;
+
+            public abstract StandardCredentials toCredentials(String description) throws IOException;
+
+            public abstract StandardCredentials toCredentials(ModelObject context, String description) throws IOException;
+
+            protected ItemGroup findItemGroup(ModelObject context) {
+                if (context instanceof ItemGroup) return (ItemGroup) context;
+                if (context instanceof Item) return ((Item) context).getParent();
+                return Jenkins.getInstance();
+            }
         }
 
         /**
@@ -1505,7 +1803,7 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         public static final class PasswordCredential extends Credential {
             /**
-             * 
+             *
              */
             private static final long serialVersionUID = -1676145651108866745L;
             private final String userName;
@@ -1524,6 +1822,28 @@ public class SubversionSCM extends SCM implements Serializable {
                     return new SVNPasswordAuthentication(userName, getPassword(),false);
             }
 
+
+            @Override
+            public StandardCredentials toCredentials(String description) {
+                return new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, null, description, userName,
+                        getPassword());
+            }
+
+            @Override
+            public StandardCredentials toCredentials(ModelObject context, String description) throws IOException {
+                for (StandardUsernamePasswordCredentials c : CredentialsProvider.lookupCredentials(
+                        StandardUsernamePasswordCredentials.class,
+                        findItemGroup(context),
+                        ACL.SYSTEM,
+                        Collections.<DomainRequirement>emptyList())) {
+                    if (userName.equals(c.getUsername())
+                            && getPassword().equals(c.getPassword().getPlainText())) {
+                        return c;
+                    }
+                }
+                return null;
+            }
+
             private String getPassword() {
                 return Scrambler.descramble(Secret.toString(password));
             }
@@ -1534,7 +1854,7 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         public static final class SshPublicKeyCredential extends Credential {
             /**
-             * 
+             *
              */
             private static final long serialVersionUID = -4649332611621900514L;
             private final String userName;
@@ -1561,7 +1881,8 @@ public class SubversionSCM extends SCM implements Serializable {
                     setFilePermissions(savedKeyFile, "600");
                 } catch (IOException e) {
                     throw new SVNException(
-                            SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,"Unable to save private key").initCause(e));
+                            SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,"Unable to save private key").initCause(
+                                    e));
                 }
             }
 
@@ -1607,7 +1928,7 @@ public class SubversionSCM extends SCM implements Serializable {
                             // remote
                             privateKey = channel.call(new Callable<String,IOException>() {
                                 /**
-                                 * 
+                                 *
                                  */
                                 private static final long serialVersionUID = -3088632649290496373L;
 
@@ -1621,13 +1942,46 @@ public class SubversionSCM extends SCM implements Serializable {
                         return new SVNSSHAuthentication(userName, privateKey.toCharArray(), Scrambler.descramble(Secret.toString(passphrase)),-1,false);
                     } catch (IOException e) {
                         throw new SVNException(
-                                SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,"Unable to load private key").initCause(e));
+                                SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,
+                                        "Unable to load private key").initCause(e));
                     } catch (InterruptedException e) {
                         throw new SVNException(
-                                SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,"Unable to load private key").initCause(e));
+                                SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,
+                                        "Unable to load private key").initCause(e));
                     }
                 } else
                     return null; // unknown
+            }
+
+            @Override
+            public StandardCredentials toCredentials(String description) throws IOException {
+                try {
+                    return new BasicSSHUserPrivateKey(CredentialsScope.GLOBAL, null, userName,
+                            new BasicSSHUserPrivateKey.DirectEntryPrivateKeySource(
+                                    FileUtils.readFileToString(getKeyFile(), "iso-8859-1")
+                            ),
+                            Scrambler.descramble(Secret.toString(passphrase)), description);
+                } catch (UnsupportedCharsetException e) {
+                    throw new IllegalStateException(
+                            "Java Language Specification lists ISO-8859-1 as a required standard charset",
+                            e
+                    );
+                }
+            }
+
+            @Override
+            public StandardCredentials toCredentials(ModelObject context, String description) throws IOException {
+                String key = FileUtils.readFileToString(getKeyFile(), "iso-8859-1");
+                for (SSHUserPrivateKey c : CredentialsProvider.lookupCredentials(
+                        SSHUserPrivateKey.class,
+                        findItemGroup(context),
+                        ACL.SYSTEM,
+                        Collections.<DomainRequirement>emptyList())) {
+                    if (userName.equals(c.getUsername()) && c.getPrivateKeys().contains(key)) {
+                        return c;
+                    }
+                }
+                return null;
             }
         }
 
@@ -1636,7 +1990,7 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         public static final class SslClientCertificateCredential extends Credential {
             /**
-             * 
+             *
              */
             private static final long serialVersionUID = 5455755079546887446L;
             private final Secret certificate;
@@ -1662,6 +2016,52 @@ public class SubversionSCM extends SCM implements Serializable {
                 else
                     return null; // unexpected authentication type
             }
+
+            @Override
+            public StandardCertificateCredentials toCredentials(String description) {
+                return new CertificateCredentialsImpl(CredentialsScope.GLOBAL, null, description,
+                        Scrambler.descramble(Secret.toString(password)),
+                        new CertificateCredentialsImpl.UploadedKeyStoreSource(certificate.getEncryptedValue()));
+            }
+
+            @Override
+            public StandardCredentials toCredentials(ModelObject context, String description) throws IOException {
+                StandardCertificateCredentials result = toCredentials(description);
+                for (StandardCertificateCredentials c : CredentialsProvider.lookupCredentials(
+                        StandardCertificateCredentials.class,
+                        findItemGroup(context),
+                        ACL.SYSTEM,
+                        Collections.<DomainRequirement>emptyList())) {
+                    if (c.getPassword().equals(result.getPassword())) {
+                        // now for the more complex Keystore comparison
+                        KeyStore s1 = c.getKeyStore();
+                        KeyStore s2 = result.getKeyStore();
+                        try {
+                            // if the aliases differ we know it's not a match, this is a faster test than serial form
+                            Set<String> a1 = new HashSet<String>(Collections.list(s1.aliases()));
+                            Set<String> a2 = new HashSet<String>(Collections.list(s2.aliases()));
+                            if (!a1.equals(a2)) {
+                                continue;
+                            }
+                            // this may give false misses but it will not give false hits
+                            ByteArrayOutputStream bos1 = new ByteArrayOutputStream();
+                            ByteArrayOutputStream bos2 = new ByteArrayOutputStream();
+                            s1.store(bos1, c.getPassword().getPlainText().toCharArray());
+                            s2.store(bos2, c.getPassword().getPlainText().toCharArray());
+                            if (Arrays.equals(bos1.toByteArray(), bos2.toByteArray())) {
+                                return c;
+                            }
+                        } catch (KeyStoreException e) {
+                            continue;
+                        } catch (NoSuchAlgorithmException e) {
+                            continue;
+                        } catch (CertificateException e) {
+                            continue;
+                        }
+                    }
+                }
+                return null;
+            }
         }
 
         /**
@@ -1685,7 +2085,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
         private final class RemotableSVNAuthenticationProviderImpl implements RemotableSVNAuthenticationProvider {
             /**
-             * 
+             *
              */
             private static final long serialVersionUID = 1243451839093253666L;
 
@@ -1713,84 +2113,6 @@ public class SubversionSCM extends SCM implements Serializable {
             }
         }
 
-        /**
-         * See {@link DescriptorImpl#createAuthenticationProvider(AbstractProject)}.
-         */
-        static final class SVNAuthenticationProviderImpl implements ISVNAuthenticationProvider, ISVNAuthenticationOutcomeListener, Serializable {
-            /**
-             * Project-scoped authentication source. For historical reasons, can be null.
-             */
-            private final RemotableSVNAuthenticationProvider local;
-
-            /**
-             * System-wide authentication source. Used as a fallback.
-             */
-            private final RemotableSVNAuthenticationProvider global;
-
-            /**
-             * The {@link Credential} used to create the last {@link SVNAuthentication} that we've tried.
-             */
-            private Credential lastCredential;
-
-            public SVNAuthenticationProviderImpl(RemotableSVNAuthenticationProvider local, RemotableSVNAuthenticationProvider global) {
-                this.global = global;
-                this.local = local;
-            }
-
-            private SVNAuthentication fromProvider(SVNURL url, String realm, String kind, RemotableSVNAuthenticationProvider src, String debugName) throws SVNException {
-                if (src==null)  return null;
-                
-                Credential cred = src.getCredential(url,realm);
-                LOGGER.fine(String.format("%s.requestClientAuthentication(%s,%s,%s)=>%s",debugName,kind,url,realm,cred));
-                this.lastCredential = cred;
-                if(cred!=null)  return cred.createSVNAuthentication(kind);
-                return null;
-            }
-
-            public SVNAuthentication requestClientAuthentication(String kind, SVNURL url, String realm, SVNErrorMessage errorMessage, SVNAuthentication previousAuth, boolean authMayBeStored) {
-
-                try {
-                    SVNAuthentication auth=fromProvider(url,realm,kind,local,"local");
-
-                    // first try the local credential, then the global credential.
-                    if (auth==null || compareSVNAuthentications(auth,previousAuth))
-                        auth = fromProvider(url,realm,kind,global,"global");
-
-                    if(previousAuth!=null && compareSVNAuthentications(auth,previousAuth)) {
-                        // See HUDSON-2909
-                        // this comparison is necessary, unlike the original fix of HUDSON-2909, since SVNKit may use
-                        // other ISVNAuthenticationProviders and their failed auth might be passed to us.
-                        // see HUDSON-3936
-                        LOGGER.log(FINE, "Previous authentication attempt failed, so aborting: {0}", previousAuth);
-                        return null;
-                    }
-
-                    if(auth==null && ISVNAuthenticationManager.USERNAME.equals(kind)) {
-                        // this happens with file:// URL and svn+ssh (in this case this method gets invoked twice.)
-                        // The base class does this, too.
-                        // user auth shouldn't be null.
-                        return new SVNUserNameAuthentication("",false);
-                    }
-
-                    return auth;
-                } catch (SVNException e) {
-                    LOGGER.log(Level.SEVERE, "Failed to authorize",e);
-                    throw new RuntimeException("Failed to authorize",e);
-                }
-            }
-
-            public void acknowledgeAuthentication(boolean accepted, String kind, String realm, SVNErrorMessage errorMessage, SVNAuthentication authentication) throws SVNException {
-                if (accepted && local!=null && lastCredential!=null)
-                    local.acknowledgeAuthentication(realm,lastCredential);
-            }
-
-            public int acceptServerAuthentication(SVNURL url, String realm, Object certificate, boolean resultMayBeStored) {
-                return ACCEPTED_TEMPORARY;
-            }
-
-            private static final long serialVersionUID = 1L;
-        }
-
         @Override
         public SCM newInstance(StaplerRequest staplerRequest, JSONObject jsonObject) throws FormException {
             return super.newInstance(staplerRequest, jsonObject);
@@ -1803,7 +2125,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
         @SuppressWarnings("unchecked")
         protected DescriptorImpl(Class clazz, Class<? extends RepositoryBrowser> repositoryBrowser) {
-            super(clazz,repositoryBrowser);
+            super(clazz, repositoryBrowser);
         }
 
         public String getDisplayName() {
@@ -1861,10 +2183,11 @@ public class SubversionSCM extends SCM implements Serializable {
          * {@link SubversionSCM#createSvnClientManager(ISVNAuthenticationProvider)} on the slave.
          *
          * @see SubversionSCM#createSvnClientManager(ISVNAuthenticationProvider)
+         * @deprecated as of 2.0
          */
+        @Deprecated
         public ISVNAuthenticationProvider createAuthenticationProvider(AbstractProject<?,?> inContextOf) {
-            return new SVNAuthenticationProviderImpl(
-                    inContextOf==null ? null : new PerJobCredentialStore(inContextOf),remotableProvider);
+            return CredentialsSVNAuthenticationProviderImpl.createAuthenticationProvider(inContextOf, null, null);
         }
 
         /**
@@ -1873,17 +2196,18 @@ public class SubversionSCM extends SCM implements Serializable {
          *      The caller should use {@link #createAuthenticationProvider(AbstractProject)} to indicate
          *      the project in which the subversion operation is performed.
          */
+        @Deprecated
         public ISVNAuthenticationProvider createAuthenticationProvider() {
-            return new SVNAuthenticationProviderImpl(null,remotableProvider);
+            return CredentialsSVNAuthenticationProviderImpl.createAuthenticationProvider(null, null, null);
         }
 
         /**
          * Submits the authentication info.
          */
-        // TODO: stapler should do multipart/form-data handling 
+        // TODO: stapler should do multipart/form-data handling
         public void doPostCredential(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
             Hudson.getInstance().checkPermission(Item.CONFIGURE);
-            
+
             MultipartFormDataParser parser = new MultipartFormDataParser(req);
 
             // we'll record what credential we are trying here.
@@ -1956,14 +2280,48 @@ public class SubversionSCM extends SCM implements Serializable {
             }
         }
 
+        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath AbstractProject context,
+                                                     @QueryParameter String remote,
+                                                     @QueryParameter String realm) {
+            List<DomainRequirement> domainRequirements;
+            if (remote == null) {
+                if (realm == null) {
+                    domainRequirements = Collections.<DomainRequirement>emptyList();
+                } else {
+                    if (realm.startsWith("<") && realm.contains(">")) {
+                        int index = realm.indexOf('>');
+                        assert index > 1;
+                        domainRequirements = URIRequirementBuilder.fromUri(realm.substring(1, index).trim()).build();
+                    } else {
+                        domainRequirements = Collections.<DomainRequirement>emptyList();
+                    }
+                }
+            } else {
+                domainRequirements = URIRequirementBuilder.fromUri(remote.trim()).build();
+            }
+            return new StandardListBoxModel()
+                    .withEmptySelection()
+                    .withMatching(
+                            CredentialsMatchers.anyOf(
+                                    CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
+                                    CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
+                                    CredentialsMatchers.instanceOf(SSHUserPrivateKey.class)
+                            ),
+                            CredentialsProvider.lookupCredentials(StandardCredentials.class,
+                                    context,
+                                    ACL.SYSTEM,
+                                    domainRequirements)
+                    );
+        }
+
         /**
          * validate the value for a remote (repository) location.
          */
-        public FormValidation doCheckRemote(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value) {
+        public FormValidation doCheckRemote(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value, @QueryParameter String credentialsId) {
             // syntax check first
             String url = Util.fixEmptyAndTrim(value);
             if (url == null)
-                return FormValidation.error(Messages.SubversionSCM_doCheckRemote_required()); 
+                return FormValidation.error(Messages.SubversionSCM_doCheckRemote_required());
 
             if(isValidateRemoteUpToVar()) {
                 url = (url.indexOf('$') != -1) ? url.substring(0, url.indexOf('$')) : url;
@@ -1979,24 +2337,27 @@ public class SubversionSCM extends SCM implements Serializable {
             if (!Hudson.getInstance().hasPermission(Item.CONFIGURE))
                 return FormValidation.ok();
 
+
             try {
                 String urlWithoutRevision = SvnHelper.getUrlWithoutRevision(url);
-            	
+
                 SVNURL repoURL = SVNURL.parseURIDecoded(urlWithoutRevision);
-                if (checkRepositoryPath(context,repoURL)!=SVNNodeKind.NONE) {
+
+                StandardCredentials credentials = lookupCredentials(context, credentialsId, repoURL);
+                if (checkRepositoryPath(context,repoURL, credentials)!=SVNNodeKind.NONE) {
                     // something exists; now check revision if any
-                    
+
                     SVNRevision revision = getRevisionFromRemoteUrl(url);
                     if (revision != null && !revision.isValid()) {
                         return FormValidation.errorWithMarkup(Messages.SubversionSCM_doCheckRemote_invalidRevision());
                     }
-                    
+
                     return FormValidation.ok();
                 }
-                
+
                 SVNRepository repository = null;
                 try {
-                    repository = getRepository(context,repoURL);
+                    repository = getRepository(context,repoURL, credentials, Collections.<String, Credentials>emptyMap());
                     long rev = repository.getLatestRevision();
                     // now go back the tree and find if there's anything that exists
                     String repoPath = getRelativePath(repoURL, repository);
@@ -2037,18 +2398,20 @@ public class SubversionSCM extends SCM implements Serializable {
                       + "document.getElementById('svnerrorlink').style.display='none';"
                       + "return false;")
                   + "<br/><pre id=\"svnerror\" style=\"display:none\">"
-                  + Functions.printThrowable(e) + "</pre>"
-                  + Messages.SubversionSCM_doCheckRemote_exceptionMsg2(
-                      "descriptorByName/"+SubversionSCM.class.getName()+"/enterCredential?" + url);
+                  + Functions.printThrowable(e) + "</pre>";
                 return FormValidation.errorWithMarkup(message);
             }
         }
 
         public SVNNodeKind checkRepositoryPath(AbstractProject context, SVNURL repoURL) throws SVNException {
+            return checkRepositoryPath(context, repoURL, null);
+        }
+
+        public SVNNodeKind checkRepositoryPath(AbstractProject context, SVNURL repoURL, StandardCredentials credentials) throws SVNException {
             SVNRepository repository = null;
 
             try {
-                repository = getRepository(context,repoURL);
+                repository = getRepository(context,repoURL,credentials, Collections.<String, Credentials>emptyMap());
                 repository.testConnection();
 
                 long rev = repository.getLatestRevision();
@@ -2061,13 +2424,24 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         protected SVNRepository getRepository(AbstractProject context, SVNURL repoURL) throws SVNException {
-            return getRepository(context, repoURL, null);
+            return getRepository(context, repoURL, null, Collections.<String, Credentials>emptyMap(), null);
         }
 
         protected SVNRepository getRepository(AbstractProject context, SVNURL repoURL, ISVNSession session) throws SVNException {
-            SVNRepository repository = SVNRepositoryFactory.create(repoURL, session);
+            return getRepository(context, repoURL, null, Collections.<String, Credentials>emptyMap(), null);
+        }
 
-            ISVNAuthenticationManager sam = createSvnAuthenticationManager(createAuthenticationProvider(context));
+        protected SVNRepository getRepository(AbstractProject context, SVNURL repoURL, StandardCredentials credentials,
+                                              Map<String, Credentials> additionalCredentials) throws SVNException {
+            return getRepository(context, repoURL, credentials, additionalCredentials, null);
+        }
+        protected SVNRepository getRepository(AbstractProject context, SVNURL repoURL, StandardCredentials credentials,
+                                              Map<String, Credentials> additionalCredentials, ISVNSession session) throws SVNException {
+            SVNRepository repository = SVNRepositoryFactory.create(repoURL, session);
+        
+            ISVNAuthenticationManager sam = createSvnAuthenticationManager(
+                    new CredentialsSVNAuthenticationProviderImpl(credentials, additionalCredentials)
+            );
             sam = new FilterSVNAuthenticationManager(sam) {
                 // If there's no time out, the blocking read operation may hang forever, because TCP itself
                 // has no timeout. So always use some time out. If the underlying implementation gives us some
@@ -2084,7 +2458,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
             return repository;
         }
-        
+
         public static String getRelativePath(SVNURL repoURL, SVNRepository repository) throws SVNException {
             String repoPath = repoURL.getPath().substring(repository.getRepositoryRoot(false).getPath().length());
             if(!repoPath.startsWith("/"))    repoPath="/"+repoPath;
@@ -2177,7 +2551,9 @@ public class SubversionSCM extends SCM implements Serializable {
         /**
          * Validates the remote server supports custom revision properties
          */
-        public FormValidation doCheckRevisionPropertiesSupported(@AncestorInPath AbstractProject context, @QueryParameter String value) throws IOException, ServletException {
+        public FormValidation doCheckRevisionPropertiesSupported(@AncestorInPath AbstractProject context,
+                                                                 @QueryParameter String value,
+                                                                 @QueryParameter String credentialsId) throws IOException, ServletException {
             String v = Util.fixNull(value).trim();
             if (v.length() == 0)
                 return FormValidation.ok();
@@ -2188,13 +2564,14 @@ public class SubversionSCM extends SCM implements Serializable {
 
             try {
                 SVNURL repoURL = SVNURL.parseURIDecoded(new EnvVars(EnvVars.masterEnvVars).expand(v));
-                if (checkRepositoryPath(context,repoURL)!=SVNNodeKind.NONE)
+                StandardCredentials credentials = lookupCredentials(context, credentialsId, repoURL);
+                if (checkRepositoryPath(context,repoURL, credentials)!=SVNNodeKind.NONE)
                     // something exists
                     return FormValidation.ok();
 
                 SVNRepository repository = null;
                 try {
-                    repository = getRepository(context,repoURL);
+                    repository = getRepository(context,repoURL, credentials, Collections.<String, Credentials>emptyMap());
                     if (repository.hasCapability(SVNCapability.LOG_REVPROPS))
                         return FormValidation.ok();
                 } finally {
@@ -2203,14 +2580,14 @@ public class SubversionSCM extends SCM implements Serializable {
                 }
             } catch (SVNException e) {
                 String message="";
-                message += "Unable to access "+Util.escape(v)+" : "+Util.escape( e.getErrorMessage().getFullMessage());
+                message += "Unable to access "+Util.escape(v)+" : "+Util.escape(e.getErrorMessage().getFullMessage());
                 LOGGER.log(Level.INFO, "Failed to access subversion repository "+v,e);
                 return FormValidation.errorWithMarkup(message);
             }
 
             return FormValidation.warning(Messages.SubversionSCM_excludedRevprop_notSupported(v));
         }
-        
+
         static {
             new Initializer();
         }
@@ -2223,7 +2600,7 @@ public class SubversionSCM extends SCM implements Serializable {
     public boolean repositoryLocationsNoLongerExist(AbstractBuild<?,?> build, TaskListener listener) {
         return repositoryLocationsNoLongerExist(build, listener, null);
     }
-    
+
     /**
      * @since 1.34
      */
@@ -2232,7 +2609,9 @@ public class SubversionSCM extends SCM implements Serializable {
 
         for (ModuleLocation l : getLocations(env, build))
             try {
-                if (getDescriptor().checkRepositoryPath(build.getProject(), l.getSVNURL()) == SVNNodeKind.NONE) {
+                if (getDescriptor().checkRepositoryPath(build.getProject(),
+                        l.getSVNURL(),
+                        lookupCredentials(build.getProject(), l.credentialsId, l.getSVNURL())) == SVNNodeKind.NONE) {
                     out.println("Location '" + l.remote + "' does not exist");
 
                     ParametersAction params = build.getAction(ParametersAction.class);
@@ -2303,6 +2682,11 @@ public class SubversionSCM extends SCM implements Serializable {
         public final String remote;
 
         /**
+         * The credentials to checkout with.
+         */
+        public final String credentialsId;
+
+        /**
          * Remembers the user-given value.
          * Can be null.
          *
@@ -2334,16 +2718,46 @@ public class SubversionSCM extends SCM implements Serializable {
         /**
          * Constructor to support backwards compatibility.
          */
+        @Deprecated
         public ModuleLocation(String remote, String local) {
-            this(remote, local, null, false);
+            this(remote, null, local, null, false);
+        }
+
+        /**
+         * Constructor to support backwards compatibility.
+         */
+        @Deprecated
+        public ModuleLocation(String remote, String local, String depthOption, boolean ignoreExternalsOption) {
+            this(remote,null,local,depthOption,ignoreExternalsOption);
         }
 
         @DataBoundConstructor
-        public ModuleLocation(String remote, String local, String depthOption, boolean ignoreExternalsOption) {
+        public ModuleLocation(String remote, String credentialsId, String local, String depthOption, boolean ignoreExternalsOption) {
             this.remote = Util.removeTrailingSlash(Util.fixNull(remote).trim());
+            this.credentialsId = credentialsId;
             this.local = fixEmptyAndTrim(local);
             this.depthOption = StringUtils.isEmpty(depthOption) ? SVNDepth.INFINITY.getName() : depthOption;
             this.ignoreExternalsOption = ignoreExternalsOption;
+        }
+
+        public ModuleLocation withRemote(String remote) {
+            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption);
+        }
+
+        public ModuleLocation withCredentialsId(String credentialsId) {
+            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption);
+        }
+
+        public ModuleLocation withLocal(String local) {
+            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption);
+        }
+
+        public ModuleLocation withDepthOption(String depthOption) {
+            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption);
+        }
+
+        public ModuleLocation withIgnoreExternalsOption(boolean ignoreExternalsOption) {
+            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption);
         }
 
         /**
@@ -2351,7 +2765,7 @@ public class SubversionSCM extends SCM implements Serializable {
          * Relative to the workspace root.
          */
         public String getLocalDir() {
-            if(local==null) 
+            if(local==null)
                 return getLastPathComponent(getURL());
             return local;
         }
@@ -2378,7 +2792,8 @@ public class SubversionSCM extends SCM implements Serializable {
             if(repositoryUUID==null || repositoryRoot==null) {
                 LOGGER.fine("UUID of " + remote + " not cached for " + context);
                 synchronized (this) {
-                    SVNRepository r = openRepository(context);
+                    // don't keep connections open for further use to prevent having too many open at the same time.
+                    SVNRepository r = openRepository(context, false);
                     if (r.getRepositoryUUID(false) == null)
                         r.testConnection(); // make sure values are fetched
                     repositoryUUID = UUID.fromString(r.getRepositoryUUID(false));
@@ -2389,9 +2804,15 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         public SVNRepository openRepository(AbstractProject context) throws SVNException {
-            return Hudson.getInstance().getDescriptorByType(DescriptorImpl.class).getRepository(context,getSVNURL(), new ISVNSession() {
-                // This is only used to determine the repo UUID.
-                // To prevent opening too many connections simultaneously, configure this session to not keep connections open.
+            return openRepository(context, true);
+        }
+
+        public SVNRepository openRepository(AbstractProject context, boolean keepConnection) throws SVNException {
+            SVNURL repoURL = getSVNURL();
+            if (keepConnection) {
+                return Jenkins.getInstance().getDescriptorByType(DescriptorImpl.class).getRepository(context, repoURL,lookupCredentials(context, credentialsId, repoURL), Collections.<String, Credentials>emptyMap(), null);
+            }
+            return Jenkins.getInstance().getDescriptorByType(DescriptorImpl.class).getRepository(context, repoURL,lookupCredentials(context, credentialsId, repoURL), Collections.<String, Credentials>emptyMap(), new ISVNSession() {
                 public boolean keepConnection(SVNRepository repository) {
                     return false;
                 }
@@ -2426,6 +2847,31 @@ public class SubversionSCM extends SCM implements Serializable {
             return revision != null ? revision : defaultValue;
         }
 
+        private String getExpandedRemote(AbstractBuild<?,?> build) {
+            String outRemote = remote;
+
+            ParametersAction parameters = build.getAction(ParametersAction.class);
+            if (parameters != null)
+                outRemote = parameters.substitute(build, remote);
+
+            return outRemote;
+        }
+
+        /**
+         * @deprecated This method is used by {@link #getExpandedLocation(AbstractBuild)}
+         *             which is deprecated since it expands variables only based
+         *             on build parameters.
+         */
+        private String getExpandedLocalDir(AbstractBuild<?,?> build) {
+            String outLocalDir = getLocalDir();
+
+            ParametersAction parameters = build.getAction(ParametersAction.class);
+            if (parameters != null)
+                outLocalDir = parameters.substitute(build, getLocalDir());
+
+            return outLocalDir;
+        }
+
         /**
          * Returns the value of remote depth option.
          *
@@ -2457,14 +2903,15 @@ public class SubversionSCM extends SCM implements Serializable {
             env.putAll(build.getBuildVariables());
             return getExpandedLocation(env);
         }
-        
+
         /**
          * Expand location value based on environment variables.
          *
          * @return Output ModuleLocation expanded according to specified env vars.
          */
         public ModuleLocation getExpandedLocation(EnvVars env) {
-            return new ModuleLocation(env.expand(remote), env.expand(getLocalDir()), getDepthOption(), isIgnoreExternalsOption());
+            return new ModuleLocation(env.expand(remote), credentialsId, env.expand(getLocalDir()), getDepthOption(),
+                    isIgnoreExternalsOption());
         }
 
         @Override
@@ -2474,7 +2921,14 @@ public class SubversionSCM extends SCM implements Serializable {
 
         private static final long serialVersionUID = 1L;
 
+        @Deprecated
         public static List<ModuleLocation> parse(String[] remoteLocations, String[] localLocations, String[] depthOptions, boolean[] isIgnoreExternals) {
+            return parse(remoteLocations, null, localLocations, depthOptions, isIgnoreExternals);
+        }
+
+        public static List<ModuleLocation> parse(String[] remoteLocations, String[] credentialIds,
+                                                 String[] localLocations, String[] depthOptions,
+                                                 boolean[] isIgnoreExternals) {
             List<ModuleLocation> modules = new ArrayList<ModuleLocation>();
             if (remoteLocations != null && localLocations != null) {
                 int entries = Math.min(remoteLocations.length, localLocations.length);
@@ -2485,7 +2939,9 @@ public class SubversionSCM extends SCM implements Serializable {
 
                     if (remoteLoc != null) {// null if skipped
                         remoteLoc = Util.removeTrailingSlash(remoteLoc.trim());
-                        modules.add(new ModuleLocation(remoteLoc, Util.nullify(localLocations[i]),
+                        modules.add(new ModuleLocation(remoteLoc,
+                                credentialIds != null && credentialIds.length > i ? credentialIds[i] : null,
+                                Util.nullify(localLocations[i]),
                             depthOptions != null ? depthOptions[i] : null,
                             isIgnoreExternals != null && isIgnoreExternals[i]));
                     }
@@ -2502,7 +2958,7 @@ public class SubversionSCM extends SCM implements Serializable {
      * The main point of this is to prevent infinite hang, so it should be a rather long value to avoid
      * accidental time out problem.
      */
-    public static int DEFAULT_TIMEOUT = Integer.getInteger(SubversionSCM.class.getName()+".timeout",3600*1000);
+    public static int DEFAULT_TIMEOUT = Integer.getInteger(SubversionSCM.class.getName() + ".timeout", 3600 * 1000);
 
     /**
      * Property to control whether SCM polling happens from the slave or master
@@ -2513,7 +2969,7 @@ public class SubversionSCM extends SCM implements Serializable {
      * If set to non-null, read configuration from this directory instead of "~/.subversion".
      */
     public static String CONFIG_DIR = System.getProperty(SubversionSCM.class.getName()+".configDir");
-    
+
     /**
      * Enables trace logging of Ganymed SSH library.
      * <p>
@@ -2567,7 +3023,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
     /**
      * Gets the revision from a remote URL - i.e. the part after '@' if any
-     * 
+     *
      * @return the revision or null
      */
     private static SVNRevision getRevisionFromRemoteUrl(
@@ -2582,4 +3038,63 @@ public class SubversionSCM extends SCM implements Serializable {
         return null;
     }
 
+    private static StandardCredentials lookupCredentials(AbstractProject context, String credentialsId, SVNURL repoURL) {
+        return credentialsId == null ? null :
+                CredentialsMatchers.firstOrNull(CredentialsProvider
+                        .lookupCredentials(StandardCredentials.class, context, ACL.SYSTEM,
+                                URIRequirementBuilder.fromUri(repoURL.toString()).build()),
+                        CredentialsMatchers.withId(credentialsId));
+    }
+
+    public static class AdditionalCredentials {
+        @NonNull
+        private final String realm;
+        @CheckForNull
+        private final String credentialsId;
+
+        @DataBoundConstructor
+        public AdditionalCredentials(@NonNull String realm, @CheckForNull String credentialsId) {
+            realm.getClass(); // throw NPE if null
+            this.realm = realm;
+            this.credentialsId = credentialsId;
+        }
+
+        @NonNull
+        public String getRealm() {
+            return realm;
+        }
+
+        @CheckForNull
+        public String getCredentialsId() {
+            return credentialsId;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof AdditionalCredentials)) {
+                return false;
+            }
+
+            AdditionalCredentials that = (AdditionalCredentials) o;
+
+            if (!realm.equals(that.realm)) {
+                return false;
+            }
+            if (credentialsId != null ? !credentialsId.equals(that.credentialsId) : that.credentialsId != null) {
+                return false;
+            }
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = realm.hashCode();
+            result = 31 * result + (credentialsId != null ? credentialsId.hashCode() : 0);
+            return result;
+        }
+    }
 }

@@ -6,6 +6,7 @@ import hudson.model.Saveable;
 import hudson.remoting.Channel;
 import hudson.scm.SubversionSCM.DescriptorImpl.Credential;
 import hudson.scm.SubversionSCM.DescriptorImpl.RemotableSVNAuthenticationProvider;
+import jenkins.model.Jenkins;
 import org.tmatesoft.svn.core.SVNURL;
 
 import java.io.File;
@@ -102,4 +103,10 @@ final class PerJobCredentialStore implements Saveable, RemotableSVNAuthenticatio
      * even if that happens in the context of a remote call.
      */
     private static final ThreadLocal<Boolean> IS_SAVING = new ThreadLocal<Boolean>();
+
+    /*package*/ void migrateCredentials(SubversionSCM.DescriptorImpl descriptor) throws IOException {
+        for (Map.Entry<String, Credential> e : credentials.entrySet()) {
+            descriptor.migrateCredentials(project, e.getKey(), e.getValue());
+        }
+    }
 }
