@@ -29,6 +29,8 @@ import javax.servlet.ServletException;
 import org.apache.commons.io.IOUtils;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
+
+import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.SVNException;
 
 /**
@@ -137,30 +139,38 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                 
                 List<SvnInfo> infos = new ArrayList<SvnInfo>();
                 
-                //LOGGER.fine("Checking project locations check for "+p);
+                LOGGER.finer("Checking project locations check for "+p);
                 boolean projectMatches = false; 
                 for (ModuleLocation loc : sscm.getProjectLocations(p)) {
                     //LOGGER.fine("Checking uuid for module location + " + loc + " of job "+ p);
                     String url = loc.getURL();
 
+                    String repositoryRootPath = null;
+
                     UUID remoteUUID = null;
                     for (Map.Entry<String, UUID> e : remoteUUIDCache.entrySet()) {
                         if (url.startsWith(e.getKey())) {
                             remoteUUID = e.getValue();
+                            repositoryRootPath = SVNURL.parseURIDecoded(e.getKey()).getPath();
                             LOGGER.finer("Using cached uuid for module location " + url + " of job "+ p);
                             break;
                         }
                     }
 
                     if (remoteUUID == null) {
+                        if (LOGGER.isLoggable(FINER)) {
+                            LOGGER.finer("Could not find " + loc.getURL() + " in " + remoteUUIDCache.keySet().toString());
+                        }
                         remoteUUID = loc.getUUID(p);
-                        remoteUUIDCache.put(loc.getRepositoryRoot(p).getPath(), remoteUUID);
+                        SVNURL repositoryRoot = loc.getRepositoryRoot(p);
+                        repositoryRootPath = repositoryRoot.getPath();
+                        remoteUUIDCache.put(repositoryRoot.toString(), remoteUUID);
                     }
 
                     if (remoteUUID.equals(uuid)) uuidFound = true; else continue;
 
                     String m = loc.getSVNURL().getPath();
-                    String n = loc.getRepositoryRoot(p).getPath();
+                    String n = repositoryRootPath;
                     if(!m.startsWith(n))    continue;   // repository root should be a subpath of the module path, but be defensive
 
                     String remaining = m.substring(n.length());
