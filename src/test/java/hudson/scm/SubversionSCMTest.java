@@ -415,6 +415,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         WebResponse resp = conn.getResponse(wr);
         assertTrue(isGoodHttpStatus(resp.getStatusCode()));
 
+        Thread.sleep(1000);
         waitUntilNoActivity();
         FreeStyleBuild b = p.getLastBuild();
         assertNotNull(b);
@@ -440,6 +441,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         WebResponse resp = conn.getResponse(wr);
         assertTrue(isGoodHttpStatus(resp.getStatusCode()));
 
+        Thread.sleep(1000);
         waitUntilNoActivity();
         FreeStyleBuild b = p.getLastBuild();
         assertNotNull(b);
