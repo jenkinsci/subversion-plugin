@@ -25,6 +25,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.Map;
+import java.util.HashMap;
 
 import javax.servlet.ServletException;
 
@@ -77,8 +79,8 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
     }
     
     private static Method IS_IGNORE_POST_COMMIT_HOOKS_METHOD;
-
-   /**
+    
+    /**
      * Notify the commit to this repository.
      *
      * <p>
@@ -141,7 +143,6 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
 
         rsp.setStatus(SC_OK);
     }
-
     @Extension
     public static class JobTriggerListenerImpl extends Listener {
 
@@ -160,6 +161,8 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
         @Override
         public boolean onNotify(UUID uuid, long rev, Set<String> affectedPath) {
             boolean scmFound = false, triggerFound = false, uuidFound = false, pathFound = false;
+            Map<String, UUID> remoteUUIDCache = new HashMap<String, UUID>();
+            LOGGER.fine("Starting subversion locations checks for all jobs");
             for (AbstractProject<?,?> p : this.jobProvider.getAllJobs()) {
                 if(p.isDisabled()) continue;
                 try {
@@ -175,8 +178,25 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
 
                     boolean projectMatches = false;
                     for (ModuleLocation loc : sscm.getProjectLocations(p)) {
-                        if (loc.getUUID(p).equals(uuid)) uuidFound = true; else continue;
-
+                        //LOGGER.fine("Checking uuid for module location + " + loc + " of job "+ p);
+                        String url = loc.getURL();
+    
+                        UUID remoteUUID = null;
+                        for (Map.Entry<String, UUID> e : remoteUUIDCache.entrySet()) {
+                            if (url.startsWith(e.getKey())) {
+                                remoteUUID = e.getValue();
+                                LOGGER.finer("Using cached uuid for module location " + url + " of job "+ p);
+                                break;
+                            }
+                        }
+    
+                        if (remoteUUID == null) {
+                            remoteUUID = loc.getUUID(p);
+                            remoteUUIDCache.put(loc.getRepositoryRoot(p).getPath(), remoteUUID);
+                        }
+    
+                        if (remoteUUID.equals(uuid)) uuidFound = true; else continue;
+    
                         String m = loc.getSVNURL().getPath();
                         String n = loc.getRepositoryRoot(p).getPath();
                         if(!m.startsWith(n))    continue;   // repository root should be a subpath of the module path, but be defensive
@@ -220,6 +240,7 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                     LOGGER.log(WARNING, "Failed to handle Subversion commit notification", e);
                 }
             }
+            LOGGER.fine("Ended subversion locations checks for all jobs");
 
             if (!scmFound)          LOGGER.warning("No subversion jobs found");
             else if (!triggerFound) LOGGER.warning("No subversion jobs using SCM polling or all jobs using SCM polling are ignoring post-commit hooks");

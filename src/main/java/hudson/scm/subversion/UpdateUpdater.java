@@ -87,7 +87,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
                 SVNInfo svnkitInfo = parseSvnInfo(module);
                 SvnInfo svnInfo = new SvnInfo(svnkitInfo);
 
-                String url = location.getURL();
+                String url = location.getSVNURL().toString();
                 
                 if (!svnInfo.url.equals(url)) {
                     if (isSameRepository(location, svnkitInfo)) {

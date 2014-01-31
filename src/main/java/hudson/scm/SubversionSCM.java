@@ -192,6 +192,7 @@ import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminAreaFactory;
 import org.tmatesoft.svn.core.io.SVNCapability;
 import org.tmatesoft.svn.core.io.SVNRepository;
 import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
+import org.tmatesoft.svn.core.io.ISVNSession;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNInfo;
 import org.tmatesoft.svn.core.wc.SVNRevision;
@@ -1806,25 +1807,26 @@ public class SubversionSCM extends SCM implements Serializable {
              */
             private static final long serialVersionUID = -1676145651108866745L;
             private final String userName;
-            private final String password; // scrambled by base64
+            private final Secret password; // for historical reasons, scrambled by base64 in addition to using 'Secret'
 
             public PasswordCredential(String userName, String password) {
                 this.userName = userName;
-                this.password = Scrambler.scramble(password);
+                this.password = Secret.fromString(Scrambler.scramble(password));
             }
 
             @Override
             public SVNAuthentication createSVNAuthentication(String kind) {
                 if(kind.equals(ISVNAuthenticationManager.SSH))
-                    return new SVNSSHAuthentication(userName,Scrambler.descramble(password),-1,false);
+                    return new SVNSSHAuthentication(userName, getPassword(),-1,false);
                 else
-                    return new SVNPasswordAuthentication(userName,Scrambler.descramble(password),false);
+                    return new SVNPasswordAuthentication(userName, getPassword(),false);
             }
+
 
             @Override
             public StandardCredentials toCredentials(String description) {
                 return new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, null, description, userName,
-                        Scrambler.descramble(password));
+                        getPassword());
             }
 
             @Override
@@ -1835,13 +1837,16 @@ public class SubversionSCM extends SCM implements Serializable {
                         ACL.SYSTEM,
                         Collections.<DomainRequirement>emptyList())) {
                     if (userName.equals(c.getUsername())
-                            && Scrambler.descramble(password).equals(c.getPassword().getPlainText())) {
+                            && getPassword().equals(c.getPassword().getPlainText())) {
                         return c;
                     }
                 }
                 return null;
             }
 
+            private String getPassword() {
+                return Scrambler.descramble(Secret.toString(password));
+            }
         }
 
         /**
@@ -1853,7 +1858,7 @@ public class SubversionSCM extends SCM implements Serializable {
              */
             private static final long serialVersionUID = -4649332611621900514L;
             private final String userName;
-            private final String passphrase; // scrambled by base64
+            private final Secret passphrase; // for historical reasons, scrambled by base64 in addition to using 'Secret'
             private final String id;
 
             /**
@@ -1862,7 +1867,7 @@ public class SubversionSCM extends SCM implements Serializable {
              */
             public SshPublicKeyCredential(String userName, String passphrase, File keyFile) throws SVNException {
                 this.userName = userName;
-                this.passphrase = Scrambler.scramble(passphrase);
+                this.passphrase = Secret.fromString(Scrambler.scramble(passphrase));
 
                 Random r = new Random();
                 StringBuilder buf = new StringBuilder();
@@ -1934,7 +1939,7 @@ public class SubversionSCM extends SCM implements Serializable {
                         } else {
                             privateKey = FileUtils.readFileToString(getKeyFile(),"iso-8859-1");
                         }
-                        return new SVNSSHAuthentication(userName, privateKey.toCharArray(), Scrambler.descramble(passphrase),-1,false);
+                        return new SVNSSHAuthentication(userName, privateKey.toCharArray(), Scrambler.descramble(Secret.toString(passphrase)),-1,false);
                     } catch (IOException e) {
                         throw new SVNException(
                                 SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,
@@ -1955,7 +1960,7 @@ public class SubversionSCM extends SCM implements Serializable {
                             new BasicSSHUserPrivateKey.DirectEntryPrivateKeySource(
                                     FileUtils.readFileToString(getKeyFile(), "iso-8859-1")
                             ),
-                            Scrambler.descramble(passphrase), description);
+                            Scrambler.descramble(Secret.toString(passphrase)), description);
                 } catch (UnsupportedCharsetException e) {
                     throw new IllegalStateException(
                             "Java Language Specification lists ISO-8859-1 as a required standard charset",
@@ -1989,10 +1994,10 @@ public class SubversionSCM extends SCM implements Serializable {
              */
             private static final long serialVersionUID = 5455755079546887446L;
             private final Secret certificate;
-            private final String password; // scrambled by base64
+            private final Secret password; // for historical reasons, scrambled by base64 in addition to using 'Secret'
 
             public SslClientCertificateCredential(File certificate, String password) throws IOException {
-                this.password = Scrambler.scramble(password);
+                this.password = Secret.fromString(Scrambler.scramble(password));
                 this.certificate = Secret.fromString(new String(Base64.encode(FileUtils.readFileToByteArray(certificate))));
             }
 
@@ -2002,7 +2007,7 @@ public class SubversionSCM extends SCM implements Serializable {
                     try {
                         SVNSSLAuthentication authentication = new SVNSSLAuthentication(
                                 Base64.decode(certificate.getPlainText().toCharArray()),
-                                Scrambler.descramble(password), false);
+                                Scrambler.descramble(Secret.toString(password)), false);
                         authentication.setCertificatePath("dummy"); // TODO: remove this JENKINS-19175 workaround
                         return authentication;
                     } catch (IOException e) {
@@ -2015,7 +2020,7 @@ public class SubversionSCM extends SCM implements Serializable {
             @Override
             public StandardCertificateCredentials toCredentials(String description) {
                 return new CertificateCredentialsImpl(CredentialsScope.GLOBAL, null, description,
-                        Scrambler.descramble(password),
+                        Scrambler.descramble(Secret.toString(password)),
                         new CertificateCredentialsImpl.UploadedKeyStoreSource(certificate.getEncryptedValue()));
             }
 
@@ -2419,13 +2424,21 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         protected SVNRepository getRepository(AbstractProject context, SVNURL repoURL) throws SVNException {
-            return getRepository(context, repoURL, null, Collections.<String, Credentials>emptyMap());
+            return getRepository(context, repoURL, null, Collections.<String, Credentials>emptyMap(), null);
+        }
+
+        protected SVNRepository getRepository(AbstractProject context, SVNURL repoURL, ISVNSession session) throws SVNException {
+            return getRepository(context, repoURL, null, Collections.<String, Credentials>emptyMap(), null);
         }
 
         protected SVNRepository getRepository(AbstractProject context, SVNURL repoURL, StandardCredentials credentials,
                                               Map<String, Credentials> additionalCredentials) throws SVNException {
-            SVNRepository repository = SVNRepositoryFactory.create(repoURL);
-
+            return getRepository(context, repoURL, credentials, additionalCredentials, null);
+        }
+        protected SVNRepository getRepository(AbstractProject context, SVNURL repoURL, StandardCredentials credentials,
+                                              Map<String, Credentials> additionalCredentials, ISVNSession session) throws SVNException {
+            SVNRepository repository = SVNRepositoryFactory.create(repoURL, session);
+        
             ISVNAuthenticationManager sam = createSvnAuthenticationManager(
                     new CredentialsSVNAuthenticationProviderImpl(credentials, additionalCredentials)
             );
@@ -2778,8 +2791,10 @@ public class SubversionSCM extends SCM implements Serializable {
         public UUID getUUID(AbstractProject context) throws SVNException {
             if(repositoryUUID==null || repositoryRoot==null) {
                 synchronized (this) {
-                    SVNRepository r = openRepository(context);
-                    r.testConnection(); // make sure values are fetched
+                    // don't keep connections open for further use to prevent having too many open at the same time.
+                    SVNRepository r = openRepository(context, false);
+                    if (r.getRepositoryUUID(false) == null)
+                        r.testConnection(); // make sure values are fetched
                     repositoryUUID = UUID.fromString(r.getRepositoryUUID(false));
                     repositoryRoot = r.getRepositoryRoot(false);
                 }
@@ -2788,9 +2803,27 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         public SVNRepository openRepository(AbstractProject context) throws SVNException {
+            return openRepository(context, true);
+        }
+
+        public SVNRepository openRepository(AbstractProject context, boolean keepConnection) throws SVNException {
             SVNURL repoURL = getSVNURL();
-            return Jenkins.getInstance().getDescriptorByType(DescriptorImpl.class)
-                    .getRepository(context, repoURL,lookupCredentials(context, credentialsId, repoURL), Collections.<String, Credentials>emptyMap());
+            if (keepConnection) {
+                return Jenkins.getInstance().getDescriptorByType(DescriptorImpl.class).getRepository(context, repoURL,lookupCredentials(context, credentialsId, repoURL), Collections.<String, Credentials>emptyMap(), null);
+            }
+            return Jenkins.getInstance().getDescriptorByType(DescriptorImpl.class).getRepository(context, repoURL,lookupCredentials(context, credentialsId, repoURL), Collections.<String, Credentials>emptyMap(), new ISVNSession() {
+                public boolean keepConnection(SVNRepository repository) {
+                    return false;
+                }
+                public void saveCommitMessage(SVNRepository repository, long revision, String message) {
+                }
+                public String getCommitMessage(SVNRepository repository, long revision) {
+                    return null;
+                }
+                public boolean hasCommitMessage(SVNRepository repository, long revision) {
+                    return false;
+                }
+            });
         }
 
         public SVNURL getRepositoryRoot(AbstractProject context) throws SVNException {

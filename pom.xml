@@ -192,6 +192,7 @@ THE SOFTWARE.
         <artifactId>maven-hpi-plugin</artifactId>
         <version>${maven-hpi-plugin.version}</version>
         <configuration>
+          <maskClasses>com.trilead.ssh2.</maskClasses>
           <systemProperties>
             <hudson.bundled.plugins>${basedir}/work/plugins/subversion.hpl</hudson.bundled.plugins>
           </systemProperties>
