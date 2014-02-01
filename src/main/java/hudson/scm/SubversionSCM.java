@@ -267,6 +267,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
     private boolean ignoreDirPropChanges;
     private boolean filterChangelog;
+    private boolean usingCommitTimes;
 
     /**
      * A cache of the svn:externals (keyed by project).
@@ -357,7 +358,7 @@ public class SubversionSCM extends SCM implements Serializable {
     public SubversionSCM(List<ModuleLocation> locations, WorkspaceUpdater workspaceUpdater,
             SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages,
             String includedRegions, boolean ignoreDirPropChanges) {
-        this(locations, workspaceUpdater, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages, includedRegions, ignoreDirPropChanges, false, null);
+        this(locations, workspaceUpdater, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages, includedRegions, ignoreDirPropChanges, false, null, false);
     }
 
     @DataBoundConstructor
@@ -365,7 +366,8 @@ public class SubversionSCM extends SCM implements Serializable {
                          SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers,
                          String excludedRevprop, String excludedCommitMessages,
                          String includedRegions, boolean ignoreDirPropChanges, boolean filterChangelog,
-                         List<AdditionalCredentials> additionalCredentials) {
+                         List<AdditionalCredentials> additionalCredentials, boolean usingCommitTimes) {
+        this.usingCommitTimes = usingCommitTimes;
         for (Iterator<ModuleLocation> itr = locations.iterator(); itr.hasNext(); ) {
             ModuleLocation ml = itr.next();
             String remote = Util.fixEmptyAndTrim(ml.remote);
@@ -674,6 +676,11 @@ public class SubversionSCM extends SCM implements Serializable {
       return filterChangelog;
     }
 
+    @Exported
+    public boolean isUsingCommitTimes() {
+      return usingCommitTimes;
+    }
+
     /**
      * Sets the <tt>SVN_REVISION_n</tt> and <tt>SVN_URL_n</tt> environment variables during the build.
      */
@@ -980,6 +987,7 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     private static class CheckOutTask extends UpdateTask implements FileCallable<List<External>> {
         private final UpdateTask task;
+        private final boolean isUsingCommitTimes;
 
          public CheckOutTask(AbstractBuild<?, ?> build, SubversionSCM parent, ModuleLocation location, Date timestamp, TaskListener listener, EnvVars env) {
             this.authProvider = parent.createAuthenticationProvider(build.getParent(), location);
@@ -988,6 +996,7 @@ public class SubversionSCM extends SCM implements Serializable {
             this.location = location;
             this.revisions = build.getAction(RevisionParameterAction.class);
             this.task = parent.getWorkspaceUpdater().createTask();
+            this.isUsingCommitTimes = parent.isUsingCommitTimes();
         }
 
         public Set<String> getUnauthenticatedRealms() {
@@ -998,7 +1007,12 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         public List<External> invoke(File ws, VirtualChannel channel) throws IOException {
-            clientManager = createClientManager(authProvider);
+            DefaultSVNOptions defaultSVNOptions = createDefaultSVNOptions();
+            if (isUsingCommitTimes) {
+                defaultSVNOptions.setUseCommitTimes(isUsingCommitTimes);
+            }
+            
+            clientManager = new SvnClientManager(SVNClientManager.newInstance(defaultSVNOptions, createSvnAuthenticationManager(authProvider)));
             manager = clientManager.getCore();
             this.ws = ws;
             try {

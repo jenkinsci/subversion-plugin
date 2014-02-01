@@ -143,7 +143,13 @@ THE SOFTWARE.
       <version>1.5</version>
       <scope>test</scope>
     </dependency>
-
+    <dependency>
+        <groupId>uk.co.modular-it</groupId>
+        <artifactId>hamcrest-date</artifactId>
+        <version>0.9.5</version>
+        <scope>test</scope>
+    </dependency>
+	
     <dependency>
       <groupId>org.jenkins-ci.main</groupId>
       <artifactId>jenkins-test-harness</artifactId>
