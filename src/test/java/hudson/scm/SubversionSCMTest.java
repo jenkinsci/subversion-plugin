@@ -1757,8 +1757,8 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         p.setScm(scm);
         
         FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserIdCause()).get());
-        // Using long matching to prevent Timezone issues
-        assertThat(b.getWorkspace().child("b").lastModified(), is(1293845528558l));
+        // Using long matching to prevent Timezone issues, divided by 1000 as some OS does not return the exact milliseconds
+        assertThat(b.getWorkspace().child("b").lastModified() / 1000, is(1293845528l));
     }
     
     public void testNotUseCommitTimes() throws Throwable {
@@ -1773,7 +1773,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         p.setScm(scm);
         
         FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserIdCause()).get());
-        // Using long matching to prevent Timezone issues
-        assertThat(b.getWorkspace().child("b").lastModified(), not(is(1293845528558l)));
+        // Using long matching to prevent Timezone issues, divided by 1000 as some OS does not return the exact milliseconds
+        assertThat(b.getWorkspace().child("b").lastModified() / 1000, not(is(1293845528l)));
     }
 }    
