@@ -26,6 +26,7 @@
 package hudson.scm;
 
 import static hudson.scm.SubversionSCM.compareSVNAuthentications;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 import static org.jvnet.hudson.test.recipes.PresetData.DataSet.ANONYMOUS_READONLY;
@@ -74,6 +75,7 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -112,9 +114,6 @@ import org.tmatesoft.svn.core.wc.SVNCommitClient;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 import org.tmatesoft.svn.core.wc.SVNStatus;
 import org.tmatesoft.svn.core.wc.SVNWCUtil;
-
-import uk.co.it.modular.hamcrest.date.DateMatchers;
-import uk.co.it.modular.hamcrest.date.Months;
 
 import com.gargoylesoftware.htmlunit.ElementNotFoundException;
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
@@ -1758,8 +1757,8 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         p.setScm(scm);
         
         FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserIdCause()).get());
-        Date fileInWorkspaceLastModified = new Date(b.getWorkspace().child("b").lastModified());        
-        assertThat(fileInWorkspaceLastModified, DateMatchers.sameDay(2011, Months.JANUARY, 1));
+        // Using long matching to prevent Timezone issues
+        assertThat(b.getWorkspace().child("b").lastModified(), is(1293845528558l));
     }
     
     public void testNotUseCommitTimes() throws Throwable {
@@ -1774,7 +1773,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         p.setScm(scm);
         
         FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserIdCause()).get());
-        Date fileInWorkspaceLastModified = new Date(b.getWorkspace().child("b").lastModified());        
-        assertThat(fileInWorkspaceLastModified, not(DateMatchers.sameDay(2011, Months.JANUARY, 1)));
+        // Using long matching to prevent Timezone issues
+        assertThat(b.getWorkspace().child("b").lastModified(), not(is(1293845528558l)));
     }
 }    
