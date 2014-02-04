@@ -26,26 +26,26 @@
 <!-- this is the page fragment displayed to set up a job -->
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
     <f:entry title="${%Name}" field="name">
-        <f:textbox name="parameter.name" value="${instance.name}" />
+        <f:textbox/>
     </f:entry>
     <f:entry title="${%Repository URL}" field="tagsDir">
-        <f:textbox name="parameter.tagsDir" value="${instance.tagsDir}" />
+        <f:textbox/>
     </f:entry>
     <f:entry title="${%Tags filter}" field="tagsFilter">
-        <f:textbox field="parameter.tagsFilter" value="${instance.tagsFilter}" />
+        <f:textbox/>
     </f:entry>
     <f:entry title="${%Default value}" field="defaultValue">
-        <f:textbox field="parameter.defaultValue" value="${instance.defaultValue}" />
+        <f:textbox/>
     </f:entry> 
     <f:entry title="${%Maximum tags to display}" field="maxTags">
-        <f:textbox field="parameter.maxTags" value="${instance.maxTags}" />
+        <f:textbox/>
     </f:entry>       
     <f:entry field="reverseByDate">
-        <f:checkbox name="reverseByDate" checked="${instance.reverseByDate}"/>
+        <f:checkbox/>
         <label class="attach-previous">${%Sort newest first}</label>
     </f:entry>
     <f:entry field="reverseByName">
-        <f:checkbox name="reverseByName" checked="${instance.reverseByName}"/>
+        <f:checkbox/>
         <label class="attach-previous">${%Sort Z to A}</label>
     </f:entry>
 </j:jelly>
