@@ -383,12 +383,12 @@ public List<String> getTags() {
     }
 
     public FormValidation doCheckTagsFilter(@QueryParameter String value) {
-      if(value != null && value.length() == 0) {
+      if(value != null && value.length() > 0) {
         try {
           Pattern.compile(value);
         }
         catch(PatternSyntaxException pse) {
-          FormValidation.error(ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("NotValidRegex"));
+          return FormValidation.error(ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("NotValidRegex"));
         }
       }
       return FormValidation.ok();
