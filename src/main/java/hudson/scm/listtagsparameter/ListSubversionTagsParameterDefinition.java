@@ -374,10 +374,6 @@ public List<String> getTags() {
       return getSubversionSCMDescriptor().createAuthenticationProvider(context);
     }
 
-    public FormValidation doCheckDefaultValue(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value) {
-      return getSubversionSCMDescriptor().doCheckRemote(req, context, value, null); // todo credentials
-    }
-
     public FormValidation doCheckTagsDir(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value) {
       return getSubversionSCMDescriptor().doCheckRemote(req, context, value, null); // todo credentials
     }
