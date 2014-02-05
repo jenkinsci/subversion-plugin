@@ -180,7 +180,6 @@ public List<String> getTags() {
       }
     }
 
-    SimpleSVNDirEntryHandler dirEntryHandler = new SimpleSVNDirEntryHandler(tagsFilter);
     List<String> dirs = new ArrayList<String>();
 
     try {
@@ -195,7 +194,8 @@ public List<String> getTags() {
       if (isSVNRepositoryProjectRoot(repo)) {
         dirs = this.getSVNRootRepoDirectories(logClient, repoURL);
       } else {
-        logClient.doList(repoURL, SVNRevision.HEAD, SVNRevision.HEAD, false, SVNDepth.IMMEDIATES, SVNDirEntry.DIRENT_ALL, dirEntryHandler);
+        SimpleSVNDirEntryHandler dirEntryHandler = new SimpleSVNDirEntryHandler(tagsFilter);
+        logClient.doList(repoURL, SVNRevision.HEAD, SVNRevision.HEAD, false, SVNDepth.IMMEDIATES, SVNDirEntry.DIRENT_TIME, dirEntryHandler);
         dirs = dirEntryHandler.getDirs(isReverseByDate(), isReverseByName());
       }
     }
@@ -256,11 +256,7 @@ public List<String> getTags() {
    */
   private boolean isSVNRepositoryProjectRoot(SVNRepository repo) {
     try {
-      SVNDirEntry trunkEntry = repo.info(SVN_TRUNK, SVNRevision.HEAD.getNumber());
-      SVNDirEntry branchesEntry = repo.info(SVN_BRANCHES, SVNRevision.HEAD.getNumber());
-      SVNDirEntry tagsEntry = repo.info(SVN_TAGS, SVNRevision.HEAD.getNumber());
-
-      if ((trunkEntry != null) && (branchesEntry != null) && (tagsEntry != null)) {
+      if (repo.info(SVN_TRUNK, SVNRevision.HEAD.getNumber()) != null && repo.info(SVN_BRANCHES, SVNRevision.HEAD.getNumber()) != null && repo.info(SVN_TAGS, SVNRevision.HEAD.getNumber()) != null) {
         return true;
       }
     } catch (SVNException e) {
