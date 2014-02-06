@@ -168,7 +168,7 @@ public List<String> getTags(@Nullable AbstractProject context) {
     catch(SVNException e) {
       // logs are not translated (IMO, this is a bad idea to translate logs)
       LOGGER.log(Level.SEVERE, "An SVN exception occurred while listing the directory entries at " + getTagsDir(), e);
-      return Collections.singletonList("&lt;" + ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("SVNException") + "&gt;");
+      return Collections.singletonList("!" + ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("SVNException"));
     }
 
     // SVNKit's doList() method returns also the parent dir, so we need to remove it
@@ -177,7 +177,7 @@ public List<String> getTags(@Nullable AbstractProject context) {
     }
     else {
       LOGGER.log(Level.INFO, "No directory entries were found for the following SVN repository: {0}", getTagsDir());
-      return Collections.singletonList("&lt;" + ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("NoDirectoryEntriesFound") + "&gt;");
+      return Collections.singletonList("!" + ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("NoDirectoryEntriesFound"));
     }
     
     // Conform list to the maxTags option.
@@ -358,7 +358,11 @@ public List<String> getTags(@Nullable AbstractProject context) {
                 if (def instanceof ListSubversionTagsParameterDefinition) {
                     List<String> tags = ((ListSubversionTagsParameterDefinition) def).getTags(context);
                     for (String tag : tags) {
-                        model.add(tag);
+                        if (tag.startsWith("!")) {
+                            model.add(tag.substring(1), "");
+                        } else {
+                            model.add(tag);
+                        }
                     }
                 }
             }
