@@ -326,7 +326,7 @@ public List<String> getTags(@Nullable AbstractProject context) {
     private SubversionSCM.DescriptorImpl scmDescriptor;
 
     public ISVNAuthenticationProvider createAuthenticationProvider(AbstractProject context) {
-      return getSubversionSCMDescriptor().createAuthenticationProvider(context); // TODO should ask explicitly for credentials in a field in this class
+      return getSubversionSCMDescriptor().createAuthenticationProvider(context);
     }
 
     public FormValidation doCheckDefaultValue(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value) {
