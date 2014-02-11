@@ -92,14 +92,18 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
   private static final String SVN_TAGS = "tags";
   private static final String SVN_TRUNK = "trunk";
   
-  /** @deprecated */
   @Deprecated
   public ListSubversionTagsParameterDefinition(String name, String tagsDir, String tagsFilter, String defaultValue, String maxTags, boolean reverseByDate, boolean reverseByName, String uuid) {
-    this(name, tagsDir, tagsFilter, defaultValue, maxTags, reverseByDate, reverseByName, uuid, null);
+    this(name, tagsDir, null, tagsFilter, defaultValue, maxTags, reverseByDate, reverseByName);
+  }
+
+  @Deprecated
+  public ListSubversionTagsParameterDefinition(String name, String tagsDir, String tagsFilter, String defaultValue, String maxTags, boolean reverseByDate, boolean reverseByName, String uuid, String credentialsId) {
+      this(name, tagsDir, credentialsId, tagsFilter, defaultValue, maxTags, reverseByDate, reverseByName);
   }
 
   @DataBoundConstructor
-  public ListSubversionTagsParameterDefinition(String name, String tagsDir, String tagsFilter, String defaultValue, String maxTags, boolean reverseByDate, boolean reverseByName, String uuid, String credentialsId) {
+  public ListSubversionTagsParameterDefinition(String name, String tagsDir, String credentialsId, String tagsFilter, String defaultValue, String maxTags, boolean reverseByDate, boolean reverseByName) {
     super(name, ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("TagDescription"));
     this.tagsDir = Util.removeTrailingSlash(tagsDir);
     this.tagsFilter = tagsFilter;
