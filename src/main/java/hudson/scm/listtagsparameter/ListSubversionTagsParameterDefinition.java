@@ -38,15 +38,16 @@ import hudson.util.FormValidation;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
+import org.apache.commons.lang.StringUtils;
 import org.jvnet.localizer.ResourceBundleHolder;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -62,7 +63,6 @@ import org.tmatesoft.svn.core.io.SVNRepository;
 import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
 import org.tmatesoft.svn.core.wc.SVNLogClient;
 import org.tmatesoft.svn.core.wc.SVNRevision;
-import org.apache.commons.lang.StringUtils;
 
 /**
  * Defines a new {@link ParameterDefinition} to be displayed at the top of the
@@ -75,7 +75,7 @@ import org.apache.commons.lang.StringUtils;
  * @author Romain Seguy (http://openromain.blogspot.com)
  */
 @SuppressWarnings("rawtypes")
-public class ListSubversionTagsParameterDefinition extends ParameterDefinition implements Comparable<ListSubversionTagsParameterDefinition> {
+public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
 
     private static final long serialVersionUID = 1L;
 /**
@@ -92,21 +92,18 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
   private static final String SVN_TAGS = "tags";
   private static final String SVN_TRUNK = "trunk";
   
-  /**
-   * We use a UUID to uniquely identify each use of this parameter: We need this
-   * to find the project using this parameter in the getTags() method (which is
-   * called before the build takes place).
-   */
-  private final UUID uuid;
-
-  /** @deprecated */
   @Deprecated
   public ListSubversionTagsParameterDefinition(String name, String tagsDir, String tagsFilter, String defaultValue, String maxTags, boolean reverseByDate, boolean reverseByName, String uuid) {
-    this(name, tagsDir, tagsFilter, defaultValue, maxTags, reverseByDate, reverseByName, uuid, null);
+    this(name, tagsDir, null, tagsFilter, defaultValue, maxTags, reverseByDate, reverseByName);
+  }
+
+  @Deprecated
+  public ListSubversionTagsParameterDefinition(String name, String tagsDir, String tagsFilter, String defaultValue, String maxTags, boolean reverseByDate, boolean reverseByName, String uuid, String credentialsId) {
+      this(name, tagsDir, credentialsId, tagsFilter, defaultValue, maxTags, reverseByDate, reverseByName);
   }
 
   @DataBoundConstructor
-  public ListSubversionTagsParameterDefinition(String name, String tagsDir, String tagsFilter, String defaultValue, String maxTags, boolean reverseByDate, boolean reverseByName, String uuid, String credentialsId) {
+  public ListSubversionTagsParameterDefinition(String name, String tagsDir, String credentialsId, String tagsFilter, String defaultValue, String maxTags, boolean reverseByDate, boolean reverseByName) {
     super(name, ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("TagDescription"));
     this.tagsDir = Util.removeTrailingSlash(tagsDir);
     this.tagsFilter = tagsFilter;
@@ -114,13 +111,6 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
     this.reverseByName = reverseByName;
     this.defaultValue = defaultValue;
     this.maxTags = maxTags;
-
-    if(uuid == null || uuid.length() == 0) {
-      this.uuid = UUID.randomUUID();
-    }
-    else {
-      this.uuid = UUID.fromString(uuid);
-    }
     this.credentialsId = credentialsId;
   }
 
@@ -168,31 +158,9 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
    * defined when configuring the Subversion SCM.</p>
    *
    * <p>This method never returns {@code null}. In case an error happens, the
-   * returned list contains an error message surrounded by &lt; and &gt;.</p>
+   * returned list contains an error message prefixed by {@code !}.</p>
    */
-public List<String> getTags() {
-    AbstractProject context = null;
-    List<AbstractProject> jobs = Hudson.getInstance().getItems(AbstractProject.class);
-
-    // which project is this parameter bound to? (I should take time to move
-    // this code to Hudson core one day)
-    for(AbstractProject project : jobs) {
-      @SuppressWarnings("unchecked")
-    ParametersDefinitionProperty property = (ParametersDefinitionProperty) project.getProperty(ParametersDefinitionProperty.class);
-      if(property != null) {
-        List<ParameterDefinition> parameterDefinitions = property.getParameterDefinitions();
-        if(parameterDefinitions != null) {
-          for(ParameterDefinition pd : parameterDefinitions) {
-            if(pd instanceof ListSubversionTagsParameterDefinition && ((ListSubversionTagsParameterDefinition) pd).compareTo(this) == 0) {
-              context = project;
-              break;
-            }
-          }
-        }
-      }
-    }
-
-    SimpleSVNDirEntryHandler dirEntryHandler = new SimpleSVNDirEntryHandler(tagsFilter);
+  @Nonnull public List<String> getTags(@Nullable AbstractProject context) {
     List<String> dirs = new ArrayList<String>();
 
     try {
@@ -209,14 +177,15 @@ public List<String> getTags() {
       if (isSVNRepositoryProjectRoot(repo)) {
         dirs = this.getSVNRootRepoDirectories(logClient, repoURL);
       } else {
-        logClient.doList(repoURL, SVNRevision.HEAD, SVNRevision.HEAD, false, SVNDepth.IMMEDIATES, SVNDirEntry.DIRENT_ALL, dirEntryHandler);
+        SimpleSVNDirEntryHandler dirEntryHandler = new SimpleSVNDirEntryHandler(tagsFilter);
+        logClient.doList(repoURL, SVNRevision.HEAD, SVNRevision.HEAD, false, SVNDepth.IMMEDIATES, SVNDirEntry.DIRENT_TIME, dirEntryHandler);
         dirs = dirEntryHandler.getDirs(isReverseByDate(), isReverseByName());
       }
     }
     catch(SVNException e) {
       // logs are not translated (IMO, this is a bad idea to translate logs)
       LOGGER.log(Level.SEVERE, "An SVN exception occurred while listing the directory entries at " + getTagsDir(), e);
-      return Collections.singletonList("&lt;" + ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("SVNException") + "&gt;");
+      return Collections.singletonList("!" + ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("SVNException"));
     }
 
     // SVNKit's doList() method returns also the parent dir, so we need to remove it
@@ -225,7 +194,7 @@ public List<String> getTags() {
     }
     else {
       LOGGER.log(Level.INFO, "No directory entries were found for the following SVN repository: {0}", getTagsDir());
-      return Collections.singletonList("&lt;" + ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("NoDirectoryEntriesFound") + "&gt;");
+      return Collections.singletonList("!" + ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("NoDirectoryEntriesFound"));
     }
     
     // Conform list to the maxTags option.
@@ -274,11 +243,7 @@ public List<String> getTags() {
    */
   private boolean isSVNRepositoryProjectRoot(SVNRepository repo) {
     try {
-      SVNDirEntry trunkEntry = repo.info(SVN_TRUNK, SVNRevision.HEAD.getNumber());
-      SVNDirEntry branchesEntry = repo.info(SVN_BRANCHES, SVNRevision.HEAD.getNumber());
-      SVNDirEntry tagsEntry = repo.info(SVN_TAGS, SVNRevision.HEAD.getNumber());
-
-      if ((trunkEntry != null) && (branchesEntry != null) && (tagsEntry != null)) {
+      if (repo.info(SVN_TRUNK, SVNRevision.HEAD.getNumber()) != null && repo.info(SVN_BRANCHES, SVNRevision.HEAD.getNumber()) != null && repo.info(SVN_TAGS, SVNRevision.HEAD.getNumber()) != null) {
         return true;
       }
     } catch (SVNException e) {
@@ -375,13 +340,6 @@ public List<String> getTags() {
     dirs.removeAll(dirsToRemove);
   }
 
-  public int compareTo(ListSubversionTagsParameterDefinition pd) {
-    if(pd.uuid.equals(uuid)) {
-      return 0;
-    }
-    return -1;
-  }
-
   @Extension
   public static class DescriptorImpl extends ParameterDescriptor {
 
@@ -416,6 +374,26 @@ public List<String> getTags() {
         }
       }
       return FormValidation.ok();
+    }
+
+    public ListBoxModel doFillTagItems(@AncestorInPath AbstractProject<?,?> context, @QueryParameter String param) {
+        ListBoxModel model = new ListBoxModel();
+        if (context != null) {
+            ParametersDefinitionProperty prop = context.getProperty(ParametersDefinitionProperty.class);
+            if (prop != null) {
+                ParameterDefinition def = prop.getParameterDefinition(param);
+                if (def instanceof ListSubversionTagsParameterDefinition) {
+                    for (String tag : ((ListSubversionTagsParameterDefinition) def).getTags(context)) {
+                        if (tag.startsWith("!")) {
+                            model.add(tag.substring(1), "");
+                        } else {
+                            model.add(tag);
+                        }
+                    }
+                }
+            }
+        }
+        return model;
     }
 
     @Override

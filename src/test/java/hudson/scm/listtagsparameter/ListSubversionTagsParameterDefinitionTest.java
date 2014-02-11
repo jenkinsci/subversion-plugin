@@ -28,15 +28,15 @@ public class ListSubversionTagsParameterDefinitionTest extends AbstractSubversio
     public void testListTags() throws Exception {
         Proc p = runSvnServe(getClass().getResource("JENKINS-11933.zip"));
         try {
-            ListSubversionTagsParameterDefinition def = new ListSubversionTagsParameterDefinition("FOO", "svn://localhost/", "", "", "", false, false, null, null);
-            List<String> tags = def.getTags();
+            ListSubversionTagsParameterDefinition def = new ListSubversionTagsParameterDefinition("FOO", "svn://localhost/", null, "", "", "", false, false);
+            List<String> tags = def.getTags(null);
             List<String> expected = Arrays.asList("trunk", "tags/a", "tags/b", "tags/c");
             
             if (!expected.equals(tags))  {
                 // retry. Maybe the svnserve just didn't start up correctly, yet
                 System.out.println("First attempt failed. Retrying.");
                 Thread.sleep(300L);
-                tags = def.getTags();
+                tags = def.getTags(null);
                 if (!expected.equals(tags))  {
                     dumpRepositoryContents();
                 
