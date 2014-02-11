@@ -40,7 +40,7 @@ THE SOFTWARE.
     <c:select />
   </f:entry>
   <f:entry title="${%Local module directory}" field="local">
-    <f:textbox default="."/>
+    <f:textbox value="${instance!=null?instance.local:'.'}"/>
   </f:entry>
   <f:entry title="${%Repository depth}" field="depthOption">
     <select name="depthOption">

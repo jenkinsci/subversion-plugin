@@ -32,6 +32,7 @@ import hudson.model.Hudson;
 import hudson.model.ParameterDefinition;
 import hudson.model.ParameterValue;
 import hudson.model.ParametersDefinitionProperty;
+import hudson.scm.CredentialsSVNAuthenticationProviderImpl;
 import hudson.scm.SubversionSCM;
 import hudson.util.FormValidation;
 import java.util.ArrayList;
@@ -42,6 +43,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+
+import hudson.util.ListBoxModel;
+import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.jvnet.localizer.ResourceBundleHolder;
 import org.kohsuke.stapler.AncestorInPath;
@@ -78,6 +82,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
    * The Subversion repository which contains the tags to be listed.
    */
   private final String tagsDir;
+  private final String credentialsId;
   private final String tagsFilter;
   private final boolean reverseByDate;
   private final boolean reverseByName;
@@ -94,8 +99,14 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
    */
   private final UUID uuid;
 
-  @DataBoundConstructor
+  /** @deprecated */
+  @Deprecated
   public ListSubversionTagsParameterDefinition(String name, String tagsDir, String tagsFilter, String defaultValue, String maxTags, boolean reverseByDate, boolean reverseByName, String uuid) {
+    this(name, tagsDir, tagsFilter, defaultValue, maxTags, reverseByDate, reverseByName, uuid, null);
+  }
+
+  @DataBoundConstructor
+  public ListSubversionTagsParameterDefinition(String name, String tagsDir, String tagsFilter, String defaultValue, String maxTags, boolean reverseByDate, boolean reverseByName, String uuid, String credentialsId) {
     super(name, ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("TagDescription"));
     this.tagsDir = Util.removeTrailingSlash(tagsDir);
     this.tagsFilter = tagsFilter;
@@ -110,6 +121,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition i
     else {
       this.uuid = UUID.fromString(uuid);
     }
+    this.credentialsId = credentialsId;
   }
 
   // This method is invoked from a GET or POST HTTP request
@@ -184,7 +196,9 @@ public List<String> getTags() {
     List<String> dirs = new ArrayList<String>();
 
     try {
-      ISVNAuthenticationProvider authProvider = getDescriptor().createAuthenticationProvider(context);
+      ISVNAuthenticationProvider authProvider = CredentialsSVNAuthenticationProviderImpl.createAuthenticationProvider(
+              context, getTagsDir(), getCredentialsId(), null
+      );
       ISVNAuthenticationManager authManager = SubversionSCM.createSvnAuthenticationManager(authProvider);
       SVNURL repoURL = SVNURL.parseURIDecoded(getTagsDir());
 
@@ -225,6 +239,10 @@ public List<String> getTags() {
 
   public String getTagsDir() {
     return tagsDir;
+  }
+
+  public String getCredentialsId() {
+    return credentialsId;
   }
 
   public String getTagsFilter() {
@@ -375,11 +393,30 @@ public List<String> getTags() {
     }
 
     public FormValidation doCheckDefaultValue(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value) {
-      return getSubversionSCMDescriptor().doCheckRemote(req, context, value, null); // todo credentials
+
+        FormValidation validation =
+                Jenkins.getInstance().getDescriptorByType(SubversionSCM.ModuleLocation.DescriptorImpl.class)
+                        .doCheckRemote(req, context, value);
+        if (validation.kind == FormValidation.Kind.OK) {
+            return validation;
+        } else if (validation.kind == FormValidation.Kind.ERROR) {
+            return FormValidation.warning(validation, validation.getMessage());
+        }
+        return validation;
     }
 
     public FormValidation doCheckTagsDir(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value) {
-      return getSubversionSCMDescriptor().doCheckRemote(req, context, value, null); // todo credentials
+      return Jenkins.getInstance().getDescriptorByType(SubversionSCM.ModuleLocation.DescriptorImpl.class).doCheckRemote(req, context, value);
+    }
+
+    public ListBoxModel doFillCredentialsIdItems(@AncestorInPath AbstractProject context, @QueryParameter String tagsDir) {
+      return Jenkins.getInstance().getDescriptorByType(
+              SubversionSCM.ModuleLocation.DescriptorImpl.class).doFillCredentialsIdItems(context, tagsDir);
+    }
+
+    public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String tagsDir, @QueryParameter String value) {
+      return Jenkins.getInstance().getDescriptorByType(
+              SubversionSCM.ModuleLocation.DescriptorImpl.class).doCheckCredentialsId(req, context, tagsDir, value);
     }
 
     public FormValidation doCheckTagsFilter(@QueryParameter String value) {
