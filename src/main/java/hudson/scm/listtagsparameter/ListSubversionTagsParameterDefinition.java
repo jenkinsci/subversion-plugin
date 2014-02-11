@@ -392,19 +392,6 @@ public List<String> getTags() {
       return getSubversionSCMDescriptor().createAuthenticationProvider(context);
     }
 
-    public FormValidation doCheckDefaultValue(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value) {
-
-        FormValidation validation =
-                Jenkins.getInstance().getDescriptorByType(SubversionSCM.ModuleLocation.DescriptorImpl.class)
-                        .doCheckRemote(req, context, value);
-        if (validation.kind == FormValidation.Kind.OK) {
-            return validation;
-        } else if (validation.kind == FormValidation.Kind.ERROR) {
-            return FormValidation.warning(validation, validation.getMessage());
-        }
-        return validation;
-    }
-
     public FormValidation doCheckTagsDir(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value) {
       return Jenkins.getInstance().getDescriptorByType(SubversionSCM.ModuleLocation.DescriptorImpl.class).doCheckRemote(req, context, value);
     }
@@ -420,12 +407,12 @@ public List<String> getTags() {
     }
 
     public FormValidation doCheckTagsFilter(@QueryParameter String value) {
-      if(value != null && value.length() == 0) {
+      if(value != null && value.length() > 0) {
         try {
           Pattern.compile(value);
         }
         catch(PatternSyntaxException pse) {
-          FormValidation.error(ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("NotValidRegex"));
+          return FormValidation.error(ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("NotValidRegex"));
         }
       }
       return FormValidation.ok();

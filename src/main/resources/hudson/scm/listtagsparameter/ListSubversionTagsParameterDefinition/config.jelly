@@ -41,7 +41,7 @@
         <f:textbox/>
     </f:entry> 
     <f:entry title="${%Maximum tags to display}" field="maxTags">
-        <f:textbox field="parameter.maxTags" value="${instance.maxTags}" />
+        <f:textbox/>
     </f:entry>       
     <f:entry field="reverseByDate">
         <f:checkbox/>
