@@ -24,40 +24,64 @@
  */
 package hudson.scm;
 
+import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardCertificateCredentials;
+import com.cloudbees.plugins.credentials.common.StandardCredentials;
+import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.domains.DomainRequirement;
+import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import hudson.Extension;
 import hudson.model.AbstractBuild;
 import hudson.model.Action;
+import hudson.model.Actionable;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.model.Hudson;
+import hudson.model.Item;
+import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.model.TaskThread;
 import hudson.scm.subversion.Messages;
 import hudson.scm.SubversionSCM.SvnInfo;
+import hudson.security.ACL;
+import hudson.security.PermissionScope;
 import hudson.util.CopyOnWriteMap;
 import hudson.security.Permission;
+import hudson.util.ListBoxModel;
 import hudson.util.MultipartFormDataParser;
+import jenkins.model.Jenkins;
+import org.acegisecurity.Authentication;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNURL;
+import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNCopyClient;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 import org.tmatesoft.svn.core.wc.SVNCopySource;
+import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
 import javax.servlet.ServletException;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -208,10 +232,28 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
             newTags.put(e,parser.get("name" + i));
         }
 
-        UserProvidedCredential upc=null;
-        if (parser.get("credential")!=null)
-            upc = UserProvidedCredential.fromForm(req,parser);
-
+        String credentialsId = parser.get("credentialsId");
+        StandardCredentials upc = null;
+        if (credentialsId != null) {
+            Item context = req.findAncestorObject(Item.class);
+            // TODO restrict use of the ACL.SYSTEM credentials if the user does not have a suitable permission
+            for (Authentication a : Arrays.asList(Jenkins.getAuthentication(), ACL.SYSTEM)) {
+                upc = CredentialsMatchers.firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class,
+                        context,
+                        a,
+                        Collections.<DomainRequirement>emptyList()),
+                        CredentialsMatchers.allOf(CredentialsMatchers.withId(credentialsId), CredentialsMatchers.anyOf(
+                                CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
+                                CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
+                                CredentialsMatchers.instanceOf(SSHUserPrivateKey.class)
+                        )
+                        )
+                );
+                if (upc != null) {
+                    break;
+                }
+            }
+        }
         new TagWorkerThread(newTags,upc,parser.get("comment")).start();
 
         rsp.sendRedirect(".");
@@ -230,11 +272,11 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
         /**
          * If the user provided a separate credential, this object represents that.
          */
-        private final UserProvidedCredential upc;
+        private final StandardCredentials upc;
         private final String comment;
 
-        public TagWorkerThread(Map<SvnInfo,String> tagSet, UserProvidedCredential upc, String comment) {
-            super(SubversionTagAction.this,ListenerAndText.forMemory());
+        public TagWorkerThread(Map<SvnInfo,String> tagSet, StandardCredentials upc, String comment) {
+            super(SubversionTagAction.this,ListenerAndText.forMemory(SubversionTagAction.this));
             this.tagSet = tagSet;
             this.upc = upc;
             this.comment = comment;
@@ -243,9 +285,12 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
         @Override
         protected void perform(TaskListener listener) {
             try {
-                final SvnClientManager cm = upc!=null
-                        ? new SvnClientManager(SVNClientManager.newInstance(SubversionSCM.createDefaultSVNOptions(),upc.new AuthenticationManagerImpl(listener)))
-                        : SubversionSCM.createClientManager(getBuild().getProject());
+                File configDir = SVNWCUtil.getDefaultConfigurationDirectory();
+                ISVNAuthenticationManager sam = SVNWCUtil.createDefaultAuthenticationManager(configDir, null, null);
+                sam.setAuthenticationProvider(new CredentialsSVNAuthenticationProviderImpl(upc));
+                final SvnClientManager cm = new SvnClientManager(
+                        SVNClientManager.newInstance(SubversionSCM.createDefaultSVNOptions(), sam)
+                );
                 try {
                     for (Entry<SvnInfo, String> e : tagSet.entrySet()) {
                         PrintStream logger = listener.getLogger();
@@ -292,6 +337,39 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
     public static class DescriptorImpl extends Descriptor<SubversionTagAction> {
         public String getDisplayName() {
             return null;
+        }
+
+        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context, @AncestorInPath Run run) {
+            Set<StandardCredentials> c = new LinkedHashSet<StandardCredentials>();
+            SubversionTagAction action = run != null ? run.getAction(SubversionTagAction.class) : null;
+            List<DomainRequirement> domainRequirements = Collections.<DomainRequirement>emptyList();
+            if (action != null) {
+                for (SvnInfo info: action.getTags().keySet()) {
+                    domainRequirements = URIRequirementBuilder.fromUri(info.url).build();
+                    break;
+                }
+            }
+            c.addAll(CredentialsProvider.lookupCredentials(StandardCredentials.class,
+                    context,
+                    Jenkins.getAuthentication(),
+                    domainRequirements)
+            );
+            // TODO restrict use of the ACL.SYSTEM credentials if the user does not have a suitable permission
+            c.addAll(CredentialsProvider.lookupCredentials(StandardCredentials.class,
+                    context,
+                    ACL.SYSTEM,
+                    domainRequirements)
+            );
+            return new StandardListBoxModel()
+                    .withEmptySelection()
+                    .withMatching(
+                            CredentialsMatchers.anyOf(
+                                    CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
+                                    CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
+                                    CredentialsMatchers.instanceOf(SSHUserPrivateKey.class)
+                            ),
+                            c
+                    );
         }
     }
 }

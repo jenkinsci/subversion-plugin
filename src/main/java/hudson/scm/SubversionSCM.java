@@ -36,6 +36,7 @@ import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
 import com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.CredentialsStore;
@@ -65,7 +66,9 @@ import hudson.Launcher;
 import hudson.Util;
 import hudson.XmlFile;
 import hudson.init.InitMilestone;
+import hudson.model.AbstractDescribableImpl;
 import hudson.model.BuildListener;
+import hudson.model.Descriptor;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.ModelObject;
@@ -142,6 +145,7 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.UUID;
 import java.util.logging.Level;
+import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -152,7 +156,6 @@ import javax.xml.transform.stream.StreamResult;
 
 import net.sf.json.JSONObject;
 
-import org.acegisecurity.context.SecurityContextHolder;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
@@ -1076,7 +1079,7 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     public static DefaultSVNOptions createDefaultSVNOptions() {
         DefaultSVNOptions defaultOptions = SVNWCUtil.createDefaultOptions(true);
-        DescriptorImpl descriptor = Hudson.getInstance() == null ? null : Hudson.getInstance().getDescriptorByType(DescriptorImpl.class);
+        DescriptorImpl descriptor = descriptor();
         if (defaultOptions != null && descriptor != null) {
             defaultOptions.setAuthStorageEnabled(descriptor.isStoreAuthToDisk());
         }
@@ -1113,7 +1116,7 @@ public class SubversionSCM extends SCM implements Serializable {
      * from the master via remoting.
      */
     public static SvnClientManager createClientManager(AbstractProject context) {
-        return new SvnClientManager(createSvnClientManager(Hudson.getInstance().getDescriptorByType(DescriptorImpl.class).createAuthenticationProvider(context)));
+        return new SvnClientManager(createSvnClientManager(descriptor().createAuthenticationProvider(context)));
     }
 
     /**
@@ -1615,7 +1618,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
     @hudson.init.Initializer(after = InitMilestone.JOB_LOADED, before = InitMilestone.COMPLETED)
     public static void perJobCredentialsMigration() {
-        DescriptorImpl descriptor = Jenkins.getInstance().getDescriptorByType(DescriptorImpl.class);
+        DescriptorImpl descriptor = descriptor();
         if (descriptor != null) {
             descriptor.migratePerJobCredentials();
         }
@@ -2280,129 +2283,19 @@ public class SubversionSCM extends SCM implements Serializable {
             }
         }
 
-        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath AbstractProject context,
-                                                     @QueryParameter String remote,
-                                                     @QueryParameter String realm) {
-            List<DomainRequirement> domainRequirements;
-            if (remote == null) {
-                if (realm == null) {
-                    domainRequirements = Collections.<DomainRequirement>emptyList();
-                } else {
-                    if (realm.startsWith("<") && realm.contains(">")) {
-                        int index = realm.indexOf('>');
-                        assert index > 1;
-                        domainRequirements = URIRequirementBuilder.fromUri(realm.substring(1, index).trim()).build();
-                    } else {
-                        domainRequirements = Collections.<DomainRequirement>emptyList();
-                    }
-                }
-            } else {
-                domainRequirements = URIRequirementBuilder.fromUri(remote.trim()).build();
-            }
-            return new StandardListBoxModel()
-                    .withEmptySelection()
-                    .withMatching(
-                            CredentialsMatchers.anyOf(
-                                    CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
-                                    CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
-                                    CredentialsMatchers.instanceOf(SSHUserPrivateKey.class)
-                            ),
-                            CredentialsProvider.lookupCredentials(StandardCredentials.class,
-                                    context,
-                                    ACL.SYSTEM,
-                                    domainRequirements)
-                    );
+        /**
+         * @deprecated retained for API compatibility only
+         */
+        @Deprecated
+        public FormValidation doCheckRemote(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value, @QueryParameter String credentialsId) {
+            return Jenkins.getInstance().getDescriptorByType(ModuleLocation.DescriptorImpl.class).doCheckCredentialsId(
+                    req, context, value, credentialsId);
         }
 
         /**
-         * validate the value for a remote (repository) location.
+         * @deprecated use {@link #checkRepositoryPath(hudson.model.AbstractProject, org.tmatesoft.svn.core.SVNURL, com.cloudbees.plugins.credentials.common.StandardCredentials)}
          */
-        public FormValidation doCheckRemote(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value, @QueryParameter String credentialsId) {
-            // syntax check first
-            String url = Util.fixEmptyAndTrim(value);
-            if (url == null)
-                return FormValidation.error(Messages.SubversionSCM_doCheckRemote_required());
-
-            if(isValidateRemoteUpToVar()) {
-                url = (url.indexOf('$') != -1) ? url.substring(0, url.indexOf('$')) : url;
-            } else {
-                url = new EnvVars(EnvVars.masterEnvVars).expand(url);
-            }
-
-            if(!URL_PATTERN.matcher(url).matches())
-                return FormValidation.errorWithMarkup(
-                    Messages.SubversionSCM_doCheckRemote_invalidUrl());
-
-            // Test the connection only if we have job configure permission
-            if (!context.hasPermission(Item.CONFIGURE))
-                return FormValidation.ok();
-
-
-            try {
-                String urlWithoutRevision = SvnHelper.getUrlWithoutRevision(url);
-
-                SVNURL repoURL = SVNURL.parseURIDecoded(urlWithoutRevision);
-
-                StandardCredentials credentials = lookupCredentials(context, credentialsId, repoURL);
-                if (checkRepositoryPath(context,repoURL, credentials)!=SVNNodeKind.NONE) {
-                    // something exists; now check revision if any
-
-                    SVNRevision revision = getRevisionFromRemoteUrl(url);
-                    if (revision != null && !revision.isValid()) {
-                        return FormValidation.errorWithMarkup(Messages.SubversionSCM_doCheckRemote_invalidRevision());
-                    }
-
-                    return FormValidation.ok();
-                }
-
-                SVNRepository repository = null;
-                try {
-                    repository = getRepository(context,repoURL, credentials, Collections.<String, Credentials>emptyMap());
-                    long rev = repository.getLatestRevision();
-                    // now go back the tree and find if there's anything that exists
-                    String repoPath = getRelativePath(repoURL, repository);
-                    String p = repoPath;
-                    while(p.length()>0) {
-                        p = SVNPathUtil.removeTail(p);
-                        if(repository.checkPath(p,rev)==SVNNodeKind.DIR) {
-                            // found a matching path
-                            List<SVNDirEntry> entries = new ArrayList<SVNDirEntry>();
-                            repository.getDir(p,rev,false,entries);
-
-                            // build up the name list
-                            List<String> paths = new ArrayList<String>();
-                            for (SVNDirEntry e : entries)
-                                if(e.getKind()==SVNNodeKind.DIR)
-                                    paths.add(e.getName());
-
-                            String head = SVNPathUtil.head(repoPath.substring(p.length() + 1));
-                            String candidate = EditDistance.findNearest(head,paths);
-
-                            return FormValidation.error(
-                                Messages.SubversionSCM_doCheckRemote_badPathSuggest(p, head,
-                                    candidate != null ? "/" + candidate : ""));
-                        }
-                    }
-
-                    return FormValidation.error(
-                        Messages.SubversionSCM_doCheckRemote_badPath(repoPath));
-                } finally {
-                    if (repository != null)
-                        repository.closeSession();
-                }
-            } catch (SVNException e) {
-                LOGGER.log(Level.INFO, "Failed to access subversion repository "+url,e);
-                String message = Messages.SubversionSCM_doCheckRemote_exceptionMsg1(
-                    Util.escape(url), Util.escape(e.getErrorMessage().getFullMessage()),
-                    "javascript:document.getElementById('svnerror').style.display='block';"
-                      + "document.getElementById('svnerrorlink').style.display='none';"
-                      + "return false;")
-                  + "<br/><pre id=\"svnerror\" style=\"display:none\">"
-                  + Functions.printThrowable(e) + "</pre>";
-                return FormValidation.errorWithMarkup(message);
-            }
-        }
-
+        @Deprecated
         public SVNNodeKind checkRepositoryPath(AbstractProject context, SVNURL repoURL) throws SVNException {
             return checkRepositoryPath(context, repoURL, null);
         }
@@ -2411,30 +2304,56 @@ public class SubversionSCM extends SCM implements Serializable {
             SVNRepository repository = null;
 
             try {
-                repository = getRepository(context,repoURL,credentials, Collections.<String, Credentials>emptyMap());
+                repository = getRepository(context,repoURL,credentials, Collections.<String, Credentials>emptyMap(), null);
                 repository.testConnection();
 
                 long rev = repository.getLatestRevision();
                 String repoPath = getRelativePath(repoURL, repository);
                 return repository.checkPath(repoPath, rev);
+            } catch (SVNException e) {
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LogRecord lr = new LogRecord(Level.FINE,
+                            "Could not check repository path {0} using credentials {1} ({2})");
+                    lr.setThrown(e);
+                    lr.setParameters(new Object[]{
+                            repoURL,
+                            credentials == null ? null : CredentialsNameProvider.name(credentials),
+                            credentials
+                    });
+                    LOGGER.log(lr);
+                }
+                throw e;
             } finally {
                 if (repository != null)
                     repository.closeSession();
             }
         }
 
+        /**
+         * @deprecated Use {@link #getRepository(hudson.model.AbstractProject, org.tmatesoft.svn.core.SVNURL, com.cloudbees.plugins.credentials.common.StandardCredentials, java.util.Map, org.tmatesoft.svn.core.io.ISVNSession)}
+         */
+        @Deprecated
         protected SVNRepository getRepository(AbstractProject context, SVNURL repoURL) throws SVNException {
             return getRepository(context, repoURL, null, Collections.<String, Credentials>emptyMap(), null);
         }
 
+        /**
+         * @deprecated Use {@link #getRepository(hudson.model.AbstractProject, org.tmatesoft.svn.core.SVNURL, com.cloudbees.plugins.credentials.common.StandardCredentials, java.util.Map, org.tmatesoft.svn.core.io.ISVNSession)}
+         */
+        @Deprecated
         protected SVNRepository getRepository(AbstractProject context, SVNURL repoURL, ISVNSession session) throws SVNException {
             return getRepository(context, repoURL, null, Collections.<String, Credentials>emptyMap(), null);
         }
 
+        /**
+         * @deprecated Use {@link #getRepository(hudson.model.AbstractProject, org.tmatesoft.svn.core.SVNURL, com.cloudbees.plugins.credentials.common.StandardCredentials, java.util.Map, org.tmatesoft.svn.core.io.ISVNSession)}
+         */
+        @Deprecated
         protected SVNRepository getRepository(AbstractProject context, SVNURL repoURL, StandardCredentials credentials,
                                               Map<String, Credentials> additionalCredentials) throws SVNException {
             return getRepository(context, repoURL, credentials, additionalCredentials, null);
         }
+
         protected SVNRepository getRepository(AbstractProject context, SVNURL repoURL, StandardCredentials credentials,
                                               Map<String, Credentials> additionalCredentials, ISVNSession session) throws SVNException {
             SVNRepository repository = SVNRepositoryFactory.create(repoURL, session);
@@ -2463,26 +2382,6 @@ public class SubversionSCM extends SCM implements Serializable {
             String repoPath = repoURL.getPath().substring(repository.getRepositoryRoot(false).getPath().length());
             if(!repoPath.startsWith("/"))    repoPath="/"+repoPath;
             return repoPath;
-        }
-
-        /**
-         * validate the value for a local location (local checkout directory).
-         */
-        public FormValidation doCheckLocal(@QueryParameter String value) throws IOException, ServletException {
-            String v = Util.nullify(value);
-            if (v == null)
-                // local directory is optional so this is ok
-                return FormValidation.ok();
-
-            v = v.trim();
-
-            // check if a absolute path has been supplied
-            // (the last check with the regex will match windows drives)
-            if (v.startsWith("/") || v.startsWith("\\") || v.startsWith("..") || v.matches("^[A-Za-z]:.*"))
-                return FormValidation.error("absolute path is not allowed");
-
-            // all tests passed so far
-            return FormValidation.ok();
         }
 
         /**
@@ -2571,7 +2470,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
                 SVNRepository repository = null;
                 try {
-                    repository = getRepository(context,repoURL, credentials, Collections.<String, Credentials>emptyMap());
+                    repository = getRepository(context,repoURL, credentials, Collections.<String, Credentials>emptyMap(), null);
                     if (repository.hasCapability(SVNCapability.LOG_REVPROPS))
                         return FormValidation.ok();
                 } finally {
@@ -2592,6 +2491,10 @@ public class SubversionSCM extends SCM implements Serializable {
             new Initializer();
         }
 
+    }
+
+    private static DescriptorImpl descriptor() {
+        return Jenkins.getInstance() == null ? null : Jenkins.getInstance().getDescriptorByType(DescriptorImpl.class);
     }
 
     /**
@@ -2672,7 +2575,7 @@ public class SubversionSCM extends SCM implements Serializable {
      * to make failure messages when doing a checkout possible
      */
     @ExportedBean
-    public static final class ModuleLocation implements Serializable {
+    public static final class ModuleLocation extends AbstractDescribableImpl<ModuleLocation> implements Serializable {
         /**
          * Subversion URL to check out.
          *
@@ -2810,9 +2713,9 @@ public class SubversionSCM extends SCM implements Serializable {
         public SVNRepository openRepository(AbstractProject context, boolean keepConnection) throws SVNException {
             SVNURL repoURL = getSVNURL();
             if (keepConnection) {
-                return Jenkins.getInstance().getDescriptorByType(DescriptorImpl.class).getRepository(context, repoURL,lookupCredentials(context, credentialsId, repoURL), Collections.<String, Credentials>emptyMap(), null);
+                return descriptor().getRepository(context, repoURL,lookupCredentials(context, credentialsId, repoURL), Collections.<String, Credentials>emptyMap(), null);
             }
-            return Jenkins.getInstance().getDescriptorByType(DescriptorImpl.class).getRepository(context, repoURL,lookupCredentials(context, credentialsId, repoURL), Collections.<String, Credentials>emptyMap(), new ISVNSession() {
+            return descriptor().getRepository(context, repoURL,lookupCredentials(context, credentialsId, repoURL), Collections.<String, Credentials>emptyMap(), new ISVNSession() {
                 public boolean keepConnection(SVNRepository repository) {
                     return false;
                 }
@@ -2949,6 +2852,168 @@ public class SubversionSCM extends SCM implements Serializable {
             }
             return modules;
         }
+
+        @Extension
+        public static class DescriptorImpl extends Descriptor<ModuleLocation> {
+
+            @Override
+            public String getDisplayName() {
+                return null;  //To change body of implemented methods use File | Settings | File Templates.
+            }
+
+            public ListBoxModel doFillCredentialsIdItems(@AncestorInPath AbstractProject context,
+                                                       @QueryParameter String remote) {
+              List<DomainRequirement> domainRequirements;
+              if (remote == null) {
+                      domainRequirements = Collections.<DomainRequirement>emptyList();
+              } else {
+                  domainRequirements = URIRequirementBuilder.fromUri(remote.trim()).build();
+              }
+              return new StandardListBoxModel()
+                      .withEmptySelection()
+                      .withMatching(
+                              CredentialsMatchers.anyOf(
+                                      CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
+                                      CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
+                                      CredentialsMatchers.instanceOf(SSHUserPrivateKey.class)
+                              ),
+                              CredentialsProvider.lookupCredentials(StandardCredentials.class,
+                                      context,
+                                      ACL.SYSTEM,
+                                      domainRequirements)
+                      );
+          }
+
+          /**
+           * validate the value for a remote (repository) location.
+           */
+          public FormValidation doCheckRemote(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String remote) {
+              // syntax check first
+              String url = Util.fixEmptyAndTrim(remote);
+              if (url == null)
+                  return FormValidation.error(Messages.SubversionSCM_doCheckRemote_required());
+
+              if(descriptor().isValidateRemoteUpToVar()) {
+                  url = (url.indexOf('$') != -1) ? url.substring(0, url.indexOf('$')) : url;
+              } else {
+                  url = new EnvVars(EnvVars.masterEnvVars).expand(url);
+              }
+
+              if(!URL_PATTERN.matcher(url).matches())
+                  return FormValidation.errorWithMarkup(
+                      Messages.SubversionSCM_doCheckRemote_invalidUrl());
+
+              return FormValidation.ok();
+          }
+
+          /**
+           * validate the value for a remote (repository) location.
+           */
+          public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String remote, @QueryParameter String value) {
+              // if check remote is reporting an issue then we don't need to
+              String url = Util.fixEmptyAndTrim(remote);
+              if (url == null)
+                  return FormValidation.ok();
+
+              if(descriptor().isValidateRemoteUpToVar()) {
+                  url = (url.indexOf('$') != -1) ? url.substring(0, url.indexOf('$')) : url;
+              } else {
+                  url = new EnvVars(EnvVars.masterEnvVars).expand(url);
+              }
+
+              if(!URL_PATTERN.matcher(url).matches())
+                  return FormValidation.ok();
+
+              // Test the connection only if we have job configure permission
+              if (!context.hasPermission(Item.CONFIGURE))
+                  return FormValidation.ok();
+
+              try {
+                  String urlWithoutRevision = SvnHelper.getUrlWithoutRevision(url);
+
+                  SVNURL repoURL = SVNURL.parseURIDecoded(urlWithoutRevision);
+
+                  StandardCredentials credentials = lookupCredentials(context, value, repoURL);
+                  if (descriptor().checkRepositoryPath(context,repoURL, credentials)!=SVNNodeKind.NONE) {
+                      // something exists; now check revision if any
+
+                      SVNRevision revision = getRevisionFromRemoteUrl(url);
+                      if (revision != null && !revision.isValid()) {
+                          return FormValidation.errorWithMarkup(Messages.SubversionSCM_doCheckRemote_invalidRevision());
+                      }
+
+                      return FormValidation.ok();
+                  }
+
+                  SVNRepository repository = null;
+                  try {
+                      repository = descriptor().getRepository(context,repoURL, credentials, Collections.<String, Credentials>emptyMap(), null);
+                      long rev = repository.getLatestRevision();
+                      // now go back the tree and find if there's anything that exists
+                      String repoPath = descriptor().getRelativePath(repoURL, repository);
+                      String p = repoPath;
+                      while(p.length()>0) {
+                          p = SVNPathUtil.removeTail(p);
+                          if(repository.checkPath(p,rev)==SVNNodeKind.DIR) {
+                              // found a matching path
+                              List<SVNDirEntry> entries = new ArrayList<SVNDirEntry>();
+                              repository.getDir(p,rev,false,entries);
+
+                              // build up the name list
+                              List<String> paths = new ArrayList<String>();
+                              for (SVNDirEntry e : entries)
+                                  if(e.getKind()==SVNNodeKind.DIR)
+                                      paths.add(e.getName());
+
+                              String head = SVNPathUtil.head(repoPath.substring(p.length() + 1));
+                              String candidate = EditDistance.findNearest(head,paths);
+
+                              return FormValidation.error(
+                                  Messages.SubversionSCM_doCheckRemote_badPathSuggest(p, head,
+                                      candidate != null ? "/" + candidate : ""));
+                          }
+                      }
+
+                      return FormValidation.error(
+                          Messages.SubversionSCM_doCheckRemote_badPath(repoPath));
+                  } finally {
+                      if (repository != null)
+                          repository.closeSession();
+                  }
+              } catch (SVNException e) {
+                  LOGGER.log(Level.INFO, "Failed to access subversion repository "+url,e);
+                  String message = Messages.SubversionSCM_doCheckRemote_exceptionMsg1(
+                      Util.escape(url), Util.escape(e.getErrorMessage().getFullMessage()),
+                      "javascript:document.getElementById('svnerror').style.display='block';"
+                        + "document.getElementById('svnerrorlink').style.display='none';"
+                        + "return false;")
+                    + "<br/><pre id=\"svnerror\" style=\"display:none\">"
+                    + Functions.printThrowable(e) + "</pre>";
+                  return FormValidation.errorWithMarkup(message);
+              }
+          }
+
+            /**
+             * validate the value for a local location (local checkout directory).
+             */
+            public FormValidation doCheckLocal(@QueryParameter String value) throws IOException, ServletException {
+                String v = Util.nullify(value);
+                if (v == null)
+                    // local directory is optional so this is ok
+                    return FormValidation.ok();
+
+                v = v.trim();
+
+                // check if a absolute path has been supplied
+                // (the last check with the regex will match windows drives)
+                if (v.startsWith("/") || v.startsWith("\\") || v.startsWith("..") || v.matches("^[A-Za-z]:.*"))
+                    return FormValidation.error("absolute path is not allowed");
+
+                // all tests passed so far
+                return FormValidation.ok();
+            }
+
+        }
     }
 
     private static final Logger LOGGER = Logger.getLogger(SubversionSCM.class.getName());
@@ -3046,7 +3111,7 @@ public class SubversionSCM extends SCM implements Serializable {
                         CredentialsMatchers.withId(credentialsId));
     }
 
-    public static class AdditionalCredentials {
+    public static class AdditionalCredentials extends AbstractDescribableImpl<AdditionalCredentials> {
         @NonNull
         private final String realm;
         @CheckForNull
@@ -3095,6 +3160,45 @@ public class SubversionSCM extends SCM implements Serializable {
             int result = realm.hashCode();
             result = 31 * result + (credentialsId != null ? credentialsId.hashCode() : 0);
             return result;
+        }
+
+        @Extension
+        public static class DescriptorImpl extends Descriptor<AdditionalCredentials> {
+
+            @Override
+            public String getDisplayName() {
+                return null;
+            }
+
+            public ListBoxModel doFillCredentialsIdItems(@AncestorInPath AbstractProject context,
+                                                         @QueryParameter String realm) {
+                List<DomainRequirement> domainRequirements;
+                if (realm == null) {
+                    domainRequirements = Collections.<DomainRequirement>emptyList();
+                } else {
+                    if (realm.startsWith("<") && realm.contains(">")) {
+                        int index = realm.indexOf('>');
+                        assert index > 1;
+                        domainRequirements = URIRequirementBuilder.fromUri(realm.substring(1, index).trim()).build();
+                    } else {
+                        domainRequirements = Collections.<DomainRequirement>emptyList();
+                    }
+                }
+                return new StandardListBoxModel()
+                        .withEmptySelection()
+                        .withMatching(
+                                CredentialsMatchers.anyOf(
+                                        CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
+                                        CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
+                                        CredentialsMatchers.instanceOf(SSHUserPrivateKey.class)
+                                ),
+                                CredentialsProvider.lookupCredentials(StandardCredentials.class,
+                                        context,
+                                        ACL.SYSTEM,
+                                        domainRequirements)
+                        );
+            }
+
         }
     }
 }
