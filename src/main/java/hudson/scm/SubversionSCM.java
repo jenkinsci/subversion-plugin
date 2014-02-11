@@ -2357,7 +2357,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
                 SVNRepository repository = null;
                 try {
-                    repository = getRepository(context,repoURL, credentials, Collections.<String, Credentials>emptyMap());
+                    repository = getRepository(context,repoURL, credentials, Collections.<String, Credentials>emptyMap(), null);
                     long rev = repository.getLatestRevision();
                     // now go back the tree and find if there's anything that exists
                     String repoPath = getRelativePath(repoURL, repository);
@@ -2403,6 +2403,10 @@ public class SubversionSCM extends SCM implements Serializable {
             }
         }
 
+        /**
+         * @deprecated use {@link #checkRepositoryPath(hudson.model.AbstractProject, org.tmatesoft.svn.core.SVNURL, com.cloudbees.plugins.credentials.common.StandardCredentials)}
+         */
+        @Deprecated
         public SVNNodeKind checkRepositoryPath(AbstractProject context, SVNURL repoURL) throws SVNException {
             return checkRepositoryPath(context, repoURL, null);
         }
@@ -2411,7 +2415,7 @@ public class SubversionSCM extends SCM implements Serializable {
             SVNRepository repository = null;
 
             try {
-                repository = getRepository(context,repoURL,credentials, Collections.<String, Credentials>emptyMap());
+                repository = getRepository(context,repoURL,credentials, Collections.<String, Credentials>emptyMap(), null);
                 repository.testConnection();
 
                 long rev = repository.getLatestRevision();
@@ -2423,18 +2427,31 @@ public class SubversionSCM extends SCM implements Serializable {
             }
         }
 
+        /**
+         * @deprecated Use {@link #getRepository(hudson.model.AbstractProject, org.tmatesoft.svn.core.SVNURL, com.cloudbees.plugins.credentials.common.StandardCredentials, java.util.Map, org.tmatesoft.svn.core.io.ISVNSession)}
+         */
+        @Deprecated
         protected SVNRepository getRepository(AbstractProject context, SVNURL repoURL) throws SVNException {
             return getRepository(context, repoURL, null, Collections.<String, Credentials>emptyMap(), null);
         }
 
+        /**
+         * @deprecated Use {@link #getRepository(hudson.model.AbstractProject, org.tmatesoft.svn.core.SVNURL, com.cloudbees.plugins.credentials.common.StandardCredentials, java.util.Map, org.tmatesoft.svn.core.io.ISVNSession)}
+         */
+        @Deprecated
         protected SVNRepository getRepository(AbstractProject context, SVNURL repoURL, ISVNSession session) throws SVNException {
             return getRepository(context, repoURL, null, Collections.<String, Credentials>emptyMap(), null);
         }
 
+        /**
+         * @deprecated Use {@link #getRepository(hudson.model.AbstractProject, org.tmatesoft.svn.core.SVNURL, com.cloudbees.plugins.credentials.common.StandardCredentials, java.util.Map, org.tmatesoft.svn.core.io.ISVNSession)}
+         */
+        @Deprecated
         protected SVNRepository getRepository(AbstractProject context, SVNURL repoURL, StandardCredentials credentials,
                                               Map<String, Credentials> additionalCredentials) throws SVNException {
             return getRepository(context, repoURL, credentials, additionalCredentials, null);
         }
+
         protected SVNRepository getRepository(AbstractProject context, SVNURL repoURL, StandardCredentials credentials,
                                               Map<String, Credentials> additionalCredentials, ISVNSession session) throws SVNException {
             SVNRepository repository = SVNRepositoryFactory.create(repoURL, session);
@@ -2571,7 +2588,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
                 SVNRepository repository = null;
                 try {
-                    repository = getRepository(context,repoURL, credentials, Collections.<String, Credentials>emptyMap());
+                    repository = getRepository(context,repoURL, credentials, Collections.<String, Credentials>emptyMap(), null);
                     if (repository.hasCapability(SVNCapability.LOG_REVPROPS))
                         return FormValidation.ok();
                 } finally {
