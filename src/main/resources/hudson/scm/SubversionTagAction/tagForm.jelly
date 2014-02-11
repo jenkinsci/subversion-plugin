@@ -101,13 +101,9 @@ THE SOFTWARE.
                 <div class="textarea-handle"/>
               </td>
             </tr>
-            <f:optionalBlock name="credential" title="${%Use alternate credential for tagging}">
-              <f:block>
-                <table style="width:100%">
-                  <x:enterCredential xmlns:x="/hudson/scm/subversion" />
-                </table>
-              </f:block>
-            </f:optionalBlock>
+            <f:entry field="credentialsId" title="${%Credentials for tagging}">
+              <c:select xmlns:c="/lib/credentials"/>
+            </f:entry>
           </table>
           <f:submit value="${%Tag}" />
           <script>

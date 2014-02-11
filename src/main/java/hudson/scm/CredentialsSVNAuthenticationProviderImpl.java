@@ -72,6 +72,39 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
                 credentialsByRealm == null ? Collections.<String, Credentials>emptyMap() : credentialsByRealm);
     }
 
+    public static CredentialsSVNAuthenticationProviderImpl createAuthenticationProvider(Item context, String remote, String credentialsId, Map<String,String> additionalCredentialIds) {
+        StandardCredentials defaultCredentials;
+        if (credentialsId == null) {
+            defaultCredentials = null;
+        } else {
+            defaultCredentials = CredentialsMatchers
+                    .firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class, context,
+                            ACL.SYSTEM, URIRequirementBuilder.fromUri(remote).build()),
+                            CredentialsMatchers.allOf(idMatcher(credentialsId),
+                                    CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(
+                                            StandardCredentials.class), CredentialsMatchers.instanceOf(
+                                            SSHUserPrivateKey.class))));
+        }
+        Map<String, Credentials> additional = new HashMap<String, Credentials>();
+        if (additionalCredentialIds != null) {
+            for (Map.Entry<String,String> c : additionalCredentialIds.entrySet()) {
+                if (c.getValue() != null) {
+                    StandardCredentials cred = CredentialsMatchers
+                            .firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class, context,
+                                    ACL.SYSTEM, Collections.<DomainRequirement>emptyList()),
+                                    CredentialsMatchers.allOf(idMatcher(c.getValue()),
+                                            CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(
+                                                    StandardCredentials.class), CredentialsMatchers.instanceOf(
+                                                    SSHUserPrivateKey.class))));
+                    if (cred != null) {
+                        additional.put(c.getKey(), cred);
+                    }
+                }
+            }
+        }
+        return new CredentialsSVNAuthenticationProviderImpl(defaultCredentials, additional);
+    }
+
     public static CredentialsSVNAuthenticationProviderImpl createAuthenticationProvider(Item context, SubversionSCM scm,
                                                                                         SubversionSCM.ModuleLocation
                                                                                                 location) {
