@@ -42,6 +42,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
@@ -143,9 +144,9 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
    * defined when configuring the Subversion SCM.</p>
    *
    * <p>This method never returns {@code null}. In case an error happens, the
-   * returned list contains an error message surrounded by &lt; and &gt;.</p>
+   * returned list contains an error message prefixed by {@code !}.</p>
    */
-public List<String> getTags(@Nullable AbstractProject context) {
+  @Nonnull public List<String> getTags(@Nullable AbstractProject context) {
     List<String> dirs = new ArrayList<String>();
 
     try {
@@ -356,8 +357,7 @@ public List<String> getTags(@Nullable AbstractProject context) {
             if (prop != null) {
                 ParameterDefinition def = prop.getParameterDefinition(param);
                 if (def instanceof ListSubversionTagsParameterDefinition) {
-                    List<String> tags = ((ListSubversionTagsParameterDefinition) def).getTags(context);
-                    for (String tag : tags) {
+                    for (String tag : ((ListSubversionTagsParameterDefinition) def).getTags(context)) {
                         if (tag.startsWith("!")) {
                             model.add(tag.substring(1), "");
                         } else {
