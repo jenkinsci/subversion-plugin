@@ -156,6 +156,8 @@ import javax.xml.transform.stream.StreamResult;
 
 import net.sf.json.JSONObject;
 
+import org.acegisecurity.context.SecurityContext;
+import org.acegisecurity.context.SecurityContextHolder;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
@@ -1657,18 +1659,23 @@ public class SubversionSCM extends SCM implements Serializable {
         public void load() {
             super.load();
             if (credentials != null && !credentials.isEmpty()) {
-                BulkChange bc = new BulkChange(this);
+                SecurityContext oldContext = ACL.impersonate(ACL.SYSTEM);
                 try {
-                    mayHaveLegacyPerJobCredentials = true;
-                    for (Map.Entry<String, Credential> e : credentials.entrySet()) {
-                        migrateCredentials(Jenkins.getInstance(), e.getKey(), e.getValue());
+                    BulkChange bc = new BulkChange(this);
+                    try {
+                        mayHaveLegacyPerJobCredentials = true;
+                        for (Map.Entry<String, Credential> e : credentials.entrySet()) {
+                            migrateCredentials(Jenkins.getInstance(), e.getKey(), e.getValue());
+                        }
+                        save();
+                        bc.commit();
+                    } catch (IOException e) {
+                        LOGGER.log(Level.WARNING, "Could not migrate stored credentials", e);
+                    } finally {
+                        bc.abort();
                     }
-                    save();
-                    bc.commit();
-                } catch (IOException e) {
-                    LOGGER.log(Level.WARNING, "Could not migrate stored credentials", e);
                 } finally {
-                    bc.abort();
+                    SecurityContextHolder.setContext(oldContext);
                 }
             }
         }
