@@ -200,6 +200,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
                         if (instance != null) {
                             listener.getLogger().println("Polled jobs are " + instance.getDescriptorByType(SCMTrigger.DescriptorImpl.class).getItemsBeingPolled());
                         }
+                        return delegateTo(new CheckoutUpdater());
                     }
 
                   // recurse as long as we encounter nested SVNException
