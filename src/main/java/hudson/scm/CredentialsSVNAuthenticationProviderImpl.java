@@ -44,6 +44,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.logging.Logger;
 import java.util.Map;
 import java.util.Set;
 
@@ -147,6 +148,7 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
     public SVNAuthentication requestClientAuthentication(String kind, SVNURL url, String realm,
                                                          SVNErrorMessage errorMessage, SVNAuthentication previousAuth,
                                                          boolean authMayBeStored) {
+        LOGGER.fine("Attempting auth for URL: " + url.toString() + "; Realm: " + realm);
         SVNAuthenticationBuilder builder = provider.getBuilder(realm);
         if (builder == null) {
             if (previousAuth == null && ISVNAuthenticationManager.USERNAME.equals(kind)) {
@@ -471,5 +473,7 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
             return Collections.emptyList();
         }
     }
+
+    private static final Logger LOGGER = Logger.getLogger(CredentialsSVNAuthenticationProviderImpl.class.getName());
 
 }
