@@ -2199,7 +2199,7 @@ public class SubversionSCM extends SCM implements Serializable {
         @Deprecated
         public ISVNAuthenticationProvider createAuthenticationProvider(AbstractProject<?,?> inContextOf) {
             SubversionSCM scm = null;
-            if (inContextOf.getScm() instanceof SubversionSCM) {
+            if (inContextOf != null && inContextOf.getScm() instanceof SubversionSCM) {
                 scm = (SubversionSCM)inContextOf.getScm();
             }
             return CredentialsSVNAuthenticationProviderImpl.createAuthenticationProvider(inContextOf, scm, null);
