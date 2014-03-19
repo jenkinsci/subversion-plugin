@@ -2718,11 +2718,6 @@ public class SubversionSCM extends SCM implements Serializable {
             return repositoryUUID;
         }
 
-        // TODO reuse CredentialsSVNAuthenticationProviderImpl
-        private static CredentialsMatcher idMatcher(String credentialsId) {
-            return credentialsId == null ? CredentialsMatchers.never() : CredentialsMatchers.withId(credentialsId);
-        }
-
         public SVNRepository openRepository(AbstractProject context) throws SVNException {
             return openRepository(context, true);
         }
@@ -2741,7 +2736,7 @@ public class SubversionSCM extends SCM implements Serializable {
                         StandardCredentials cred = CredentialsMatchers
                                 .firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class, context,
                                         ACL.SYSTEM, Collections.<DomainRequirement>emptyList()),
-                                        CredentialsMatchers.allOf(idMatcher(c.getCredentialsId()),
+                                        CredentialsMatchers.allOf(CredentialsMatchers.withId(credentialsId),
                                                 CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(
                                                         StandardCredentials.class), CredentialsMatchers.instanceOf(
                                                         SSHUserPrivateKey.class))));
