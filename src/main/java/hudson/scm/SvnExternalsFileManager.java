@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
+import javax.annotation.Nonnull;
 
 /**
  * Implements local file storage of externals information.
@@ -50,7 +51,7 @@ import java.util.WeakHashMap;
 class SvnExternalsFileManager {
     private static final String SVN_EXTERNALS_FILE = "svnexternals.txt";
     private static final XStream XSTREAM = new XStream2();
-    private static Map<AbstractProject, CacheItem> projectExternalsCache;    
+    private static Map<AbstractProject, Object> projectExternalsCache;    
     static {
         XSTREAM.alias("external", SubversionSCM.External.class);
     }
@@ -60,14 +61,15 @@ class SvnExternalsFileManager {
      * @param project Project to be used
      * @return A lock object (will be created on-demand)
      */
-    private static synchronized CacheItem getFileLockItem(AbstractProject project) {
+    @Nonnull
+    private static synchronized Object getFileLockItem(AbstractProject project) {
         if (projectExternalsCache == null) {
-            projectExternalsCache = new WeakHashMap<AbstractProject, CacheItem>();
+            projectExternalsCache = new WeakHashMap<AbstractProject, Object>();
         }
                 
-        CacheItem item = projectExternalsCache.get(project);
+        Object item = projectExternalsCache.get(project);
         if (item == null) {
-            item = new CacheItem();
+            item = new Object();
             projectExternalsCache.put(project, item);
         }
         return item;
@@ -76,6 +78,7 @@ class SvnExternalsFileManager {
     /**
      * Gets the file that stores the externals.
      */
+    @Nonnull
     private static File getExternalsFile(AbstractProject project) {
         return new File(project.getRootDir(), SVN_EXTERNALS_FILE);
     }
@@ -90,6 +93,7 @@ class SvnExternalsFileManager {
      *
      * @return immutable list. Can be empty but never null.
      */
+    @Nonnull
     @SuppressWarnings("unchecked")
     public static List<SubversionSCM.External> parseExternalsFile(AbstractProject project) throws IOException {
         File file = getExternalsFile(project);
@@ -120,13 +124,5 @@ class SvnExternalsFileManager {
         synchronized (lock) {
             new XmlFile(XSTREAM, getExternalsFile(project)).write(externals);
         }
-    }
-    
-    /**
-     * An internal item for synchronization.
-     * In the current state, class does not contain any specific data;
-     */
-    private static final class CacheItem {
-        // Yes, the file is empty
     }
 }
