@@ -715,6 +715,8 @@ public class SubversionSCM extends SCM implements Serializable {
                 }
             }
 
+            env.put("SVN_CURRENT_REVISION", maximumRevision(build).toString());
+
         } catch (IOException e) {
             LOGGER.log(WARNING, "error building environment variables", e);
         }
@@ -825,6 +827,46 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         return revisions;
+    }
+
+    /**
+     * Parses the SVN revision file for the maximum revision (needed for the SVN_CURRENT_REVISION)
+     */
+    /*package*/ static Long maximumRevision(AbstractBuild<?,?> build) throws IOException {
+
+        Long maxrev = new Long(0);
+        {// read the revision file of the build
+            File file = getRevisionFile(build);
+            if(!file.exists())
+                // nothing to compare against
+                return maxrev;
+
+            BufferedReader br = new BufferedReader(new FileReader(file));
+            try {
+                String line;
+                while((line=br.readLine())!=null) {
+                	int index = line.lastIndexOf('/');
+                        int indexLast = line.length();
+                	if (line.lastIndexOf("::p") == indexLast-3) {
+                		indexLast -= 3;
+                	}
+                    if(index<0) {
+                        continue;   // invalid line?
+                    }
+                    try {
+                    	long revision = Long.parseLong(line.substring(index+1,indexLast));
+                    	if ( revision > maxrev ) maxrev = revision;
+                	} catch (NumberFormatException e) {
+                	    // perhaps a corrupted line.
+                	    LOGGER.log(WARNING, "Error parsing line " + line, e);
+                	}
+                }
+            } finally {
+                br.close();
+            }
+        }
+
+        return maxrev;
     }
 
     /**
