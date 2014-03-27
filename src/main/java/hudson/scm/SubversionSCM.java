@@ -35,6 +35,7 @@ import static java.util.logging.Level.WARNING;
 import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
 import com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey;
 import com.cloudbees.plugins.credentials.Credentials;
+import com.cloudbees.plugins.credentials.CredentialsMatcher;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
@@ -2197,7 +2198,11 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         @Deprecated
         public ISVNAuthenticationProvider createAuthenticationProvider(AbstractProject<?,?> inContextOf) {
-            return CredentialsSVNAuthenticationProviderImpl.createAuthenticationProvider(inContextOf, null, null);
+            SubversionSCM scm = null;
+            if (inContextOf != null && inContextOf.getScm() instanceof SubversionSCM) {
+                scm = (SubversionSCM)inContextOf.getScm();
+            }
+            return CredentialsSVNAuthenticationProviderImpl.createAuthenticationProvider(inContextOf, scm, null);
         }
 
         /**
@@ -2719,10 +2724,33 @@ public class SubversionSCM extends SCM implements Serializable {
 
         public SVNRepository openRepository(AbstractProject context, boolean keepConnection) throws SVNException {
             SVNURL repoURL = getSVNURL();
-            if (keepConnection) {
-                return descriptor().getRepository(context, repoURL,lookupCredentials(context, credentialsId, repoURL), Collections.<String, Credentials>emptyMap(), null);
+
+            StandardCredentials creds = lookupCredentials(context, credentialsId, repoURL);
+            Map<String, Credentials> additional = new HashMap<String, Credentials>();
+            if (creds == null) {
+                // we should add additional credentials, this looks like it's going to be an external
+                // TODO only necessary with externals, or can we always do this?
+                List<AdditionalCredentials> additionalCredentialsList = ((SubversionSCM)context.getScm()).getAdditionalCredentials();
+                for (AdditionalCredentials c : additionalCredentialsList) {
+                    if (c.getCredentialsId() != null) {
+                        StandardCredentials cred = CredentialsMatchers
+                                .firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class, context,
+                                        ACL.SYSTEM, Collections.<DomainRequirement>emptyList()),
+                                        CredentialsMatchers.allOf(CredentialsMatchers.withId(credentialsId),
+                                                CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(
+                                                        StandardCredentials.class), CredentialsMatchers.instanceOf(
+                                                        SSHUserPrivateKey.class))));
+                        if (cred != null) {
+                            additional.put(c.getRealm(), cred);
+                        }
+                    }
+                }
             }
-            return descriptor().getRepository(context, repoURL,lookupCredentials(context, credentialsId, repoURL), Collections.<String, Credentials>emptyMap(), new ISVNSession() {
+
+            if (keepConnection) {
+                return descriptor().getRepository(context, repoURL, creds, additional, null);
+            }
+            return descriptor().getRepository(context, repoURL, creds, additional, new ISVNSession() {
                 public boolean keepConnection(SVNRepository repository) {
                     return false;
                 }
