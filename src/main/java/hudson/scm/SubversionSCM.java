@@ -716,6 +716,11 @@ public class SubversionSCM extends SCM implements Serializable {
                 }
             }
 
+            // get the maximum revision which attempts to resolve JENKINS-6746
+            Long maxrev = new Long(0);
+            for (Long rev : revisions.values()) if (rev>maxrev) maxrev=rev;
+            env.put("SVN_MAX_REVISION",maxrev.toString());
+
         } catch (IOException e) {
             LOGGER.log(WARNING, "error building environment variables", e);
         }
