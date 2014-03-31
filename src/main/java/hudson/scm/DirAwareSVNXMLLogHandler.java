@@ -87,7 +87,10 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
           Map<String, SVNLogEntryPath> changedPaths = new HashMap<String, SVNLogEntryPath>();
           for (SVNLogEntryPath entry : logEntry.getChangedPaths().values()) {
               String localPath = entry.getPath().substring(1); // path in svn log start with a '/'
-              localPath = relativePath + localPath.substring(relativeUrl.length());
+              if(localPath.startsWith(relativeUrl))
+              {
+            	  localPath = relativePath + localPath.substring(relativeUrl.length());
+              }
               // can't use entry.setPath(localPath) as FSPathChange duplicate myPath attribute then setPath().getPath() don't return same value
               changedPaths.put(localPath, new SVNLogEntryPath(localPath, entry.getType(), entry.getCopyPath(), entry.getCopyRevision()));
           }
