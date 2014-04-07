@@ -2736,7 +2736,7 @@ public class SubversionSCM extends SCM implements Serializable {
                         StandardCredentials cred = CredentialsMatchers
                                 .firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class, context,
                                         ACL.SYSTEM, Collections.<DomainRequirement>emptyList()),
-                                        CredentialsMatchers.allOf(CredentialsMatchers.withId(credentialsId),
+                                        CredentialsMatchers.allOf(CredentialsMatchers.withId(c.getCredentialsId()),
                                                 CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(
                                                         StandardCredentials.class), CredentialsMatchers.instanceOf(
                                                         SSHUserPrivateKey.class))));
