@@ -23,24 +23,20 @@
  */
 package hudson.scm.subversion;
 
+import hudson.scm.SVNEvent;
 import hudson.scm.SubversionEventHandlerImpl;
 import hudson.scm.SubversionSCM.External;
-import java.util.HashMap;
-import java.util.Map;
-import org.tmatesoft.svn.core.SVNCancelException;
-import org.tmatesoft.svn.core.SVNErrorCode;
-import org.tmatesoft.svn.core.SVNErrorMessage;
-import org.tmatesoft.svn.core.SVNException;
-import org.tmatesoft.svn.core.SVNURL;
+import org.tmatesoft.svn.core.*;
 import org.tmatesoft.svn.core.wc.ISVNExternalsHandler;
-import org.tmatesoft.svn.core.wc.SVNEvent;
 import org.tmatesoft.svn.core.wc.SVNEventAction;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Just prints out the progress of svn update/checkout operation in a way similar to

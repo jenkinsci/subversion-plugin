@@ -1,18 +1,17 @@
 package hudson.scm;
 
-import static java.util.regex.Pattern.compile;
 import hudson.scm.SubversionSCM.SVNLogHandler;
 import hudson.util.StreamTaskListener;
+import org.apache.commons.io.output.NullOutputStream;
+import org.junit.Test;
+import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
 
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.Collections;
 import java.util.regex.Pattern;
 
-import org.junit.Test;
-
-import com.google.common.io.NullOutputStream;
-import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
+import static java.util.regex.Pattern.compile;
 
 public class CompareAgainstBaselineCallableTest {
     
