@@ -87,7 +87,8 @@ public class FishEyeSVN extends SubversionRepositoryBrowser {
         if(path.getEditType()!= EditType.EDIT)
             return null;    // no diff if this is not an edit change
         int r = path.getLogEntry().getRevision();
-        return new URL(url, getPath(path)+String.format("?r1=%d&r2=%d",r-1,r));
+        // Add to aguments r2 only
+        return new URL(url, getPath(path)+String.format("?r2=%d",r));
     }
 
     @Override
