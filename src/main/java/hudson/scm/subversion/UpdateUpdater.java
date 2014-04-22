@@ -222,9 +222,6 @@ public class UpdateUpdater extends WorkspaceUpdater {
         private SVNException getNestedSVNException(Throwable e) {
             Throwable t = e.getCause();
             if (t instanceof SVNException) return (SVNException) t;
-            if (t instanceof SVNErrorMessage) {
-                return getNestedSVNException(t);
-            }
             return null;
         }
 

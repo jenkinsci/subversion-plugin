@@ -26,137 +26,38 @@
  */
 package hudson.scm;
 
-import static hudson.Util.fixEmptyAndTrim;
-import static hudson.scm.PollingResult.BUILD_NOW;
-import static hudson.scm.PollingResult.NO_CHANGES;
-import static java.util.logging.Level.FINE;
-import static java.util.logging.Level.WARNING;
-
 import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
 import com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey;
-import com.cloudbees.plugins.credentials.Credentials;
-import com.cloudbees.plugins.credentials.CredentialsMatcher;
-import com.cloudbees.plugins.credentials.CredentialsMatchers;
-import com.cloudbees.plugins.credentials.CredentialsNameProvider;
-import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.CredentialsScope;
-import com.cloudbees.plugins.credentials.CredentialsStore;
+import com.cloudbees.plugins.credentials.*;
 import com.cloudbees.plugins.credentials.common.StandardCertificateCredentials;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
-import com.cloudbees.plugins.credentials.domains.Domain;
-import com.cloudbees.plugins.credentials.domains.DomainRequirement;
-import com.cloudbees.plugins.credentials.domains.DomainSpecification;
-import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
-import com.cloudbees.plugins.credentials.domains.HostnameSpecification;
-import com.cloudbees.plugins.credentials.domains.SchemeRequirement;
-import com.cloudbees.plugins.credentials.domains.SchemeSpecification;
-import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import com.cloudbees.plugins.credentials.domains.*;
 import com.cloudbees.plugins.credentials.impl.CertificateCredentialsImpl;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
+import com.thoughtworks.xstream.XStream;
+import com.trilead.ssh2.DebugLogger;
+import com.trilead.ssh2.SCPClient;
+import com.trilead.ssh2.crypto.Base64;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.BulkChange;
-import hudson.EnvVars;
-import hudson.Extension;
-import hudson.FilePath;
+import hudson.*;
 import hudson.FilePath.FileCallable;
-import hudson.Functions;
-import hudson.Launcher;
-import hudson.Util;
-import hudson.XmlFile;
 import hudson.init.InitMilestone;
-import hudson.model.AbstractDescribableImpl;
-import hudson.model.BuildListener;
-import hudson.model.Descriptor;
-import hudson.model.Item;
-import hudson.model.ItemGroup;
-import hudson.model.ModelObject;
-import hudson.model.TaskListener;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.Computer;
-import hudson.model.Hudson;
-
-import java.io.ByteArrayOutputStream;
-import java.nio.charset.UnsupportedCharsetException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.WeakHashMap;
-
-import hudson.security.ACL;
-import hudson.util.ListBoxModel;
-import jenkins.model.Jenkins;
-import jenkins.model.Jenkins.MasterComputer;
-import hudson.model.Node;
-import hudson.model.ParametersAction;
-import hudson.model.Run;
+import hudson.model.*;
 import hudson.remoting.Callable;
 import hudson.remoting.Channel;
 import hudson.remoting.VirtualChannel;
 import hudson.scm.UserProvidedCredential.AuthenticationManagerImpl;
-import hudson.scm.subversion.CheckoutUpdater;
+import hudson.scm.subversion.*;
 import hudson.scm.subversion.Messages;
-import hudson.scm.subversion.SvnHelper;
-import hudson.scm.subversion.UpdateUpdater;
-import hudson.scm.subversion.UpdateWithRevertUpdater;
-import hudson.scm.subversion.UpdaterException;
-import hudson.scm.subversion.WorkspaceUpdater;
 import hudson.scm.subversion.WorkspaceUpdater.UpdateTask;
-import hudson.scm.subversion.WorkspaceUpdaterDescriptor;
-import hudson.util.EditDistance;
-import hudson.util.FormValidation;
-import hudson.util.LogTaskListener;
-import hudson.util.MultipartFormDataParser;
-import hudson.util.Scrambler;
-import hudson.util.Secret;
-import hudson.util.TimeUnit2;
-import hudson.util.XStream2;
-
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InterruptedIOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.io.PrintWriter;
-import java.io.Serializable;
-import java.io.StringWriter;
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Random;
-import java.util.Set;
-import java.util.StringTokenizer;
-import java.util.UUID;
-import java.util.logging.Level;
-import java.util.logging.LogRecord;
-import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
-
-import javax.servlet.ServletException;
-import javax.xml.transform.stream.StreamResult;
-
+import hudson.security.ACL;
+import hudson.util.*;
+import jenkins.model.Jenkins;
+import jenkins.model.Jenkins.MasterComputer;
 import net.sf.json.JSONObject;
-
 import org.acegisecurity.context.SecurityContext;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.apache.commons.beanutils.PropertyUtils;
@@ -165,29 +66,14 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.taskdefs.Chmod;
-import org.kohsuke.stapler.AncestorInPath;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.*;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
-import org.tmatesoft.svn.core.ISVNLogEntryHandler;
-import org.tmatesoft.svn.core.SVNAuthenticationException;
-import org.tmatesoft.svn.core.SVNDepth;
-import org.tmatesoft.svn.core.SVNDirEntry;
-import org.tmatesoft.svn.core.SVNErrorCode;
-import org.tmatesoft.svn.core.SVNErrorMessage;
-import org.tmatesoft.svn.core.SVNException;
-import org.tmatesoft.svn.core.SVNLogEntry;
-import org.tmatesoft.svn.core.SVNNodeKind;
-import org.tmatesoft.svn.core.SVNURL;
-import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
+import org.tmatesoft.svn.core.*;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
 import org.tmatesoft.svn.core.auth.SVNAuthentication;
 import org.tmatesoft.svn.core.auth.SVNPasswordAuthentication;
 import org.tmatesoft.svn.core.auth.SVNSSHAuthentication;
-import org.tmatesoft.svn.core.auth.SVNSSLAuthentication;
 import org.tmatesoft.svn.core.internal.io.dav.DAVRepositoryFactory;
 import org.tmatesoft.svn.core.internal.io.dav.http.DefaultHTTPConnectionFactory;
 import org.tmatesoft.svn.core.internal.io.fs.FSRepositoryFactory;
@@ -195,20 +81,35 @@ import org.tmatesoft.svn.core.internal.io.svn.SVNRepositoryFactoryImpl;
 import org.tmatesoft.svn.core.internal.util.SVNPathUtil;
 import org.tmatesoft.svn.core.internal.wc.DefaultSVNOptions;
 import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminAreaFactory;
+import org.tmatesoft.svn.core.io.ISVNSession;
 import org.tmatesoft.svn.core.io.SVNCapability;
 import org.tmatesoft.svn.core.io.SVNRepository;
 import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
-import org.tmatesoft.svn.core.io.ISVNSession;
-import org.tmatesoft.svn.core.wc.SVNClientManager;
-import org.tmatesoft.svn.core.wc.SVNInfo;
-import org.tmatesoft.svn.core.wc.SVNRevision;
-import org.tmatesoft.svn.core.wc.SVNWCClient;
-import org.tmatesoft.svn.core.wc.SVNWCUtil;
+import org.tmatesoft.svn.core.wc.*;
 
-import com.thoughtworks.xstream.XStream;
-import com.trilead.ssh2.DebugLogger;
-import com.trilead.ssh2.SCPClient;
-import com.trilead.ssh2.crypto.Base64;
+import javax.servlet.ServletException;
+import javax.xml.transform.stream.StreamResult;
+import java.io.*;
+import java.lang.reflect.InvocationTargetException;
+import java.nio.charset.UnsupportedCharsetException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+
+import static hudson.Util.fixEmptyAndTrim;
+import static hudson.scm.PollingResult.BUILD_NOW;
+import static hudson.scm.PollingResult.NO_CHANGES;
+import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.WARNING;
 
 /**
  * Subversion SCM.
@@ -1096,7 +997,7 @@ public class SubversionSCM extends SCM implements Serializable {
         else
             configDir = SVNWCUtil.getDefaultConfigurationDirectory();
 
-        ISVNAuthenticationManager sam = SVNWCUtil.createDefaultAuthenticationManager(configDir, null, null);
+        ISVNAuthenticationManager sam = new DefaultSVNAuthenticationManager(configDir,true, null, null);
         sam.setAuthenticationProvider(authProvider);
         SVNAuthStoreHandlerImpl.install(sam);
         return sam;
@@ -1891,9 +1792,8 @@ public class SubversionSCM extends SCM implements Serializable {
                     FileUtils.copyFile(keyFile,savedKeyFile);
                     setFilePermissions(savedKeyFile, "600");
                 } catch (IOException e) {
-                    throw new SVNException(
-                            SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,"Unable to save private key").initCause(
-                                    e));
+                    throw new SVNException(SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,
+                            "Unable to save private key"),e);
                 }
             }
 
@@ -1954,11 +1854,11 @@ public class SubversionSCM extends SCM implements Serializable {
                     } catch (IOException e) {
                         throw new SVNException(
                                 SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,
-                                        "Unable to load private key").initCause(e));
+                                        "Unable to load private key"), e);
                     } catch (InterruptedException e) {
                         throw new SVNException(
                                 SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,
-                                        "Unable to load private key").initCause(e));
+                                        "Unable to load private key"), e);
                     }
                 } else
                     return null; // unknown

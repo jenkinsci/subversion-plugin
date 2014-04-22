@@ -25,86 +25,39 @@
  */
 package hudson.scm;
 
-import static hudson.scm.SubversionSCM.compareSVNAuthentications;
-import static org.jvnet.hudson.test.recipes.PresetData.DataSet.ANONYMOUS_READONLY;
-
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
-
+import com.gargoylesoftware.htmlunit.*;
+import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
+import com.gargoylesoftware.htmlunit.html.HtmlForm;
+import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Proc;
-import hudson.model.BuildListener;
-import hudson.model.FreeStyleBuild;
-import hudson.model.Item;
-import hudson.model.Result;
-import hudson.model.TaskListener;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.Cause;
-import hudson.model.FreeStyleProject;
-import hudson.model.ParametersAction;
-import hudson.model.Run;
-import hudson.model.StringParameterValue;
+import hudson.model.*;
 import hudson.scm.ChangeLogSet.Entry;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.scm.browsers.Sventon;
-import hudson.scm.subversion.CheckoutUpdater;
-import hudson.scm.subversion.UpdateUpdater;
-import hudson.scm.subversion.UpdateWithCleanUpdater;
-import hudson.scm.subversion.UpdateWithRevertUpdater;
-import hudson.scm.subversion.WorkspaceUpdater;
+import hudson.scm.subversion.*;
 import hudson.slaves.DumbSlave;
 import hudson.triggers.SCMTrigger;
 import hudson.util.FormValidation;
 import hudson.util.StreamTaskListener;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-
 import org.dom4j.Document;
 import org.dom4j.io.DOMReader;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Test;
-import org.jvnet.hudson.test.Bug;
-import org.jvnet.hudson.test.Email;
+import org.jvnet.hudson.test.*;
 import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
-import org.jvnet.hudson.test.TestBuilder;
-import org.jvnet.hudson.test.Url;
-import org.jvnet.hudson.test.CaptureEnvironmentBuilder;
 import org.jvnet.hudson.test.recipes.PresetData;
-import org.tmatesoft.svn.core.SVNCancelException;
-import org.tmatesoft.svn.core.SVNDepth;
-import org.tmatesoft.svn.core.SVNErrorCode;
-import org.tmatesoft.svn.core.SVNErrorMessage;
-import org.tmatesoft.svn.core.SVNException;
-import org.tmatesoft.svn.core.SVNPropertyValue;
-import org.tmatesoft.svn.core.SVNURL;
+import org.tmatesoft.svn.core.*;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
-import org.tmatesoft.svn.core.auth.SVNAuthentication;
-import org.tmatesoft.svn.core.auth.SVNPasswordAuthentication;
-import org.tmatesoft.svn.core.auth.SVNSSHAuthentication;
-import org.tmatesoft.svn.core.auth.SVNSSLAuthentication;
-import org.tmatesoft.svn.core.auth.SVNUserNameAuthentication;
+import org.tmatesoft.svn.core.auth.*;
 import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminAreaFactory;
 import org.tmatesoft.svn.core.io.SVNRepository;
 import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
@@ -113,18 +66,17 @@ import org.tmatesoft.svn.core.wc.SVNRevision;
 import org.tmatesoft.svn.core.wc.SVNStatus;
 import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
-import com.gargoylesoftware.htmlunit.ElementNotFoundException;
-import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
-import com.gargoylesoftware.htmlunit.HttpMethod;
-import com.gargoylesoftware.htmlunit.WebConnection;
-import com.gargoylesoftware.htmlunit.WebRequestSettings;
-import com.gargoylesoftware.htmlunit.WebResponse;
-import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
-import com.gargoylesoftware.htmlunit.html.HtmlForm;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import java.io.*;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
-import hudson.EnvVars;
-import hudson.model.EnvironmentContributor;
+import static hudson.scm.SubversionSCM.compareSVNAuthentications;
+import static org.jvnet.hudson.test.recipes.PresetData.DataSet.ANONYMOUS_READONLY;
 
 /**
  * @author Kohsuke Kawaguchi
