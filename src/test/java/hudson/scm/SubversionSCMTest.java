@@ -33,7 +33,6 @@ import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
-
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Proc;
@@ -82,8 +81,6 @@ import java.util.concurrent.Future;
 
 import org.dom4j.Document;
 import org.dom4j.io.DOMReader;
-import org.hamcrest.Matchers;
-import org.junit.Assert;
 import org.junit.Test;
 import org.jvnet.hudson.test.Bug;
 import org.jvnet.hudson.test.Email;
@@ -122,7 +119,6 @@ import com.gargoylesoftware.htmlunit.WebResponse;
 import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
-
 import hudson.EnvVars;
 import hudson.model.EnvironmentContributor;
 
@@ -1100,8 +1096,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         forCommit.setAssignedLabel(hudson.getSelfLabel());
         // Build once to get a working copy in job workspace
         FreeStyleBuild b = assertBuildStatusSuccess(forCommit.scheduleBuild2(0).get());
-        String folderName = "foo1234567890foo1234567890"; //long path to check substring action
-		FilePath foo = b.getWorkspace().child(folderName);
+        FilePath foo = b.getWorkspace().child("foo");
         foo.mkdirs();
         FilePath newFile = foo.child("README.txt");
         newFile.touch(System.currentTimeMillis());
@@ -1121,7 +1116,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         // setup foo directory in ext as svn:externals on "ext",
         FreeStyleBuild bb = assertBuildStatusSuccess(p.scheduleBuild2(0).get());
         String externalURL = "file://" + ext.toURI().toURL().getPath();
-        SVNPropertyValue externals = SVNPropertyValue.create("ext " + externalURL + "/" + folderName);
+        SVNPropertyValue externals = SVNPropertyValue.create("ext " + externalURL + "/foo");
         SvnClientManager svnm2 = SubversionSCM.createClientManager(forCommit);
         svnm2.getWCClient().doSetProperty(new File(bb.getWorkspace().getRemote()), "svn:externals", externals, true, SVNDepth.FILES, null, null);
         svnm2.getCommitClient().doCommit(new File[]{new File(bb.getWorkspace().getRemote())},false,"externals",null,null,false,false,SVNDepth.INFINITY);
@@ -1135,24 +1130,15 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         newFile = foo.child("something.txt");
         newFile.touch(System.currentTimeMillis());
         svnm.getWCClient().doAdd(new File(newFile.getRemote()), false, false, false, SVNDepth.INFINITY, false, false);
-        // create another folder with content outside the ext folder
-        FilePath anotherDir = foo.getParent().child("anotherDir");
-        anotherDir.mkdirs();
-        FilePath anotherFile = anotherDir.child("a.txt");
-        anotherFile.touch(System.currentTimeMillis());
-        svnm.getWCClient().doAdd(new File(anotherDir.getRemote()),false,false,false, SVNDepth.INFINITY, false,false);
-        
-        cc.doCommit(new File[]{new File(newFile.getRemote()), new File(anotherDir.getRemote())},false,"added",null,null,false,false,SVNDepth.INFINITY);
+        cc.doCommit(new File[]{new File(newFile.getRemote())},false,"added",null,null,false,false,SVNDepth.INFINITY);
 
         FreeStyleBuild build = p.scheduleBuild2(2).get();
         assertBuildStatusSuccess(build);
-        Collection<String> paths = new ArrayList<String>();
         for (ChangeLogSet.Entry e : build.getChangeSet()) {
             for (String path : e.getAffectedPaths()) {
-            	paths.add(path);
+                assertEquals("ext/something.txt", path);
             }
         }
-        Assert.assertThat(paths, Matchers.containsInAnyOrder("ext/something.txt", "anotherDir", "anotherDir/a.txt"));
     }
 
     public void testCompareSVNAuthentications() throws Exception {
