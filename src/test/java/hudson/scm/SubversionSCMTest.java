@@ -203,12 +203,12 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
         FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserIdCause()).get();
         System.out.println(b.getLog(LOG_LIMIT));
-        assertTrue(b.getLog(LOG_LIMIT).contains("At revision 13000"));
+        assertTrue(b.getLog(LOG_LIMIT).toString().contains("at revision 13000"));
         assertBuildStatus(Result.SUCCESS,b);
 
         b = p.scheduleBuild2(0, new Cause.UserIdCause()).get();
         System.out.println(b.getLog(LOG_LIMIT));
-        assertTrue(b.getLog(LOG_LIMIT).contains("At revision 13000"));
+        assertTrue(b.getLog(LOG_LIMIT).toString().contains("at revision 13000"));
         assertBuildStatus(Result.SUCCESS,b);
     }
 
@@ -224,7 +224,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         
         FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserIdCause()).get();
         System.out.println(b.getLog(LOG_LIMIT));
-        assertTrue(b.getLog(LOG_LIMIT).contains("At revision 2"));
+        assertTrue(b.getLog(LOG_LIMIT).toString().contains("at revision 2"));
         assertBuildStatus(Result.SUCCESS,b);
     }
 
@@ -295,7 +295,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserIdCause(), 
         		new RevisionParameterAction(new SubversionSCM.SvnInfo(url, 13000))).get();
         System.out.println(b.getLog(LOG_LIMIT));
-        assertTrue(b.getLog(LOG_LIMIT).contains("At revision 13000"));
+        assertTrue(b.getLog(LOG_LIMIT).toString().contains("at revision 13000"));
         assertBuildStatus(Result.SUCCESS,b);
     }
 
@@ -315,7 +315,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         FreeStyleBuild b = f.get();
 	
         System.out.println(b.getLog(LOG_LIMIT));
-        assertTrue(b.getLog(LOG_LIMIT).contains("At revision 14000"));
+        assertTrue(b.getLog(LOG_LIMIT).toString().contains("at revision 14000"));
         assertBuildStatus(Result.SUCCESS,b);
     }
 
