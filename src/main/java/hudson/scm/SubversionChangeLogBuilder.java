@@ -53,7 +53,6 @@ import javax.xml.transform.sax.TransformerHandler;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.File;
-import java.io.Serializable;
 import java.util.Map;
 import java.util.Collection;
 
@@ -125,11 +124,9 @@ public final class SubversionChangeLogBuilder {
         final SVNClientManager manager = SubversionSCM.createClientManager(authProvider).getCore();
         try {
             SVNLogClient svnlc = manager.getLogClient();
-            for (SubversionSCM.External ext : externals) {
-                ExternalPath e = getUrlForPath(build.getWorkspace().child(ext.path), authProvider);
-                logHandler.setRelativePath( ext.path.startsWith("./") ? ext.path.substring(2) : ext.path );
-                logHandler.setRelativeUrl(e.path);
-                changelogFileCreated |= buildModule(e.url, svnlc, logHandler);
+            for(SubversionSCM.External ext : externals) {
+                changelogFileCreated |= buildModule(
+                        getUrlForPath(build.getWorkspace().child(ext.path), authProvider), svnlc, logHandler);
             }
         } finally {
             manager.dispose();
@@ -142,7 +139,7 @@ public final class SubversionChangeLogBuilder {
         return changelogFileCreated;
     }
 
-    private ExternalPath getUrlForPath(FilePath path, ISVNAuthenticationProvider authProvider) throws IOException, InterruptedException {
+    private String getUrlForPath(FilePath path, ISVNAuthenticationProvider authProvider) throws IOException, InterruptedException {
         return path.act(new GetUrlForPath(authProvider));
     }
 
@@ -227,24 +224,22 @@ public final class SubversionChangeLogBuilder {
         DUMMY_LOCATOR.setColumnNumber(-1);
     }
 
-    private static class GetUrlForPath implements FileCallable<ExternalPath> {
+    private static class GetUrlForPath implements FileCallable<String> {
         private final ISVNAuthenticationProvider authProvider;
 
         public GetUrlForPath(ISVNAuthenticationProvider authProvider) {
             this.authProvider = authProvider;
         }
 
-        public ExternalPath invoke(File p, VirtualChannel channel) throws IOException {
+        public String invoke(File p, VirtualChannel channel) throws IOException {
             final SvnClientManager manager = SubversionSCM.createClientManager(authProvider);
             try {
                 final SVNWCClient svnwc = manager.getWCClient();
 
+                SVNInfo info;
                 try {
-                    SVNInfo info = svnwc.doInfo(p, SVNRevision.WORKING);
-
-                    String url = info.getURL().toDecodedString();
-                    String relative = url.substring(info.getRepositoryRootURL().toDecodedString().length());
-                    return new ExternalPath(relative, url);
+                    info = svnwc.doInfo(p, SVNRevision.WORKING);
+                    return info.getURL().toDecodedString();
                 } catch (SVNException e) {
                     e.printStackTrace();
                     return null;
@@ -254,16 +249,6 @@ public final class SubversionChangeLogBuilder {
             }
         }
 
-        private static final long serialVersionUID = 1L;
-    }
-
-    private static class ExternalPath implements Serializable {
-        private ExternalPath(String path, String url) {
-            this.path = path;
-            this.url = url;
-        }
-        public final String url;  // item repository location
-        public final String path; // item path relative to repository root
         private static final long serialVersionUID = 1L;
     }
 }

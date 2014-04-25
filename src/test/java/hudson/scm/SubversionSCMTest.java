@@ -1085,61 +1085,6 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         assertTrue(p.poll(StreamTaskListener.fromStdout()).hasChanges());
     }
 
-    public void testExternalsAffectedPaths() throws Exception {
-        // repository set as svn:externals
-        File ext = new CopyExisting(getClass().getResource("two-revisions.zip")).allocate();
-
-        // create and commit a file foo/README.txt in ext
-        FreeStyleProject forCommit = createFreeStyleProject();
-        SubversionSCM scmExt = new SubversionSCM("file://" + ext.toURI().toURL().getPath());
-        forCommit.setScm(scmExt);
-        forCommit.setAssignedLabel(hudson.getSelfLabel());
-        // Build once to get a working copy in job workspace
-        FreeStyleBuild b = assertBuildStatusSuccess(forCommit.scheduleBuild2(0).get());
-        FilePath foo = b.getWorkspace().child("foo");
-        foo.mkdirs();
-        FilePath newFile = foo.child("README.txt");
-        newFile.touch(System.currentTimeMillis());
-        SvnClientManager svnm = SubversionSCM.createClientManager(forCommit);
-        svnm.getWCClient().doAdd(new File(foo.getRemote()),false,false,false, SVNDepth.INFINITY, false,false);
-        SVNCommitClient cc = svnm.getCommitClient();
-        cc.doCommit(new File[]{new File(foo.getRemote()), new File(newFile.getRemote())},false,"added",null,null,false,false,SVNDepth.INFINITY);
-
-
-        // repository used by job
-        File repo = new CopyExisting(getClass().getResource("two-revisions.zip")).allocate();
-        SubversionSCM scm = new SubversionSCM("file://" + repo.toURI().toURL().getPath());
-        FreeStyleProject p = createFreeStyleProject();
-        scm.setPollFromMaster(true);
-        p.setScm(scm);
-
-        // setup foo directory in ext as svn:externals on "ext",
-        FreeStyleBuild bb = assertBuildStatusSuccess(p.scheduleBuild2(0).get());
-        String externalURL = "file://" + ext.toURI().toURL().getPath();
-        SVNPropertyValue externals = SVNPropertyValue.create("ext " + externalURL + "/foo");
-        SvnClientManager svnm2 = SubversionSCM.createClientManager(forCommit);
-        svnm2.getWCClient().doSetProperty(new File(bb.getWorkspace().getRemote()), "svn:externals", externals, true, SVNDepth.FILES, null, null);
-        svnm2.getCommitClient().doCommit(new File[]{new File(bb.getWorkspace().getRemote())},false,"externals",null,null,false,false,SVNDepth.INFINITY);
-
-        // foo/README.tx in ext is now => /ext/README.txt in repo
-
-        assertBuildStatusSuccess(p.scheduleBuild2(2).get());
-        assertFalse(p.poll(StreamTaskListener.fromStdout()).hasChanges());
-
-        // create a commit in ext
-        newFile = foo.child("something.txt");
-        newFile.touch(System.currentTimeMillis());
-        svnm.getWCClient().doAdd(new File(newFile.getRemote()), false, false, false, SVNDepth.INFINITY, false, false);
-        cc.doCommit(new File[]{new File(newFile.getRemote())},false,"added",null,null,false,false,SVNDepth.INFINITY);
-
-        FreeStyleBuild build = p.scheduleBuild2(2).get();
-        assertBuildStatusSuccess(build);
-        for (ChangeLogSet.Entry e : build.getChangeSet()) {
-            for (String path : e.getAffectedPaths()) {
-                assertEquals("ext/something.txt", path);
-            }
-        }
-    }
 
     public void testCompareSVNAuthentications() throws Exception {
         assertFalse(compareSVNAuthentications(new SVNUserNameAuthentication("me",true),new SVNSSHAuthentication("me","me",22,true)));
