@@ -648,6 +648,12 @@ public class SubversionSCM extends SCM implements Serializable {
         return excludedRevprop;
     }
 
+    private String getExcludedRevpropNormalized() {
+        String s = fixEmptyAndTrim(getExcludedRevprop());
+        if (s!=null)        return s;
+        return getDescriptor().getGlobalExcludedRevprop();
+    }
+
     @Exported
     public String getExcludedCommitMessages() {
         return excludedCommitMessages;
@@ -1454,7 +1460,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
     public SVNLogFilter createSVNLogFilter() {
         return new DefaultSVNLogFilter(getExcludedRegionsPatterns(), getIncludedRegionsPatterns(),
-                getExcludedUsersNormalized(), getExcludedRevprop(), getExcludedCommitMessagesPatterns(), isIgnoreDirPropChanges());
+                getExcludedUsersNormalized(), getExcludedRevpropNormalized(), getExcludedCommitMessagesPatterns(), isIgnoreDirPropChanges());
     }
 
     /**
