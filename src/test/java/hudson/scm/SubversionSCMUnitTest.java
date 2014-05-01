@@ -42,7 +42,9 @@ public class SubversionSCMUnitTest {
         
         FilePath resolvedRoot = scm._getModuleRoot(root, "$BRANCH/someMorePath", envVars);
 
-        String expected = String.format("root%stest/someMorePath", System.getProperty("file.separator"));
+        // Be sure that paths is plateform independant.
+        String fileSeparator = System.getProperty("file.separator");
+        String expected = String.format("root%stest%ssomeMorePath", fileSeparator, fileSeparator);
 
         Assert.assertEquals(expected, resolvedRoot.getRemote());
     }
