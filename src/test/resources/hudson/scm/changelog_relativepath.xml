@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<log>
+	<logentry revision="39">
+		<author>user</author>
+		<date>2014-05-03T12:45:33.664887Z</date>
+		<paths>
+			<path action="M" kind="file" localPath="foo/bar/wc1-pX/trunk/foo">/projectX/trunk/foo</path>
+		</paths>
+		<msg>changed foo</msg>
+	</logentry>
+	<logentry revision="39">
+		<author>user</author>
+		<date>2014-05-03T12:45:33.664887Z</date>
+		<paths>
+			<path action="M" kind="file" localPath="wc2-t/baz/foo">/projectX/trunk/foo</path>
+		</paths>
+		<msg>changed foo</msg>
+	</logentry>
+</log>

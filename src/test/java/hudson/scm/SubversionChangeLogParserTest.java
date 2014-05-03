@@ -26,13 +26,43 @@ public class SubversionChangeLogParserTest extends AbstractSubversionTest {
     @Test
     @Bug(10324)
     public void testPathsSortedAlphabetically() throws URISyntaxException, IOException, SAXException {
-        givenAChangelogFileWithUnsortedPaths();
+        givenAChangelogFileWithUnsortedPathsInLegacyFormat();
         whenChangelogFileIsParsed();
         thenAffectedPathsMustBeSortedAlphabetically();
     }
+
+    @Test
+    @Bug(18574)
+    public void testPathsEqualToValues() throws URISyntaxException, IOException, SAXException {
+        givenAChangelogFileWithUnsortedPathsInLegacyFormat();
+        whenChangelogFileIsParsed();
+        thenPathsMustBeEqualToValues();
+    }
     
-    private void givenAChangelogFileWithUnsortedPaths() throws URISyntaxException {
+    @Test
+    @Bug(18574)
+    public void testValueIsRepoPath() throws URISyntaxException, IOException, SAXException {
+        givenAChangelogFileWithUnsortedPathsInLegacyFormat();
+        whenChangelogFileIsParsed();
+        thenValuesMustStartWithSlash();
+    }
+    
+    @Test
+    @Bug(18574)
+    public void testNewChangelogFileForDifferentPathAndValue() throws URISyntaxException, IOException, SAXException {
+        givenAChangelogFileWithRelativePathAttributes();
+        whenChangelogFileIsParsed();
+        thenValuesMustStartWithSlash();
+        andPathsMustNotStartWithSlash();
+    }
+    
+    private void givenAChangelogFileWithUnsortedPathsInLegacyFormat() throws URISyntaxException {
         URL url = SubversionChangeLogParserTest.class.getResource("changelog_unsorted.xml");
+        this.changelogFile = new File(url.toURI().getSchemeSpecificPart());
+    }
+    
+    private void givenAChangelogFileWithRelativePathAttributes() throws URISyntaxException {
+        URL url = SubversionChangeLogParserTest.class.getResource("changelog_relativepath.xml");
         this.changelogFile = new File(url.toURI().getSchemeSpecificPart());
     }
     
@@ -46,6 +76,30 @@ public class SubversionChangeLogParserTest extends AbstractSubversionTest {
             for(Path path : entry.getPaths()) {
                 Assert.assertTrue(previous.compareTo(path.getPath()) <= 0);
                 previous = path.getPath();
+            }
+        }
+    }
+
+    private void thenPathsMustBeEqualToValues() {
+        for(LogEntry entry : changeLogSet.getLogs()) {
+            for(Path path : entry.getPaths()) {
+                Assert.assertEquals(path.getPath(), path.getValue());
+            }
+        }
+    }
+
+    private void thenValuesMustStartWithSlash() {
+        for(LogEntry entry : changeLogSet.getLogs()) {
+            for(Path path : entry.getPaths()) {
+                Assert.assertTrue(path.getValue().startsWith("/"));
+            }
+        }
+    }
+
+    private void andPathsMustNotStartWithSlash() {
+        for(LogEntry entry : changeLogSet.getLogs()) {
+            for(Path path : entry.getPaths()) {
+                Assert.assertFalse(path.getPath().startsWith("/"));
             }
         }
     }
