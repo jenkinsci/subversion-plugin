@@ -37,12 +37,15 @@ import org.xml.sax.SAXException;
 public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLogEntryHandler {
   
   public static final String KIND_ATTR = "kind";
+  public static final String REL_PATH_ATTR = "localPath";
   
   private boolean myIsOmitLogMessage;
 
   private LinkedList<MergeFrame> myMergeStack;
 
   private SVNLogFilter filter = new NullSVNLogFilter();
+
+  private SubversionChangeLogBuilder.PathContext context;
 
   public DirAwareSVNXMLLogHandler(ContentHandler contentHandler, SVNLogFilter filter) {
     super(contentHandler);
@@ -56,7 +59,7 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
   public DirAwareSVNXMLLogHandler(ContentHandler contentHandler) {
     super(contentHandler);
   }
-  
+
   /**
    * Sets whether log messages must be omitted or not.
    * 
@@ -105,6 +108,8 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
             String key = paths.next();
             SVNLogEntryPath path = (SVNLogEntryPath) logEntry.getChangedPaths().get(key);
             addAttribute(ACTION_ATTR, path.getType() + "");
+            String relativeWorkspacePath = context.moduleWorkspacePath + path.getPath().substring(context.url.length() - context.repoUrl.length());
+            addAttribute(REL_PATH_ATTR, relativeWorkspacePath);
             if (path.getCopyPath() != null) {
                 addAttribute(COPYFROM_PATH_ATTR, path.getCopyPath());
                 addAttribute(COPYFROM_REV_ATTR, path.getCopyRevision() + "");
@@ -147,6 +152,11 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
         closeTag(LOGENTRY_TAG);
     }
   }
+
+  void setContext(SubversionChangeLogBuilder.PathContext context) {
+    this.context = context;
+  }
+
   private class MergeFrame {
     private long myNumberOfChildrenRemaining;
   }

@@ -25,14 +25,14 @@ package hudson.scm;
 
 import hudson.EnvVars;
 import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
-import hudson.model.Hudson;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.FilePath;
 import hudson.util.IOException2;
 import hudson.remoting.VirtualChannel;
 import hudson.FilePath.FileCallable;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.ISVNLogEntryHandler;
@@ -43,7 +43,6 @@ import org.tmatesoft.svn.core.wc.SVNLogClient;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 import org.tmatesoft.svn.core.wc.SVNWCClient;
 import org.tmatesoft.svn.core.wc.SVNInfo;
-import org.tmatesoft.svn.core.wc.xml.SVNXMLLogHandler;
 import org.xml.sax.helpers.LocatorImpl;
 
 import javax.xml.transform.Result;
@@ -53,6 +52,7 @@ import javax.xml.transform.sax.TransformerHandler;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.File;
+import java.io.Serializable;
 import java.util.Map;
 import java.util.Collection;
 
@@ -94,7 +94,7 @@ public final class SubversionChangeLogBuilder {
         this.build = build;
         this.env = env;
     }
-    
+
     public boolean run(Collection<SubversionSCM.External> externals, Result changeLog) throws IOException, InterruptedException {
         boolean changelogFileCreated = false;
 
@@ -113,7 +113,9 @@ public final class SubversionChangeLogBuilder {
             final SVNClientManager manager = SubversionSCM.createClientManager(authProvider).getCore();
             try {
                 SVNLogClient svnlc = manager.getLogClient();
-                changelogFileCreated |= buildModule(l.getURL(), svnlc, logHandler);
+                PathContext context = getUrlForPath(build.getWorkspace().child(l.getLocalDir()), authProvider);
+                context.moduleWorkspacePath = l.getLocalDir();
+                changelogFileCreated |= buildModule(context, svnlc, logHandler);
             } finally {
                 manager.dispose();
             }
@@ -125,8 +127,9 @@ public final class SubversionChangeLogBuilder {
         try {
             SVNLogClient svnlc = manager.getLogClient();
             for(SubversionSCM.External ext : externals) {
-                changelogFileCreated |= buildModule(
-                        getUrlForPath(build.getWorkspace().child(ext.path), authProvider), svnlc, logHandler);
+                PathContext context = getUrlForPath(build.getWorkspace().child(ext.path), authProvider);
+                context.moduleWorkspacePath = ext.path;
+                changelogFileCreated |= buildModule(context, svnlc, logHandler);
             }
         } finally {
             manager.dispose();
@@ -139,11 +142,12 @@ public final class SubversionChangeLogBuilder {
         return changelogFileCreated;
     }
 
-    private String getUrlForPath(FilePath path, ISVNAuthenticationProvider authProvider) throws IOException, InterruptedException {
-        return path.act(new GetUrlForPath(authProvider));
+    private PathContext getUrlForPath(FilePath path, ISVNAuthenticationProvider authProvider) throws IOException, InterruptedException {
+        return path.act(new GetContextForPath(authProvider));
     }
 
-    private boolean buildModule(String url, SVNLogClient svnlc, SVNXMLLogHandler logHandler) throws IOException2 {
+    private boolean buildModule(PathContext context, SVNLogClient svnlc, DirAwareSVNXMLLogHandler logHandler) throws IOException2 {
+        String url = context.url;
         PrintStream logger = listener.getLogger();
         Long prevRev = previousRevisions.get(url);
         if(prevRev==null) {
@@ -166,7 +170,8 @@ public final class SubversionChangeLogBuilder {
         	thisRev = new Long(prevRev.longValue());
         	prevRev = new Long(temp);
         }
-        
+
+        logHandler.setContext(context);
         try {
             if(debug)
                 listener.getLogger().printf("Computing changelog of %1s from %2s to %3s\n",
@@ -224,14 +229,14 @@ public final class SubversionChangeLogBuilder {
         DUMMY_LOCATOR.setColumnNumber(-1);
     }
 
-    private static class GetUrlForPath implements FileCallable<String> {
+    private static class GetContextForPath implements FileCallable<PathContext> {
         private final ISVNAuthenticationProvider authProvider;
 
-        public GetUrlForPath(ISVNAuthenticationProvider authProvider) {
+        public GetContextForPath(ISVNAuthenticationProvider authProvider) {
             this.authProvider = authProvider;
         }
 
-        public String invoke(File p, VirtualChannel channel) throws IOException {
+        public PathContext invoke(File p, VirtualChannel channel) throws IOException {
             final SvnClientManager manager = SubversionSCM.createClientManager(authProvider);
             try {
                 final SVNWCClient svnwc = manager.getWCClient();
@@ -239,7 +244,9 @@ public final class SubversionChangeLogBuilder {
                 SVNInfo info;
                 try {
                     info = svnwc.doInfo(p, SVNRevision.WORKING);
-                    return info.getURL().toDecodedString();
+                    String url = info.getURL().toDecodedString();
+                    String repoRoot = info.getRepositoryRootURL().toDecodedString();
+                    return new PathContext(url, repoRoot, null);
                 } catch (SVNException e) {
                     e.printStackTrace();
                     return null;
@@ -249,6 +256,22 @@ public final class SubversionChangeLogBuilder {
             }
         }
 
+        private static final long serialVersionUID = 1L;
+    }
+
+    /**
+     * This class encapsulates context information for the paths in the change log.
+     */
+    @Restricted(NoExternalUse.class)
+    public static class PathContext implements Serializable {
+        private PathContext(String url, String repoUrl, String moduleWorkspacePath) {
+            this.url = url;
+            this.moduleWorkspacePath = moduleWorkspacePath;
+            this.repoUrl = repoUrl;
+        }
+        public String url; // full URL to file
+        public String repoUrl; // full URL to module root
+        public String moduleWorkspacePath;  // path to module root relative from workspace root
         private static final long serialVersionUID = 1L;
     }
 }

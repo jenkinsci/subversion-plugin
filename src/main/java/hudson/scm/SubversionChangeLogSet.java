@@ -42,6 +42,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
 import org.tmatesoft.svn.core.internal.util.SVNDate;
@@ -368,7 +370,16 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
     public static class Path implements AffectedFile {
         private LogEntry entry;
         private char action;
+
+        /**
+         * full path to file within SVN repository, e.g. /trunk/project/foo/bar.txt
+         */
         private String value;
+
+        /**
+         * Path to file within workspace, e.g. stuff/foo/bar.txt
+         */
+        private String localPath;
         private String kind;
         
         /**
@@ -399,9 +410,21 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
 
         /**
          * Inherited from AffectedFile
+         *
+         * Since 2.TODO this no longer returns the path relative to repository root,
+         * but the path relative to the workspace root. Use getValue() instead.
          */
         public String getPath() {
-	        return getValue();
+            if (localPath == null) {
+                // compatibility to older versions that did not store this path
+                return value;
+            }
+	          return localPath;
+        }
+
+        @Restricted(NoExternalUse.class)
+        public void setLocalPath(String path) {
+            this.localPath = path;
         }
         
         public void setValue(String value) {
