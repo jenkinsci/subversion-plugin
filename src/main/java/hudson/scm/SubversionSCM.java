@@ -170,16 +170,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
-import org.tmatesoft.svn.core.ISVNLogEntryHandler;
-import org.tmatesoft.svn.core.SVNAuthenticationException;
-import org.tmatesoft.svn.core.SVNDepth;
-import org.tmatesoft.svn.core.SVNDirEntry;
-import org.tmatesoft.svn.core.SVNErrorCode;
-import org.tmatesoft.svn.core.SVNErrorMessage;
-import org.tmatesoft.svn.core.SVNException;
-import org.tmatesoft.svn.core.SVNLogEntry;
-import org.tmatesoft.svn.core.SVNNodeKind;
-import org.tmatesoft.svn.core.SVNURL;
+import org.tmatesoft.svn.core.*;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
 import org.tmatesoft.svn.core.auth.SVNAuthentication;
@@ -2428,9 +2419,14 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         public FormValidation doCheckRevisionPropertiesSupported(@AncestorInPath AbstractProject context,
                                                                  @QueryParameter String value,
-                                                                 @QueryParameter String credentialsId) throws IOException, ServletException {
-            String v = Util.fixNull(value).trim();
+                                                                 @QueryParameter String credentialsId,
+                                                                 @QueryParameter String excludedRevprop) throws IOException, ServletException {
+              String v = Util.fixNull(value).trim();
             if (v.length() == 0)
+                return FormValidation.ok();
+
+            String revprop = Util.fixNull(excludedRevprop).trim();
+            if (revprop.length() == 0)
                 return FormValidation.ok();
 
             // Test the connection only if we have admin permission
@@ -2440,7 +2436,17 @@ public class SubversionSCM extends SCM implements Serializable {
             try {
                 SVNURL repoURL = SVNURL.parseURIDecoded(new EnvVars(EnvVars.masterEnvVars).expand(v));
                 StandardCredentials credentials = lookupCredentials(context, credentialsId, repoURL);
-                if (checkRepositoryPath(context,repoURL, credentials)!=SVNNodeKind.NONE)
+                SVNNodeKind node = null;
+                try {
+                    node = checkRepositoryPath(context,repoURL, credentials);
+                } catch (SVNCancelException ce) {
+                    if (isAuthenticationFailedError(ce)) {
+                        // don't care about this here, another field's validation will show this
+                        return FormValidation.ok();
+                    }
+                    throw ce;
+                }
+                if (node!=SVNNodeKind.NONE)
                     // something exists
                     return FormValidation.ok();
 
@@ -2467,6 +2473,22 @@ public class SubversionSCM extends SCM implements Serializable {
             new Initializer();
         }
 
+    }
+
+    // copied from WorkspaceUpdater:
+    private static boolean isAuthenticationFailedError(SVNCancelException e) {
+      // this is very ugly. SVNKit (1.7.4 at least) reports missing authentication data as a cancel exception
+      // "No credential to try. Authentication failed"
+      // See DefaultSVNAuthenticationManager#getFirstAuthentication
+      if (String.valueOf(e.getMessage()).contains("No credential to try")) {
+        return true;
+      }
+      Throwable cause = e.getCause();
+      if (cause instanceof SVNCancelException) {
+        return isAuthenticationFailedError((SVNCancelException) cause);
+      } else {
+        return false;
+      }
     }
 
     private static DescriptorImpl descriptor() {
