@@ -27,7 +27,7 @@ THE SOFTWARE.
     <f:repeatableProperty field="locations" add="${%Add module...}" minimum="1"/>
   </f:entry>
   
-  <f:entry title="${%Additional Credentials}">
+  <f:entry title="${%Additional Credentials}" help="/descriptor/hudson.scm.SubversionSCM/help/additionalCredentials">
     <f:repeatableProperty field="additionalCredentials" add="${%Add additional credentials...}"/>
  </f:entry>
 
