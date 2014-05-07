@@ -165,6 +165,8 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.taskdefs.Chmod;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -2147,6 +2149,11 @@ public class SubversionSCM extends SCM implements Serializable {
 
         public String getDisplayName() {
             return "Subversion";
+        }
+
+        @Restricted(NoExternalUse.class)
+        void setGlobalExcludedRevprop(String revprop) {
+            globalExcludedRevprop = revprop;
         }
 
         public String getGlobalExcludedRevprop() {
