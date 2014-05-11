@@ -1,18 +1,13 @@
 package hudson.scm;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
 
+import hudson.scm.subversion.UpdateUpdater;
+import org.jvnet.hudson.test.Bug;
 import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
-import org.tmatesoft.svn.core.ISVNLogEntryHandler;
-import org.tmatesoft.svn.core.SVNException;
-import org.tmatesoft.svn.core.SVNLogEntry;
-import org.tmatesoft.svn.core.SVNURL;
+import org.tmatesoft.svn.core.*;
 import org.tmatesoft.svn.core.io.SVNRepository;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
 
@@ -153,4 +148,23 @@ public class DefaultSVNLogFilterTest extends AbstractSubversionTest {
         List<SVNLogEntry> entries = doFilter(filter);
         assertTrue(containsRevs(entries, 1, 2, 3));
     }
+
+    @Bug(18099)
+    public void testGlobalExclusionRevprop() throws Exception {
+        SubversionSCM scm = new SubversionSCM(
+                Arrays.asList(new SubversionSCM.ModuleLocation("file://some/repo", ".")),
+                new UpdateUpdater(), null, null, null, null, null, null, false);
+        scm.getDescriptor().setGlobalExcludedRevprop("ignoreme");
+
+        SVNProperties p = new SVNProperties();
+        p.put("ignoreme", "*");
+
+        Map<String, SVNLogEntryPath> paths = new HashMap<String, SVNLogEntryPath>();
+        paths.put("/foo", new SVNLogEntryPath("/foo", SVNLogEntryPath.TYPE_MODIFIED, null, -1));
+        SVNLogEntry e = new SVNLogEntry(paths, 1234L, p, false);
+
+        SVNLogFilter filter = scm.createSVNLogFilter();
+        assertFalse(filter.isIncluded(e));
+    }
+
 }

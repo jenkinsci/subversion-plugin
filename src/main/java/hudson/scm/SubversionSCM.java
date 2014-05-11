@@ -163,6 +163,8 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.taskdefs.Chmod;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -634,6 +636,12 @@ public class SubversionSCM extends SCM implements Serializable {
     @Exported
     public String getExcludedRevprop() {
         return excludedRevprop;
+    }
+
+    private String getExcludedRevpropNormalized() {
+        String s = fixEmptyAndTrim(getExcludedRevprop());
+        if (s!=null)        return s;
+        return getDescriptor().getGlobalExcludedRevprop();
     }
 
     @Exported
@@ -1409,7 +1417,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
     public SVNLogFilter createSVNLogFilter() {
         return new DefaultSVNLogFilter(getExcludedRegionsPatterns(), getIncludedRegionsPatterns(),
-                getExcludedUsersNormalized(), getExcludedRevprop(), getExcludedCommitMessagesPatterns(), isIgnoreDirPropChanges());
+                getExcludedUsersNormalized(), getExcludedRevpropNormalized(), getExcludedCommitMessagesPatterns(), isIgnoreDirPropChanges());
     }
 
     /**
@@ -2096,6 +2104,11 @@ public class SubversionSCM extends SCM implements Serializable {
 
         public String getDisplayName() {
             return "Subversion";
+        }
+
+        @Restricted(NoExternalUse.class)
+        void setGlobalExcludedRevprop(String revprop) {
+            globalExcludedRevprop = revprop;
         }
 
         public String getGlobalExcludedRevprop() {
