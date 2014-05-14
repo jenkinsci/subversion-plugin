@@ -1351,9 +1351,8 @@ public class SubversionSCM extends SCM implements Serializable {
 
         AbstractBuild<?,?> lastCompletedBuild = project.getLastCompletedBuild();
 
-        EnvVars env = null;
         if (lastCompletedBuild!=null) {
-            env = lastCompletedBuild.getEnvironment(listener);
+            EnvVars env = lastCompletedBuild.getEnvironment(listener);
             EnvVarsUtils.overrideAll(env, lastCompletedBuild.getBuildVariables());
             if (repositoryLocationsNoLongerExist(lastCompletedBuild, listener, env)) {
                 // Disable this project, see HUDSON-763
@@ -1400,7 +1399,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
         final Map<String,ISVNAuthenticationProvider> authProviders = new LinkedHashMap<String,
                 ISVNAuthenticationProvider>();
-        for (ModuleLocation loc: getLocations(env, lastCompletedBuild)) {
+        for (ModuleLocation loc: getLocations(project.getEnvironment(n, listener), null)) {
             String url;
             try {
                 url = loc.getSVNURL().toDecodedString();
