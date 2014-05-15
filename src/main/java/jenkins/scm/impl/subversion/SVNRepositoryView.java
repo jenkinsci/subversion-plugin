@@ -92,9 +92,7 @@ public class SVNRepositoryView {
             while (cache == null) {
                 try {
                     cache = DBMaker.newFileDB(cacheFile)
-                            .randomAccessFileEnable()
                             .cacheWeakRefEnable()
-                            .asyncWriteDisable()
                             .make();
                 } catch (Throwable t) {
                     cacheFile.delete();
