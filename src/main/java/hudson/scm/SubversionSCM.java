@@ -57,6 +57,7 @@ import hudson.security.ACL;
 import hudson.util.*;
 import jenkins.model.Jenkins;
 import jenkins.model.Jenkins.MasterComputer;
+import jenkins.scm.impl.subversion.svnkit.DefaultSVNAuthenticationManager;
 import net.sf.json.JSONObject;
 import org.acegisecurity.context.SecurityContext;
 import org.acegisecurity.context.SecurityContextHolder;
