@@ -1,6 +1,8 @@
 package hudson.scm;
 
+import hudson.console.ModelHyperlinkNote;
 import hudson.model.Hudson;
+import hudson.model.Node;
 import hudson.model.TaskListener;
 import hudson.remoting.DelegatingCallable;
 import hudson.scm.PollingResult.Change;
@@ -14,6 +16,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import jenkins.model.Jenkins;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
@@ -54,7 +57,9 @@ final class CompareAgainstBaselineCallable implements DelegatingCallable<Polling
      * so
      */
     public PollingResult call() throws IOException {
-        listener.getLogger().println("Received SCM poll call on " + nodeName + " for " + projectName + " on " + DateFormat.getDateTimeInstance().format(new Date()) );
+        String nodeLink = ModelHyperlinkNote.encodeTo("".equals(nodeName) ? ((Node) Jenkins.getInstance()) : Jenkins.getInstance().getNode(nodeName));
+        String projectLink = ModelHyperlinkNote.encodeTo(Jenkins.getInstance().getItemByFullName(projectName));
+        listener.getLogger().println("Received SCM poll call on " + nodeLink + " for " + projectLink + " on " + DateFormat.getDateTimeInstance().format(new Date()) );
         final Map<String,Long> revs = new HashMap<String,Long>();
         boolean changes = false;
         boolean significantChanges = false;

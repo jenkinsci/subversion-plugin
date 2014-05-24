@@ -1393,7 +1393,7 @@ public class SubversionSCM extends SCM implements Serializable {
         }
         if (ch==null)   ch= MasterComputer.localChannel;
 
-        final String nodeName = n!=null ? n.getNodeName() : "master";
+        final String nodeName = n!=null ? n.getNodeName() : "";
 
         final SVNLogHandler logHandler = new SVNLogHandler(createSVNLogFilter(), listener);
 
@@ -1412,7 +1412,7 @@ public class SubversionSCM extends SCM implements Serializable {
         final ISVNAuthenticationProvider defaultAuthProvider = createAuthenticationProvider(project, null);
 
         // figure out the remote revisions
-        return ch.call(new CompareAgainstBaselineCallable(baseline, logHandler, project.getName(), listener, defaultAuthProvider, authProviders, nodeName));
+        return ch.call(new CompareAgainstBaselineCallable(baseline, logHandler, project.getFullName(), listener, defaultAuthProvider, authProviders, nodeName));
     }
 
     public SVNLogFilter createSVNLogFilter() {
