@@ -90,6 +90,7 @@ import java.util.LinkedHashSet;
 import java.util.WeakHashMap;
 
 import hudson.security.ACL;
+import hudson.slaves.NodeProperty;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import jenkins.model.Jenkins.MasterComputer;
@@ -1391,15 +1392,18 @@ public class SubversionSCM extends SCM implements Serializable {
                 if (c!=null)    ch = c.getChannel();
             }
         }
-        if (ch==null)   ch= MasterComputer.localChannel;
+        if (ch==null) {
+            ch = MasterComputer.localChannel;
+            n = Jenkins.getInstance();
+        }
 
-        final String nodeName = n!=null ? n.getNodeName() : "master";
+        final String nodeName = n!=Jenkins.getInstance() ? n.getNodeName() : "master";
 
         final SVNLogHandler logHandler = new SVNLogHandler(createSVNLogFilter(), listener);
 
         final Map<String,ISVNAuthenticationProvider> authProviders = new LinkedHashMap<String,
                 ISVNAuthenticationProvider>();
-        for (ModuleLocation loc: getLocations()) {
+        for (ModuleLocation loc: getLocations(project.getEnvironment(n, listener), null)) {
             String url;
             try {
                 url = loc.getSVNURL().toDecodedString();
