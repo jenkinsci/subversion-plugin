@@ -566,8 +566,8 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
         SubversionSCM scm = new SubversionSCM(
                 Arrays.asList(
-                		new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusion", "c"),
-                		new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusion", "d")),
+                		new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusions", "c"),
+                		new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusions", "d")),
                 new UpdateUpdater(),new Sventon(new URL("http://www.sun.com/"),"test"),"exclude","user","revprop","excludeMessage",null);
         p.setScm(scm);
         submit(new WebClient().getPage(p,"configure").getFormByName("config"));
@@ -575,7 +575,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
         scm = new SubversionSCM(
         		Arrays.asList(
-                		new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusion", "c")),
+                		new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusions", "c")),
         		new CheckoutUpdater(),null,"","","","",null);
         p.setScm(scm);
         submit(new WebClient().getPage(p,"configure").getFormByName("config"));
@@ -588,7 +588,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
         SubversionSCM scm = new SubversionSCM(
                 Arrays.asList(
-                		new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusion", "")),
+                		new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusions", "")),
                 new UpdateUpdater(),null,null,null,null,null,null);
         p.setScm(scm);
         configRoundtrip((Item)p);
@@ -600,7 +600,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         FreeStyleProject p = createFreeStyleProject();
 
         List<ModuleLocation> locs = new ArrayList<ModuleLocation>();
-        locs.add(new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusion", "c"));
+        locs.add(new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusions", "c"));
         locs.add(new ModuleLocation("", "d"));
         locs.add(new ModuleLocation("    ", "e"));
                 
@@ -611,7 +611,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         submit(new WebClient().getPage(p, "configure").getFormByName("config"));
         ModuleLocation[] ml = ((SubversionSCM) p.getScm()).getLocations();
         assertEquals(1, ml.length);
-        assertEquals("https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusion", ml[0].remote);
+        assertEquals("https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusions", ml[0].remote);
     }
 
     @Bug(5684)
