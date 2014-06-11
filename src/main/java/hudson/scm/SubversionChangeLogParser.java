@@ -23,7 +23,7 @@
  */
 package hudson.scm;
 
-import hudson.model.AbstractBuild;
+import hudson.model.Run;
 import hudson.scm.SubversionChangeLogSet.LogEntry;
 import hudson.scm.SubversionChangeLogSet.Path;
 import hudson.util.Digester2;
@@ -53,7 +53,7 @@ public class SubversionChangeLogParser extends ChangeLogParser {
       this.ignoreDirPropChanges = ignoreDirPropChanges;
     }
 
-    public SubversionChangeLogSet parse(@SuppressWarnings("rawtypes") AbstractBuild build, File changelogFile) throws IOException, SAXException {
+    @Override public SubversionChangeLogSet parse(@SuppressWarnings("rawtypes") Run build, RepositoryBrowser<?> browser, File changelogFile) throws IOException, SAXException {
         // http://svn.apache.org/repos/asf/subversion/trunk/subversion/svn/schema/log.rnc
 
         Digester digester = new Digester2();
@@ -83,7 +83,7 @@ public class SubversionChangeLogParser extends ChangeLogParser {
         for (LogEntry e : r) {
             e.finish();
         }
-        return new SubversionChangeLogSet(build,r, ignoreDirPropChanges);
+        return new SubversionChangeLogSet(build, browser, r, ignoreDirPropChanges);
     }
 
 }

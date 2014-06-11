@@ -25,6 +25,7 @@ package hudson.scm;
 
 import hudson.Util;
 import hudson.model.AbstractBuild;
+import hudson.model.Run;
 import hudson.model.User;
 import hudson.scm.SubversionChangeLogSet.LogEntry;
 import hudson.scm.SubversionSCM.ModuleLocation;
@@ -65,11 +66,11 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
     
     @Deprecated
     /*package*/ SubversionChangeLogSet(AbstractBuild<?,?> build, List<LogEntry> logs) {
-      this(build, logs, false);
+      this(build, build.getProject().getScm().getEffectiveBrowser(), logs, false);
     }
 
-    /*package*/ SubversionChangeLogSet(AbstractBuild<?,?> build, List<LogEntry> logs, boolean ignoreDirPropChanges) {
-        super(build);
+    /*package*/ SubversionChangeLogSet(Run<?,?> build, RepositoryBrowser<?> browser, List<LogEntry> logs, boolean ignoreDirPropChanges) {
+        super(build, browser);
         this.ignoreDirPropChanges = ignoreDirPropChanges;
         this.logs = prepareChangeLogEntries(logs);
     }
