@@ -436,6 +436,14 @@ public class SubversionSCM extends SCM implements Serializable {
     	return getLocations(null, null);
     }
 
+    @Override public String getKey() {
+        StringBuilder b = new StringBuilder("svn");
+        for (ModuleLocation loc : getLocations()) {
+            b.append(' ').append(loc.getURL());
+        }
+        return b.toString();
+    }
+
     public List<AdditionalCredentials> getAdditionalCredentials() {
         List<AdditionalCredentials> result = new ArrayList<AdditionalCredentials>();
         if (additionalCredentials != null) {
