@@ -1385,8 +1385,7 @@ public class SubversionSCM extends SCM implements Serializable {
         // determine where to perform polling. prefer the node where the build happened,
         // in case a cluster is non-uniform. see http://www.nabble.com/svn-connection-from-slave-only-td24970587.html
         VirtualChannel ch=null;
-        Node n = null;
-        if (!isPollFromMaster()) {
+        if (workspace != null && !isPollFromMaster()) {
             ch = workspace.getChannel();
         }
         if (ch==null)   ch= MasterComputer.localChannel;
