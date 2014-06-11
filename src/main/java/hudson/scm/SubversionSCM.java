@@ -725,6 +725,7 @@ public class SubversionSCM extends SCM implements Serializable {
         if (baseline == null) {
             // nothing to compare against
             createEmptyChangeLog(changelogFile, listener, "log");
+            return;
         }
 
         // some users reported that the file gets created with size 0. I suspect
