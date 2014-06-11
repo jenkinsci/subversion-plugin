@@ -199,6 +199,7 @@ import org.tmatesoft.svn.core.wc.SVNWCUtil;
 import com.trilead.ssh2.DebugLogger;
 import com.trilead.ssh2.SCPClient;
 import com.trilead.ssh2.crypto.Base64;
+import hudson.model.Job;
 
 /**
  * Subversion SCM.
@@ -267,7 +268,7 @@ public class SubversionSCM extends SCM implements Serializable {
     /**
      * A cache of the svn:externals (keyed by project).
      */
-    private transient Map<AbstractProject, List<External>> projectExternalsCache;
+    private transient Map<Job, List<External>> projectExternalsCache;
 
     private transient boolean pollFromMaster = POLL_FROM_MASTER;
 
@@ -483,7 +484,7 @@ public class SubversionSCM extends SCM implements Serializable {
      * @param build If non-null, variable expansions are
      *              performed against the build parameters
      */
-    public ModuleLocation[] getLocations(EnvVars env, AbstractBuild<?,?> build) {
+    public ModuleLocation[] getLocations(EnvVars env, Run<?,?> build) {
         // check if we've got a old location
         if (modules != null) {
             // import the old configuration
@@ -506,8 +507,8 @@ public class SubversionSCM extends SCM implements Serializable {
 
         ModuleLocation[] outLocations = new ModuleLocation[locations.length];
         EnvVars env2 = env != null ? new EnvVars(env) : new EnvVars();
-        if (build != null) {
-            env2.putAll(build.getBuildVariables());
+        if (build instanceof AbstractBuild) {
+            env2.putAll(((AbstractBuild<?,?>) build).getBuildVariables());
         }
         EnvVars.resolve(env2);
         for (int i = 0; i < outLocations.length; i++) {
@@ -522,7 +523,7 @@ public class SubversionSCM extends SCM implements Serializable {
      * which returns only the configured locations whereas this method returns the configured
      * locations + any svn:externals locations.
      */
-    public ModuleLocation[] getProjectLocations(AbstractProject project) throws IOException {
+    public ModuleLocation[] getProjectLocations(Job project) throws IOException {
         List<External> projectExternals = getExternals(project);
 
         ModuleLocation[] configuredLocations = getLocations();
@@ -540,8 +541,8 @@ public class SubversionSCM extends SCM implements Serializable {
         return allLocations.toArray(new ModuleLocation[allLocations.size()]);
     }
 
-    private List<External> getExternals(AbstractProject context) throws IOException {
-        Map<AbstractProject, List<External>> projectExternalsCache = getProjectExternalsCache();
+    private List<External> getExternals(Job context) throws IOException {
+        Map<Job, List<External>> projectExternalsCache = getProjectExternalsCache();
         List<External> projectExternals;
         synchronized (projectExternalsCache) {
             projectExternals = projectExternalsCache.get(context);
@@ -720,10 +721,10 @@ public class SubversionSCM extends SCM implements Serializable {
     /**
      * Called after checkout/update has finished to compute the changelog.
      */
-    private boolean calcChangeLog(AbstractBuild<?,?> build, File changelogFile, BuildListener listener, List<External> externals, EnvVars env) throws IOException, InterruptedException {
-        if(build.getPreviousBuild()==null) {
+    private void calcChangeLog(Run<?,?> build, FilePath workspace, File changelogFile, SCMRevisionState baseline, TaskListener listener, List<External> externals, EnvVars env) throws IOException, InterruptedException {
+        if (baseline == null) {
             // nothing to compare against
-            return createEmptyChangeLog(changelogFile, listener, "log");
+            createEmptyChangeLog(changelogFile, listener, "log");
         }
 
         // some users reported that the file gets created with size 0. I suspect
@@ -732,24 +733,22 @@ public class SubversionSCM extends SCM implements Serializable {
         OutputStream os = new BufferedOutputStream(new FileOutputStream(changelogFile));
         boolean created;
         try {
-            created = new SubversionChangeLogBuilder(build, env, listener, this).run(externals, new StreamResult(os));
+            created = new SubversionChangeLogBuilder(build, workspace, (SVNRevisionState) baseline, env, listener, this).run(externals, new StreamResult(os));
         } finally {
             os.close();
         }
         if(!created)
             createEmptyChangeLog(changelogFile, listener, "log");
-
-        return true;
     }
 
     /**
      * Please consider using the non-static version {@link #parseSvnRevisionFile(AbstractBuild)}!
      */
-    /*package*/ static Map<String,Long> parseRevisionFile(AbstractBuild<?,?> build) throws IOException {
+    /*package*/ static Map<String,Long> parseRevisionFile(Run<?,?> build) throws IOException {
         return parseRevisionFile(build,true,false);
     }
 
-    /*package*/ Map<String,Long> parseSvnRevisionFile(AbstractBuild<?,?> build) throws IOException {
+    /*package*/ Map<String,Long> parseSvnRevisionFile(Run<?,?> build) throws IOException {
         return parseRevisionFile(build);
     }
 
@@ -763,11 +762,11 @@ public class SubversionSCM extends SCM implements Serializable {
      *      map from {@link SvnInfo#url Subversion URL} to its revision.  If there is more than one, choose
      *      the one with the smallest revision number
      */
-    /*package*/ static Map<String,Long> parseRevisionFile(AbstractBuild<?,?> build, boolean findClosest, boolean prunePinnedExternals) throws IOException {
+    /*package*/ static Map<String,Long> parseRevisionFile(Run<?,?> build, boolean findClosest, boolean prunePinnedExternals) throws IOException {
         Map<String,Long> revisions = new HashMap<String,Long>(); // module -> revision
 
         if (findClosest) {
-            for (AbstractBuild<?,?> b=build; b!=null; b=b.getPreviousBuild()) {
+            for (Run<?,?> b=build; b!=null; b=b.getPreviousBuild()) {
                 if(getRevisionFile(b).exists()) {
                     build = b;
                     break;
@@ -835,16 +834,14 @@ public class SubversionSCM extends SCM implements Serializable {
     }
 
     @SuppressWarnings("unchecked")
-    public boolean checkout(AbstractBuild build, Launcher launcher, FilePath workspace, final BuildListener listener, File changelogFile) throws IOException, InterruptedException {
+    @Override public void checkout(Run build, Launcher launcher, FilePath workspace, final TaskListener listener, File changelogFile, SCMRevisionState baseline) throws IOException, InterruptedException {
         EnvVars env = build.getEnvironment(listener);
-        EnvVarsUtils.overrideAll(env, build.getBuildVariables());
+        if (build instanceof AbstractBuild) {
+            EnvVarsUtils.overrideAll(env, ((AbstractBuild) build).getBuildVariables());
+        }
 
         List<External> externals = null;
-        try {
             externals = checkout(build,workspace,listener,env);
-        } catch (UpdaterException e) {
-            return false;
-        }
 
         // write out the revision file
         PrintWriter w = new PrintWriter(new FileOutputStream(getRevisionFile(build)));
@@ -864,13 +861,15 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         // write out the externals info
-        SvnExternalsFileManager.writeExternalsFile(build.getProject(), externals);
-        Map<AbstractProject, List<External>> projectExternalsCache = getProjectExternalsCache();
+        SvnExternalsFileManager.writeExternalsFile(build.getParent(), externals);
+        Map<Job, List<External>> projectExternalsCache = getProjectExternalsCache();
         synchronized (projectExternalsCache) {
-            projectExternalsCache.put(build.getProject(), externals);
+            projectExternalsCache.put(build.getParent(), externals);
         }
 
-        return calcChangeLog(build, changelogFile, listener, externals, env);
+        if (changelogFile != null) {
+            calcChangeLog(build, workspace, changelogFile, baseline, listener, externals, env);
+        }
     }
 
     /**
@@ -884,10 +883,10 @@ public class SubversionSCM extends SCM implements Serializable {
      *      if the operation failed. Otherwise the set of local workspace paths
      *      (relative to the workspace root) that has loaded due to svn:external.
      */
-    private List<External> checkout(AbstractBuild build, FilePath workspace, TaskListener listener, EnvVars env) throws IOException, InterruptedException {
+    private List<External> checkout(Run build, FilePath workspace, TaskListener listener, EnvVars env) throws IOException, InterruptedException {
         if (repositoryLocationsNoLongerExist(build, listener, env)) {
-            Run lsb = build.getProject().getLastSuccessfulBuild();
-            if (lsb != null && build.getNumber()-lsb.getNumber()>10
+            Run lsb = build.getParent().getLastSuccessfulBuild();
+            if (build instanceof AbstractBuild && lsb != null && build.getNumber()-lsb.getNumber()>10
             && build.getTimestamp().getTimeInMillis()-lsb.getTimestamp().getTimeInMillis() > TimeUnit2.DAYS.toMillis(1)) {
                 // Disable this project if the location doesn't exist any more, see issue #763
                 // but only do so if there was at least some successful build,
@@ -895,8 +894,8 @@ public class SubversionSCM extends SCM implements Serializable {
                 // finally, only disable a build if the failure persists for some time.
                 // see http://www.nabble.com/Should-Hudson-have-an-option-for-a-content-fingerprint--td24022683.html
 
-                listener.getLogger().println("One or more repository locations do not exist anymore for " + build.getProject().getName() + ", project will be disabled.");
-                build.getProject().makeDisabled(true);
+                listener.getLogger().println("One or more repository locations do not exist anymore for " + build.getParent().getName() + ", project will be disabled.");
+                ((AbstractBuild) build).getProject().makeDisabled(true);
                 return null;
             }
         }
@@ -926,7 +925,7 @@ public class SubversionSCM extends SCM implements Serializable {
             for (String realm : unauthenticatedRealms) {
                 listener.getLogger().println(" * " + realm);
             }
-            if (build == build.getProject().getLastBuild()) {
+            if (build == build.getParent().getLastBuild()) {
                 if (additionalCredentials == null) {
                     additionalCredentials = new ArrayList<AdditionalCredentials>();
                 }
@@ -935,7 +934,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 }
                 try {
                     listener.getLogger().println("Adding missing realms to configuration...");
-                    build.getProject().save();
+                    build.getParent().save();
                     listener.getLogger().println("Updated project configuration saved.");
                 } catch (IOException e) {
                     listener.getLogger().println("Could not update project configuration: " + e.getMessage());
@@ -946,9 +945,9 @@ public class SubversionSCM extends SCM implements Serializable {
         return externals;
     }
 
-    private synchronized Map<AbstractProject, List<External>> getProjectExternalsCache() {
+    private synchronized Map<Job, List<External>> getProjectExternalsCache() {
         if (projectExternalsCache == null) {
-            projectExternalsCache = new WeakHashMap<AbstractProject, List<External>>();
+            projectExternalsCache = new WeakHashMap<Job, List<External>>();
         }
 
         return projectExternalsCache;
@@ -960,7 +959,7 @@ public class SubversionSCM extends SCM implements Serializable {
     private static class CheckOutTask extends UpdateTask implements FileCallable<List<External>> {
         private final UpdateTask task;
 
-         public CheckOutTask(AbstractBuild<?, ?> build, SubversionSCM parent, ModuleLocation location, Date timestamp, TaskListener listener, EnvVars env) {
+         public CheckOutTask(Run<?, ?> build, SubversionSCM parent, ModuleLocation location, Date timestamp, TaskListener listener, EnvVars env) {
             this.authProvider = parent.createAuthenticationProvider(build.getParent(), location);
             this.timestamp = timestamp;
             this.listener = listener;
@@ -1106,7 +1105,7 @@ public class SubversionSCM extends SCM implements Serializable {
      *
      * @see SubversionSCM#createSvnClientManager(ISVNAuthenticationProvider)
      */
-    public ISVNAuthenticationProvider createAuthenticationProvider(AbstractProject<?, ?> inContextOf,
+    public ISVNAuthenticationProvider createAuthenticationProvider(Job<?, ?> inContextOf,
                                                                    ModuleLocation location) {
         return CredentialsSVNAuthenticationProviderImpl.createAuthenticationProvider(inContextOf, this, location);
     }
@@ -1252,7 +1251,7 @@ public class SubversionSCM extends SCM implements Serializable {
         private final List<External> externals;
         private final ModuleLocation[] locations;
 
-        public BuildRevisionMapTask(AbstractBuild<?, ?> build, SubversionSCM parent, TaskListener listener, List<External> externals, EnvVars env) {
+        public BuildRevisionMapTask(Run<?, ?> build, SubversionSCM parent, TaskListener listener, List<External> externals, EnvVars env) {
             this.listener = listener;
             this.externals = externals;
             this.locations = parent.getLocations(env, build);
@@ -1310,14 +1309,14 @@ public class SubversionSCM extends SCM implements Serializable {
     /**
      * Gets the file that stores the revision.
      */
-    public static File getRevisionFile(AbstractBuild build) {
+    public static File getRevisionFile(Run build) {
         return new File(build.getRootDir(),"revision.txt");
     }
 
     
 
     @Override
-    public SCMRevisionState calcRevisionsFromBuild(AbstractBuild<?, ?> build, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+    public SCMRevisionState calcRevisionsFromBuild(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
         // exclude locations that are svn:external-ed with a fixed revision.
         Map<String,Long> wsRev = parseRevisionFile(build,true,true);
         return new SVNRevisionState(wsRev);
@@ -1332,13 +1331,13 @@ public class SubversionSCM extends SCM implements Serializable {
     }
 
     @Override
-    protected PollingResult compareRemoteRevisionWith(AbstractProject<?,?> project, Launcher launcher, FilePath workspace, final TaskListener listener, SCMRevisionState _baseline) throws IOException, InterruptedException {
+    public PollingResult compareRemoteRevisionWith(Job<?,?> project, Launcher launcher, FilePath workspace, final TaskListener listener, SCMRevisionState _baseline) throws IOException, InterruptedException {
         final SVNRevisionState baseline;
         if (_baseline instanceof SVNRevisionState) {
             baseline = (SVNRevisionState)_baseline;
         }
         else if (project.getLastBuild()!=null) {
-            baseline = (SVNRevisionState)calcRevisionsFromBuild(project.getLastBuild(), launcher, listener);
+            baseline = (SVNRevisionState)calcRevisionsFromBuild(project.getLastBuild(), launcher != null ? workspace : null, launcher, listener);
         }
         else {
             baseline = new SVNRevisionState(null);
@@ -1349,16 +1348,18 @@ public class SubversionSCM extends SCM implements Serializable {
             return BUILD_NOW;
         }
 
-        AbstractBuild<?,?> lastCompletedBuild = project.getLastCompletedBuild();
+        Run<?,?> lastCompletedBuild = project.getLastCompletedBuild();
 
         if (lastCompletedBuild!=null) {
             EnvVars env = lastCompletedBuild.getEnvironment(listener);
-            EnvVarsUtils.overrideAll(env, lastCompletedBuild.getBuildVariables());
-            if (repositoryLocationsNoLongerExist(lastCompletedBuild, listener, env)) {
+            if (lastCompletedBuild instanceof AbstractBuild) {
+                EnvVarsUtils.overrideAll(env, ((AbstractBuild) lastCompletedBuild).getBuildVariables());
+            }
+            if (project instanceof AbstractProject && repositoryLocationsNoLongerExist(lastCompletedBuild, listener, env)) {
                 // Disable this project, see HUDSON-763
                 listener.getLogger().println(
                         Messages.SubversionSCM_pollChanges_locationsNoLongerExist(project));
-                project.makeDisabled(true);
+                ((AbstractProject) project).makeDisabled(true);
                 return NO_CHANGES;
             }
 
@@ -1385,11 +1386,7 @@ public class SubversionSCM extends SCM implements Serializable {
         VirtualChannel ch=null;
         Node n = null;
         if (!isPollFromMaster()) {
-            n = lastCompletedBuild!=null ? lastCompletedBuild.getBuiltOn() : null;
-            if (n!=null) {
-                Computer c = n.toComputer();
-                if (c!=null)    ch = c.getChannel();
-            }
+            ch = workspace.getChannel();
         }
         if (ch==null)   ch= MasterComputer.localChannel;
 
@@ -2280,7 +2277,7 @@ public class SubversionSCM extends SCM implements Serializable {
             return checkRepositoryPath(context, repoURL, null);
         }
 
-        public SVNNodeKind checkRepositoryPath(AbstractProject context, SVNURL repoURL, StandardCredentials credentials) throws SVNException {
+        public SVNNodeKind checkRepositoryPath(Job context, SVNURL repoURL, StandardCredentials credentials) throws SVNException {
             SVNRepository repository = null;
 
             try {
@@ -2334,7 +2331,7 @@ public class SubversionSCM extends SCM implements Serializable {
             return getRepository(context, repoURL, credentials, additionalCredentials, null);
         }
 
-        protected SVNRepository getRepository(AbstractProject context, SVNURL repoURL, StandardCredentials credentials,
+        protected SVNRepository getRepository(Job context, SVNURL repoURL, StandardCredentials credentials,
                                               Map<String, Credentials> additionalCredentials, ISVNSession session) throws SVNException {
             SVNRepository repository = SVNRepositoryFactory.create(repoURL, session);
         
@@ -2518,14 +2515,14 @@ public class SubversionSCM extends SCM implements Serializable {
     /**
      * @since 1.34
      */
-    public boolean repositoryLocationsNoLongerExist(AbstractBuild<?,?> build, TaskListener listener, EnvVars env) {
+    public boolean repositoryLocationsNoLongerExist(Run<?,?> build, TaskListener listener, EnvVars env) {
         PrintStream out = listener.getLogger();
 
         for (ModuleLocation l : getLocations(env, build))
             try {
-                if (getDescriptor().checkRepositoryPath(build.getProject(),
+                if (getDescriptor().checkRepositoryPath(build.getParent(),
                         l.getSVNURL(),
-                        lookupCredentials(build.getProject(), l.credentialsId, l.getSVNURL())) == SVNNodeKind.NONE) {
+                        lookupCredentials(build.getParent(), l.credentialsId, l.getSVNURL())) == SVNNodeKind.NONE) {
                     out.println("Location '" + l.remote + "' does not exist");
 
                     ParametersAction params = build.getAction(ParametersAction.class);
@@ -2702,12 +2699,12 @@ public class SubversionSCM extends SCM implements Serializable {
         /**
          * Repository UUID. Lazy computed and cached.
          */
-        public UUID getUUID(AbstractProject context) throws SVNException {
+        public UUID getUUID(Job context, SCM scm) throws SVNException {
             if(repositoryUUID==null || repositoryRoot==null) {
                 LOGGER.fine("UUID of " + remote + " not cached for " + context);
                 synchronized (this) {
                     // don't keep connections open for further use to prevent having too many open at the same time.
-                    SVNRepository r = openRepository(context, false);
+                    SVNRepository r = openRepository(context, scm, false);
                     if (r.getRepositoryUUID(false) == null)
                         r.testConnection(); // make sure values are fetched
                     repositoryUUID = UUID.fromString(r.getRepositoryUUID(false));
@@ -2718,10 +2715,10 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         public SVNRepository openRepository(AbstractProject context) throws SVNException {
-            return openRepository(context, true);
+            return openRepository(context, context.getScm(), true);
         }
 
-        public SVNRepository openRepository(AbstractProject context, boolean keepConnection) throws SVNException {
+        public SVNRepository openRepository(Job context, SCM scm, boolean keepConnection) throws SVNException {
             SVNURL repoURL = getSVNURL();
 
             StandardCredentials creds = lookupCredentials(context, credentialsId, repoURL);
@@ -2729,7 +2726,7 @@ public class SubversionSCM extends SCM implements Serializable {
             if (creds == null) {
                 // we should add additional credentials, this looks like it's going to be an external
                 // TODO only necessary with externals, or can we always do this?
-                List<AdditionalCredentials> additionalCredentialsList = ((SubversionSCM)context.getScm()).getAdditionalCredentials();
+                List<AdditionalCredentials> additionalCredentialsList = ((SubversionSCM) scm).getAdditionalCredentials();
                 for (AdditionalCredentials c : additionalCredentialsList) {
                     if (c.getCredentialsId() != null) {
                         StandardCredentials cred = CredentialsMatchers
@@ -2764,8 +2761,8 @@ public class SubversionSCM extends SCM implements Serializable {
             });
         }
 
-        public SVNURL getRepositoryRoot(AbstractProject context) throws SVNException {
-            getUUID(context);
+        public SVNURL getRepositoryRoot(Job context, SCM scm) throws SVNException {
+            getUUID(context, scm);
             return repositoryRoot;
         }
 
@@ -3137,7 +3134,7 @@ public class SubversionSCM extends SCM implements Serializable {
         return null;
     }
 
-    private static StandardCredentials lookupCredentials(AbstractProject context, String credentialsId, SVNURL repoURL) {
+    private static StandardCredentials lookupCredentials(Job context, String credentialsId, SVNURL repoURL) {
         return credentialsId == null ? null :
                 CredentialsMatchers.firstOrNull(CredentialsProvider
                         .lookupCredentials(StandardCredentials.class, context, ACL.SYSTEM,

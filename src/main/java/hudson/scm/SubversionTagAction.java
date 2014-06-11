@@ -100,7 +100,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
      */
     private final Map<SvnInfo,List<String>> tags = new CopyOnWriteMap.Tree<SvnInfo, List<String>>();
 
-    /*package*/ SubversionTagAction(AbstractBuild build,Collection<SvnInfo> svnInfos) {
+    /*package*/ SubversionTagAction(Run build,Collection<SvnInfo> svnInfos) {
         super(build);
         Map<SvnInfo,List<String>> m = new HashMap<SvnInfo,List<String>>();
         for (SvnInfo si : svnInfos)

@@ -29,7 +29,7 @@ package hudson.scm;
 
 import com.thoughtworks.xstream.XStream;
 import hudson.XmlFile;
-import hudson.model.AbstractProject;
+import hudson.model.Job;
 import hudson.util.XStream2;
 import java.io.File;
 import java.io.IOException;
@@ -51,7 +51,7 @@ import javax.annotation.Nonnull;
 class SvnExternalsFileManager {
     private static final String SVN_EXTERNALS_FILE = "svnexternals.txt";
     private static final XStream XSTREAM = new XStream2();
-    private static Map<AbstractProject, Object> projectExternalsCache;    
+    private static Map<Job, Object> projectExternalsCache;
     static {
         XSTREAM.alias("external", SubversionSCM.External.class);
     }
@@ -62,9 +62,9 @@ class SvnExternalsFileManager {
      * @return A lock object (will be created on-demand)
      */
     @Nonnull
-    private static synchronized Object getFileLockItem(AbstractProject project) {
+    private static synchronized Object getFileLockItem(Job project) {
         if (projectExternalsCache == null) {
-            projectExternalsCache = new WeakHashMap<AbstractProject, Object>();
+            projectExternalsCache = new WeakHashMap<Job, Object>();
         }
                 
         Object item = projectExternalsCache.get(project);
@@ -79,7 +79,7 @@ class SvnExternalsFileManager {
      * Gets the file that stores the externals.
      */
     @Nonnull
-    private static File getExternalsFile(AbstractProject project) {
+    private static File getExternalsFile(Job project) {
         return new File(project.getRootDir(), SVN_EXTERNALS_FILE);
     }
 
@@ -95,7 +95,7 @@ class SvnExternalsFileManager {
      */
     @Nonnull
     @SuppressWarnings("unchecked")
-    public static List<SubversionSCM.External> parseExternalsFile(AbstractProject project) throws IOException {
+    public static List<SubversionSCM.External> parseExternalsFile(Job project) throws IOException {
         File file = getExternalsFile(project);
         Object lock = getFileLockItem(project);
         
@@ -118,7 +118,7 @@ class SvnExternalsFileManager {
      * @param externals List of externals
      * @throws IOException File write error
      */
-    public static void writeExternalsFile(AbstractProject project, List<SubversionSCM.External> externals) throws IOException {
+    public static void writeExternalsFile(Job project, List<SubversionSCM.External> externals) throws IOException {
         Object lock = getFileLockItem(project);
         
         synchronized (lock) {
