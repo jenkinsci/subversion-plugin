@@ -38,7 +38,7 @@ public class CompareAgainstBaselineCallableTest {
         this.callable = new CompareAgainstBaselineCallable(
                 new SVNRevisionState(null),
                 new SVNLogHandler( filter, taskListener),
-                        "projectName", taskListener, null, Collections.<String,ISVNAuthenticationProvider>emptyMap(), "nodeName");
+                        "projectName", taskListener, null, Collections.<String,ISVNAuthenticationProvider>emptyMap());
     }
 
 }

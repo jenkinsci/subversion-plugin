@@ -35,7 +35,6 @@ import static java.util.logging.Level.WARNING;
 import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
 import com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey;
 import com.cloudbees.plugins.credentials.Credentials;
-import com.cloudbees.plugins.credentials.CredentialsMatcher;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
@@ -67,7 +66,6 @@ import hudson.Launcher;
 import hudson.Util;
 import hudson.init.InitMilestone;
 import hudson.model.AbstractDescribableImpl;
-import hudson.model.BuildListener;
 import hudson.model.Descriptor;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
@@ -75,7 +73,6 @@ import hudson.model.ModelObject;
 import hudson.model.TaskListener;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
-import hudson.model.Computer;
 import hudson.model.Hudson;
 
 import java.io.ByteArrayOutputStream;
@@ -93,7 +90,6 @@ import hudson.security.ACL;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import jenkins.model.Jenkins.MasterComputer;
-import hudson.model.Node;
 import hudson.model.ParametersAction;
 import hudson.model.Run;
 import hudson.remoting.Callable;
@@ -105,7 +101,6 @@ import hudson.scm.subversion.Messages;
 import hudson.scm.subversion.SvnHelper;
 import hudson.scm.subversion.UpdateUpdater;
 import hudson.scm.subversion.UpdateWithRevertUpdater;
-import hudson.scm.subversion.UpdaterException;
 import hudson.scm.subversion.WorkspaceUpdater;
 import hudson.scm.subversion.WorkspaceUpdater.UpdateTask;
 import hudson.scm.subversion.WorkspaceUpdaterDescriptor;
@@ -1390,8 +1385,6 @@ public class SubversionSCM extends SCM implements Serializable {
         }
         if (ch==null)   ch= MasterComputer.localChannel;
 
-        final String nodeName = n!=null ? n.getNodeName() : "master";
-
         final SVNLogHandler logHandler = new SVNLogHandler(createSVNLogFilter(), listener);
 
         final Map<String,ISVNAuthenticationProvider> authProviders = new LinkedHashMap<String,
@@ -1409,7 +1402,7 @@ public class SubversionSCM extends SCM implements Serializable {
         final ISVNAuthenticationProvider defaultAuthProvider = createAuthenticationProvider(project, null);
 
         // figure out the remote revisions
-        return ch.call(new CompareAgainstBaselineCallable(baseline, logHandler, project.getName(), listener, defaultAuthProvider, authProviders, nodeName));
+        return ch.call(new CompareAgainstBaselineCallable(baseline, logHandler, project.getName(), listener, defaultAuthProvider, authProviders));
     }
 
     public SVNLogFilter createSVNLogFilter() {
