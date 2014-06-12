@@ -1,4 +1,4 @@
-package hudson.scm;
+package jenkins.scm.impl.subversion.svnkit;
 
 import org.tmatesoft.svn.core.SVNErrorMessage;
 import org.tmatesoft.svn.core.SVNException;

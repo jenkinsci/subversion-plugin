@@ -1,6 +1,7 @@
 package hudson.scm;
 
-import hudson.scm.ISVNAuthenticationOutcomeListener;
+
+import jenkins.scm.impl.subversion.svnkit.ISVNAuthenticationOutcomeListener;
 
 /**
  * @see org.tmatesoft.svn.core.auth.ISVNAuthenticationManager

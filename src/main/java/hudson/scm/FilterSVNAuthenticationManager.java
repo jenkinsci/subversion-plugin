@@ -1,5 +1,6 @@
 package hudson.scm;
 
+import jenkins.scm.impl.subversion.svnkit.ISVNAuthenticationOutcomeListener;
 import org.tmatesoft.svn.core.SVNErrorMessage;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNURL;
