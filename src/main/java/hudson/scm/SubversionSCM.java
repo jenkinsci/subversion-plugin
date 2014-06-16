@@ -2092,6 +2092,10 @@ public class SubversionSCM extends SCM implements Serializable {
             return super.newInstance(staplerRequest, jsonObject);
         }
 
+        @Override public boolean isApplicable(Job project) {
+            return true;
+        }
+
         public DescriptorImpl() {
             super(SubversionRepositoryBrowser.class);
             load();
