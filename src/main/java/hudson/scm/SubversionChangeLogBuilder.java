@@ -31,6 +31,8 @@ import hudson.FilePath;
 import hudson.util.IOException2;
 import hudson.remoting.VirtualChannel;
 import hudson.FilePath.FileCallable;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.tmatesoft.svn.core.SVNException;
@@ -55,6 +57,7 @@ import java.io.File;
 import java.io.Serializable;
 import java.util.Map;
 import java.util.Collection;
+import javax.annotation.Nonnull;
 
 /**
  * Builds <tt>changelog.xml</tt> for {@link SubversionSCM}.
@@ -71,27 +74,29 @@ public final class SubversionChangeLogBuilder {
      */
     private final Map<String,Long> thisRevisions;
 
-    private final BuildListener listener;
+    private final TaskListener listener;
     private final SubversionSCM scm;
-    private final AbstractBuild<?,?> build;
+    private final Run<?,?> build;
+    private final FilePath workspace;
     private final EnvVars env;
 
     /**
      * @deprecated 1.34
      */
     public SubversionChangeLogBuilder(AbstractBuild<?,?> build, BuildListener listener, SubversionSCM scm) throws IOException {
-        this(build, null,listener, scm);
+        this(build, build.getWorkspace(), build.getPreviousBuild().getAction(SVNRevisionState.class), null, listener, scm);
     }
 
     /**
      * @since  1.34
      */
-    public SubversionChangeLogBuilder(AbstractBuild<?,?> build, EnvVars env, BuildListener listener, SubversionSCM scm) throws IOException {
-        previousRevisions = scm.parseSvnRevisionFile(build.getPreviousBuild());
+    public SubversionChangeLogBuilder(Run<?,?> build, FilePath workspace, @Nonnull SVNRevisionState baseline, EnvVars env, TaskListener listener, SubversionSCM scm) throws IOException {
+        previousRevisions = baseline.revisions;
         thisRevisions     = scm.parseSvnRevisionFile(build);
         this.listener = listener;
         this.scm = scm;
         this.build = build;
+        this.workspace = workspace;
         this.env = env;
     }
 
@@ -109,11 +114,11 @@ public final class SubversionChangeLogBuilder {
         for (ModuleLocation l : scm.getLocations(env, build)) {
             ISVNAuthenticationProvider authProvider =
                     CredentialsSVNAuthenticationProviderImpl
-                            .createAuthenticationProvider(build.getProject(), scm, l);
+                            .createAuthenticationProvider(build.getParent(), scm, l);
             final SVNClientManager manager = SubversionSCM.createClientManager(authProvider).getCore();
             try {
                 SVNLogClient svnlc = manager.getLogClient();
-                PathContext context = getUrlForPath(build.getWorkspace().child(l.getLocalDir()), authProvider);
+                PathContext context = getUrlForPath(workspace.child(l.getLocalDir()), authProvider);
                 context.moduleWorkspacePath = l.getLocalDir();
                 changelogFileCreated |= buildModule(context, svnlc, logHandler);
             } finally {
@@ -122,12 +127,12 @@ public final class SubversionChangeLogBuilder {
         }
         ISVNAuthenticationProvider authProvider =
                 CredentialsSVNAuthenticationProviderImpl
-                        .createAuthenticationProvider(build.getProject(), scm, null);
+                        .createAuthenticationProvider(build.getParent(), scm, null);
         final SVNClientManager manager = SubversionSCM.createClientManager(authProvider).getCore();
         try {
             SVNLogClient svnlc = manager.getLogClient();
             for(SubversionSCM.External ext : externals) {
-                PathContext context = getUrlForPath(build.getWorkspace().child(ext.path), authProvider);
+                PathContext context = getUrlForPath(workspace.child(ext.path), authProvider);
                 context.moduleWorkspacePath = ext.path;
                 changelogFileCreated |= buildModule(context, svnlc, logHandler);
             }

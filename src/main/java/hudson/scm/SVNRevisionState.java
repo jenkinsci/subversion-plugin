@@ -37,5 +37,9 @@ final class SVNRevisionState extends SCMRevisionState implements Serializable {
 //        return false;
 //    }
 
+    @Override public String toString() {
+        return "SVNRevisionState" + revisions;
+    }
+
     private static final long serialVersionUID = 1L;
 }

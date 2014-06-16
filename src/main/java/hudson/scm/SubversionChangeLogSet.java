@@ -25,6 +25,8 @@ package hudson.scm;
 
 import hudson.Util;
 import hudson.model.AbstractBuild;
+import hudson.model.Job;
+import hudson.model.Run;
 import hudson.model.User;
 import hudson.scm.SubversionChangeLogSet.LogEntry;
 import hudson.scm.SubversionSCM.ModuleLocation;
@@ -41,6 +43,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import jenkins.triggers.SCMTriggerItem;
 
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -65,11 +68,11 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
     
     @Deprecated
     /*package*/ SubversionChangeLogSet(AbstractBuild<?,?> build, List<LogEntry> logs) {
-      this(build, logs, false);
+      this(build, build.getProject().getScm().getEffectiveBrowser(), logs, false);
     }
 
-    /*package*/ SubversionChangeLogSet(AbstractBuild<?,?> build, List<LogEntry> logs, boolean ignoreDirPropChanges) {
-        super(build);
+    /*package*/ SubversionChangeLogSet(Run<?,?> build, RepositoryBrowser<?> browser, List<LogEntry> logs, boolean ignoreDirPropChanges) {
+        super(build, browser);
         this.ignoreDirPropChanges = ignoreDirPropChanges;
         this.logs = prepareChangeLogEntries(logs);
     }
@@ -230,8 +233,15 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         }
         
         private String preparePath(String path) {
-            SCM scm = getParent().build.getProject().getScm();
-            if (!(scm instanceof SubversionSCM)) return path;
+            Job job = getParent().getRun().getParent();
+            SCMTriggerItem s = SCMTriggerItem.SCMTriggerItems.asSCMTriggerItem(job);
+            if (s == null) {
+                return path;
+            }
+            for (SCM scm : s.getSCMs()) {
+                if (!(scm instanceof SubversionSCM)) {
+                    continue;
+                }
             ModuleLocation[] locations = ((SubversionSCM)scm).getLocations();
             for (int i = 0; i < locations.length; i++) {
                 String commonPart = findCommonPart(locations[i].remote, path);
@@ -245,6 +255,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
                     }
                     return newPath;
                 }
+            }
             }
             return path;
         }
