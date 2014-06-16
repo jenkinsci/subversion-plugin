@@ -2717,7 +2717,18 @@ public class SubversionSCM extends SCM implements Serializable {
             return repositoryUUID;
         }
 
+        @Deprecated
+        public UUID getUUID(AbstractProject context) throws SVNException {
+            return getUUID(context, context.getScm());
+        }
+
+        @Deprecated
         public SVNRepository openRepository(AbstractProject context) throws SVNException {
+            return openRepository(context, true);
+        }
+
+        @Deprecated
+        public SVNRepository openRepository(AbstractProject context, boolean keepConnection) throws SVNException {
             return openRepository(context, context.getScm(), true);
         }
 
@@ -2762,6 +2773,11 @@ public class SubversionSCM extends SCM implements Serializable {
                     return false;
                 }
             });
+        }
+
+        @Deprecated
+        public SVNURL getRepositoryRoot(AbstractProject context) throws SVNException {
+            return getRepositoryRoot(context, context.getScm());
         }
 
         public SVNURL getRepositoryRoot(Job context, SCM scm) throws SVNException {
