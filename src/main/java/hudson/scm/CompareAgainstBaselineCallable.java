@@ -30,17 +30,19 @@ final class CompareAgainstBaselineCallable implements DelegatingCallable<Polling
     private final TaskListener listener;
     private final ISVNAuthenticationProvider defaultAuthProvider;
     private final Map<String, ISVNAuthenticationProvider> authProviders;
+    private final String nodeName;
     private static final long serialVersionUID = 8200959096894789583L;
 
     CompareAgainstBaselineCallable(SVNRevisionState baseline, SVNLogHandler logHandler, String projectName,
                                    TaskListener listener, ISVNAuthenticationProvider defaultAuthProvider,
-                                   Map<String, ISVNAuthenticationProvider> authProviders) {
+                                   Map<String, ISVNAuthenticationProvider> authProviders, String nodeName) {
         this.logHandler = logHandler;
         this.projectName = projectName;
         this.baseline = baseline;
         this.listener = listener;
         this.defaultAuthProvider = defaultAuthProvider;
         this.authProviders = authProviders;
+        this.nodeName = nodeName;
     }
 
     public ClassLoader getClassLoader() {
@@ -52,7 +54,7 @@ final class CompareAgainstBaselineCallable implements DelegatingCallable<Polling
      * so
      */
     public PollingResult call() throws IOException {
-        listener.getLogger().println("Received SCM poll call on for " + projectName + " on " + DateFormat.getDateTimeInstance().format(new Date()) );
+        listener.getLogger().println("Received SCM poll call on " + nodeName + " for " + projectName + " on " + DateFormat.getDateTimeInstance().format(new Date()) );
         final Map<String,Long> revs = new HashMap<String,Long>();
         boolean changes = false;
         boolean significantChanges = false;
