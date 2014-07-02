@@ -297,7 +297,29 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     }
 
     @Bug(22568)
-    public void testPollingWithDefaultParameters() throws Exception {
+    public void testPollingWithDefaultParametersWithCurlyBraces() throws Exception {
+        FreeStyleProject p = createFreeStyleProject();
+
+        String url = "http://svn.codehaus.org/sxc/tags/sxc-0.5/sxc-core/src/test/java/com/envoisolutions/sxc/builder/";
+        p.setScm(new SubversionSCM("${REPO}" + url.substring(10)));
+        String var = url.substring(0, 10);
+        ParametersDefinitionProperty property = new ParametersDefinitionProperty(new StringParameterDefinition("REPO", var));
+        p.addProperty(property);
+
+        FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserIdCause(),
+                new ParametersAction(new StringParameterValue("REPO", var))).get();
+
+        assertBuildStatus(Result.SUCCESS,b);
+        assertTrue(b.getWorkspace().child("Node.java").exists());
+
+        // as a baseline, this shouldn't detect any change
+        TaskListener listener = createTaskListener();
+        PollingResult poll = p.poll(listener);
+        assertFalse("Polling shouldn't have any changes.", poll.hasChanges());
+    }
+
+    @Bug(22568)
+    public void testPollingWithDefaultParametersWithOutCurlyBraces() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
 
         String url = "http://svn.codehaus.org/sxc/tags/sxc-0.5/sxc-core/src/test/java/com/envoisolutions/sxc/builder/";
@@ -317,6 +339,29 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         PollingResult poll = p.poll(listener);
         assertFalse("Polling shouldn't have any changes.", poll.hasChanges());
     }
+
+    @Bug(22568)
+    public void testPollingWithChoiceParametersWithOutCurlyBraces() throws Exception {
+        FreeStyleProject p = createFreeStyleProject();
+
+        String url = "http://svn.codehaus.org/sxc/tags/sxc-0.5/sxc-core/src/test/java/com/envoisolutions/sxc/builder/";
+        p.setScm(new SubversionSCM("${REPO}" + url.substring(10)));
+        String var = url.substring(0, 10);
+        ParametersDefinitionProperty property = new ParametersDefinitionProperty(new ChoiceParameterDefinition("REPO", new String[] {var, "test"}, ""));
+        p.addProperty(property);
+
+        FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserIdCause(),
+                new ParametersAction(new StringParameterValue("REPO", var))).get();
+
+        assertBuildStatus(Result.SUCCESS,b);
+        assertTrue(b.getWorkspace().child("Node.java").exists());
+
+        // as a baseline, this shouldn't detect any change
+        TaskListener listener = createTaskListener();
+        PollingResult poll = p.poll(listener);
+        assertFalse("Polling shouldn't have any changes.", poll.hasChanges());
+    }
+
 
     public void testRevisionParameterFolding() throws Exception {
         FreeStyleProject p = createFreeStyleProject();

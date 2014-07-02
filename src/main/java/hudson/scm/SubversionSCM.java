@@ -65,17 +65,10 @@ import hudson.Functions;
 import hudson.Launcher;
 import hudson.Util;
 import hudson.init.InitMilestone;
-import hudson.model.AbstractDescribableImpl;
-import hudson.model.Descriptor;
-import hudson.model.Item;
-import hudson.model.ItemGroup;
-import hudson.model.ModelObject;
-import hudson.model.TaskListener;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.Hudson;
+import hudson.model.*;
 
 import java.io.ByteArrayOutputStream;
+import java.net.URLClassLoader;
 import java.nio.charset.UnsupportedCharsetException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -90,8 +83,6 @@ import hudson.security.ACL;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import jenkins.model.Jenkins.MasterComputer;
-import hudson.model.ParametersAction;
-import hudson.model.Run;
 import hudson.remoting.Callable;
 import hudson.remoting.Channel;
 import hudson.remoting.VirtualChannel;
@@ -194,7 +185,6 @@ import org.tmatesoft.svn.core.wc.SVNWCUtil;
 import com.trilead.ssh2.DebugLogger;
 import com.trilead.ssh2.SCPClient;
 import com.trilead.ssh2.crypto.Base64;
-import hudson.model.Job;
 
 /**
  * Subversion SCM.
@@ -1402,7 +1392,7 @@ public class SubversionSCM extends SCM implements Serializable {
         for (ModuleLocation loc: getLocations()) {
             String url;
             try {
-                url = loc.getSVNURL().toDecodedString();
+                url = loc.getExpandedLocation(project).getSVNURL().toDecodedString();
             } catch (SVNException ex) {
                 ex.printStackTrace(listener.error(Messages.SubversionSCM_pollChanges_exception(loc.getURL())));
                 return BUILD_NOW;
@@ -2907,6 +2897,32 @@ public class SubversionSCM extends SCM implements Serializable {
             return modules;
         }
 
+        /**
+         * If a subversion remote uses $VAR or ${VAR} as a parameterized build,
+         * we expand the url. This will expand using the DEFAULT item. If there
+         * is a choice parameter, it will expand with the FIRST item.
+         */
+        public ModuleLocation getExpandedLocation(Job<?, ?> project) {
+            String url = this.getURL();
+            String returnURL = url;
+            for (JobProperty property : project.getProperties().values()) {
+                if (property instanceof ParametersDefinitionProperty) {
+                    ParametersDefinitionProperty pdp = (ParametersDefinitionProperty) property;
+                    for (String propertyName : pdp.getParameterDefinitionNames()) {
+                        if (url.contains(propertyName)) {
+                            ParameterDefinition pd = pdp.getParameterDefinition(propertyName);
+                            String replacement = String.valueOf(pd.getDefaultParameterValue().getValue());
+                            returnURL = returnURL.replace("${" + propertyName + "}", replacement);
+                            returnURL = returnURL.replace("$" + propertyName, replacement);
+                        }
+                    }
+                }
+            }
+
+            return new ModuleLocation(returnURL, credentialsId, getLocalDir(), getDepthOption(),
+                    isIgnoreExternalsOption());
+        }
+
         @Extension
         public static class DescriptorImpl extends Descriptor<ModuleLocation> {
 
@@ -3082,12 +3098,12 @@ public class SubversionSCM extends SCM implements Serializable {
     /**
      * Property to control whether SCM polling happens from the slave or master
      */
-    private static boolean POLL_FROM_MASTER = Boolean.getBoolean(SubversionSCM.class.getName()+".pollFromMaster");
+    private static boolean POLL_FROM_MASTER = Boolean.getBoolean(SubversionSCM.class.getName() + ".pollFromMaster");
 
     /**
      * If set to non-null, read configuration from this directory instead of "~/.subversion".
      */
-    public static String CONFIG_DIR = System.getProperty(SubversionSCM.class.getName()+".configDir");
+    public static String CONFIG_DIR = System.getProperty(SubversionSCM.class.getName() + ".configDir");
 
     /**
      * Enables trace logging of Ganymed SSH library.
