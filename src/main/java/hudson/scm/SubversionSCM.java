@@ -35,7 +35,6 @@ import static java.util.logging.Level.WARNING;
 import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
 import com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey;
 import com.cloudbees.plugins.credentials.Credentials;
-import com.cloudbees.plugins.credentials.CredentialsMatcher;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
@@ -77,6 +76,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Computer;
 import hudson.model.Hudson;
+import hudson.model.*;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.UnsupportedCharsetException;
@@ -1402,7 +1402,7 @@ public class SubversionSCM extends SCM implements Serializable {
         for (ModuleLocation loc: getLocations()) {
             String url;
             try {
-                url = loc.getSVNURL().toDecodedString();
+                url = loc.getExpandedLocation(project).getSVNURL().toDecodedString();
             } catch (SVNException ex) {
                 ex.printStackTrace(listener.error(Messages.SubversionSCM_pollChanges_exception(loc.getURL())));
                 return BUILD_NOW;
@@ -2887,6 +2887,38 @@ public class SubversionSCM extends SCM implements Serializable {
             return modules;
         }
 
+        /**
+         * If a subversion remote uses $VAR or ${VAR} as a parameterized build,
+         * we expand the url. This will expand using the DEFAULT item. If there
+         * is a choice parameter, it will expand with the FIRST item.
+         */
+        public ModuleLocation getExpandedLocation(Job<?, ?> project) {
+            String url = this.getURL();
+            String returnURL = url;
+            for (JobProperty property : project.getProperties().values()) {
+                if (property instanceof ParametersDefinitionProperty) {
+                    ParametersDefinitionProperty pdp = (ParametersDefinitionProperty) property;
+                    for (String propertyName : pdp.getParameterDefinitionNames()) {
+                        if (url.contains(propertyName)) {
+                            ParameterDefinition pd = pdp.getParameterDefinition(propertyName);
+                            ParameterValue pv = pd.getDefaultParameterValue();
+                            String replacement;
+                            if (pv instanceof StringParameterValue) {
+                                replacement = ((StringParameterValue) pv).value;
+                            } else {
+                                continue;
+                            }
+                            returnURL = returnURL.replace("${" + propertyName + "}", replacement);
+                            returnURL = returnURL.replace("$" + propertyName, replacement);
+                        }
+                    }
+                }
+            }
+
+            return new ModuleLocation(returnURL, credentialsId, getLocalDir(), getDepthOption(),
+                    isIgnoreExternalsOption());
+        }
+
         @Extension
         public static class DescriptorImpl extends Descriptor<ModuleLocation> {
 
@@ -3062,12 +3094,12 @@ public class SubversionSCM extends SCM implements Serializable {
     /**
      * Property to control whether SCM polling happens from the slave or master
      */
-    private static boolean POLL_FROM_MASTER = Boolean.getBoolean(SubversionSCM.class.getName()+".pollFromMaster");
+    private static boolean POLL_FROM_MASTER = Boolean.getBoolean(SubversionSCM.class.getName() + ".pollFromMaster");
 
     /**
      * If set to non-null, read configuration from this directory instead of "~/.subversion".
      */
-    public static String CONFIG_DIR = System.getProperty(SubversionSCM.class.getName()+".configDir");
+    public static String CONFIG_DIR = System.getProperty(SubversionSCM.class.getName() + ".configDir");
 
     /**
      * Enables trace logging of Ganymed SSH library.
