@@ -26,6 +26,9 @@
 package hudson.scm;
 
 import static hudson.scm.SubversionSCM.compareSVNAuthentications;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThat;
 import static org.jvnet.hudson.test.recipes.PresetData.DataSet.ANONYMOUS_READONLY;
 
 import com.cloudbees.plugins.credentials.Credentials;
@@ -33,6 +36,7 @@ import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
+
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Proc;
@@ -71,6 +75,7 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -119,6 +124,7 @@ import com.gargoylesoftware.htmlunit.WebResponse;
 import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+
 import hudson.EnvVars;
 import hudson.model.EnvironmentContributor;
 import hudson.model.TopLevelItem;
@@ -867,7 +873,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
           File repo = new CopyExisting(getClass().getResource("JENKINS-10449.zip")).allocate();
           SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.toURI().toURL().getPath()},
                                                                      new String[]{"."},null,null),
-                                                new UpdateUpdater(), null, "/z.*", "", "", "", "", false, shouldFilterLog, null);
+                                                new UpdateUpdater(), null, "/z.*", "", "", "", "", false, shouldFilterLog, null, false);
 
           FreeStyleProject p = createFreeStyleProject(String.format("testFilterChangelog-%s", shouldFilterLog));
           p.setScm(scm);
@@ -1687,5 +1693,37 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
         // should detect change
         assertTrue(p.poll(StreamTaskListener.fromStdout()).hasChanges());
+    }
+
+    public void testUseCommitTimes() throws Throwable {
+        // Given a subversion workspace where the commit times should be used
+        // When the workspace is checked out
+        // Then verify that the last modified time stamp of the format file is  2010-12-31
+
+        FreeStyleProject p = createFreeStyleProject();
+        File repo = new CopyExisting(getClass().getResource("small.zip")).allocate();
+        SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.toURI().toURL().getPath()},
+                new String[]{"."},null,null), new UpdateUpdater(), null, "/z.*", "", "", "", "", false, false, null, true);
+        p.setScm(scm);
+        
+        FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserIdCause()).get());
+        // Using long matching to prevent Timezone issues, divided by 1000 as some OS does not return the exact milliseconds
+        assertThat(b.getWorkspace().child("b").lastModified() / 1000, is(1293845528l));
+    }
+    
+    public void testNotUseCommitTimes() throws Throwable {
+        // Given a subversion workspace where the commit times should NOT be used
+        // When the workspace is checked out
+        // Then verify that the last modified time stamp of the format file NOT is  2011-01-01
+
+        FreeStyleProject p = createFreeStyleProject();
+        File repo = new CopyExisting(getClass().getResource("small.zip")).allocate();
+        SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.toURI().toURL().getPath()},
+                new String[]{"."},null,null), new UpdateUpdater(), null, "/z.*", "", "", "", "", false, false, null, false);
+        p.setScm(scm);
+        
+        FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserIdCause()).get());
+        // Using long matching to prevent Timezone issues, divided by 1000 as some OS does not return the exact milliseconds
+        assertThat(b.getWorkspace().child("b").lastModified() / 1000, not(is(1293845528l)));
     }
 }    
