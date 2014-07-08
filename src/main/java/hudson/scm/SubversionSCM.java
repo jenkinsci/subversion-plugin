@@ -2911,7 +2911,7 @@ public class SubversionSCM extends SCM implements Serializable {
                     for (String propertyName : pdp.getParameterDefinitionNames()) {
                         if (url.contains(propertyName)) {
                             ParameterDefinition pd = pdp.getParameterDefinition(propertyName);
-                            String replacement = String.valueOf(pd.getDefaultParameterValue().getValue());
+                            String replacement = String.valueOf(pd.getDefaultParameterValue().createVariableResolver(null).resolve(propertyName));
                             returnURL = returnURL.replace("${" + propertyName + "}", replacement);
                             returnURL = returnURL.replace("$" + propertyName, replacement);
                         }
