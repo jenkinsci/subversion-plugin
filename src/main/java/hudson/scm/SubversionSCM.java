@@ -2979,8 +2979,10 @@ public class SubversionSCM extends SCM implements Serializable {
                   return FormValidation.ok();
 
               // Test the connection only if we have job configure permission
-              if (!context.hasPermission(Item.CONFIGURE))
-                  return FormValidation.ok();
+              if (context != null) {
+                  if (!context.hasPermission(Item.CONFIGURE))
+                      return FormValidation.ok();
+              }
 
               try {
                   String urlWithoutRevision = SvnHelper.getUrlWithoutRevision(url);
