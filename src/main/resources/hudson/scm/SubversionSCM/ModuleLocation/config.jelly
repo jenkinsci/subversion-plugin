@@ -52,7 +52,7 @@ THE SOFTWARE.
     </select>
   </f:entry>
   <f:entry title="${%Ignore externals}" field="ignoreExternalsOption">
-    <f:checkbox default="false"/>
+    <f:checkbox default="true"/>
   </f:entry>
   <f:entry>
     <div align="right">

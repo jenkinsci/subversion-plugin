@@ -9,7 +9,7 @@ import hudson.Extension;
 import hudson.ExtensionPoint;
 import hudson.model.AbstractModelObject;
 import hudson.model.AbstractProject;
-import hudson.model.Hudson;
+import hudson.model.Job;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.scm.SubversionSCM.SvnInfo;
 import hudson.triggers.SCMTrigger;
@@ -31,6 +31,7 @@ import java.util.HashMap;
 import javax.servlet.ServletException;
 
 import jenkins.model.Jenkins;
+import jenkins.triggers.SCMTriggerItem;
 import org.apache.commons.io.IOUtils;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
@@ -63,7 +64,7 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
     
     static interface JobProvider {
         @SuppressWarnings("rawtypes")
-        List<AbstractProject> getAllJobs();
+        List<Job> getAllJobs();
     }
 
     /**
@@ -150,8 +151,8 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
 
         private JobProvider jobProvider = new JobProvider() {
             @SuppressWarnings("rawtypes")
-            public List<AbstractProject> getAllJobs() {
-                return Hudson.getInstance().getAllItems(AbstractProject.class);
+            public List<Job> getAllJobs() {
+                return Jenkins.getInstance().getAllItems(Job.class);
             }
         };
 
@@ -165,13 +166,19 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
             boolean scmFound = false, triggerFound = false, uuidFound = false, pathFound = false;
             Map<String, UUID> remoteUUIDCache = new HashMap<String, UUID>();
             LOGGER.fine("Starting subversion locations checks for all jobs");
-            for (AbstractProject<?,?> p : this.jobProvider.getAllJobs()) {
-                if(p.isDisabled()) continue;
+            for (Job p : this.jobProvider.getAllJobs()) {
+                SCMTriggerItem scmTriggerItem = SCMTriggerItem.SCMTriggerItems.asSCMTriggerItem(p);
+                if (scmTriggerItem == null) {
+                    continue;
+                }
+                if (p instanceof AbstractProject && ((AbstractProject) p).isDisabled()) {
+                    continue;
+                }
                 try {
-                    SCM scm = p.getScm();
+                    SCMS: for (SCM scm : scmTriggerItem.getSCMs()) {
                     if (scm instanceof SubversionSCM) scmFound = true; else continue;
 
-                    SCMTrigger trigger = p.getTrigger(SCMTrigger.class);
+                    SCMTrigger trigger = scmTriggerItem.getSCMTrigger();
                     if (trigger!=null && !doesIgnorePostCommitHooks(trigger)) triggerFound = true; else continue;
 
                     SubversionSCM sscm = (SubversionSCM) scm;
@@ -199,8 +206,8 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                             if (LOGGER.isLoggable(FINER)) {
                                 LOGGER.finer("Could not find " + loc.getURL() + " in " + remoteUUIDCache.keySet().toString());
                             }
-                            remoteUUID = loc.getUUID(p);
-                            SVNURL repositoryRoot = loc.getRepositoryRoot(p);
+                            remoteUUID = loc.getUUID(p, scm);
+                            SVNURL repositoryRoot = loc.getRepositoryRoot(p, scm);
                             repositoryRootPath = repositoryRoot.getPath();
                             remoteUUIDCache.put(repositoryRoot.toString(), remoteUUID);
                         }
@@ -242,6 +249,8 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                         }
 
                         trigger.run(actions);
+                        break SCMS;
+                    }
                     }
 
                 } catch (SVNException e) {

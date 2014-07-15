@@ -121,6 +121,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import hudson.EnvVars;
 import hudson.model.EnvironmentContributor;
+import hudson.model.TopLevelItem;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -1376,7 +1377,11 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         }
     }
 
-    private void verifyCompatibility(String resourceName, Class<? extends WorkspaceUpdater> expected) throws IOException {
+    private void verifyCompatibility(String resourceName, Class<? extends WorkspaceUpdater> expected) throws Exception {
+        TopLevelItem item = jenkins.getItem("update");
+        if (item != null) {
+            item.delete();
+        }
         AbstractProject job = (AbstractProject) hudson.createProjectFromXML("update", getClass().getResourceAsStream(resourceName));
         assertEquals(expected, ((SubversionSCM)job.getScm()).getWorkspaceUpdater().getClass());
     }
