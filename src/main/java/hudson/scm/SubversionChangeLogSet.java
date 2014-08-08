@@ -131,6 +131,24 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
      */
     static List<LogEntry> removeDuplicatedEntries(List<LogEntry> items) {
         Set<LogEntry> entries = new HashSet<LogEntry>(items);
+        for (LogEntry sourceEntry : items) {
+            // LogEntry equality does not consider paths, but some might have localPath attributes
+            // that would get lost by HashSet duplicate removal
+            for (LogEntry destinationEntry  : entries) {
+                if (sourceEntry.equals(destinationEntry)) {
+                    // get all local paths and set in destination
+                    for (Path sourcePath : sourceEntry.getPaths()) {
+                        if (sourcePath.localPath != null) {
+                            for (Path destinationPath : destinationEntry.getPaths()) {
+                                if (sourcePath.value.equals(destinationPath.value)) {
+                                    destinationPath.localPath = sourcePath.localPath;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
         return new ArrayList<LogEntry>(entries);
     }
 
@@ -320,7 +338,14 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         
         @Override
         public Collection<Path> getAffectedFiles() {
-	        return paths;
+            Collection<Path> affectedFiles = new ArrayList<Path>();
+            for (Path p : paths) {
+                if (p.hasLocalPath()) {
+                    affectedFiles.add(p);
+                }
+            }
+            // FIXME backwards compatibility?
+            return affectedFiles;
         }
         
         void finish() {
@@ -436,6 +461,10 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         @Restricted(NoExternalUse.class)
         public void setLocalPath(String path) {
             this.localPath = path;
+        }
+
+        public boolean hasLocalPath() {
+            return localPath != null;
         }
         
         public void setValue(String value) {

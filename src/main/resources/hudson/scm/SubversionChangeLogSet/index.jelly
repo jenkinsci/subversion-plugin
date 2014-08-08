@@ -37,7 +37,7 @@ THE SOFTWARE.
   <table class="pane" style="border:none">
     <j:forEach var="cs" items="${it.logs}" varStatus="loop">
       <tr class="pane">
-        <td colspan="2" class="changeset">
+        <td colspan="3" class="changeset">
           <a name="detail${loop.index}"></a>
           <div class="changeset-message">
             <b>
@@ -50,6 +50,12 @@ THE SOFTWARE.
         </td>
       </tr>
 
+      <tr>
+        <th style="text-align: left;">${%Change Type}</th>
+        <th style="text-align: left;">${%Path in Repository}</th>
+        <th style="text-align: left;">${%Path in Workspace}</th>
+      </tr>
+
       <j:forEach var="p" items="${cs.paths}">
         <tr>
           <td><t:editTypeIcon type="${p.editType}" /></td>
@@ -60,6 +66,16 @@ THE SOFTWARE.
               <st:nbsp/>
               <a href="${diff}">(diff)</a>
             </j:if>
+          </td>
+          <td>
+            <j:choose>
+              <j:when test="${p.hasLocalPath()}">
+                ${p.path}
+              </j:when>
+              <j:otherwise>
+                <span style="color:grey;">${%N/A}</span>
+              </j:otherwise>
+            </j:choose>
           </td>
         </tr>
       </j:forEach>

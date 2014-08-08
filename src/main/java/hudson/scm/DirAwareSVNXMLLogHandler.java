@@ -11,6 +11,7 @@
  */
 package hudson.scm;
 
+import java.io.File;
 import java.util.Iterator;
 import java.util.LinkedList;
 
@@ -108,8 +109,21 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
             String key = paths.next();
             SVNLogEntryPath path = (SVNLogEntryPath) logEntry.getChangedPaths().get(key);
             addAttribute(ACTION_ATTR, path.getType() + "");
-            String relativeWorkspacePath = context.moduleWorkspacePath + path.getPath().substring(context.url.length() - context.repoUrl.length());
-            addAttribute(REL_PATH_ATTR, relativeWorkspacePath);
+
+            // the path within the repo to the location checked out
+            String modulePath = context.url.substring(context.repoUrl.length());
+
+            if (path.getPath().startsWith(modulePath)) {
+                // this path is inside the locally checked out module location, so set relativePath attribute
+                String relativeWorkspacePath = context.moduleWorkspacePath + path.getPath().substring(context.url.length() - context.repoUrl.length());
+                if (".".equals(context.moduleWorkspacePath)) {
+                    // use 'foo', not './foo'
+                    relativeWorkspacePath = relativeWorkspacePath.substring(2); // "./".length()
+                }
+                // use File/toString to get rid of duplicate separators
+                addAttribute(REL_PATH_ATTR, new File(relativeWorkspacePath).toString());
+            }
+
             if (path.getCopyPath() != null) {
                 addAttribute(COPYFROM_PATH_ATTR, path.getCopyPath());
                 addAttribute(COPYFROM_REV_ATTR, path.getCopyRevision() + "");
