@@ -116,7 +116,7 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
             if (path.getPath().startsWith(modulePath)) {
                 // this path is inside the locally checked out module location, so set relativePath attribute
                 String relativeWorkspacePath = context.moduleWorkspacePath + path.getPath().substring(context.url.length() - context.repoUrl.length());
-                if (".".equals(context.moduleWorkspacePath)) {
+                if (".".equals(context.moduleWorkspacePath) && relativeWorkspacePath.length() >= 2) {
                     // use 'foo', not './foo'
                     relativeWorkspacePath = relativeWorkspacePath.substring(2); // "./".length()
                 }
