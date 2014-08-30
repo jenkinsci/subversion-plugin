@@ -17,10 +17,6 @@ import javax.net.ssl.TrustManager;
 public class FilterSVNAuthenticationManager implements ISVNAuthenticationManager {
     protected ISVNAuthenticationManager core;
 
-    public FilterSVNAuthenticationManager(org.tmatesoft.svn.core.auth.ISVNAuthenticationManager core) {
-      this((ISVNAuthenticationManager) core);
-    }
-
     public FilterSVNAuthenticationManager(ISVNAuthenticationManager core) {
         this.core = core;
     }
