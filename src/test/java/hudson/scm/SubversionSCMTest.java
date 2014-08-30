@@ -1230,7 +1230,8 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     }
 
     private ISVNAuthenticationManager createInMemoryManager() {
-        ISVNAuthenticationManager m = SVNWCUtil.createDefaultAuthenticationManager(hudson.root,null,null,false);
+        ISVNAuthenticationManager m = new DefaultSVNAuthenticationManager(
+                SVNWCUtil.createDefaultAuthenticationManager(hudson.root,null,null,false));
         m.setAuthenticationProvider(descriptor.createAuthenticationProvider(null));
         return m;
     }

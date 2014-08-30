@@ -164,7 +164,6 @@ import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
 import org.tmatesoft.svn.core.auth.SVNAuthentication;
 import org.tmatesoft.svn.core.auth.SVNPasswordAuthentication;
 import org.tmatesoft.svn.core.auth.SVNSSHAuthentication;
-import org.tmatesoft.svn.core.auth.SVNSSLAuthentication;
 import org.tmatesoft.svn.core.internal.io.dav.DAVRepositoryFactory;
 import org.tmatesoft.svn.core.internal.io.dav.http.DefaultHTTPConnectionFactory;
 import org.tmatesoft.svn.core.internal.io.fs.FSRepositoryFactory;
@@ -1845,8 +1844,8 @@ public class SubversionSCM extends SCM implements Serializable {
                     setFilePermissions(savedKeyFile, "600");
                 } catch (IOException e) {
                     throw new SVNException(
-                            SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,"Unable to save private key").initCause(
-                                    e));
+                            SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,
+                                    "Unable to save private key") ,e);
                 }
             }
 
@@ -1907,11 +1906,11 @@ public class SubversionSCM extends SCM implements Serializable {
                     } catch (IOException e) {
                         throw new SVNException(
                                 SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,
-                                        "Unable to load private key").initCause(e));
+                                        "Unable to load private key"), e);
                     } catch (InterruptedException e) {
                         throw new SVNException(
                                 SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,
-                                        "Unable to load private key").initCause(e));
+                                        "Unable to load private key"), e);
                     }
                 } else
                     return null; // unknown

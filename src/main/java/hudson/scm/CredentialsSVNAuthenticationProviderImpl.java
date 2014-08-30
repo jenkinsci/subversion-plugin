@@ -24,7 +24,6 @@ import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
 import org.tmatesoft.svn.core.auth.SVNAuthentication;
 import org.tmatesoft.svn.core.auth.SVNPasswordAuthentication;
 import org.tmatesoft.svn.core.auth.SVNSSHAuthentication;
-import org.tmatesoft.svn.core.auth.SVNSSLAuthentication;
 import org.tmatesoft.svn.core.auth.SVNUserNameAuthentication;
 
 import javax.security.auth.DestroyFailedException;
@@ -427,8 +426,8 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
                         } catch (UnrecoverableEntryException e2) {
                             throw new RuntimeException(
                                     SVNErrorMessage
-                                            .create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE, "Unable to save certificate")
-                                            .initCause(e2));
+                                            .create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE, "Unable to save certificate").getFullMessage(),
+                                            e2);
                         }
                     }
                     dst.setEntry(alias, entry, passwordProtection);
@@ -438,20 +437,20 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
                 certificateFile = bos.toByteArray();
             } catch (KeyStoreException e) {
                 throw new RuntimeException(
-                        SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE, "Unable to save certificate")
-                                .initCause(e));
+                        SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE, "Unable to save certificate").getFullMessage(),
+                                e);
             } catch (CertificateException e) {
                 throw new RuntimeException(
-                        SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE, "Unable to save certificate")
-                                .initCause(e));
+                        SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE, "Unable to save certificate").getFullMessage(),
+                                e);
             } catch (NoSuchAlgorithmException e) {
                 throw new RuntimeException(
-                        SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE, "Unable to save certificate")
-                                .initCause(e));
+                        SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE, "Unable to save certificate").getFullMessage(),
+                                e);
             } catch (IOException e) {
                 throw new RuntimeException(
-                        SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE, "Unable to save certificate")
-                                .initCause(e));
+                        SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE, "Unable to save certificate").getFullMessage(),
+                                e);
             } finally {
                 try {
                     passwordProtection.destroy();

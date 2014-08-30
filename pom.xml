@@ -89,9 +89,9 @@ THE SOFTWARE.
 
   <dependencies>
     <dependency>
-      <groupId>org.jenkins-ci.svnkit</groupId>
+      <groupId>org.tmatesoft.svnkit</groupId>
       <artifactId>svnkit</artifactId>
-      <version>1.7.10-jenkins-1</version>
+      <version>1.7.10</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci</groupId>
