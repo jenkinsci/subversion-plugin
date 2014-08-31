@@ -23,6 +23,7 @@
  */
 package hudson.scm;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import org.tmatesoft.svn.core.SVNErrorMessage;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNURL;
@@ -39,12 +40,6 @@ import java.io.File;
 
 public class DefaultSVNAuthenticationManager extends org.tmatesoft.svn.core.internal.wc.DefaultSVNAuthenticationManager
         implements ISVNAuthenticationManager {
-
-  public DefaultSVNAuthenticationManager(File configDirectory,
-                                         boolean storeAuth, String userName, String password) {
-    super(configDirectory, storeAuth, userName, password);
-  }
-
   public DefaultSVNAuthenticationManager(
           org.tmatesoft.svn.core.auth.ISVNAuthenticationManager createDefaultAuthenticationManager) {
     super(SVNWCUtil.getDefaultConfigurationDirectory(), createDefaultAuthenticationManager.isAuthenticationForced(), null, null);
@@ -79,13 +74,10 @@ public class DefaultSVNAuthenticationManager extends org.tmatesoft.svn.core.inte
   }
 
   @Override
+  @CheckForNull
   public SVNAuthentication getFirstAuthentication(String kind, String realm, SVNURL url) throws SVNException {
-    try {
-      return super.getFirstAuthentication(kind, realm, url);
-    } catch (SVNException e) {
-      SVNErrorManager.cancel("No Credentials to try. Authentication failed.", SVNLogType.WC);
-      throw e;
-    }
+    // SVNKIT DefaultAuthenticationManager ignores any credentials that are added to the manager.
+      return super.getAuthenticationProvider().requestClientAuthentication(kind, url, realm, null, null, false);
   }
 
   @Override
