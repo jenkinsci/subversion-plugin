@@ -17,6 +17,7 @@ import org.kohsuke.stapler.StaplerRequest;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.Socket;
 import java.net.URL;
 
 /**
@@ -61,6 +62,23 @@ public abstract class AbstractSubversionTest extends HudsonTestCase  {
         } catch (IOException e) {
         	Assert.fail("Failed to launch svnserve. Do you have subversion installed?\n" + e);
         }
+
+        // If there is an already existing svnserve running on the machine
+        // We need to fail the build. We could change this to if the port is in use, listen to different port
+        Socket s = null;
+        try {
+          s = new Socket("localhost", 3690);
+          // If it gets this far, that means that it is able to send/receive information.
+          // Since the default svnserve port is currently in use, fail the build.
+          fail("Port 3690 is currently in use. Please kill anything running on this port and re-run.");
+        } catch (IOException e) {
+          // Port is not in use
+        } finally {
+          if (s != null) {
+            s.close();
+          }
+        }
+
         return launcher.launch().cmds(
                 "svnserve","-d","--foreground","-r",repo.getAbsolutePath()).pwd(repo).start();
     }
