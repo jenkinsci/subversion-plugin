@@ -221,7 +221,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         
         FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserIdCause()).get();
         System.out.println(b.getLog(LOG_LIMIT));
-        assertTrue(b.getLog(LOG_LIMIT).toString().contains("at revision 2"));
+        assertTrue(b.getLog(LOG_LIMIT).toString().contains("At revision 2"));
         assertBuildStatus(Result.SUCCESS,b);
     }
 
