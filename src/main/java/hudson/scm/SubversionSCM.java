@@ -1345,9 +1345,11 @@ public class SubversionSCM extends SCM implements Serializable {
         Run<?,?> lastCompletedBuild = project.getLastCompletedBuild();
 
         if (lastCompletedBuild!=null) {
-            EnvVars env = lastCompletedBuild.getEnvironment(listener);
-            if (lastCompletedBuild instanceof AbstractBuild) {
-                EnvVarsUtils.overrideAll(env, ((AbstractBuild) lastCompletedBuild).getBuildVariables());
+            Run<?,?> lastBuild = project.getLastBuild();
+            EnvVars env = lastBuild.getEnvironment(listener);
+            //EnvVars env = lastCompletedBuild.getEnvironment(listener);
+            if (lastBuild instanceof AbstractBuild) {
+                EnvVarsUtils.overrideAll(env, ((AbstractBuild) lastBuild).getBuildVariables());
             }
             if (project instanceof AbstractProject && repositoryLocationsNoLongerExist(lastCompletedBuild, listener, env)) {
                 // Disable this project, see HUDSON-763
