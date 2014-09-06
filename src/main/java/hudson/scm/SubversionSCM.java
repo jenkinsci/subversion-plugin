@@ -869,7 +869,7 @@ public class SubversionSCM extends SCM implements Serializable {
      *
      * <p>
      * Use canonical path to avoid SVNKit/symlink problem as described in
-     * https://wiki.svnkit.com/SVNKit_FAQ
+     * https://wiki.lib.svnkit.com/SVNKit_FAQ
      *
      * @return null
      *      if the operation failed. Otherwise the set of local workspace paths
@@ -2227,10 +2227,10 @@ public class SubversionSCM extends SCM implements Serializable {
 
             try {
                 // the way it works with SVNKit is that
-                // 1) svnkit calls AuthenticationManager asking for a credential.
+                // 1) lib.svnkit calls AuthenticationManager asking for a credential.
                 //    this is when we can see the 'realm', which identifies the user domain.
                 // 2) DefaultSVNAuthenticationManager returns the username and password we set below
-                // 3) if the authentication is successful, svnkit calls back acknowledgeAuthentication
+                // 3) if the authentication is successful, lib.svnkit calls back acknowledgeAuthentication
                 //    (so we store the password info here)
                 repository = SVNRepositoryFactory.create(SVNURL.parseURIDecoded(url));
                 repository.setTunnelProvider( createDefaultSVNOptions() );
@@ -2559,13 +2559,13 @@ public class SubversionSCM extends SCM implements Serializable {
 
             // disable the connection pooling, which causes problems like
             // http://www.nabble.com/SSH-connection-problems-p12028339.html
-            if(System.getProperty("svnkit.ssh2.persistent")==null)
-                System.setProperty("svnkit.ssh2.persistent","false");
+            if(System.getProperty("lib.svnkit.ssh2.persistent")==null)
+                System.setProperty("lib.svnkit.ssh2.persistent","false");
 
             // push Negotiate to the end because it requires a valid Kerberos configuration.
             // see HUDSON-8153
-            if(System.getProperty("svnkit.http.methods")==null)
-                System.setProperty("svnkit.http.methods","Digest,Basic,NTLM,Negotiate");
+            if(System.getProperty("lib.svnkit.http.methods")==null)
+                System.setProperty("lib.svnkit.http.methods","Digest,Basic,NTLM,Negotiate");
 
             // use SVN1.4 compatible workspace by default.
             SVNAdminAreaFactory.setSelector(new SubversionWorkspaceSelector());

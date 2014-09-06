@@ -107,7 +107,7 @@ public final class SubversionChangeLogBuilder {
         th.setResult(changeLog);
         SVNLogFilter logFilter = scm.isFilterChangelog() ? scm.createSVNLogFilter() : new NullSVNLogFilter();
         DirAwareSVNXMLLogHandler logHandler = new DirAwareSVNXMLLogHandler(th, logFilter);
-        // work around for http://svnkit.com/tracker/view.php?id=175
+        // work around for http://lib.svnkit.com/tracker/view.php?id=175
         th.setDocumentLocator(DUMMY_LOCATOR);
         logHandler.startDocument();
 

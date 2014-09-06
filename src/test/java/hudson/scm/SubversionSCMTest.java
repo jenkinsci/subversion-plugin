@@ -783,7 +783,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     @Bug(3904)
     public void testSymbolicLinkCheckout() throws Exception {
         // Only perform if symlink behavior is enabled
-        if (!"true".equals(System.getProperty("svnkit.symlinks"))) {
+        if (!"true".equals(System.getProperty("lib.svnkit.symlinks"))) {
             return;
         }
 

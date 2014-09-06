@@ -216,7 +216,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
 
         /**
          * Retrieve nested SVNException.
-         * svnkit use to hide the root cause within nested {@link SVNException}. Also, SVNException cause in many cases
+         * lib.svnkit use to hide the root cause within nested {@link SVNException}. Also, SVNException cause in many cases
          * is a {@link SVNErrorMessage}, that itself has a lower level SVNException as cause, and so on.
          */
         private SVNException getNestedSVNException(Throwable e) {

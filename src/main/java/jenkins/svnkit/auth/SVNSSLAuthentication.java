@@ -1,27 +1,15 @@
 /*
- * The MIT License
- * 
- * Copyright (c) 2014 schristou88
- * 
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
+ * ====================================================================
+ * Copyright (c) 2004-2012 TMate Software Ltd.  All rights reserved.
+ *
+ * This software is licensed as described in the file COPYING, which
+ * you should have received as part of this distribution.  The terms
+ * are also available at http://lib.svnkit.com/license.html
+ * If newer versions of this license are posted there, you may use a
+ * newer version instead, at your option.
+ * ====================================================================
  */
-package hudson.scm;
+package jenkins.svnkit.auth;
 
 import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.auth.SVNAuthentication;
@@ -36,7 +24,13 @@ import java.io.FileInputStream;
 import java.io.IOException;
 
 /**
- * @author schristou88
+ * The <b>SVNSSLAuthentication</b> class represents user's credentials used
+ * to authenticate a user in secure connections. Used along with the
+ * {@link ISVNAuthenticationManager#SSL SSL} credential kind.
+ *
+ * @version 1.3
+ * @author  TMate Software Ltd.
+ * @since   1.2
  */
 public class SVNSSLAuthentication extends SVNAuthentication {
 
