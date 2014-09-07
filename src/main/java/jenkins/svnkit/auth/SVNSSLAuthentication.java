@@ -26,7 +26,7 @@ import java.io.IOException;
 /**
  * The <b>SVNSSLAuthentication</b> class represents user's credentials used
  * to authenticate a user in secure connections. Used along with the
- * {@link ISVNAuthenticationManager#SSL SSL} credential kind.
+ * {@link AuthenticationManager#SSL SSL} credential kind.
  *
  * @version 1.3
  * @author  TMate Software Ltd.
@@ -52,7 +52,7 @@ public class SVNSSLAuthentication extends SVNAuthentication {
      *                         credentials cache
      */
     public SVNSSLAuthentication(File certFile, String password, boolean storageAllowed) throws IOException {
-        super(ISVNAuthenticationManager.SSL, null, storageAllowed);
+        super(AuthenticationManager.SSL, null, storageAllowed);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         FileInputStream in = new FileInputStream(certFile);
         try {
@@ -80,7 +80,7 @@ public class SVNSSLAuthentication extends SVNAuthentication {
      * @since 1.3.1
      */
     public SVNSSLAuthentication(byte[] certFile, String password, boolean storageAllowed, SVNURL url, boolean isPartial) {
-        super(ISVNAuthenticationManager.SSL, null, storageAllowed, url, isPartial);
+        super(AuthenticationManager.SSL, null, storageAllowed, url, isPartial);
         myCertificate = certFile;
         myPassword = password;
         mySSLKind = SSL;

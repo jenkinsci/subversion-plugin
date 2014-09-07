@@ -28,6 +28,8 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.scm.*;
 import hudson.util.TimeUnit2;
 import jenkins.model.Jenkins;
+import jenkins.svnkit.auth.AuthenticationManager;
+import jenkins.svnkit.auth.DefaultSVNAuthenticationManager;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.tmatesoft.svn.core.ISVNDirEntryHandler;
@@ -62,7 +64,7 @@ public class SVNRepositoryView {
 
         File configDir = SVNWCUtil.getDefaultConfigurationDirectory();
 
-        ISVNAuthenticationManager sam = new DefaultSVNAuthenticationManager(SVNWCUtil.createDefaultAuthenticationManager(configDir, null, null));
+        AuthenticationManager sam = new DefaultSVNAuthenticationManager(SVNWCUtil.createDefaultAuthenticationManager(configDir, null, null));
 
         sam.setAuthenticationProvider(new CredentialsSVNAuthenticationProviderImpl(credentials));
         SVNAuthStoreHandlerImpl.install(sam);

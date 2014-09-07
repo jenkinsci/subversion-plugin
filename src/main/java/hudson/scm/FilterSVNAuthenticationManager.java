@@ -1,5 +1,7 @@
 package hudson.scm;
 
+import jenkins.svnkit.auth.AuthenticationManager;
+import jenkins.svnkit.auth.ISVNAuthenticationOutcomeListener;
 import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNErrorMessage;
@@ -11,13 +13,13 @@ import org.tmatesoft.svn.core.io.SVNRepository;
 import javax.net.ssl.TrustManager;
 
 /**
- * {@link ISVNAuthenticationManager} filter. Useful for customizing the behavior by delegation.
+ * {@link AuthenticationManager} filter. Useful for customizing the behavior by delegation.
  * @author Kohsuke Kawaguchi
  */
-public class FilterSVNAuthenticationManager implements ISVNAuthenticationManager {
-    protected ISVNAuthenticationManager core;
+public class FilterSVNAuthenticationManager implements AuthenticationManager {
+    protected AuthenticationManager core;
 
-    public FilterSVNAuthenticationManager(ISVNAuthenticationManager core) {
+    public FilterSVNAuthenticationManager(AuthenticationManager core) {
         this.core = core;
     }
 

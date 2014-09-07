@@ -26,7 +26,7 @@ import java.io.File;
  */
 
 public class DefaultSVNAuthenticationManager extends org.tmatesoft.svn.core.internal.wc.DefaultSVNAuthenticationManager
-        implements ISVNAuthenticationManager {
+        implements AuthenticationManager {
   public DefaultSVNAuthenticationManager(
           org.tmatesoft.svn.core.auth.ISVNAuthenticationManager createDefaultAuthenticationManager) {
     super(SVNWCUtil.getDefaultConfigurationDirectory(), createDefaultAuthenticationManager.isAuthenticationForced(), null, null);

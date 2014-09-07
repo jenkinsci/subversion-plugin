@@ -20,7 +20,7 @@ package jenkins.svnkit.auth;
  * @since   1.2
  * @see     org.tmatesoft.svn.core.io.SVNRepository
  */
-public interface ISVNAuthenticationManager extends org.tmatesoft.svn.core.auth.ISVNAuthenticationManager {
+public interface AuthenticationManager extends org.tmatesoft.svn.core.auth.ISVNAuthenticationManager {
 
   /**
    * Set an outcome listener for the authentication manager.

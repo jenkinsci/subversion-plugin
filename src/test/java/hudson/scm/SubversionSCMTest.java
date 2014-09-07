@@ -47,6 +47,9 @@ import hudson.slaves.DumbSlave;
 import hudson.triggers.SCMTrigger;
 import hudson.util.FormValidation;
 import hudson.util.StreamTaskListener;
+import jenkins.svnkit.auth.AuthenticationManager;
+import jenkins.svnkit.auth.DefaultSVNAuthenticationManager;
+import jenkins.svnkit.auth.SVNSSLAuthentication;
 import org.dom4j.Document;
 import org.dom4j.io.DOMReader;
 import org.junit.Test;
@@ -1229,8 +1232,8 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         repository.testConnection();
     }
 
-    private ISVNAuthenticationManager createInMemoryManager() {
-        ISVNAuthenticationManager m = new DefaultSVNAuthenticationManager(
+    private AuthenticationManager createInMemoryManager() {
+        AuthenticationManager m = new DefaultSVNAuthenticationManager(
                 SVNWCUtil.createDefaultAuthenticationManager(hudson.root,null,null,false));
         m.setAuthenticationProvider(descriptor.createAuthenticationProvider(null));
         return m;
