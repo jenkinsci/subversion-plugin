@@ -676,8 +676,17 @@ public class SubversionSCM extends SCM implements Serializable {
     @Override
     public void buildEnvVars(AbstractBuild<?, ?> build, Map<String, String> env) {
         super.buildEnvVars(build, env);
-
-        ModuleLocation[] svnLocations = getLocations(new EnvVars(env), build);
+        EnvVars envsToUse=new EnvVars(env);
+        if(build.getBuiltOn()!=null){
+            try {
+                envsToUse.overrideAll(EnvVars.getRemote(build.getBuiltOn().getChannel()));
+            } catch (IOException ex) {
+                Logger.getLogger(SubversionSCM.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(SubversionSCM.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        ModuleLocation[] svnLocations = getLocations(envsToUse, build);
 
         try {
             Map<String,Long> revisions = parseSvnRevisionFile(build);
@@ -1345,9 +1354,11 @@ public class SubversionSCM extends SCM implements Serializable {
         Run<?,?> lastCompletedBuild = project.getLastCompletedBuild();
 
         if (lastCompletedBuild!=null) {
-            EnvVars env = lastCompletedBuild.getEnvironment(listener);
-            if (lastCompletedBuild instanceof AbstractBuild) {
-                EnvVarsUtils.overrideAll(env, ((AbstractBuild) lastCompletedBuild).getBuildVariables());
+            Run<?,?> lastBuild = project.getLastBuild();
+            EnvVars env = lastBuild.getEnvironment(listener);
+            //EnvVars env = lastCompletedBuild.getEnvironment(listener);
+            if (lastBuild instanceof AbstractBuild) {
+                EnvVarsUtils.overrideAll(env, ((AbstractBuild) lastBuild).getBuildVariables());
             }
             if (project instanceof AbstractProject && repositoryLocationsNoLongerExist(lastCompletedBuild, listener, env)) {
                 // Disable this project, see HUDSON-763
@@ -1355,23 +1366,6 @@ public class SubversionSCM extends SCM implements Serializable {
                         Messages.SubversionSCM_pollChanges_locationsNoLongerExist(project));
                 ((AbstractProject) project).makeDisabled(true);
                 return NO_CHANGES;
-            }
-
-            // are the locations checked out in the workspace consistent with the current configuration?
-            for (ModuleLocation loc : getLocations(env, lastCompletedBuild)) {
-                // baseline.revisions has URIdecoded URL
-                String url;
-                try {
-                    url = loc.getSVNURL().toDecodedString();
-                } catch (SVNException ex) {
-                    ex.printStackTrace(listener.error(Messages.SubversionSCM_pollChanges_exception(loc.getURL())));
-                    return BUILD_NOW;
-                }
-                if (!baseline.revisions.containsKey(url)) {
-                    listener.getLogger().println(
-                            Messages.SubversionSCM_pollChanges_locationNotInWorkspace(url));
-                    return BUILD_NOW;
-                }
             }
         }
 
