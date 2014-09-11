@@ -677,15 +677,15 @@ public class SubversionSCM extends SCM implements Serializable {
     public void buildEnvVars(AbstractBuild<?, ?> build, Map<String, String> env) {
         super.buildEnvVars(build, env);
         EnvVars envsToUse=new EnvVars(env);
-        
-        try {
-            envsToUse.overrideAll(EnvVars.getRemote(build.getBuiltOn().getChannel()));
-        } catch (IOException ex) {
-            Logger.getLogger(SubversionSCM.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (InterruptedException ex) {
-            Logger.getLogger(SubversionSCM.class.getName()).log(Level.SEVERE, null, ex);
+        if(build.getBuiltOn()!=null){
+            try {
+                envsToUse.overrideAll(EnvVars.getRemote(build.getBuiltOn().getChannel()));
+            } catch (IOException ex) {
+                Logger.getLogger(SubversionSCM.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(SubversionSCM.class.getName()).log(Level.SEVERE, null, ex);
+            }
         }
-        
         ModuleLocation[] svnLocations = getLocations(envsToUse, build);
 
         try {
