@@ -1358,27 +1358,6 @@ public class SubversionSCM extends SCM implements Serializable {
                 ((AbstractProject) project).makeDisabled(true);
                 return NO_CHANGES;
             }
-            
-            // JENKINMS 24554 https://issues.jenkins-ci.org/browse/JENKINS-24554
-            // create property to disable the check until someone has a better idea.
-            if(!DISABLE_TRIGGER_ON_SCM_CONFIG_MISMATCH){
-                // are the locations checked out in the workspace consistent with the current configuration?
-                for (ModuleLocation loc : getLocations(env, lastCompletedBuild)) {
-                    // baseline.revisions has URIdecoded URL
-                    String url;
-                    try {
-                        url = loc.getSVNURL().toDecodedString();
-                    } catch (SVNException ex) {
-                        ex.printStackTrace(listener.error(Messages.SubversionSCM_pollChanges_exception(loc.getURL())));
-                        return BUILD_NOW;
-                    }
-                    if (!baseline.revisions.containsKey(url)) {
-                        listener.getLogger().println(
-                                Messages.SubversionSCM_pollChanges_locationNotInWorkspace(url));
-                        return BUILD_NOW;
-                    }
-                }
-            }
         }
 
         // determine where to perform polling. prefer the node where the build happened,
@@ -3106,11 +3085,6 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     private static boolean POLL_FROM_MASTER = Boolean.getBoolean(SubversionSCM.class.getName() + ".pollFromMaster");
 
-    /**
-     * Property to control whether SCM polling triggers a build when the evaluated SVN URL on master is different than the evaluated URL of the last build.
-     */
-    private static boolean DISABLE_TRIGGER_ON_SCM_CONFIG_MISMATCH = Boolean.getBoolean(SubversionSCM.class.getName() + ".disableTriggerOnScmConfigMismatch");
-    
     /**
      * If set to non-null, read configuration from this directory instead of "~/.subversion".
      */
