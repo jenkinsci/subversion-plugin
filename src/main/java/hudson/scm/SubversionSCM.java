@@ -676,8 +676,23 @@ public class SubversionSCM extends SCM implements Serializable {
     @Override
     public void buildEnvVars(AbstractBuild<?, ?> build, Map<String, String> env) {
         super.buildEnvVars(build, env);
-
-        ModuleLocation[] svnLocations = getLocations(new EnvVars(env), build);
+ 
+        EnvVars envsToUse=new EnvVars(env);
+        // JENKINS-24554 : Builds get triggered multiple times when the SCM URL contains system variables that change on each node
+        if(build.getBuiltOn()!=null && build.getBuiltOn().getChannel()!=null ){
+                try {
+                        EnvVars remoteSystemVars = EnvVars.getRemote(build.getBuiltOn().getChannel());
+                        for(Map.Entry<String,String> entry: remoteSystemVars.entrySet()){
+                                envsToUse.put(entry.getKey(), entry.getValue());
+                        }
+                } catch (IOException ex) {
+                                LOGGER.log(WARNING, "could not read the incoming build chanell vars",ex);
+                } catch (InterruptedException ex) {
+                                LOGGER.log(WARNING, "could not read the incoming build chanell vars",ex);
+                }
+        } 
+        
+        ModuleLocation[] svnLocations = getLocations(envsToUse, build);
 
         try {
             Map<String,Long> revisions = parseSvnRevisionFile(build);
@@ -1327,28 +1342,41 @@ public class SubversionSCM extends SCM implements Serializable {
     @Override
     public PollingResult compareRemoteRevisionWith(Job<?,?> project, Launcher launcher, FilePath workspace, final TaskListener listener, SCMRevisionState _baseline) throws IOException, InterruptedException {
         final SVNRevisionState baseline;
+        Run<?,?> lastBuild = project.getLastBuild();
+        Run<?,?> lastCompletedBuild = project.getLastCompletedBuild();
+        
         if (_baseline instanceof SVNRevisionState) {
             baseline = (SVNRevisionState)_baseline;
         }
         else if (project.getLastBuild()!=null) {
-            baseline = (SVNRevisionState)calcRevisionsFromBuild(project.getLastBuild(), launcher != null ? workspace : null, launcher, listener);
+            baseline = (SVNRevisionState)calcRevisionsFromBuild(lastBuild, launcher != null ? workspace : null, launcher, listener);
         }
         else {
             baseline = new SVNRevisionState(null);
         }
 
-        if (project.getLastBuild() == null) {
+        if (lastBuild == null) {
             listener.getLogger().println(Messages.SubversionSCM_pollChanges_noBuilds());
             return BUILD_NOW;
         }
-
-        Run<?,?> lastCompletedBuild = project.getLastCompletedBuild();
 
         if (lastCompletedBuild!=null) {
             EnvVars env = lastCompletedBuild.getEnvironment(listener);
             if (lastCompletedBuild instanceof AbstractBuild) {
                 EnvVarsUtils.overrideAll(env, ((AbstractBuild) lastCompletedBuild).getBuildVariables());
             }
+            
+            // JENKINS-24554 : Builds get triggered multiple times when the SCM URL contains system variables (ie change on each node )
+            if(lastBuild instanceof AbstractBuild){
+                AbstractBuild<?,?> lastAbstractBuild = (AbstractBuild<?,?>) lastBuild;
+                if(lastAbstractBuild.getBuiltOn()!=null && lastAbstractBuild.getBuiltOn().getChannel()!=null){
+                    EnvVars remoteSystemVars = EnvVars.getRemote(lastAbstractBuild.getBuiltOn().getChannel());
+                    for(Map.Entry<String,String> entry: remoteSystemVars.entrySet()){
+                        env.put(entry.getKey(), entry.getValue());
+                    }
+                }
+            }
+            
             if (project instanceof AbstractProject && repositoryLocationsNoLongerExist(lastCompletedBuild, listener, env)) {
                 // Disable this project, see HUDSON-763
                 listener.getLogger().println(
