@@ -678,7 +678,15 @@ public class SubversionSCM extends SCM implements Serializable {
         super.buildEnvVars(build, env);
  
         EnvVars envsToUse=new EnvVars(env);
-        // JENKINS-24554 : Builds get triggered multiple times when the SCM URL contains system variables that change on each node
+        // JENKINS-24554 
+        // set in 'envsToUse' the system vars from 'build' such that when comparing URLs
+        // between the master and the build we use the same system environment variables
+        //
+        // This allows us to have system vars in the SVN URL, differnt across nodes ( allowing them to
+        // use local proxies for faster checkouts for example). If we do not use the system variables
+        // from the build in question we would be comparing URLs with different token expansions 
+        // (as they could be in differnt locations and use different proxies) and that in turn would lead into
+        // not creating the SVN_ system vars as expected.
         if(build.getBuiltOn()!=null && build.getBuiltOn().getChannel()!=null ){
                 try {
                         EnvVars remoteSystemVars = EnvVars.getRemote(build.getBuiltOn().getChannel());
@@ -1366,7 +1374,14 @@ public class SubversionSCM extends SCM implements Serializable {
                 EnvVarsUtils.overrideAll(env, ((AbstractBuild) lastCompletedBuild).getBuildVariables());
             }
             
-            // JENKINS-24554 : Builds get triggered multiple times when the SCM URL contains system variables (ie change on each node )
+            // JENKINS-24554 
+            // set in 'lastCompletedBuild-env' the system vars from 'lastBuild' such that when comparing URLs
+            // between the two builds, the system variables used in the token expansion are in sync.
+            //
+            // This allows us to have system vars in the SVN URL, differnt across nodes ( allowing them to
+            // use local proxies for faster checkouts for example). If we do not use the system variables
+            // from the build in question we would be triggering new builds untils it happens that the build
+            // is picked by a node where the var in question evaluates to the same as the lastCompletedBuild
             if(lastBuild instanceof AbstractBuild){
                 AbstractBuild<?,?> lastAbstractBuild = (AbstractBuild<?,?>) lastBuild;
                 if(lastAbstractBuild.getBuiltOn()!=null && lastAbstractBuild.getBuiltOn().getChannel()!=null){
