@@ -206,7 +206,7 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
     
                         if (remoteUUID == null) {
                             if (LOGGER.isLoggable(FINER)) {
-                                LOGGER.finer("Could not find " + loc.getURL() + " in " + remoteUUIDCache.keySet().toString());
+                                LOGGER.finer("Could not find " + urlFromConfiguration + " in " + remoteUUIDCache.keySet().toString());
                             }
                             remoteUUID = loc.getUUID(p, scm);
                             SVNURL repositoryRoot = loc.getRepositoryRoot(p, scm);
@@ -216,21 +216,21 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
     
                         if (remoteUUID.equals(uuid)) uuidFound = true; else continue;
     
-                        String m = loc.getSVNURL().getPath();
-                        String n = repositoryRootPath;
-                        if(!m.startsWith(n))    continue;   // repository root should be a subpath of the module path, but be defensive
+                        String configuredRepoFullPath = loc.getSVNURL().getPath();
+                        String rootRepoPath = repositoryRootPath;
+                        if(!configuredRepoFullPath.startsWith(rootRepoPath))    continue;   // repository root should be a subpath of the module path, but be defensive
 
-                        String remaining = m.substring(n.length());
-                        if(remaining.startsWith("/"))   remaining=remaining.substring(1);
-                        String remainingSlash = remaining + '/';
+                        String remainingRepoPath = configuredRepoFullPath.substring(rootRepoPath.length());
+                        if(remainingRepoPath.startsWith("/"))   remainingRepoPath=remainingRepoPath.substring(1);
+                        String remainingRepoPathSlash = remainingRepoPath + '/';
 
                         if ( rev != -1 ) {
                             infos.add(new SvnInfo(loc.getURL(), rev));
                         }
 
                         for (String path : affectedPath) {
-                            if(path.equals(remaining) /*for files*/ || path.startsWith(remainingSlash) /*for dirs*/
-                            || remaining.length()==0/*when someone is checking out the whole repo (that is, m==n)*/) {
+                            if(path.equals(remainingRepoPath) /*for files*/ || path.startsWith(remainingRepoPathSlash) /*for dirs*/
+                            || remainingRepoPath.length()==0/*when someone is checking out the whole repo (that is, configuredRepoFullPath==rootRepoPath)*/) {
                                 // this project is possibly changed. poll now.
                                 // if any of the data we used was bogus, the trigger will not detect a change
                                 projectMatches = true;
