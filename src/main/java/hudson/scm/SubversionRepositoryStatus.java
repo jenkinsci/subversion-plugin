@@ -188,16 +188,18 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                     boolean projectMatches = false;
                     for (ModuleLocation loc : sscm.getProjectLocations(p)) {
                         //LOGGER.fine("Checking uuid for module location + " + loc + " of job "+ p);
-                        String url = loc.getURL();
+                        String urlFromConfiguration = loc.getURL();
     
                         String repositoryRootPath = null;
 
                         UUID remoteUUID = null;
                         for (Map.Entry<String, UUID> e : remoteUUIDCache.entrySet()) {
-                            if (url.startsWith(e.getKey())) {
+                            String remoteRepoRootURL = e.getKey();
+                            String remoteRepoRootURLWithSlash = remoteRepoRootURL + "/";
+                            if (urlFromConfiguration.startsWith(remoteRepoRootURLWithSlash) || urlFromConfiguration.equals(remoteRepoRootURL) ) {
                                 remoteUUID = e.getValue();
                                 repositoryRootPath = SVNURL.parseURIDecoded(e.getKey()).getPath();
-                                LOGGER.finer("Using cached uuid for module location " + url + " of job "+ p);
+                                LOGGER.finer("Using cached uuid for module location " + urlFromConfiguration + " of job "+ p);
                                 break;
                             }
                         }
