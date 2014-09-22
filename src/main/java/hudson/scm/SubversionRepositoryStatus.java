@@ -186,6 +186,28 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
 		return remoteUUID;
 	}
 
+	private boolean doModuleLocationContainsAPathFromAffectedPath(String configuredRepoFullPath, String rootRepoPath, Set<String> affectedPath) {
+		boolean containsAnAffectedPath = false;
+
+		if( configuredRepoFullPath.startsWith(rootRepoPath) ) {
+			String remainingRepoPath = configuredRepoFullPath.substring(rootRepoPath.length());
+			if(remainingRepoPath.startsWith("/"))   remainingRepoPath=remainingRepoPath.substring(1);
+			String remainingRepoPathSlash = remainingRepoPath + '/';
+
+			for (String path : affectedPath) {
+				if(path.equals(remainingRepoPath) /*for files*/ || 
+						path.startsWith(remainingRepoPathSlash) /*for dirs*/ ||
+						remainingRepoPath.length()==0 /*when someone is checking out the whole repo (that is, configuredRepoFullPath==rootRepoPath)*/) {
+					// this project is possibly changed. poll now.
+					// if any of the data we used was bogus, the trigger will not detect a change
+					containsAnAffectedPath = true;
+					break;
+				}
+			}
+		}
+		return containsAnAffectedPath;
+	}
+
         @Override
         public boolean onNotify(UUID uuid, long rev, Set<String> affectedPath) {
             boolean scmFound = false, triggerFound = false, uuidFound = false, pathFound = false;
@@ -208,34 +230,23 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                     SubversionSCM sscm = (SubversionSCM) scm;
 
                     List<SvnInfo> infos = new ArrayList<SvnInfo>();
-
+		    
                     boolean projectMatches = false;
                     for (ModuleLocation loc : sscm.getProjectLocations(job)) {
                         //LOGGER.fine("Checking uuid for module location + " + loc + " of job "+ p);
                         String urlFromConfiguration = loc.getURL();
 			UUID remoteUUID = this.remoteUUIDFromCacheOrFromSVN((AbstractProject)job, loc, urlFromConfiguration);
                         if (remoteUUID.equals(uuid)) uuidFound = true; else continue;
-    
-                        String configuredRepoFullPath = loc.getSVNURL().getPath();
-			String rootRepoPath = loc.getRepositoryRoot(job, sscm).getPath();
-                        if(!configuredRepoFullPath.startsWith(rootRepoPath))    continue;   // repository root should be a subpath of the module path, but be defensive
 
-                        String remainingRepoPath = configuredRepoFullPath.substring(rootRepoPath.length());
-                        if(remainingRepoPath.startsWith("/"))   remainingRepoPath=remainingRepoPath.substring(1);
-                        String remainingRepoPathSlash = remainingRepoPath + '/';
+			String configuredRepoFullPath = loc.getSVNURL().getPath();
+			String rootRepoPath = loc.getRepositoryRoot(job, sscm).getPath();
+			if( this.doModuleLocationContainsAPathFromAffectedPath(configuredRepoFullPath, rootRepoPath, affectedPath) ) {
+				projectMatches = true;
+				pathFound = true;
+			}
 
                         if ( rev != -1 ) {
                             infos.add(new SvnInfo(loc.getURL(), rev));
-                        }
-
-                        for (String path : affectedPath) {
-                            if(path.equals(remainingRepoPath) /*for files*/ || path.startsWith(remainingRepoPathSlash) /*for dirs*/
-                            || remainingRepoPath.length()==0/*when someone is checking out the whole repo (that is, configuredRepoFullPath==rootRepoPath)*/) {
-                                // this project is possibly changed. poll now.
-                                // if any of the data we used was bogus, the trigger will not detect a change
-                                projectMatches = true;
-                                pathFound = true;
-                            }
                         }
                     }
 
