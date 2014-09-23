@@ -186,7 +186,7 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
 			return remoteUUID;
 		}
 
-		private boolean doModuleLocationContainsAPathFromAffectedPath(String configuredRepoFullPath, String rootRepoPath, Set<String> affectedPath) {
+		boolean doModuleLocationContainsAPathFromAffectedPath(String configuredRepoFullPath, String rootRepoPath, Set<String> affectedPath) {
 			boolean containsAnAffectedPath = false;
 
 			if( configuredRepoFullPath.startsWith(rootRepoPath) ) {
