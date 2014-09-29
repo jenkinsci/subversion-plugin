@@ -97,6 +97,7 @@ public final class SubversionChangeLogBuilder {
         this.scm = scm;
         this.build = build;
         this.workspace = workspace;
+        this.env= new EnvVars(env);
     
         // JENKINS-24554 
         // set in 'env' the system vars from 'build' such that when comparing URLs
