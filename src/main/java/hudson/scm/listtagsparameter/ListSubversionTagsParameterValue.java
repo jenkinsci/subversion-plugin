@@ -40,8 +40,8 @@ import org.kohsuke.stapler.export.Exported;
  */
 public class ListSubversionTagsParameterValue extends ParameterValue {
 
-  @Exported(visibility=3) private String tagsDir; // this att comes from ListSubversionTagsParameterDefinition
-  @Exported(visibility=3) private String tag;
+  private String tagsDir; // this att comes from ListSubversionTagsParameterDefinition
+  private String tag;
 
   @DataBoundConstructor
   public ListSubversionTagsParameterValue(String name, String tagsDir, String tag) {
@@ -86,6 +86,7 @@ public class ListSubversionTagsParameterValue extends ParameterValue {
     return result;
   }
 
+  @Exported(visibility=3)
   public String getTag() {
     return tag;
   }
@@ -94,6 +95,7 @@ public class ListSubversionTagsParameterValue extends ParameterValue {
     this.tag = tag;
   }
 
+  @Exported(visibility=3)
   public String getTagsDir() {
     return tagsDir;
   }
