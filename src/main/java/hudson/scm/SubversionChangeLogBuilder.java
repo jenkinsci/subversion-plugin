@@ -113,7 +113,7 @@ public final class SubversionChangeLogBuilder {
                 try {
                     EnvVars remoteSystemVars = EnvVars.getRemote(abstractBuild.getBuiltOn().getChannel());
                     for(Map.Entry<String,String> entry: remoteSystemVars.entrySet()){
-                        env.put(entry.getKey(), entry.getValue());
+                        this.env.put(entry.getKey(), entry.getValue());
                     }
                 } catch (InterruptedException ex) {
                     listener.error("Could not read build's system variables...");
