@@ -97,7 +97,29 @@ public final class SubversionChangeLogBuilder {
         this.scm = scm;
         this.build = build;
         this.workspace = workspace;
-        this.env = env;
+        this.env= new EnvVars(env);
+    
+        // JENKINS-24554 
+        // set in 'env' the system vars from 'build' such that when comparing URLs
+        // between the two builds, the system variables used in the token expansion are in sync.
+        //
+        // This allows us to have system vars in the SVN URL, differnt across nodes ( allowing them to
+        // use local proxies for faster checkouts for example). If we do not use the system variables
+        // from the build in question we would be triggering new builds untils it happens that the build
+        // is picked by a node where the var in question evaluates to the same as the lastCompletedBuild
+        if(build instanceof AbstractBuild){
+            AbstractBuild<?,?> abstractBuild = (AbstractBuild<?,?>) build;
+            if(abstractBuild.getBuiltOn()!=null && abstractBuild.getBuiltOn().getChannel()!=null){
+                try {
+                    EnvVars remoteSystemVars = EnvVars.getRemote(abstractBuild.getBuiltOn().getChannel());
+                    for(Map.Entry<String,String> entry: remoteSystemVars.entrySet()){
+                        this.env.put(entry.getKey(), entry.getValue());
+                    }
+                } catch (InterruptedException ex) {
+                    listener.error("Could not read build's system variables...");
+                }
+            }
+        }
     }
 
     public boolean run(Collection<SubversionSCM.External> externals, Result changeLog) throws IOException, InterruptedException {

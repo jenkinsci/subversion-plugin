@@ -676,8 +676,31 @@ public class SubversionSCM extends SCM implements Serializable {
     @Override
     public void buildEnvVars(AbstractBuild<?, ?> build, Map<String, String> env) {
         super.buildEnvVars(build, env);
-
-        ModuleLocation[] svnLocations = getLocations(new EnvVars(env), build);
+ 
+        EnvVars envsToUse=new EnvVars(env);
+        // JENKINS-24554 
+        // set in 'envsToUse' the system vars from 'build' such that when comparing URLs
+        // between the master and the build we use the same system environment variables
+        //
+        // This allows us to have system vars in the SVN URL, differnt across nodes ( allowing them to
+        // use local proxies for faster checkouts for example). If we do not use the system variables
+        // from the build in question we would be comparing URLs with different token expansions 
+        // (as they could be in differnt locations and use different proxies) and that in turn would lead into
+        // not creating the SVN_ system vars as expected.
+        if(build.getBuiltOn()!=null && build.getBuiltOn().getChannel()!=null ){
+                try {
+                        EnvVars remoteSystemVars = EnvVars.getRemote(build.getBuiltOn().getChannel());
+                        for(Map.Entry<String,String> entry: remoteSystemVars.entrySet()){
+                                envsToUse.put(entry.getKey(), entry.getValue());
+                        }
+                } catch (IOException ex) {
+                                LOGGER.log(WARNING, "could not read the incoming build chanell vars",ex);
+                } catch (InterruptedException ex) {
+                                LOGGER.log(WARNING, "could not read the incoming build chanell vars",ex);
+                }
+        } 
+        
+        ModuleLocation[] svnLocations = getLocations(envsToUse, build);
 
         try {
             Map<String,Long> revisions = parseSvnRevisionFile(build);
@@ -1327,28 +1350,48 @@ public class SubversionSCM extends SCM implements Serializable {
     @Override
     public PollingResult compareRemoteRevisionWith(Job<?,?> project, Launcher launcher, FilePath workspace, final TaskListener listener, SCMRevisionState _baseline) throws IOException, InterruptedException {
         final SVNRevisionState baseline;
+        Run<?,?> lastBuild = project.getLastBuild();
+        Run<?,?> lastCompletedBuild = project.getLastCompletedBuild();
+        
         if (_baseline instanceof SVNRevisionState) {
             baseline = (SVNRevisionState)_baseline;
         }
         else if (project.getLastBuild()!=null) {
-            baseline = (SVNRevisionState)calcRevisionsFromBuild(project.getLastBuild(), launcher != null ? workspace : null, launcher, listener);
+            baseline = (SVNRevisionState)calcRevisionsFromBuild(lastBuild, launcher != null ? workspace : null, launcher, listener);
         }
         else {
             baseline = new SVNRevisionState(null);
         }
 
-        if (project.getLastBuild() == null) {
+        if (lastBuild == null) {
             listener.getLogger().println(Messages.SubversionSCM_pollChanges_noBuilds());
             return BUILD_NOW;
         }
-
-        Run<?,?> lastCompletedBuild = project.getLastCompletedBuild();
 
         if (lastCompletedBuild!=null) {
             EnvVars env = lastCompletedBuild.getEnvironment(listener);
             if (lastCompletedBuild instanceof AbstractBuild) {
                 EnvVarsUtils.overrideAll(env, ((AbstractBuild) lastCompletedBuild).getBuildVariables());
             }
+            
+            // JENKINS-24554 
+            // set in 'lastCompletedBuild-env' the system vars from 'lastBuild' such that when comparing URLs
+            // between the two builds, the system variables used in the token expansion are in sync.
+            //
+            // This allows us to have system vars in the SVN URL, differnt across nodes ( allowing them to
+            // use local proxies for faster checkouts for example). If we do not use the system variables
+            // from the build in question we would be triggering new builds untils it happens that the build
+            // is picked by a node where the var in question evaluates to the same as the lastCompletedBuild
+            if(lastBuild instanceof AbstractBuild){
+                AbstractBuild<?,?> lastAbstractBuild = (AbstractBuild<?,?>) lastBuild;
+                if(lastAbstractBuild.getBuiltOn()!=null && lastAbstractBuild.getBuiltOn().getChannel()!=null){
+                    EnvVars remoteSystemVars = EnvVars.getRemote(lastAbstractBuild.getBuiltOn().getChannel());
+                    for(Map.Entry<String,String> entry: remoteSystemVars.entrySet()){
+                        env.put(entry.getKey(), entry.getValue());
+                    }
+                }
+            }
+            
             if (project instanceof AbstractProject && repositoryLocationsNoLongerExist(lastCompletedBuild, listener, env)) {
                 // Disable this project, see HUDSON-763
                 listener.getLogger().println(
