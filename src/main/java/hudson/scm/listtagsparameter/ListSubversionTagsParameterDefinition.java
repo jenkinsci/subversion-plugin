@@ -25,10 +25,12 @@
 
 package hudson.scm.listtagsparameter;
 
+import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
+import hudson.model.Item;
 import hudson.model.ParameterDefinition;
 import hudson.model.ParameterValue;
 import hudson.model.ParametersDefinitionProperty;
@@ -355,11 +357,17 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
     }
 
     public ListBoxModel doFillCredentialsIdItems(@AncestorInPath AbstractProject context, @QueryParameter String tagsDir) {
+      if (context == null || !context.hasPermission(Item.BUILD)) {
+        return new StandardListBoxModel();
+      }
       return Jenkins.getInstance().getDescriptorByType(
               SubversionSCM.ModuleLocation.DescriptorImpl.class).doFillCredentialsIdItems(context, tagsDir);
     }
 
     public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String tagsDir, @QueryParameter String value) {
+      if (context == null || !context.hasPermission(Item.BUILD)) {
+        return FormValidation.ok();
+      }
       return Jenkins.getInstance().getDescriptorByType(
               SubversionSCM.ModuleLocation.DescriptorImpl.class).doCheckCredentialsId(req, context, tagsDir, value);
     }
