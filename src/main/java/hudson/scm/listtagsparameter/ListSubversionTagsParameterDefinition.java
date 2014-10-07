@@ -361,7 +361,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
         return new StandardListBoxModel();
       }
       return Jenkins.getInstance().getDescriptorByType(
-              SubversionSCM.ModuleLocation.DescriptorImpl.class).doFillCredentialsIdItems(context, tagsDir);
+              SubversionSCM.ModuleLocation.DescriptorImpl.class).fillCredentialsIdItems(context, tagsDir);
     }
 
     public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String tagsDir, @QueryParameter String value) {
@@ -369,7 +369,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
         return FormValidation.ok();
       }
       return Jenkins.getInstance().getDescriptorByType(
-              SubversionSCM.ModuleLocation.DescriptorImpl.class).doCheckCredentialsId(req, context, tagsDir, value);
+              SubversionSCM.ModuleLocation.DescriptorImpl.class).checkCredentialsId(req, context, tagsDir, value);
     }
 
     public FormValidation doCheckTagsFilter(@QueryParameter String value) {
