@@ -68,7 +68,6 @@ import hudson.init.InitMilestone;
 import hudson.model.*;
 
 import java.io.ByteArrayOutputStream;
-import java.net.URLClassLoader;
 import java.nio.charset.UnsupportedCharsetException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -185,6 +184,7 @@ import org.tmatesoft.svn.core.wc.SVNWCUtil;
 import com.trilead.ssh2.DebugLogger;
 import com.trilead.ssh2.SCPClient;
 import com.trilead.ssh2.crypto.Base64;
+import javax.annotation.Nonnull;
 
 /**
  * Subversion SCM.
@@ -2939,8 +2939,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 return fillCredentialsIdItems(context, remote);
             }
 
-            public ListBoxModel fillCredentialsIdItems(@AncestorInPath AbstractProject context,
-                                                       @QueryParameter String remote) {
+            public ListBoxModel fillCredentialsIdItems(@Nonnull AbstractProject context, String remote) {
               List<DomainRequirement> domainRequirements;
               if (remote == null) {
                       domainRequirements = Collections.<DomainRequirement>emptyList();
@@ -2998,12 +2997,7 @@ public class SubversionSCM extends SCM implements Serializable {
           /**
            * validate the value for a remote (repository) location.
            */
-          public FormValidation checkCredentialsId(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String remote, @QueryParameter String value) {
-              // Test the connection only if we have the job context
-              if (context == null) {
-                  return FormValidation.ok();
-              }
-
+          public FormValidation checkCredentialsId(StaplerRequest req, @Nonnull AbstractProject context, String remote, String value) {
               // if check remote is reporting an issue then we don't need to
               String url = Util.fixEmptyAndTrim(remote);
               if (url == null)
