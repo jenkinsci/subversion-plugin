@@ -899,8 +899,8 @@ public class SubversionSCM extends SCM implements Serializable {
         for (ModuleLocation location : getLocations(env, build)) {
             CheckOutTask checkOutTask =
                     new CheckOutTask(build, this, location, build.getTimestamp().getTime(), listener, env);
-            externals.addAll(Util.fixNull(workspace.act(checkOutTask)));
-            unauthenticatedRealms.addAll(Util.fixNull(checkOutTask.getUnauthenticatedRealms()));
+            externals.addAll(workspace.act(checkOutTask));
+            unauthenticatedRealms.addAll(checkOutTask.getUnauthenticatedRealms());
             // olamy: remove null check at it cause test failure
             // see https://github.com/jenkinsci/subversion-plugin/commit/de23a2b781b7b86f41319977ce4c11faee75179b#commitcomment-1551273
             /*if ( externalsFound != null ){
