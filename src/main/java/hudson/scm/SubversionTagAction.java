@@ -34,9 +34,7 @@ import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredenti
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import hudson.Extension;
-import hudson.model.AbstractBuild;
 import hudson.model.Action;
-import hudson.model.Actionable;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.model.Hudson;
@@ -47,7 +45,6 @@ import hudson.model.TaskThread;
 import hudson.scm.subversion.Messages;
 import hudson.scm.SubversionSCM.SvnInfo;
 import hudson.security.ACL;
-import hudson.security.PermissionScope;
 import hudson.util.CopyOnWriteMap;
 import hudson.security.Permission;
 import hudson.util.ListBoxModel;
@@ -77,11 +74,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -340,7 +335,9 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
         }
 
         public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context, @AncestorInPath Run run) {
-            Set<StandardCredentials> c = new LinkedHashSet<StandardCredentials>();
+            if (context == null || !context.hasPermission(SCM.TAG)) {
+                return new ListBoxModel();
+            }
             SubversionTagAction action = run != null ? run.getAction(SubversionTagAction.class) : null;
             List<DomainRequirement> domainRequirements = Collections.<DomainRequirement>emptyList();
             if (action != null) {
@@ -349,17 +346,6 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
                     break;
                 }
             }
-            c.addAll(CredentialsProvider.lookupCredentials(StandardCredentials.class,
-                    context,
-                    Jenkins.getAuthentication(),
-                    domainRequirements)
-            );
-            // TODO restrict use of the ACL.SYSTEM credentials if the user does not have a suitable permission
-            c.addAll(CredentialsProvider.lookupCredentials(StandardCredentials.class,
-                    context,
-                    ACL.SYSTEM,
-                    domainRequirements)
-            );
             return new StandardListBoxModel()
                     .withEmptySelection()
                     .withMatching(
@@ -368,7 +354,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
                                     CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
                                     CredentialsMatchers.instanceOf(SSHUserPrivateKey.class)
                             ),
-                            c
+                            CredentialsProvider.lookupCredentials(StandardCredentials.class, context, ACL.SYSTEM, domainRequirements)
                     );
         }
     }
