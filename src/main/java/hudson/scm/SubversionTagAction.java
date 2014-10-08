@@ -74,9 +74,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -231,8 +233,12 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
         StandardCredentials upc = null;
         if (credentialsId != null) {
             Item context = req.findAncestorObject(Item.class);
-            // TODO restrict use of the ACL.SYSTEM credentials if the user does not have a suitable permission
-            for (Authentication a : Arrays.asList(Jenkins.getAuthentication(), ACL.SYSTEM)) {
+            final List<Authentication> authentications = new ArrayList<Authentication>(2);
+            authentications.add(Jenkins.getAuthentication());
+            if (context.hasPermission(Item.CONFIGURE)) {
+                authentications.add(ACL.SYSTEM);
+            }
+            for (Authentication a : authentications) {
                 upc = CredentialsMatchers.firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class,
                         context,
                         a,
@@ -338,6 +344,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
             if (context == null || !context.hasPermission(SCM.TAG)) {
                 return new ListBoxModel();
             }
+            Set<StandardCredentials> c = new LinkedHashSet<StandardCredentials>();
             SubversionTagAction action = run != null ? run.getAction(SubversionTagAction.class) : null;
             List<DomainRequirement> domainRequirements = Collections.<DomainRequirement>emptyList();
             if (action != null) {
@@ -345,6 +352,18 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
                     domainRequirements = URIRequirementBuilder.fromUri(info.url).build();
                     break;
                 }
+            }
+            c.addAll(CredentialsProvider.lookupCredentials(StandardCredentials.class,
+                    context,
+                    Jenkins.getAuthentication(),
+                    domainRequirements)
+            );
+            if (context.hasPermission(Item.CONFIGURE)) {
+                c.addAll(CredentialsProvider.lookupCredentials(StandardCredentials.class,
+                                context,
+                                ACL.SYSTEM,
+                                domainRequirements)
+                );
             }
             return new StandardListBoxModel()
                     .withEmptySelection()
@@ -354,7 +373,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
                                     CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
                                     CredentialsMatchers.instanceOf(SSHUserPrivateKey.class)
                             ),
-                            CredentialsProvider.lookupCredentials(StandardCredentials.class, context, ACL.SYSTEM, domainRequirements)
+                            c
                     );
         }
     }
