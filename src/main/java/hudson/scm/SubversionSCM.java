@@ -889,7 +889,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 // see http://www.nabble.com/Should-Hudson-have-an-option-for-a-content-fingerprint--td24022683.html
 
                 listener.getLogger().println("One or more repository locations do not exist anymore for " + build.getParent().getName() + ", project will be disabled.");
-                ((AbstractBuild) build).getProject().makeDisabled(true);
+                disableProject(((AbstractBuild) build).getProject(), listener);
                 return null;
             }
         }
@@ -1353,7 +1353,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 // Disable this project, see HUDSON-763
                 listener.getLogger().println(
                         Messages.SubversionSCM_pollChanges_locationsNoLongerExist(project));
-                ((AbstractProject) project).makeDisabled(true);
+                disableProject((AbstractProject) project, listener);              
                 return NO_CHANGES;
             }
 
@@ -2537,6 +2537,22 @@ public class SubversionSCM extends SCM implements Serializable {
                 LOGGER.log(FINE, "Location check failed",e);
             }
         return false;
+    }
+    
+    /**
+     * Disables the project if it is possible and prints messages to the log.
+     * @param project Project to be disabled
+     * @param listener Logger
+     * @throws IOException Cannot disable the project
+     */
+    private void disableProject(@NonNull AbstractProject project, @NonNull TaskListener listener)
+            throws IOException {
+        if (project.supportsMakeDisabled()) {
+            project.makeDisabled(true);
+            listener.getLogger().println(Messages.SubversionSCM_disableProject_disabled());
+        } else {
+            listener.getLogger().println(Messages.SubversionSCM_disableProject_unsupported());
+        }
     }
 
     static final Pattern URL_PATTERN = Pattern.compile("(https?|svn(\\+[a-z0-9]+)?|file)://.+");
