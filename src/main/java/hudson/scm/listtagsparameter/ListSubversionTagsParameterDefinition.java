@@ -31,6 +31,7 @@ import hudson.Util;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import hudson.model.Item;
+import hudson.model.Job;
 import hudson.model.ParameterDefinition;
 import hudson.model.ParameterValue;
 import hudson.model.ParametersDefinitionProperty;
@@ -68,7 +69,7 @@ import org.tmatesoft.svn.core.wc.SVNRevision;
 
 /**
  * Defines a new {@link ParameterDefinition} to be displayed at the top of the
- * configuration page of {@link AbstractProject}s.
+ * configuration page of {@link Job}s.
  * 
  * <p>When used, this parameter will request the user to select a Subversion tag
  * at build-time by displaying a drop-down list. See
@@ -162,7 +163,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
    * <p>This method never returns {@code null}. In case an error happens, the
    * returned list contains an error message prefixed by {@code !}.</p>
    */
-  @Nonnull public List<String> getTags(@Nullable AbstractProject context) {
+  @Nonnull public List<String> getTags(@Nullable Job context) {
     List<String> dirs = new ArrayList<String>();
 
     try {
@@ -348,15 +349,16 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
     // we reuse as much as possible settings defined at the SCM level
     private SubversionSCM.DescriptorImpl scmDescriptor;
 
+    @Deprecated
     public ISVNAuthenticationProvider createAuthenticationProvider(AbstractProject context) {
       return getSubversionSCMDescriptor().createAuthenticationProvider(context);
     }
 
-    public FormValidation doCheckTagsDir(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value) {
+    public FormValidation doCheckTagsDir(StaplerRequest req, @AncestorInPath Item context, @QueryParameter String value) {
       return Jenkins.getInstance().getDescriptorByType(SubversionSCM.ModuleLocation.DescriptorImpl.class).doCheckRemote(req, context, value);
     }
 
-    public ListBoxModel doFillCredentialsIdItems(@AncestorInPath AbstractProject context, @QueryParameter String tagsDir) {
+    public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context, @QueryParameter String tagsDir) {
       if (context == null || !context.hasPermission(Item.BUILD)) {
         return new StandardListBoxModel();
       }
@@ -364,7 +366,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
               SubversionSCM.ModuleLocation.DescriptorImpl.class).fillCredentialsIdItems(context, tagsDir);
     }
 
-    public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String tagsDir, @QueryParameter String value) {
+    public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath Item context, @QueryParameter String tagsDir, @QueryParameter String value) {
       if (context == null || !context.hasPermission(Item.BUILD)) {
         return FormValidation.ok();
       }
@@ -384,7 +386,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
       return FormValidation.ok();
     }
 
-    public ListBoxModel doFillTagItems(@AncestorInPath AbstractProject<?,?> context, @QueryParameter String param) {
+    public ListBoxModel doFillTagItems(@AncestorInPath Job<?,?> context, @QueryParameter String param) {
         ListBoxModel model = new ListBoxModel();
         if (context != null) {
             ParametersDefinitionProperty prop = context.getProperty(ParametersDefinitionProperty.class);

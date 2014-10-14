@@ -2274,7 +2274,12 @@ public class SubversionSCM extends SCM implements Serializable {
             return checkRepositoryPath(context, repoURL, null);
         }
 
+        @Deprecated
         public SVNNodeKind checkRepositoryPath(Job context, SVNURL repoURL, StandardCredentials credentials) throws SVNException {
+            return checkRepositoryPath((Item) context, repoURL, credentials);
+        }
+
+        public SVNNodeKind checkRepositoryPath(Item context, SVNURL repoURL, StandardCredentials credentials) throws SVNException {
             SVNRepository repository = null;
 
             try {
@@ -2328,7 +2333,13 @@ public class SubversionSCM extends SCM implements Serializable {
             return getRepository(context, repoURL, credentials, additionalCredentials, null);
         }
 
+        @Deprecated
         protected SVNRepository getRepository(Job context, SVNURL repoURL, StandardCredentials credentials,
+                                              Map<String, Credentials> additionalCredentials, ISVNSession session) throws SVNException {
+            return getRepository((Item) context, repoURL, credentials, additionalCredentials, session);
+        }
+
+        protected SVNRepository getRepository(Item context, SVNURL repoURL, StandardCredentials credentials,
                                               Map<String, Credentials> additionalCredentials, ISVNSession session) throws SVNException {
             SVNRepository repository = SVNRepositoryFactory.create(repoURL, session);
         
@@ -2424,7 +2435,7 @@ public class SubversionSCM extends SCM implements Serializable {
         /**
          * Validates the remote server supports custom revision properties
          */
-        public FormValidation doCheckRevisionPropertiesSupported(@AncestorInPath AbstractProject context,
+        public FormValidation doCheckRevisionPropertiesSupported(@AncestorInPath Item context,
                                                                  @QueryParameter String value,
                                                                  @QueryParameter String credentialsId,
                                                                  @QueryParameter String excludedRevprop) throws IOException, ServletException {
@@ -2947,7 +2958,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 return null;  //To change body of implemented methods use File | Settings | File Templates.
             }
 
-            public ListBoxModel doFillCredentialsIdItems(@AncestorInPath AbstractProject context,
+            public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
                                                        @QueryParameter String remote) {
                 if (context == null || !context.hasPermission(Item.CONFIGURE)) {
                     return new StandardListBoxModel();
@@ -2955,7 +2966,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 return fillCredentialsIdItems(context, remote);
             }
 
-            public ListBoxModel fillCredentialsIdItems(@Nonnull AbstractProject context, String remote) {
+            public ListBoxModel fillCredentialsIdItems(@Nonnull Item context, String remote) {
               List<DomainRequirement> domainRequirements;
               if (remote == null) {
                       domainRequirements = Collections.<DomainRequirement>emptyList();
@@ -2980,7 +2991,7 @@ public class SubversionSCM extends SCM implements Serializable {
           /**
            * validate the value for a remote (repository) location.
            */
-          public FormValidation doCheckRemote(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String remote) {
+          public FormValidation doCheckRemote(StaplerRequest req, @AncestorInPath Item context, @QueryParameter String remote) {
               // syntax check first
               String url = Util.fixEmptyAndTrim(remote);
               if (url == null)
@@ -3002,7 +3013,7 @@ public class SubversionSCM extends SCM implements Serializable {
           /**
            * validate the value for a remote (repository) location.
            */
-          public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String remote, @QueryParameter String value) {
+          public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath Item context, @QueryParameter String remote, @QueryParameter String value) {
               // Test the connection only if we have job configure permission
               if (context == null || !context.hasPermission(Item.CONFIGURE)) {
                   return FormValidation.ok();
@@ -3013,7 +3024,7 @@ public class SubversionSCM extends SCM implements Serializable {
           /**
            * validate the value for a remote (repository) location.
            */
-          public FormValidation checkCredentialsId(StaplerRequest req, @Nonnull AbstractProject context, String remote, String value) {
+          public FormValidation checkCredentialsId(StaplerRequest req, @Nonnull Item context, String remote, String value) {
               // if check remote is reporting an issue then we don't need to
               String url = Util.fixEmptyAndTrim(remote);
               if (url == null)
@@ -3203,7 +3214,7 @@ public class SubversionSCM extends SCM implements Serializable {
         return null;
     }
 
-    private static StandardCredentials lookupCredentials(Job context, String credentialsId, SVNURL repoURL) {
+    private static StandardCredentials lookupCredentials(Item context, String credentialsId, SVNURL repoURL) {
         return credentialsId == null ? null :
                 CredentialsMatchers.firstOrNull(CredentialsProvider
                         .lookupCredentials(StandardCredentials.class, context, ACL.SYSTEM,
@@ -3270,7 +3281,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 return null;
             }
 
-            public ListBoxModel doFillCredentialsIdItems(@AncestorInPath AbstractProject context,
+            public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
                                                          @QueryParameter String realm) {
                 if (context == null || !context.hasPermission(Item.CONFIGURE)) {
                     return new StandardListBoxModel();
