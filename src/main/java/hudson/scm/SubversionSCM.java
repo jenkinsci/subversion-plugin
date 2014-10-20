@@ -68,7 +68,6 @@ import hudson.init.InitMilestone;
 import hudson.model.*;
 
 import java.io.ByteArrayOutputStream;
-import java.net.URLClassLoader;
 import java.nio.charset.UnsupportedCharsetException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -186,6 +185,7 @@ import org.tmatesoft.svn.core.wc.SVNWCUtil;
 import com.trilead.ssh2.DebugLogger;
 import com.trilead.ssh2.SCPClient;
 import com.trilead.ssh2.crypto.Base64;
+import javax.annotation.Nonnull;
 
 /**
  * Subversion SCM.
@@ -462,7 +462,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
     /**
      * @since 1.252
-     * @deprecated Use {@link #getLocations(EnvVars, AbstractBuild)} for vars
+     * @deprecated Use {@link #getLocations(EnvVars, Run)} for vars
      *             expansion to be performed on all env vars rather than just
      *             build parameters.
      */
@@ -737,7 +737,7 @@ public class SubversionSCM extends SCM implements Serializable {
     }
 
     /**
-     * Please consider using the non-static version {@link #parseSvnRevisionFile(AbstractBuild)}!
+     * Please consider using the non-static version {@link #parseSvnRevisionFile(Run)}!
      */
     /*package*/ static Map<String,Long> parseRevisionFile(Run<?,?> build) throws IOException {
         return parseRevisionFile(build,true,false);
@@ -890,7 +890,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 // see http://www.nabble.com/Should-Hudson-have-an-option-for-a-content-fingerprint--td24022683.html
 
                 listener.getLogger().println("One or more repository locations do not exist anymore for " + build.getParent().getName() + ", project will be disabled.");
-                ((AbstractBuild) build).getProject().makeDisabled(true);
+                disableProject(((AbstractBuild) build).getProject(), listener);
                 return null;
             }
         }
@@ -1033,7 +1033,7 @@ public class SubversionSCM extends SCM implements Serializable {
      * This method must be executed on the slave where svn operations are performed.
      *
      * @param authProvider
-     *      The value obtained from {@link #createAuthenticationProvider(AbstractProject,ModuleLocation)}.
+     *      The value obtained from {@link #createAuthenticationProvider(Job,ModuleLocation)}.
      *      If the operation runs on slaves,
      *      (and properly remoted, if the svn operations run on slaves.)
      */
@@ -1354,7 +1354,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 // Disable this project, see HUDSON-763
                 listener.getLogger().println(
                         Messages.SubversionSCM_pollChanges_locationsNoLongerExist(project));
-                ((AbstractProject) project).makeDisabled(true);
+                disableProject((AbstractProject) project, listener);              
                 return NO_CHANGES;
             }
 
@@ -2268,14 +2268,19 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         /**
-         * @deprecated use {@link #checkRepositoryPath(hudson.model.AbstractProject, org.tmatesoft.svn.core.SVNURL, com.cloudbees.plugins.credentials.common.StandardCredentials)}
+         * @deprecated use {@link #checkRepositoryPath(hudson.model.Job, org.tmatesoft.svn.core.SVNURL, com.cloudbees.plugins.credentials.common.StandardCredentials)}
          */
         @Deprecated
         public SVNNodeKind checkRepositoryPath(AbstractProject context, SVNURL repoURL) throws SVNException {
             return checkRepositoryPath(context, repoURL, null);
         }
 
+        @Deprecated
         public SVNNodeKind checkRepositoryPath(Job context, SVNURL repoURL, StandardCredentials credentials) throws SVNException {
+            return checkRepositoryPath((Item) context, repoURL, credentials);
+        }
+
+        public SVNNodeKind checkRepositoryPath(Item context, SVNURL repoURL, StandardCredentials credentials) throws SVNException {
             SVNRepository repository = null;
 
             try {
@@ -2305,7 +2310,7 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         /**
-         * @deprecated Use {@link #getRepository(hudson.model.AbstractProject, org.tmatesoft.svn.core.SVNURL, com.cloudbees.plugins.credentials.common.StandardCredentials, java.util.Map, org.tmatesoft.svn.core.io.ISVNSession)}
+         * @deprecated Use {@link #getRepository(hudson.model.Job, org.tmatesoft.svn.core.SVNURL, com.cloudbees.plugins.credentials.common.StandardCredentials, java.util.Map, org.tmatesoft.svn.core.io.ISVNSession)}
          */
         @Deprecated
         protected SVNRepository getRepository(AbstractProject context, SVNURL repoURL) throws SVNException {
@@ -2313,7 +2318,7 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         /**
-         * @deprecated Use {@link #getRepository(hudson.model.AbstractProject, org.tmatesoft.svn.core.SVNURL, com.cloudbees.plugins.credentials.common.StandardCredentials, java.util.Map, org.tmatesoft.svn.core.io.ISVNSession)}
+         * @deprecated Use {@link #getRepository(hudson.model.Job, org.tmatesoft.svn.core.SVNURL, com.cloudbees.plugins.credentials.common.StandardCredentials, java.util.Map, org.tmatesoft.svn.core.io.ISVNSession)}
          */
         @Deprecated
         protected SVNRepository getRepository(AbstractProject context, SVNURL repoURL, ISVNSession session) throws SVNException {
@@ -2321,7 +2326,7 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         /**
-         * @deprecated Use {@link #getRepository(hudson.model.AbstractProject, org.tmatesoft.svn.core.SVNURL, com.cloudbees.plugins.credentials.common.StandardCredentials, java.util.Map, org.tmatesoft.svn.core.io.ISVNSession)}
+         * @deprecated Use {@link #getRepository(hudson.model.Job, org.tmatesoft.svn.core.SVNURL, com.cloudbees.plugins.credentials.common.StandardCredentials, java.util.Map, org.tmatesoft.svn.core.io.ISVNSession)}
          */
         @Deprecated
         protected SVNRepository getRepository(AbstractProject context, SVNURL repoURL, StandardCredentials credentials,
@@ -2329,7 +2334,13 @@ public class SubversionSCM extends SCM implements Serializable {
             return getRepository(context, repoURL, credentials, additionalCredentials, null);
         }
 
+        @Deprecated
         protected SVNRepository getRepository(Job context, SVNURL repoURL, StandardCredentials credentials,
+                                              Map<String, Credentials> additionalCredentials, ISVNSession session) throws SVNException {
+            return getRepository((Item) context, repoURL, credentials, additionalCredentials, session);
+        }
+
+        protected SVNRepository getRepository(Item context, SVNURL repoURL, StandardCredentials credentials,
                                               Map<String, Credentials> additionalCredentials, ISVNSession session) throws SVNException {
             SVNRepository repository = SVNRepositoryFactory.create(repoURL, session);
         
@@ -2425,7 +2436,7 @@ public class SubversionSCM extends SCM implements Serializable {
         /**
          * Validates the remote server supports custom revision properties
          */
-        public FormValidation doCheckRevisionPropertiesSupported(@AncestorInPath AbstractProject context,
+        public FormValidation doCheckRevisionPropertiesSupported(@AncestorInPath Item context,
                                                                  @QueryParameter String value,
                                                                  @QueryParameter String credentialsId,
                                                                  @QueryParameter String excludedRevprop) throws IOException, ServletException {
@@ -2538,6 +2549,22 @@ public class SubversionSCM extends SCM implements Serializable {
                 LOGGER.log(FINE, "Location check failed",e);
             }
         return false;
+    }
+    
+    /**
+     * Disables the project if it is possible and prints messages to the log.
+     * @param project Project to be disabled
+     * @param listener Logger
+     * @throws IOException Cannot disable the project
+     */
+    private void disableProject(@NonNull AbstractProject project, @NonNull TaskListener listener)
+            throws IOException {
+        if (project.supportsMakeDisabled()) {
+            project.makeDisabled(true);
+            listener.getLogger().println(Messages.SubversionSCM_disableProject_disabled());
+        } else {
+            listener.getLogger().println(Messages.SubversionSCM_disableProject_unsupported());
+        }
     }
 
     static final Pattern URL_PATTERN = Pattern.compile("(https?|svn(\\+[a-z0-9]+)?|file)://.+");
@@ -2932,8 +2959,15 @@ public class SubversionSCM extends SCM implements Serializable {
                 return null;  //To change body of implemented methods use File | Settings | File Templates.
             }
 
-            public ListBoxModel doFillCredentialsIdItems(@AncestorInPath AbstractProject context,
+            public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
                                                        @QueryParameter String remote) {
+                if (context == null || !context.hasPermission(Item.CONFIGURE)) {
+                    return new StandardListBoxModel();
+                }
+                return fillCredentialsIdItems(context, remote);
+            }
+
+            public ListBoxModel fillCredentialsIdItems(@Nonnull Item context, String remote) {
               List<DomainRequirement> domainRequirements;
               if (remote == null) {
                       domainRequirements = Collections.<DomainRequirement>emptyList();
@@ -2958,7 +2992,7 @@ public class SubversionSCM extends SCM implements Serializable {
           /**
            * validate the value for a remote (repository) location.
            */
-          public FormValidation doCheckRemote(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String remote) {
+          public FormValidation doCheckRemote(StaplerRequest req, @AncestorInPath Item context, @QueryParameter String remote) {
               // syntax check first
               String url = Util.fixEmptyAndTrim(remote);
               if (url == null)
@@ -2980,7 +3014,18 @@ public class SubversionSCM extends SCM implements Serializable {
           /**
            * validate the value for a remote (repository) location.
            */
-          public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String remote, @QueryParameter String value) {
+          public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath Item context, @QueryParameter String remote, @QueryParameter String value) {
+              // Test the connection only if we have job configure permission
+              if (context == null || !context.hasPermission(Item.CONFIGURE)) {
+                  return FormValidation.ok();
+              }
+              return checkCredentialsId(req, context, remote, value);
+          }
+
+          /**
+           * validate the value for a remote (repository) location.
+           */
+          public FormValidation checkCredentialsId(StaplerRequest req, @Nonnull Item context, String remote, String value) {
               // if check remote is reporting an issue then we don't need to
               String url = Util.fixEmptyAndTrim(remote);
               if (url == null)
@@ -2993,10 +3038,6 @@ public class SubversionSCM extends SCM implements Serializable {
               }
 
               if(!URL_PATTERN.matcher(url).matches())
-                  return FormValidation.ok();
-
-              // Test the connection only if we have job configure permission
-              if (!context.hasPermission(Item.CONFIGURE))
                   return FormValidation.ok();
 
               try {
@@ -3174,7 +3215,7 @@ public class SubversionSCM extends SCM implements Serializable {
         return null;
     }
 
-    private static StandardCredentials lookupCredentials(Job context, String credentialsId, SVNURL repoURL) {
+    private static StandardCredentials lookupCredentials(Item context, String credentialsId, SVNURL repoURL) {
         return credentialsId == null ? null :
                 CredentialsMatchers.firstOrNull(CredentialsProvider
                         .lookupCredentials(StandardCredentials.class, context, ACL.SYSTEM,
@@ -3241,8 +3282,11 @@ public class SubversionSCM extends SCM implements Serializable {
                 return null;
             }
 
-            public ListBoxModel doFillCredentialsIdItems(@AncestorInPath AbstractProject context,
+            public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
                                                          @QueryParameter String realm) {
+                if (context == null || !context.hasPermission(Item.CONFIGURE)) {
+                    return new StandardListBoxModel();
+                }
                 List<DomainRequirement> domainRequirements;
                 if (realm == null) {
                     domainRequirements = Collections.<DomainRequirement>emptyList();
