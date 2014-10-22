@@ -62,6 +62,7 @@ import jenkins.scm.api.SCMSourceCriteria;
 import jenkins.scm.api.SCMSourceDescriptor;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.scm.api.SCMSourceOwners;
+import jenkins.svnkit.auth.AuthenticationManager;
 import net.jcip.annotations.GuardedBy;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.context.SecurityContextHolder;
@@ -855,7 +856,7 @@ public class SubversionSCMSource extends SCMSource {
                                               Map<String, Credentials> additionalCredentials, ISVNSession session) throws SVNException {
             SVNRepository repository = SVNRepositoryFactory.create(repoURL, session);
 
-            ISVNAuthenticationManager sam = SubversionSCM.createSvnAuthenticationManager(
+            AuthenticationManager sam = SubversionSCM.createSvnAuthenticationManager(
                     new CredentialsSVNAuthenticationProviderImpl(credentials, additionalCredentials)
             );
             sam = new FilterSVNAuthenticationManager(sam) {
