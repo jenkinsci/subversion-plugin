@@ -12,6 +12,7 @@
 package jenkins.svnkit.auth;
 
 import org.tmatesoft.svn.core.SVNURL;
+import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.auth.SVNAuthentication;
 import org.tmatesoft.svn.core.internal.util.SVNPathUtil;
 import org.tmatesoft.svn.core.internal.wc.SVNFileType;
@@ -26,7 +27,7 @@ import java.io.IOException;
 /**
  * The <b>SVNSSLAuthentication</b> class represents user's credentials used
  * to authenticate a user in secure connections. Used along with the
- * {@link AuthenticationManager#SSL SSL} credential kind.
+ * {@link org.tmatesoft.svn.core.auth.ISVNAuthenticationManager#SSL SSL} credential kind.
  *
  * @version 1.3
  * @author  TMate Software Ltd.
@@ -52,7 +53,7 @@ public class SVNSSLAuthentication extends SVNAuthentication {
      *                         credentials cache
      */
     public SVNSSLAuthentication(File certFile, String password, boolean storageAllowed) throws IOException {
-        super(AuthenticationManager.SSL, null, storageAllowed);
+        super(ISVNAuthenticationManager.SSL, null, storageAllowed);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         FileInputStream in = new FileInputStream(certFile);
         try {
@@ -80,7 +81,7 @@ public class SVNSSLAuthentication extends SVNAuthentication {
      * @since 1.3.1
      */
     public SVNSSLAuthentication(byte[] certFile, String password, boolean storageAllowed, SVNURL url, boolean isPartial) {
-        super(AuthenticationManager.SSL, null, storageAllowed, url, isPartial);
+        super(ISVNAuthenticationManager.SSL, null, storageAllowed, url, isPartial);
         myCertificate = certFile;
         myPassword = password;
         mySSLKind = SSL;

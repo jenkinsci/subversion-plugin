@@ -139,8 +139,6 @@ import java.util.regex.PatternSyntaxException;
 import javax.servlet.ServletException;
 import javax.xml.transform.stream.StreamResult;
 
-import jenkins.svnkit.auth.AuthenticationManager;
-import jenkins.svnkit.auth.DefaultSVNAuthenticationManager;
 import jenkins.svnkit.auth.SVNSSLAuthentication;
 import net.sf.json.JSONObject;
 
@@ -162,10 +160,7 @@ import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
 import org.tmatesoft.svn.core.*;
-import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
-import org.tmatesoft.svn.core.auth.SVNAuthentication;
-import org.tmatesoft.svn.core.auth.SVNPasswordAuthentication;
-import org.tmatesoft.svn.core.auth.SVNSSHAuthentication;
+import org.tmatesoft.svn.core.auth.*;
 import org.tmatesoft.svn.core.internal.io.dav.DAVRepositoryFactory;
 import org.tmatesoft.svn.core.internal.io.dav.http.DefaultHTTPConnectionFactory;
 import org.tmatesoft.svn.core.internal.io.fs.FSRepositoryFactory;
@@ -1038,7 +1033,7 @@ public class SubversionSCM extends SCM implements Serializable {
      *      (and properly remoted, if the svn operations run on slaves.)
      */
     public static SvnClientManager createClientManager(ISVNAuthenticationProvider authProvider) {
-        AuthenticationManager sam = createSvnAuthenticationManager(authProvider);
+        ISVNAuthenticationManager sam = createSvnAuthenticationManager(authProvider);
         return new SvnClientManager(SVNClientManager.newInstance(createDefaultSVNOptions(), sam));
     }
 
@@ -1056,14 +1051,14 @@ public class SubversionSCM extends SCM implements Serializable {
         return defaultOptions;
     }
 
-    public static AuthenticationManager createSvnAuthenticationManager(ISVNAuthenticationProvider authProvider) {
+    public static ISVNAuthenticationManager createSvnAuthenticationManager(ISVNAuthenticationProvider authProvider) {
         File configDir;
         if (CONFIG_DIR!=null)
             configDir = new File(CONFIG_DIR);
         else
             configDir = SVNWCUtil.getDefaultConfigurationDirectory();
 
-        AuthenticationManager sam = new DefaultSVNAuthenticationManager(SVNWCUtil.createDefaultAuthenticationManager(configDir, null, null));
+        ISVNAuthenticationManager sam = new SVNAuthenticationManager(configDir, null, null);
         sam.setAuthenticationProvider(authProvider);
         SVNAuthStoreHandlerImpl.install(sam);
         return sam;
@@ -1781,7 +1776,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
             @Override
             public SVNAuthentication createSVNAuthentication(String kind) {
-                if(kind.equals(AuthenticationManager.SSH))
+                if(kind.equals(ISVNAuthenticationManager.SSH))
                     return new SVNSSHAuthentication(userName, getPassword(),-1,false);
                 else
                     return new SVNPasswordAuthentication(userName, getPassword(),false);
@@ -1885,7 +1880,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
             @Override
             public SVNSSHAuthentication createSVNAuthentication(String kind) throws SVNException {
-                if(kind.equals(AuthenticationManager.SSH)) {
+                if(kind.equals(ISVNAuthenticationManager.SSH)) {
                     try {
                         Channel channel = Channel.current();
                         String privateKey;
@@ -1968,7 +1963,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
             @Override
             public SVNAuthentication createSVNAuthentication(String kind) {
-                if(kind.equals(AuthenticationManager.SSL))
+                if(kind.equals(ISVNAuthenticationManager.SSL))
                     try {
                         SVNSSLAuthentication authentication = new SVNSSLAuthentication(
                                 Base64.decode(certificate.getPlainText().toCharArray()),
@@ -2333,7 +2328,7 @@ public class SubversionSCM extends SCM implements Serializable {
                                               Map<String, Credentials> additionalCredentials, ISVNSession session) throws SVNException {
             SVNRepository repository = SVNRepositoryFactory.create(repoURL, session);
         
-            AuthenticationManager sam = createSvnAuthenticationManager(
+            ISVNAuthenticationManager sam = createSvnAuthenticationManager(
                     new CredentialsSVNAuthenticationProviderImpl(credentials, additionalCredentials)
             );
             sam = new FilterSVNAuthenticationManager(sam) {

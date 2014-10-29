@@ -1,10 +1,10 @@
 package hudson.scm;
 
-import jenkins.svnkit.auth.AuthenticationManager;
 import jenkins.svnkit.auth.ISVNAuthenticationOutcomeListener;
 import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNErrorMessage;
+import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
 import org.tmatesoft.svn.core.auth.ISVNProxyManager;
 import org.tmatesoft.svn.core.auth.SVNAuthentication;
@@ -13,13 +13,13 @@ import org.tmatesoft.svn.core.io.SVNRepository;
 import javax.net.ssl.TrustManager;
 
 /**
- * {@link AuthenticationManager} filter. Useful for customizing the behavior by delegation.
+ * {@link org.tmatesoft.svn.core.auth.ISVNAuthenticationManager} filter. Useful for customizing the behavior by delegation.
  * @author Kohsuke Kawaguchi
  */
-public class FilterSVNAuthenticationManager implements AuthenticationManager {
-    protected AuthenticationManager core;
+public class FilterSVNAuthenticationManager implements ISVNAuthenticationManager {
+    protected ISVNAuthenticationManager core;
 
-    public FilterSVNAuthenticationManager(AuthenticationManager core) {
+    public FilterSVNAuthenticationManager(ISVNAuthenticationManager core) {
         this.core = core;
     }
 
@@ -64,10 +64,9 @@ public class FilterSVNAuthenticationManager implements AuthenticationManager {
     }
 
     public org.tmatesoft.svn.core.auth.ISVNAuthenticationManager getAuthenticationManager() {
-      return core.getAuthenticationManager();
+      return core;
     }
-
-    public void setAuthenticationOutcomeListener(ISVNAuthenticationOutcomeListener listener) {
-      core.setAuthenticationOutcomeListener(listener);
-    }
+//    public void setAuthenticationOutcomeListener(ISVNAuthenticationOutcomeListener listener) {
+//      core.setAuthenticationOutcomeListener(listener);
+//    }
 }

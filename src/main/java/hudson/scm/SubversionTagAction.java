@@ -286,7 +286,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
         protected void perform(TaskListener listener) {
             try {
                 File configDir = SVNWCUtil.getDefaultConfigurationDirectory();
-                ISVNAuthenticationManager sam = SVNWCUtil.createDefaultAuthenticationManager(configDir, null, null);
+                ISVNAuthenticationManager sam = new SVNAuthenticationManager(configDir, null, null);
                 sam.setAuthenticationProvider(new CredentialsSVNAuthenticationProviderImpl(upc));
                 final SvnClientManager cm = new SvnClientManager(
                         SVNClientManager.newInstance(SubversionSCM.createDefaultSVNOptions(), sam)
