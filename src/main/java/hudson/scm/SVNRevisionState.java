@@ -7,7 +7,7 @@ import java.util.Map;
  * {@link SCMRevisionState} for {@link SubversionSCM}. {@link Serializable} since we compute
  * this remote.
  */
-final class SVNRevisionState extends SCMRevisionState implements Serializable {
+public final class SVNRevisionState extends SCMRevisionState implements Serializable {
     /**
      * All the remote locations that we checked out. This includes those that are specified
      * explicitly via {@link SubversionSCM#getLocations()} as well as those that
