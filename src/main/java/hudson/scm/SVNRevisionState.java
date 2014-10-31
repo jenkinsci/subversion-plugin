@@ -20,22 +20,9 @@ public final class SVNRevisionState extends SCMRevisionState implements Serializ
         this.revisions = revisions;
     }
 
-//    public PartialOrder compareTo(SCMRevisionState rhs) {
-//        SVNRevisionState that = (SVNRevisionState)rhs;
-//        return PartialOrder.from(that.hasNew(this), this.hasNew(that));
-//    }
-//
-//    /**
-//     * Does this object has something newer than the given object?
-//     */
-//    private boolean hasNew(SVNRevisionState that) {
-//        for (Entry<String,Long> e : revisions.entrySet()) {
-//            Long rhs = that.revisions.get(e.getKey());
-//            if (rhs==null || e.getValue().compareTo(rhs)>0)
-//                return true;
-//        }
-//        return false;
-//    }
+    public long getRevision(String location) {
+        return revisions.get(location);
+    }
 
     @Override public String toString() {
         return "SVNRevisionState" + revisions;
