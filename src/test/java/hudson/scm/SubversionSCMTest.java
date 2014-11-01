@@ -47,7 +47,6 @@ import hudson.slaves.DumbSlave;
 import hudson.triggers.SCMTrigger;
 import hudson.util.FormValidation;
 import hudson.util.StreamTaskListener;
-import jenkins.svnkit.auth.SVNSSLAuthentication;
 import org.dom4j.Document;
 import org.dom4j.io.DOMReader;
 import org.junit.Test;
@@ -1115,7 +1114,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         _idem(new SVNSSHAuthentication("me",new File("./some.key"),null,23,false));
         _idem(new SVNSSHAuthentication("me","key".toCharArray(),"phrase",0,false));
         _idem(new SVNPasswordAuthentication("me","pass",true));
-        _idem(new SVNSSLAuthentication("certificate".getBytes(),null,true));
+        _idem(new SVNSSLAuthentication("certificate",null,true, null, false));
 
         // make sure two Files and char[]s compare the same 
         assertTrue(compareSVNAuthentications(

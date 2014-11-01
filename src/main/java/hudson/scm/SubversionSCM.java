@@ -139,7 +139,6 @@ import java.util.regex.PatternSyntaxException;
 import javax.servlet.ServletException;
 import javax.xml.transform.stream.StreamResult;
 
-import jenkins.svnkit.auth.SVNSSLAuthentication;
 import net.sf.json.JSONObject;
 
 import org.acegisecurity.context.SecurityContext;
@@ -1966,8 +1965,8 @@ public class SubversionSCM extends SCM implements Serializable {
                 if(kind.equals(ISVNAuthenticationManager.SSL))
                     try {
                         SVNSSLAuthentication authentication = new SVNSSLAuthentication(
-                                Base64.decode(certificate.getPlainText().toCharArray()),
-                                Scrambler.descramble(Secret.toString(password)), false);
+                                String.valueOf(Base64.decode(certificate.getPlainText().toCharArray())),
+                                Scrambler.descramble(Secret.toString(password)), false, null, false);
                         authentication.setCertificatePath("dummy"); // TODO: remove this JENKINS-19175 workaround
                         return authentication;
                     } catch (IOException e) {

@@ -1,6 +1,5 @@
 package hudson.scm;
 
-import jenkins.svnkit.auth.ISVNAuthenticationOutcomeListener;
 import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNErrorMessage;
@@ -66,7 +65,4 @@ public class FilterSVNAuthenticationManager implements ISVNAuthenticationManager
     public org.tmatesoft.svn.core.auth.ISVNAuthenticationManager getAuthenticationManager() {
       return core;
     }
-//    public void setAuthenticationOutcomeListener(ISVNAuthenticationOutcomeListener listener) {
-//      core.setAuthenticationOutcomeListener(listener);
-//    }
 }

@@ -15,17 +15,11 @@ import hudson.model.Item;
 import hudson.remoting.Channel;
 import hudson.security.ACL;
 import hudson.util.Scrambler;
-import jenkins.svnkit.auth.SVNSSLAuthentication;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.tmatesoft.svn.core.SVNErrorCode;
 import org.tmatesoft.svn.core.SVNErrorMessage;
 import org.tmatesoft.svn.core.SVNURL;
-import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
-import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
-import org.tmatesoft.svn.core.auth.SVNAuthentication;
-import org.tmatesoft.svn.core.auth.SVNPasswordAuthentication;
-import org.tmatesoft.svn.core.auth.SVNSSHAuthentication;
-import org.tmatesoft.svn.core.auth.SVNUserNameAuthentication;
+import org.tmatesoft.svn.core.auth.*;
 
 import javax.security.auth.DestroyFailedException;
 import java.io.ByteArrayOutputStream;
@@ -465,7 +459,7 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
         public List<SVNAuthentication> build(String kind, SVNURL url) {
             if (ISVNAuthenticationManager.SSL.equals(kind)) {
                 SVNSSLAuthentication authentication =
-                        new SVNSSLAuthentication(certificateFile, Scrambler.descramble(password), false, url, false);
+                        new SVNSSLAuthentication(String.valueOf(certificateFile), Scrambler.descramble(password), false, url, false);
                 authentication.setCertificatePath("dummy"); // TODO: remove this JENKINS-19175 workaround
                 return Collections.<SVNAuthentication>singletonList(
                         authentication);
