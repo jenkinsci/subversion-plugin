@@ -24,7 +24,9 @@
 package jenkins.scm.impl.subversion;
 
 import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
+import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCertificateCredentials;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
@@ -34,11 +36,22 @@ import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.EnvVars;
 import hudson.Extension;
+import hudson.Functions;
+import hudson.Util;
+import hudson.model.AbstractProject;
+import hudson.model.Item;
+import hudson.model.Job;
 import hudson.model.TaskListener;
+import hudson.scm.CredentialsSVNAuthenticationProviderImpl;
+import hudson.scm.FilterSVNAuthenticationManager;
 import hudson.scm.SubversionRepositoryStatus;
 import hudson.scm.SubversionSCM;
+import hudson.scm.subversion.SvnHelper;
 import hudson.security.ACL;
+import hudson.util.EditDistance;
+import hudson.util.FormValidation;
 import hudson.util.IOException2;
 import hudson.util.ListBoxModel;
 import jenkins.scm.api.SCMHead;
@@ -49,6 +62,7 @@ import jenkins.scm.api.SCMSourceCriteria;
 import jenkins.scm.api.SCMSourceDescriptor;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.scm.api.SCMSourceOwners;
+import jenkins.svnkit.auth.AuthenticationManager;
 import net.jcip.annotations.GuardedBy;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.context.SecurityContextHolder;
@@ -58,10 +72,17 @@ import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
+import org.tmatesoft.svn.core.SVNDirEntry;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNNodeKind;
 import org.tmatesoft.svn.core.SVNURL;
+import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.internal.util.SVNPathUtil;
+import org.tmatesoft.svn.core.io.ISVNSession;
+import org.tmatesoft.svn.core.io.SVNRepository;
+import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
+import org.tmatesoft.svn.core.wc.SVNRevision;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -83,6 +104,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.logging.Level;
+import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
@@ -693,6 +715,9 @@ public class SubversionSCMSource extends SCMSource {
         @SuppressWarnings("unused") // by stapler
         public ListBoxModel doFillCredentialsIdItems(@AncestorInPath SCMSourceOwner context,
                                                      @QueryParameter String remoteBase) {
+            if (context == null || !context.hasPermission(Item.CONFIGURE)) {
+                return new StandardListBoxModel();
+            }
             List<DomainRequirement> domainRequirements;
             domainRequirements = URIRequirementBuilder.fromUri(remoteBase.trim()).build();
             return new StandardListBoxModel()
@@ -708,6 +733,170 @@ public class SubversionSCMSource extends SCMSource {
                                     ACL.SYSTEM,
                                     domainRequirements)
                     );
+        }
+
+        /**
+         * validate the value for a remote (repository) location.
+         */
+        public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath SCMSourceOwner context, @QueryParameter String remoteBase, @QueryParameter String value) {
+            // TODO suspiciously similar to SubversionSCM.ModuleLocation.DescriptorImpl.checkCredentialsId; refactor into shared method?
+            // Test the connection only if we have job configure permission
+            if (context == null || !context.hasPermission(Item.CONFIGURE)) {
+                return FormValidation.ok();
+            }
+
+            // if check remote is reporting an issue then we don't need to
+            String url = Util.fixEmptyAndTrim(remoteBase);
+            if (url == null)
+                return FormValidation.ok();
+
+            if(!URL_PATTERN.matcher(url).matches())
+                return FormValidation.ok();
+
+            try {
+                String urlWithoutRevision = SvnHelper.getUrlWithoutRevision(url);
+
+                SVNURL repoURL = SVNURL.parseURIDecoded(urlWithoutRevision);
+
+                StandardCredentials credentials = value == null ? null :
+                        CredentialsMatchers.firstOrNull(CredentialsProvider
+                                .lookupCredentials(StandardCredentials.class, context, ACL.SYSTEM,
+                                        URIRequirementBuilder.fromUri(repoURL.toString()).build()),
+                                CredentialsMatchers.withId(value));
+                if (checkRepositoryPath(context, repoURL, credentials)!=SVNNodeKind.NONE) {
+                    // something exists; now check revision if any
+
+                    SVNRevision revision = getRevisionFromRemoteUrl(url);
+                    if (revision != null && !revision.isValid()) {
+                        return FormValidation.errorWithMarkup(
+                                hudson.scm.subversion.Messages.SubversionSCM_doCheckRemote_invalidRevision());
+                    }
+
+                    return FormValidation.ok();
+                }
+
+                SVNRepository repository = null;
+                try {
+                    repository = getRepository(context, repoURL, credentials,
+                            Collections.<String, Credentials>emptyMap(), null);
+                    long rev = repository.getLatestRevision();
+                    // now go back the tree and find if there's anything that exists
+                    String repoPath = getRelativePath(repoURL, repository);
+                    String p = repoPath;
+                    while(p.length()>0) {
+                        p = SVNPathUtil.removeTail(p);
+                        if(repository.checkPath(p,rev)==SVNNodeKind.DIR) {
+                            // found a matching path
+                            List<SVNDirEntry> entries = new ArrayList<SVNDirEntry>();
+                            repository.getDir(p,rev,false,entries);
+
+                            // build up the name list
+                            List<String> paths = new ArrayList<String>();
+                            for (SVNDirEntry e : entries)
+                                if(e.getKind()==SVNNodeKind.DIR)
+                                    paths.add(e.getName());
+
+                            String head = SVNPathUtil.head(repoPath.substring(p.length() + 1));
+                            String candidate = EditDistance.findNearest(head, paths);
+
+                            return FormValidation.error(
+                                hudson.scm.subversion.Messages.SubversionSCM_doCheckRemote_badPathSuggest(p, head,
+                                        candidate != null ? "/" + candidate : ""));
+                        }
+                    }
+
+                    return FormValidation.error(
+                        hudson.scm.subversion.Messages.SubversionSCM_doCheckRemote_badPath(repoPath));
+                } finally {
+                    if (repository != null)
+                        repository.closeSession();
+                }
+            } catch (SVNException e) {
+                LOGGER.log(Level.INFO, "Failed to access subversion repository "+url,e);
+                String message = hudson.scm.subversion.Messages.SubversionSCM_doCheckRemote_exceptionMsg1(
+                        Util.escape(url), Util.escape(e.getErrorMessage().getFullMessage()),
+                        "javascript:document.getElementById('svnerror').style.display='block';"
+                                + "document.getElementById('svnerrorlink').style.display='none';"
+                                + "return false;")
+                  + "<br/><pre id=\"svnerror\" style=\"display:none\">"
+                  + Functions.printThrowable(e) + "</pre>";
+                return FormValidation.errorWithMarkup(message);
+            }
+        }
+        public SVNNodeKind checkRepositoryPath(SCMSourceOwner context, SVNURL repoURL, StandardCredentials credentials) throws SVNException {
+            SVNRepository repository = null;
+
+            try {
+                repository = getRepository(context,repoURL,credentials, Collections.<String, Credentials>emptyMap(), null);
+                repository.testConnection();
+
+                long rev = repository.getLatestRevision();
+                String repoPath = getRelativePath(repoURL, repository);
+                return repository.checkPath(repoPath, rev);
+            } catch (SVNException e) {
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LogRecord lr = new LogRecord(Level.FINE,
+                            "Could not check repository path {0} using credentials {1} ({2})");
+                    lr.setThrown(e);
+                    lr.setParameters(new Object[]{
+                            repoURL,
+                            credentials == null ? null : CredentialsNameProvider.name(credentials),
+                            credentials
+                    });
+                    LOGGER.log(lr);
+                }
+                throw e;
+            } finally {
+                if (repository != null)
+                    repository.closeSession();
+            }
+        }
+
+        protected SVNRepository getRepository(SCMSourceOwner context, SVNURL repoURL, StandardCredentials credentials,
+                                              Map<String, Credentials> additionalCredentials, ISVNSession session) throws SVNException {
+            SVNRepository repository = SVNRepositoryFactory.create(repoURL, session);
+
+            AuthenticationManager sam = SubversionSCM.createSvnAuthenticationManager(
+                    new CredentialsSVNAuthenticationProviderImpl(credentials, additionalCredentials)
+            );
+            sam = new FilterSVNAuthenticationManager(sam) {
+                // If there's no time out, the blocking read operation may hang forever, because TCP itself
+                // has no timeout. So always use some time out. If the underlying implementation gives us some
+                // value (which may come from ~/.subversion), honor that, as long as it sets some timeout value.
+                @Override
+                public int getReadTimeout(SVNRepository repository) {
+                    int r = super.getReadTimeout(repository);
+                    if(r<=0)    r = SubversionSCM.DEFAULT_TIMEOUT;
+                    return r;
+                }
+            };
+            repository.setTunnelProvider(SubversionSCM.createDefaultSVNOptions());
+            repository.setAuthenticationManager(sam);
+
+            return repository;
+        }
+
+        public static String getRelativePath(SVNURL repoURL, SVNRepository repository) throws SVNException {
+            String repoPath = repoURL.getPath().substring(repository.getRepositoryRoot(false).getPath().length());
+            if(!repoPath.startsWith("/"))    repoPath="/"+repoPath;
+            return repoPath;
+        }
+
+        /**
+         * Gets the revision from a remote URL - i.e. the part after '@' if any
+         *
+         * @return the revision or null
+         */
+        private static SVNRevision getRevisionFromRemoteUrl(
+                String remoteUrlPossiblyWithRevision) {
+            int idx = remoteUrlPossiblyWithRevision.lastIndexOf('@');
+            int slashIdx = remoteUrlPossiblyWithRevision.lastIndexOf('/');
+            if (idx > 0 && idx > slashIdx) {
+                String n = remoteUrlPossiblyWithRevision.substring(idx + 1);
+                return SVNRevision.parse(n);
+            }
+
+            return null;
         }
 
     }

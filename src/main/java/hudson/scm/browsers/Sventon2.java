@@ -24,7 +24,6 @@
 package hudson.scm.browsers;
 
 import hudson.Extension;
-import hudson.model.AbstractProject;
 import hudson.model.Descriptor;
 import hudson.model.Item;
 import hudson.scm.EditType;
@@ -118,7 +117,7 @@ public class Sventon2 extends AbstractSventon {
         /**
          * Performs on-the-fly validation of the URL.
          */
-        public FormValidation doCheckUrl(@AncestorInPath AbstractProject project,
+        public FormValidation doCheckUrl(@AncestorInPath Item project,
                                          @QueryParameter(fixEmpty=true) final String value)
                 throws IOException, ServletException {
             if(!project.hasPermission(Item.CONFIGURE))  return FormValidation.ok(); // can't check
