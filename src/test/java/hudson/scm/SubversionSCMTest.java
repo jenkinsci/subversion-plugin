@@ -1114,7 +1114,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         _idem(new SVNSSHAuthentication("me",new File("./some.key"),null,23,false));
         _idem(new SVNSSHAuthentication("me","key".toCharArray(),"phrase",0,false));
         _idem(new SVNPasswordAuthentication("me","pass",true));
-        _idem(new SVNSSLAuthentication("certificate",null,true, null, false));
+        _idem(new SVNSSLAuthentication(new File("./some.key"), "", true));
 
         // make sure two Files and char[]s compare the same 
         assertTrue(compareSVNAuthentications(
