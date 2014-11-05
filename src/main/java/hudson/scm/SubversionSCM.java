@@ -158,12 +158,7 @@ import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
 import org.tmatesoft.svn.core.*;
-import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
-import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
-import org.tmatesoft.svn.core.auth.SVNAuthentication;
-import org.tmatesoft.svn.core.auth.SVNPasswordAuthentication;
-import org.tmatesoft.svn.core.auth.SVNSSHAuthentication;
-import org.tmatesoft.svn.core.auth.SVNSSLAuthentication;
+import org.tmatesoft.svn.core.auth.*;
 import org.tmatesoft.svn.core.internal.io.dav.DAVRepositoryFactory;
 import org.tmatesoft.svn.core.internal.io.dav.http.DefaultHTTPConnectionFactory;
 import org.tmatesoft.svn.core.internal.io.fs.FSRepositoryFactory;
@@ -871,7 +866,7 @@ public class SubversionSCM extends SCM implements Serializable {
      *
      * <p>
      * Use canonical path to avoid SVNKit/symlink problem as described in
-     * https://wiki.svnkit.com/SVNKit_FAQ
+     * https://wiki.lib.svnkit.com/SVNKit_FAQ
      *
      * @return null
      *      if the operation failed. Otherwise the set of local workspace paths
@@ -1062,7 +1057,7 @@ public class SubversionSCM extends SCM implements Serializable {
         else
             configDir = SVNWCUtil.getDefaultConfigurationDirectory();
 
-        ISVNAuthenticationManager sam = SVNWCUtil.createDefaultAuthenticationManager(configDir, null, null);
+        ISVNAuthenticationManager sam = new SVNAuthenticationManager(configDir, null, null);
         sam.setAuthenticationProvider(authProvider);
         SVNAuthStoreHandlerImpl.install(sam);
         return sam;
@@ -1746,7 +1741,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
             /**
              * @param kind
-             *      One of the constants defined in {@link ISVNAuthenticationManager},
+             *      One of the constants defined in {@link AuthenticationManager},
              *      indicating what subtype of {@link SVNAuthentication} is expected.
              */
             public abstract SVNAuthentication createSVNAuthentication(String kind) throws SVNException;
@@ -1845,8 +1840,8 @@ public class SubversionSCM extends SCM implements Serializable {
                     setFilePermissions(savedKeyFile, "600");
                 } catch (IOException e) {
                     throw new SVNException(
-                            SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,"Unable to save private key").initCause(
-                                    e));
+                            SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,
+                                    "Unable to save private key") ,e);
                 }
             }
 
@@ -1907,11 +1902,11 @@ public class SubversionSCM extends SCM implements Serializable {
                     } catch (IOException e) {
                         throw new SVNException(
                                 SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,
-                                        "Unable to load private key").initCause(e));
+                                        "Unable to load private key"), e);
                     } catch (InterruptedException e) {
                         throw new SVNException(
                                 SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,
-                                        "Unable to load private key").initCause(e));
+                                        "Unable to load private key"), e);
                     }
                 } else
                     return null; // unknown
@@ -1970,8 +1965,8 @@ public class SubversionSCM extends SCM implements Serializable {
                 if(kind.equals(ISVNAuthenticationManager.SSL))
                     try {
                         SVNSSLAuthentication authentication = new SVNSSLAuthentication(
-                                Base64.decode(certificate.getPlainText().toCharArray()),
-                                Scrambler.descramble(Secret.toString(password)), false);
+                                String.valueOf(Base64.decode(certificate.getPlainText().toCharArray())),
+                                Scrambler.descramble(Secret.toString(password)), false, null, false);
                         authentication.setCertificatePath("dummy"); // TODO: remove this JENKINS-19175 workaround
                         return authentication;
                     } catch (IOException e) {
@@ -2229,10 +2224,10 @@ public class SubversionSCM extends SCM implements Serializable {
 
             try {
                 // the way it works with SVNKit is that
-                // 1) svnkit calls AuthenticationManager asking for a credential.
+                // 1) lib.svnkit calls AuthenticationManager asking for a credential.
                 //    this is when we can see the 'realm', which identifies the user domain.
                 // 2) DefaultSVNAuthenticationManager returns the username and password we set below
-                // 3) if the authentication is successful, svnkit calls back acknowledgeAuthentication
+                // 3) if the authentication is successful, lib.svnkit calls back acknowledgeAuthentication
                 //    (so we store the password info here)
                 repository = SVNRepositoryFactory.create(SVNURL.parseURIDecoded(url));
                 repository.setTunnelProvider( createDefaultSVNOptions() );
@@ -2588,13 +2583,13 @@ public class SubversionSCM extends SCM implements Serializable {
 
             // disable the connection pooling, which causes problems like
             // http://www.nabble.com/SSH-connection-problems-p12028339.html
-            if(System.getProperty("svnkit.ssh2.persistent")==null)
-                System.setProperty("svnkit.ssh2.persistent","false");
+            if(System.getProperty("lib.svnkit.ssh2.persistent")==null)
+                System.setProperty("lib.svnkit.ssh2.persistent","false");
 
             // push Negotiate to the end because it requires a valid Kerberos configuration.
             // see HUDSON-8153
-            if(System.getProperty("svnkit.http.methods")==null)
-                System.setProperty("svnkit.http.methods","Digest,Basic,NTLM,Negotiate");
+            if(System.getProperty("lib.svnkit.http.methods")==null)
+                System.setProperty("lib.svnkit.http.methods","Digest,Basic,NTLM,Negotiate");
 
             // use SVN1.4 compatible workspace by default.
             SVNAdminAreaFactory.setSelector(new SubversionWorkspaceSelector());

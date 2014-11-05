@@ -200,12 +200,12 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
         FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserIdCause()).get();
         System.out.println(b.getLog(LOG_LIMIT));
-        assertTrue(b.getLog(LOG_LIMIT).contains("At revision 13000"));
+        assertLogContains("at revision 13000", b);
         assertBuildStatus(Result.SUCCESS,b);
 
         b = p.scheduleBuild2(0, new Cause.UserIdCause()).get();
         System.out.println(b.getLog(LOG_LIMIT));
-        assertTrue(b.getLog(LOG_LIMIT).contains("At revision 13000"));
+        assertLogContains("at revision 13000", b);
         assertBuildStatus(Result.SUCCESS,b);
     }
 
@@ -221,7 +221,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         
         FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserIdCause()).get();
         System.out.println(b.getLog(LOG_LIMIT));
-        assertTrue(b.getLog(LOG_LIMIT).contains("At revision 2"));
+        assertLogContains("At revision 2", b);
         assertBuildStatus(Result.SUCCESS,b);
     }
 
@@ -292,7 +292,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserIdCause(), 
         		new RevisionParameterAction(new SubversionSCM.SvnInfo(url, 13000))).get();
         System.out.println(b.getLog(LOG_LIMIT));
-        assertTrue(b.getLog(LOG_LIMIT).contains("At revision 13000"));
+        assertLogContains("at revision 13000", b);
         assertBuildStatus(Result.SUCCESS,b);
     }
 
@@ -379,7 +379,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         FreeStyleBuild b = f.get();
 	
         System.out.println(b.getLog(LOG_LIMIT));
-        assertTrue(b.getLog(LOG_LIMIT).contains("At revision 14000"));
+        assertLogContains("at revision 14000", b);
         assertBuildStatus(Result.SUCCESS,b);
     }
 
@@ -783,7 +783,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     @Bug(3904)
     public void testSymbolicLinkCheckout() throws Exception {
         // Only perform if symlink behavior is enabled
-        if (!"true".equals(System.getProperty("svnkit.symlinks"))) {
+        if (!"true".equals(System.getProperty("lib.svnkit.symlinks"))) {
             return;
         }
 
@@ -1114,7 +1114,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         _idem(new SVNSSHAuthentication("me",new File("./some.key"),null,23,false));
         _idem(new SVNSSHAuthentication("me","key".toCharArray(),"phrase",0,false));
         _idem(new SVNPasswordAuthentication("me","pass",true));
-        _idem(new SVNSSLAuthentication("certificate".getBytes(),null,true));
+        _idem(new SVNSSLAuthentication(new File("./some.key"), "", true));
 
         // make sure two Files and char[]s compare the same 
         assertTrue(compareSVNAuthentications(
@@ -1230,7 +1230,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     }
 
     private ISVNAuthenticationManager createInMemoryManager() {
-        ISVNAuthenticationManager m = SVNWCUtil.createDefaultAuthenticationManager(hudson.root,null,null,false);
+        ISVNAuthenticationManager m = new SVNAuthenticationManager(hudson.root,null,null);
         m.setAuthenticationProvider(descriptor.createAuthenticationProvider(null));
         return m;
     }
