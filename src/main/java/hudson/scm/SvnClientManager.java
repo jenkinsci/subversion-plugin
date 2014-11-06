@@ -2,6 +2,7 @@ package hudson.scm;
 
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNURL;
+import org.tmatesoft.svn.core.internal.wc17.db.ISVNWCDb;
 import org.tmatesoft.svn.core.internal.wc2.SvnWcGeneration;
 import org.tmatesoft.svn.core.io.SVNRepository;
 import org.tmatesoft.svn.core.wc.SVNBasicClient;
@@ -12,6 +13,7 @@ import org.tmatesoft.svn.core.wc.SVNLogClient;
 import org.tmatesoft.svn.core.wc.SVNStatusClient;
 import org.tmatesoft.svn.core.wc.SVNUpdateClient;
 import org.tmatesoft.svn.core.wc.SVNWCClient;
+import org.tmatesoft.svn.core.wc2.SvnSetWCDbVersion;
 
 /**
  * {@link SVNClientManager} makes it rather error prone to specify the proper expected version
@@ -27,7 +29,7 @@ public class SvnClientManager {
     public SvnClientManager(SVNClientManager core) {
         this.core = core;
         SubversionWorkspaceSelector.syncWorkspaceFormatFromMaster();
-        wcgen = SubversionWorkspaceSelector.workspaceFormat>=SubversionWorkspaceSelector.WC_FORMAT_17 ? SvnWcGeneration.V17 : SvnWcGeneration.V16;
+        wcgen = SubversionWorkspaceSelector.workspaceFormat>= ISVNWCDb.WC_FORMAT_18 ? SvnWcGeneration.V17 : SvnWcGeneration.V16;
     }
 
     public SVNClientManager getCore() {
