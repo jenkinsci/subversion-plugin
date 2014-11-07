@@ -24,13 +24,17 @@
 package hudson.scm;
 
 import hudson.model.AbstractProject;
+import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
+import hudson.model.queue.QueueTaskFuture;
 import hudson.scm.subversion.WorkspaceUpdater;
 import org.tmatesoft.svn.core.internal.wc.SVNStatusUtil;
 import org.tmatesoft.svn.core.internal.wc.admin.*;
 import org.tmatesoft.svn.core.internal.wc17.db.ISVNWCDb;
 import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
+import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNStatus;
+import org.tmatesoft.svn.core.wc.SVNStatusClient;
 import org.tmatesoft.svn.core.wc2.SvnGetStatus;
 
 import java.io.File;
@@ -70,7 +74,12 @@ public class SVNWorkingCopyTest extends AbstractSubversionTest {
     SubversionSCM subversionSCM = new SubversionSCM("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant");
 
     project.setScm(subversionSCM);
-    project.scheduleBuild2(0);
-    return SVNStatusUtil.getStatus(new File(project.getWorkspace().getRemote()), SVNWCAccess.newInstance(null)).getWorkingCopyFormat();
+    assertBuildStatusSuccess(project.scheduleBuild2(0));
+
+    // Create a status client and get the working copy format.
+    SVNClientManager testWCVerseion = SVNClientManager.newInstance(null, "testWCVerseion", null);
+    File path = new File(project.getWorkspace().getRemote());
+    return testWCVerseion.getStatusClient().doStatus(path,
+            true).getWorkingCopyFormat();
   }
 }
