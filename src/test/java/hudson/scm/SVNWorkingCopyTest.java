@@ -28,6 +28,7 @@ import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.queue.QueueTaskFuture;
 import hudson.scm.subversion.WorkspaceUpdater;
+import hudson.scm.subversion.WorkspaceUpdaterDescriptor;
 import org.tmatesoft.svn.core.internal.wc.SVNStatusUtil;
 import org.tmatesoft.svn.core.internal.wc.admin.*;
 import org.tmatesoft.svn.core.internal.wc17.db.ISVNWCDb;
@@ -55,8 +56,13 @@ public class SVNWorkingCopyTest extends AbstractSubversionTest {
     checkoutAndVerifyWithFormat(SVNAdminArea16.WC_FORMAT);
   }
 
+    /**
+     * SVN 1.7 in jenkins uses a WC format of {@link SubversionWorkspaceSelector#WC_FORMAT_17}.
+     * However we still need to check against the actual working copy format of {@link ISVNWCDb#WC_FORMAT_17}
+     */
   public void testCheckoutWorkingCopyFormat17() throws Exception {
-    checkoutAndVerifyWithFormat(ISVNWCDb.WC_FORMAT_17);
+      int checkoutFormat = checkoutWithFormat(SubversionWorkspaceSelector.WC_FORMAT_17);
+      assertEquals(ISVNWCDb.WC_FORMAT_17, checkoutFormat);
   }
 
   public void testCheckoutWorkingCopyFormat18() throws Exception {
