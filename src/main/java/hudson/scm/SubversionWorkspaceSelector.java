@@ -30,6 +30,7 @@ import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.internal.wc.admin.ISVNAdminAreaFactorySelector;
 import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminArea14;
 import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminAreaFactory;
+import org.tmatesoft.svn.core.internal.wc17.db.ISVNWCDb;
 import org.tmatesoft.svn.core.internal.wc2.SvnWcGeneration;
 
 import java.io.File;
@@ -125,8 +126,10 @@ public class SubversionWorkspaceSelector implements ISVNAdminAreaFactorySelector
 
     /**
      * Constant for {@link #workspaceFormat} that indicates we opt for 1.7 working copy.
+     *
+     * @deprecated Use {@link org.tmatesoft.svn.core.internal.wc17.db.ISVNWCDb#WC_FORMAT_17}
      */
-    public static final int WC_FORMAT_17 = 100;
+    public static final int WC_FORMAT_17 = ISVNWCDb.WC_FORMAT_17;
 
     private static final Logger LOGGER = Logger.getLogger(SubversionWorkspaceSelector.class.getName());
 }

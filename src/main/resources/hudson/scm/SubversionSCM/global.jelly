@@ -30,7 +30,7 @@ THE SOFTWARE.
             <f:option value="8"   selected="${descriptor.workspaceFormat==8}"  >1.4</f:option>
             <f:option value="9"   selected="${descriptor.workspaceFormat==9}"  >1.5</f:option>
             <f:option value="10"  selected="${descriptor.workspaceFormat==10}" >1.6 (svn:externals to file)</f:option>
-            <f:option value="100" selected="${descriptor.workspaceFormat==100}">1.7</f:option>
+            <f:option value="29"  selected="${descriptor.workspaceFormat==100||descriptor.workspaceFormat==29}">1.7</f:option>
             <f:option value="31"  selected="${descriptor.workspaceFormat==31}" >1.8</f:option>
           </select>
         </f:entry>
