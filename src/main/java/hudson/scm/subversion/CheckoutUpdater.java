@@ -29,6 +29,7 @@ package hudson.scm.subversion;
 import hudson.Extension;
 import hudson.Util;
 import hudson.scm.SubversionSCM.External;
+import hudson.scm.SubversionWorkspaceSelector;
 import hudson.util.IOException2;
 import hudson.util.StreamCopyThread;
 
@@ -37,8 +38,12 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNException;
+import org.tmatesoft.svn.core.internal.util.DefaultSVNDebugLogger;
+import org.tmatesoft.svn.core.internal.wc2.compat.SvnCodec;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 import org.tmatesoft.svn.core.wc.SVNUpdateClient;
+import org.tmatesoft.svn.core.wc2.SvnCheckout;
+import org.tmatesoft.svn.core.wc2.SvnTarget;
 
 import java.io.File;
 import java.io.IOException;
@@ -94,9 +99,20 @@ public class CheckoutUpdater extends WorkspaceUpdater {
                     svnuc.setEventHandler(eventHandler);
                     svnuc.setExternalsHandler(eventHandler);
                     svnuc.setIgnoreExternals(location.isIgnoreExternalsOption());
-                    
                     SVNDepth svnDepth = getSvnDepth(location.getDepthOption());
-                    svnuc.doCheckout(location.getSVNURL(), local.getCanonicalFile(), SVNRevision.HEAD, r, svnDepth, true);
+                    SvnCheckout checkout = svnuc.getOperationsFactory().createCheckout();
+                    checkout.setSource(SvnTarget.fromURL(location.getSVNURL(), SVNRevision.HEAD));
+                    checkout.setSingleTarget(SvnTarget.fromFile(local.getCanonicalFile()));
+                    checkout.setDepth(svnDepth);
+                    checkout.setRevision(r);
+                    checkout.setAllowUnversionedObstructions(true);
+                    checkout.setIgnoreExternals(location.isIgnoreExternalsOption());
+                    checkout.setExternalsHandler(SvnCodec.externalsHandler(svnuc.getExternalsHandler()));
+
+                    // Workaround for SVNKIT-430 is to set the working copy format when
+                    // a checkout is performed.
+                    checkout.setTargetWorkingCopyFormat(SubversionWorkspaceSelector.workspaceFormat);
+                    checkout.run();
                 } catch (SVNCancelException e) {
                     if (isAuthenticationFailedError(e)) {
                         e.printStackTrace(listener.error("Failed to check out " + location.remote));
