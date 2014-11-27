@@ -97,7 +97,7 @@ public class VisualSVN extends SubversionRepositoryBrowser {
 
         int r = path.getLogEntry().getRevision();
         // no support for diff links yet, return the changeset diff.
-        return new URL(url, "/commit/r"+r);
+        return new URL(url, "/commit/r"+r+"/"+trimHeadSlash(path.getValue()) + param());
 
     }
 
@@ -111,7 +111,9 @@ public class VisualSVN extends SubversionRepositoryBrowser {
      * @throws  IOException  DOCUMENT ME!
      */
     @Override public URL getFileLink(Path path) throws IOException {
-        return new URL(url, "/view/r"+path.getLogEntry().getRevision()+"/"+trimHeadSlash(path.getValue()) + param());
+        int r = path.getLogEntry().getRevision();
+
+        return new URL(url, "/view/r"+r+"/"+trimHeadSlash(path.getValue()) + param());
     }
 
     /**
