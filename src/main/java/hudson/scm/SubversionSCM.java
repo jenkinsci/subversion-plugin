@@ -940,7 +940,15 @@ public class SubversionSCM extends SCM implements Serializable {
 			});
         }
         
-        service.invokeAll(callables);
+        List<Future<Void>> futures = service.invokeAll(callables);
+        for (Future<Void> future : futures) {
+        	
+            try {
+				future.get();
+			} catch (ExecutionException e) {
+				throw new IOException(e);
+			}
+        }
         service.shutdownNow();
         
         if (additionalCredentials != null) {
