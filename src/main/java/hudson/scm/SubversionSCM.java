@@ -903,8 +903,9 @@ public class SubversionSCM extends SCM implements Serializable {
             }
         }
 
-        List<External> externals = new ArrayList<External>();
-        final Set<String> unauthenticatedRealms = new LinkedHashSet<String>();
+        final List<External> externals = Collections.synchronizedList(new ArrayList<External>());
+        Set<String> unauthenticatedRealms = new LinkedHashSet<String>();
+        
         ModuleLocation[] expandedLocations = getLocations(env, build);
         
         checkForLocationDuplicates(expandedLocations,listener);
@@ -923,37 +924,23 @@ public class SubversionSCM extends SCM implements Serializable {
         @SuppressWarnings("deprecation")
 		final TaskListener syncedListener = new StreamTaskListener(new SynchronizedPrintStream(listener.getLogger()));
         
-        List<java.util.concurrent.Callable<List<External>>> callables = Lists.newArrayListWithExpectedSize(expandedLocations.length);
+        final Set<String> synchronizedUnauthenticatedRealms = Collections.synchronizedSet(unauthenticatedRealms);
+        
+        List<java.util.concurrent.Callable<Void>> callables = Lists.newArrayListWithExpectedSize(expandedLocations.length);
         for (final ModuleLocation location : expandedLocations) {
-        	callables.add(new java.util.concurrent.Callable<List<External>>() {
+        	callables.add(new java.util.concurrent.Callable<Void>() {
 				
-				public List<External> call() throws Exception {
+				public Void call() throws Exception {
 					CheckOutTask checkOutTask =
 		                    new CheckOutTask(build, SubversionSCM.this, location, build.getTimestamp().getTime(), syncedListener, env);
-					List<External> externals = workspace.act(checkOutTask);
-					unauthenticatedRealms.addAll(checkOutTask.getUnauthenticatedRealms());
-					return externals;
+					externals.addAll(workspace.act(checkOutTask));
+					synchronizedUnauthenticatedRealms.addAll(checkOutTask.getUnauthenticatedRealms());
+					return null;
 				}
 			});
         }
         
-        List<Future<List<External>>> futures = service.invokeAll(callables);
-        
-        for (Future<List<External>> future : futures) {
-        	
-            try {
-				externals.addAll(future.get());
-			} catch (ExecutionException e) {
-				throw new IOException2(e);
-			}
-            // olamy: remove null check as it causes test failure
-            // see https://github.com/jenkinsci/subversion-plugin/commit/de23a2b781b7b86f41319977ce4c11faee75179b#commitcomment-1551273
-            /*if ( externalsFound != null ){
-                externals.addAll(externalsFound);
-            } else {
-                externals.addAll( new ArrayList<External>( 0 ) );
-            }*/
-        }
+        service.invokeAll(callables);
         service.shutdownNow();
         
         if (additionalCredentials != null) {
