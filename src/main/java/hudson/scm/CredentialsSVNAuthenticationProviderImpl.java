@@ -110,10 +110,7 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
             defaultCredentials = CredentialsMatchers
                     .firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class, context,
                             ACL.SYSTEM, URIRequirementBuilder.fromUri(location.remote).build()),
-                            CredentialsMatchers.allOf(idMatcher(location.credentialsId),
-                                    CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(
-                                            StandardCredentials.class), CredentialsMatchers.instanceOf(
-                                            SSHUserPrivateKey.class))));
+                            CredentialsMatchers.allOf(idMatcher(location.credentialsId),MATCHER));
         }
         Map<String, Credentials> additional = new HashMap<String, Credentials>();
         if (scm != null) {
@@ -122,10 +119,7 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
                     StandardCredentials cred = CredentialsMatchers
                             .firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class, context,
                                     ACL.SYSTEM, Collections.<DomainRequirement>emptyList()),
-                                    CredentialsMatchers.allOf(idMatcher(c.getCredentialsId()),
-                                            CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(
-                                                    StandardCredentials.class), CredentialsMatchers.instanceOf(
-                                                    SSHUserPrivateKey.class))));
+                                    CredentialsMatchers.allOf(idMatcher(c.getCredentialsId()),MATCHER));
                     if (cred != null) {
                         additional.put(c.getRealm(), cred);
                     }
@@ -470,4 +464,10 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
 
     private static final Logger LOGGER = Logger.getLogger(CredentialsSVNAuthenticationProviderImpl.class.getName());
 
+    /**
+     * {@link CredentialsMatcher} that matches either {@link StandardCredentials} or {@link SSHUserPrivateKey}
+     */
+    private static final CredentialsMatcher MATCHER = CredentialsMatchers.anyOf(
+            CredentialsMatchers.instanceOf(StandardCredentials.class),
+            CredentialsMatchers.instanceOf(SSHUserPrivateKey.class));
 }
