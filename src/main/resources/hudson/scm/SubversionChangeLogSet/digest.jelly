@@ -60,7 +60,7 @@ THE SOFTWARE.
         <j:forEach var="cs" items="${it.logs}" varStatus="loop">
           <li>
             ${cs.msgAnnotated}
-            (<a href="${changesBaseUrl}changes#detail${loop.index}">${%detail}</a>
+            (<a href="${rootURL}/${cs.author.url}/">${cs.author}</a>/<a href="${changesBaseUrl}changes#detail${loop.index}">${%detail}</a>
 
             <j:set var="cslink" value="${browser.getChangeSetLink(cs)}"/>
             <j:if test="${cslink!=null}">
