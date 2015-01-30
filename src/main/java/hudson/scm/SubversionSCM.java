@@ -1302,7 +1302,15 @@ public class SubversionSCM extends SCM implements Serializable {
         return new File(build.getRootDir(),"revision.txt");
     }
 
-    
+    /**
+     * @deprecated use {@link hudson.scm.SubversionSCM#getRevisionFile(hudson.model.Run)} instead.
+     *
+     * Gets the file that stores the revision.
+     */
+    @Deprecated
+    public static File getRevisionFile(AbstractBuild build) {
+        return new File(build.getRootDir(),"revision.txt");
+    }
 
     @Override
     public SCMRevisionState calcRevisionsFromBuild(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
