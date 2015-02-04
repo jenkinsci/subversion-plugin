@@ -1309,7 +1309,7 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     @Deprecated
     public static File getRevisionFile(AbstractBuild build) {
-        return new File(build.getRootDir(),"revision.txt");
+        return getRevisionFile((Run) build);
     }
 
     @Override
