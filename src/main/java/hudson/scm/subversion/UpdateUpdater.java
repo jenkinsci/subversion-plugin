@@ -167,6 +167,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
                 }
             } catch (SVNCancelException e) {
                 if (isAuthenticationFailedError(e)) {
+                    e.printStackTrace(listener.getLogger());
                     throw new AbortException("Failed to check out " + location.remote);
                 } else {
                     listener.error("Subversion update has been canceled");
