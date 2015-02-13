@@ -924,7 +924,7 @@ public class SubversionSCM extends SCM implements Serializable {
         
         ModuleLocation[] expandedLocations = getLocations(env, build);
         
-        checkForLocationDuplicates(expandedLocations,listener);
+        checkForLocationDuplicatesOrOverlaps(expandedLocations,listener);
         
         int numberOfExecutors = Math.min(MAX_CHECKOUT_THREADS, expandedLocations.length);
         
@@ -1001,19 +1001,33 @@ public class SubversionSCM extends SCM implements Serializable {
      * Checks that there a no 2 locations which try to checkout to the same local location, 
      * as that may cause E200030: BUSY errors.
      */
-    private void checkForLocationDuplicates(ModuleLocation[] expandedLocations,
+    static boolean checkForLocationDuplicatesOrOverlaps(ModuleLocation[] expandedLocations,
             TaskListener listener) {
-        if (locations.length < 2) {
-            return;
+        if (expandedLocations.length < 2) {
+            return false;
         }
         
         Set<String> localPaths = new HashSet<String>();
         for (ModuleLocation loc : expandedLocations) {
-            if (!localPaths.add(loc.getLocalDir())) {
-                listener.getLogger().println("WARN: you have 2 repository locations pointing to the same local path: " + loc.getLocalDir()
-                        +".\n This may cause subsequent errors - e.g. E200030: BUSY");
-            }
+        	
+        	String locationPath = loc.getLocalDir();
+        	if (!locationPath.endsWith("/")) {
+        		locationPath += "/";
+        	}
+        	
+        	for (String path : localPaths) {
+        		if (path.startsWith(locationPath) || locationPath.startsWith(path)) {
+        			listener.getLogger().println("WARN: you have 2 repository locations with overlapping local checkout paths: "
+        		            +path+", "+locationPath
+                            +".\n This may cause subsequent errors - e.g. E200030: BUSY");
+                    return true;
+        		}
+        	}
+        	
+        	localPaths.add(locationPath);
         }
+        
+        return false;
     }
 
     /**
