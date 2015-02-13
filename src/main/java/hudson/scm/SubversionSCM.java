@@ -54,6 +54,7 @@ import com.cloudbees.plugins.credentials.domains.SchemeSpecification;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.cloudbees.plugins.credentials.impl.CertificateCredentialsImpl;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
+
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.BulkChange;
@@ -193,6 +194,7 @@ import com.google.common.collect.Lists;
 import com.trilead.ssh2.DebugLogger;
 import com.trilead.ssh2.SCPClient;
 import com.trilead.ssh2.crypto.Base64;
+
 import javax.annotation.Nonnull;
 
 /**
@@ -215,7 +217,21 @@ import javax.annotation.Nonnull;
  */
 @SuppressWarnings("rawtypes")
 public class SubversionSCM extends SCM implements Serializable {
-    /**
+
+    private static final int MAX_CHECKOUT_THREADS;
+    static {
+    	String prop = System.getProperty("jenkins.subversion-plugin.maxCheckoutThreads", "4");
+    	int nr;
+    	try {
+    		nr = Integer.parseInt(prop);
+    	} catch (NumberFormatException e) {
+    		nr = 4;
+    	}
+    	
+    	MAX_CHECKOUT_THREADS = nr > 0 ? nr : 1;
+    }
+
+	/**
      * the locations field is used to store all configured SVN locations (with
      * their local and remote part). Direct access to this field should be
      * avoided and the getLocations() method should be used instead. This is
@@ -910,7 +926,7 @@ public class SubversionSCM extends SCM implements Serializable {
         
         checkForLocationDuplicates(expandedLocations,listener);
         
-        int numberOfExecutors = Math.min(4, expandedLocations.length);
+        int numberOfExecutors = Math.min(MAX_CHECKOUT_THREADS, expandedLocations.length);
         
         final ExecutorService service;
         
