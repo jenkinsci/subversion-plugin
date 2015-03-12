@@ -230,6 +230,9 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
         }
 
         String credentialsId = parser.get("credentialsId");
+        if(credentialsId == null){
+            credentialsId = parser.get("_.credentialsId");
+        }
         StandardCredentials upc = null;
         if (credentialsId != null) {
             Item context = req.findAncestorObject(Item.class);
