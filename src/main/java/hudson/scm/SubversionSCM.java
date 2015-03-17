@@ -993,7 +993,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
         private void checkClockOutOfSync() {
             try {
-                SVNDirEntry dir = clientManager.createRepository(location.getSVNURL(), true).info("/", -1);
+                SVNDirEntry dir = clientManager.createRepository(location.getSVNURL(), true).info("", -1);
                 if (dir != null) {// I don't think this can ever be null, but be defensive
                     if (dir.getDate() != null && dir.getDate().after(new Date())) // see http://www.nabble.com/NullPointerException-in-SVN-Checkout-Update-td21609781.html that reported this being null.
                     {
