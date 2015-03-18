@@ -463,6 +463,13 @@ public class SubversionSCM extends SCM implements Serializable {
     public ModuleLocation[] getLocations(AbstractBuild<?,?> build) {
         return getLocations(null, build);
     }
+    
+    /**
+     * Fix for the backward-compatibility with svn-tag plugin
+     */
+    public ModuleLocation[] getLocations(EnvVars env, AbstractBuild<?,?> build) {
+        return getLocations(env, (Run<?,?>)build);
+    }
 
     /**
      * List of all configured svn locations, expanded according to all env vars
