@@ -349,7 +349,8 @@ public class SubversionSCM extends SCM implements Serializable {
                          SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers,
                          String excludedRevprop, String excludedCommitMessages,
                          String includedRegions, boolean ignoreDirPropChanges, boolean filterChangelog,
-                         List<AdditionalCredentials> additionalCredentials, boolean usingCommitTimes) {
+                         List<AdditionalCredentials> additionalCredentials, boolean useCommitTimes) {
+        this.useCommitTimes = useCommitTimes;
         for (Iterator<ModuleLocation> itr = locations.iterator(); itr.hasNext(); ) {
             ModuleLocation ml = itr.next();
             String remote = Util.fixEmptyAndTrim(ml.remote);
