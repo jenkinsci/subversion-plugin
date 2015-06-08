@@ -74,6 +74,9 @@ import java.util.concurrent.Future;
 
 import static hudson.scm.SubversionSCM.compareSVNAuthentications;
 import static org.jvnet.hudson.test.recipes.PresetData.DataSet.ANONYMOUS_READONLY;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThat;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -885,7 +888,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
           File repo = new CopyExisting(getClass().getResource("JENKINS-10449.zip")).allocate();
           SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.toURI().toURL().getPath()},
                                                                      new String[]{"."},null,null),
-                                                new UpdateUpdater(), null, "/z.*", "", "", "", "", false, shouldFilterLog, null);
+                                                new UpdateUpdater(), null, "/z.*", "", "", "", "", false, shouldFilterLog, null, false);
 
           FreeStyleProject p = createFreeStyleProject(String.format("testFilterChangelog-%s", shouldFilterLog));
           p.setScm(scm);
@@ -1705,5 +1708,45 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
         // should detect change
         assertTrue(p.poll(StreamTaskListener.fromStdout()).hasChanges());
+    }
+
+    /**
+     * Test related to https://issues.jenkins-ci.org/browse/JENKINS-5347
+     *
+     * @throws Throwable
+     */
+    public void testUseCommitTimes() throws Throwable {
+        // Given a subversion workspace where the commit times should be used
+        // When the workspace is checked out
+        // Then verify that the last modified time stamp of the format file is 2010-12-31
+      
+        FreeStyleProject p = createFreeStyleProject();
+        File repo = new CopyExisting(getClass().getResource("small.zip")).allocate();
+        SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.toURI().toURL().getPath()},
+          new String[]{"."}, null, null), new UpdateUpdater(), null, "/z.*", "", "", "", "", false, false, null, true);
+        p.setScm(scm);
+        FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserIdCause()).get());
+        // Using long matching to prevent Timezone issues, divided by 1000 as some OS does not return the exact milliseconds
+        assertThat(b.getWorkspace().child("b").lastModified() / 1000, is(1293845528l));
+    }
+
+    /**
+     * Test related to https://issues.jenkins-ci.org/browse/JENKINS-5347
+     *
+     * @throws Throwable
+     */
+    public void testNotUseCommitTimes() throws Throwable {
+        // Given a subversion workspace where the commit times should NOT be used
+        // When the workspace is checked out
+        // Then verify that the last modified time stamp of the format file NOT is 2011-01-01
+      
+        FreeStyleProject p = createFreeStyleProject();
+        File repo = new CopyExisting(getClass().getResource("small.zip")).allocate();
+        SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.toURI().toURL().getPath()},
+          new String[]{"."}, null, null), new UpdateUpdater(), null, "/z.*", "", "", "", "", false, false, null, false);
+        p.setScm(scm);
+        FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserIdCause()).get());
+        // Using long matching to prevent Timezone issues, divided by 1000 as some OS does not return the exact milliseconds
+        assertThat(b.getWorkspace().child("b").lastModified() / 1000, not(is(1293845528l)));
     }
 }    
