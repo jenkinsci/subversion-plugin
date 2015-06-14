@@ -78,8 +78,9 @@ import static org.jvnet.hudson.test.recipes.PresetData.DataSet.ANONYMOUS_READONL
 /**
  * @author Kohsuke Kawaguchi
  */
-// TODO: we're relying on no less than 3 external SVN repos for this test: svn.jenkins-ci.org, subversion.tigris.org and svn.codehaus.org
-// while the 1st one is probably okay, we should look that we get rid of the other 2 dependencies
+// TODO: we're relying on no less than 2 external SVN repos for this test: svn.jenkins-ci.org, subversion.tigris.org 
+// while the 1st one is probably okay, we should look that we get rid of the other dependency
+// codeHaus.org was used for http checkout test. As it has shut down, the test is removed (for now).
 @SuppressWarnings({"rawtypes","deprecation"})
 public class SubversionSCMTest extends AbstractSubversionTest {
 
@@ -167,15 +168,6 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
         FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserIdCause()).get());
         assertTrue(b.getWorkspace().child("build.xml").exists());
-    }
-
-    @Email("http://jenkins.361315.n4.nabble.com/Hudson-1-266-and-1-267-Subversion-authentication-broken-td375737.html")
-    public void testHttpCheckOut() throws Exception {
-        FreeStyleProject p = createFreeStyleProject();
-        p.setScm(new SubversionSCM("http://svn.codehaus.org/sxc/tags/sxc-0.5/sxc-core/src/test/java/com/envoisolutions/sxc/builder/"));
-
-        FreeStyleBuild b = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserIdCause()).get());
-        assertTrue(b.getWorkspace().child("Node.java").exists());
     }
 
     @Url("http://hudson.pastebin.com/m3ea34eea")
@@ -300,9 +292,9 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     public void testPollingWithDefaultParametersWithCurlyBraces() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
 
-        String url = "http://svn.codehaus.org/sxc/tags/sxc-0.5/sxc-core/src/test/java/com/envoisolutions/sxc/builder/";
-        p.setScm(new SubversionSCM("${REPO}" + url.substring(10)));
-        String var = url.substring(0, 10);
+        String url = "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant";
+        p.setScm(new SubversionSCM("${REPO}" + url.substring(11)));
+        String var = url.substring(0, 11);
         ParametersDefinitionProperty property = new ParametersDefinitionProperty(new StringParameterDefinition("REPO", var));
         p.addProperty(property);
 
@@ -310,7 +302,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
                 new ParametersAction(new StringParameterValue("REPO", var))).get();
 
         assertBuildStatus(Result.SUCCESS,b);
-        assertTrue(b.getWorkspace().child("Node.java").exists());
+        assertTrue(b.getWorkspace().child("build.xml").exists());
 
         // as a baseline, this shouldn't detect any change
         TaskListener listener = createTaskListener();
@@ -322,9 +314,9 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     public void testPollingWithDefaultParametersWithOutCurlyBraces() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
 
-        String url = "http://svn.codehaus.org/sxc/tags/sxc-0.5/sxc-core/src/test/java/com/envoisolutions/sxc/builder/";
-        p.setScm(new SubversionSCM("$REPO" + url.substring(10)));
-        String var = url.substring(0, 10);
+        String url = "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant";
+        p.setScm(new SubversionSCM("$REPO" + url.substring(11)));
+        String var = url.substring(0, 11);
         ParametersDefinitionProperty property = new ParametersDefinitionProperty(new StringParameterDefinition("REPO", var));
         p.addProperty(property);
 
@@ -332,7 +324,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
                 new ParametersAction(new StringParameterValue("REPO", var))).get();
 
         assertBuildStatus(Result.SUCCESS,b);
-        assertTrue(b.getWorkspace().child("Node.java").exists());
+        assertTrue(b.getWorkspace().child("build.xml").exists());
 
         // as a baseline, this shouldn't detect any change
         TaskListener listener = createTaskListener();
@@ -344,9 +336,9 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     public void testPollingWithChoiceParametersWithOutCurlyBraces() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
 
-        String url = "http://svn.codehaus.org/sxc/tags/sxc-0.5/sxc-core/src/test/java/com/envoisolutions/sxc/builder/";
-        p.setScm(new SubversionSCM("${REPO}" + url.substring(10)));
-        String var = url.substring(0, 10);
+        String url = "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant";
+        p.setScm(new SubversionSCM("${REPO}" + url.substring(11)));
+        String var = url.substring(0, 11);
         ParametersDefinitionProperty property = new ParametersDefinitionProperty(new ChoiceParameterDefinition("REPO", new String[] {var, "test"}, ""));
         p.addProperty(property);
 
@@ -354,7 +346,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
                 new ParametersAction(new StringParameterValue("REPO", var))).get();
 
         assertBuildStatus(Result.SUCCESS,b);
-        assertTrue(b.getWorkspace().child("Node.java").exists());
+        assertTrue(b.getWorkspace().child("build.xml").exists());
 
         // as a baseline, this shouldn't detect any change
         TaskListener listener = createTaskListener();
@@ -550,15 +542,15 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
         // --- 1st case: URL with a variable ---
 
-        String url = "http://svn.codehaus.org/sxc/tags/sxc-0.5/sxc-core/src/test/java/com/envoisolutions/sxc/builder/";
-        p.setScm(new SubversionSCM("$REPO" + url.substring(10)));
-        String var = url.substring(0, 10);
+        String url = "https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant/";
+        p.setScm(new SubversionSCM("$REPO" + url.substring(11)));
+        String var = url.substring(0, 11);
 
         FreeStyleBuild b = p.scheduleBuild2(0, new Cause.UserIdCause(),
                 new ParametersAction(new StringParameterValue("REPO", var))).get();
         System.out.println(b.getLog(LOG_LIMIT));
         assertBuildStatus(Result.SUCCESS,b);
-        assertTrue(b.getWorkspace().child("Node.java").exists());
+        assertTrue(b.getWorkspace().child("build.xml").exists());
 
         // --- 2nd case: URL with an empty variable ---
 
@@ -567,7 +559,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         b = p.scheduleBuild2(0, new Cause.UserIdCause(),
                 new ParametersAction(new StringParameterValue("EMPTY_VAR", ""))).get();
         assertBuildStatus(Result.SUCCESS,b);
-        assertTrue(b.getWorkspace().child("Node.java").exists());
+        assertTrue(b.getWorkspace().child("build.xml").exists());
     }
 
     /**
