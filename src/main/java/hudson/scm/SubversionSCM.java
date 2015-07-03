@@ -1621,8 +1621,9 @@ public class SubversionSCM extends SCM implements Serializable {
                     BulkChange bc = new BulkChange(this);
                     try {
                         mayHaveLegacyPerJobCredentials = true;
+                        CredentialsStore store = CredentialsProvider.lookupStores(Jenkins.getInstance()).iterator().next();
                         for (Map.Entry<String, Credential> e : credentials.entrySet()) {
-                            migrateCredentials(Jenkins.getInstance(), e.getKey(), e.getValue());
+                            migrateCredentials(store, e.getKey(), e.getValue());
                         }
                         save();
                         bc.commit();
@@ -1648,9 +1649,9 @@ public class SubversionSCM extends SCM implements Serializable {
                 if (jobCredentials.isFile()) {
                     try {
                         new PerJobCredentialStore(job).migrateCredentials(this);
+                        job.save();
                         if (!jobCredentials.delete()) {
-                            LOGGER.log(Level.WARNING, "Could not remove legacy per-job credentials store file: {0}",
-                                    jobCredentials);
+                            LOGGER.log(Level.WARNING, "Could not remove legacy per-job credentials store file: {0}", jobCredentials);
                             allOk = false;
                         }
                     } catch (IOException e) {
@@ -1663,9 +1664,8 @@ public class SubversionSCM extends SCM implements Serializable {
             save();
         }
 
-        /*package*/ StandardCredentials migrateCredentials(ModelObject context, String legacyRealm, Credential legacyCredential)
+        /*package*/ StandardCredentials migrateCredentials(CredentialsStore store, String legacyRealm, Credential legacyCredential)
                 throws IOException {
-            CredentialsStore store = CredentialsProvider.lookupStores(context).iterator().next();
             StandardCredentials credential = legacyCredential.toCredentials(null, legacyRealm);
             if (credential != null) {
                 return credential;
@@ -1792,8 +1792,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
             @Override
             public StandardCredentials toCredentials(String description) {
-                return new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, null, description, userName,
-                        getPassword());
+                return new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, null, description, userName, getPassword());
             }
 
             @Override
@@ -1803,8 +1802,7 @@ public class SubversionSCM extends SCM implements Serializable {
                         findItemGroup(context),
                         ACL.SYSTEM,
                         Collections.<DomainRequirement>emptyList())) {
-                    if (userName.equals(c.getUsername())
-                            && getPassword().equals(c.getPassword().getPlainText())) {
+                    if (userName.equals(c.getUsername()) && getPassword().equals(c.getPassword().getPlainText())) {
                         return c;
                     }
                 }
@@ -2622,7 +2620,7 @@ public class SubversionSCM extends SCM implements Serializable {
         /**
          * The credentials to checkout with.
          */
-        public final String credentialsId;
+        public String credentialsId;
 
         /**
          * Remembers the user-given value.
@@ -2659,6 +2657,13 @@ public class SubversionSCM extends SCM implements Serializable {
         @Deprecated
         public ModuleLocation(String remote, String local) {
             this(remote, null, local, null, false);
+        }
+
+        /**
+         * Sets the credentials identifier.
+         */
+        void setCredentialsId (final String id) {
+            credentialsId = id;
         }
 
         /**
