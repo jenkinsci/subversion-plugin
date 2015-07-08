@@ -112,19 +112,22 @@ final class PerJobCredentialStore implements Saveable, RemotableSVNAuthenticatio
     private static final ThreadLocal<Boolean> IS_SAVING = new ThreadLocal<Boolean>();
 
     /*package*/ void migrateCredentials(SubversionSCM.DescriptorImpl descriptor) throws IOException {
-        CredentialsStore store = CredentialsProvider.lookupStores(project).iterator().next();
-        for (Map.Entry<String, Credential> e : credentials.entrySet()) {
-            StandardCredentials credential =  descriptor.migrateCredentials(store, e.getKey(), e.getValue());
-            ModuleLocation[] locations = ((SubversionSCM) project.getScm()).getLocations();
-            for (int i = 0; i < locations.length; i++) {
-                try {
-                    if (e.getKey().contains(locations[i].getSVNURL().getHost())) {
-                        locations[i].setCredentialsId(credential.getId());
-                        break;
+        Iterable<CredentialsStore> it = CredentialsProvider.lookupStores(project);
+        if (it != null && it.iterator().hasNext()) {
+            CredentialsStore store = it.iterator().next();
+            for (Map.Entry<String, Credential> e : credentials.entrySet()) {
+                StandardCredentials credential =  descriptor.migrateCredentials(store, e.getKey(), e.getValue());
+                ModuleLocation[] locations = ((SubversionSCM) project.getScm()).getLocations();
+                for (int i = 0; i < locations.length; i++) {
+                    try {
+                        if (e.getKey().contains(locations[i].getSVNURL().getHost())) {
+                            locations[i].setCredentialsId(credential.getId());
+                            break;
+                        }
+                    } catch (SVNException ex) {
+                        // Should not happen, but...
+                        LOGGER.log(WARNING, "Repository location with a malformed URL: " + locations[i].remote, ex);
                     }
-                } catch (SVNException ex) {
-                    // Should not happen, but...
-                    LOGGER.log(WARNING, "Repository location with a malformed URL: " + locations[i].remote, ex);
                 }
             }
         }
