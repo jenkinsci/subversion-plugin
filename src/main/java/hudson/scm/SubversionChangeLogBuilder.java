@@ -171,9 +171,9 @@ public final class SubversionChangeLogBuilder {
 
         // handle case where previous workspace revision is newer than this revision
         if (prevRev.compareTo(thisRev) > 0) {
-        	long temp = thisRev.longValue();
-        	thisRev = new Long(prevRev.longValue());
-        	prevRev = new Long(temp);
+            long temp = thisRev;
+            thisRev = prevRev;
+            prevRev = temp;
         }
 
         logHandler.setContext(context);
