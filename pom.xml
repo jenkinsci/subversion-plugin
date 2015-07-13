@@ -154,6 +154,10 @@ THE SOFTWARE.
           <groupId>org.jvnet.hudson.plugins</groupId>
           <artifactId>subversion</artifactId>
         </exclusion>
+        <exclusion>
+          <groupId>org.jenkins-ci.plugins</groupId>
+          <artifactId>subversion</artifactId>
+        </exclusion>
       </exclusions>
     </dependency>
   </dependencies>
