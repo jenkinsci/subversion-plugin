@@ -15,6 +15,7 @@ import hudson.model.Item;
 import hudson.remoting.Channel;
 import hudson.security.ACL;
 import hudson.util.Scrambler;
+import hudson.util.Secret;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.tmatesoft.svn.core.SVNErrorCode;
 import org.tmatesoft.svn.core.SVNErrorMessage;
@@ -371,7 +372,8 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
 
         public SVNUsernamePrivateKeysAuthenticationBuilder(SSHUserPrivateKey c) {
             username = c.getUsername();
-            passphrase = Scrambler.scramble(c.getPassphrase().getPlainText());
+            Secret secret = c.getPassphrase();
+            this.passphrase = secret != null ? Scrambler.scramble(secret.getPlainText()) : null;
             privateKeys = new ArrayList<String>(c.getPrivateKeys());
         }
 

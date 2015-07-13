@@ -1643,19 +1643,22 @@ public class SubversionSCM extends SCM implements Serializable {
                 return;
             }
             boolean allOk = true;
-            for (AbstractProject<?,?> job: Jenkins.getInstance().getAllItems(AbstractProject.class)) {
-                File jobCredentials = new File(job.getRootDir(), "subversion.credentials");
-                if (jobCredentials.isFile()) {
-                    try {
-                        new PerJobCredentialStore(job).migrateCredentials(this);
-                        if (!jobCredentials.delete()) {
-                            LOGGER.log(Level.WARNING, "Could not remove legacy per-job credentials store file: {0}",
-                                    jobCredentials);
+            Jenkins instance = Jenkins.getInstance();
+            if (instance != null) {
+                for (AbstractProject<?, ?> job : instance.getAllItems(AbstractProject.class)) {
+                    File jobCredentials = new File(job.getRootDir(), "subversion.credentials");
+                    if (jobCredentials.isFile()) {
+                        try {
+                            new PerJobCredentialStore(job).migrateCredentials(this);
+                            if (!jobCredentials.delete()) {
+                                LOGGER.log(Level.WARNING, "Could not remove legacy per-job credentials store file: {0}",
+                                        jobCredentials);
+                                allOk = false;
+                            }
+                        } catch (IOException e) {
+                            LOGGER.log(Level.WARNING, "Could not migrate per-job credentials for " + job.getFullName(), e);
                             allOk = false;
                         }
-                    } catch (IOException e) {
-                        LOGGER.log(Level.WARNING, "Could not migrate per-job credentials for " + job.getFullName(), e);
-                        allOk = false;
                     }
                 }
             }
@@ -2263,10 +2266,19 @@ public class SubversionSCM extends SCM implements Serializable {
         /**
          * @deprecated retained for API compatibility only
          */
+        @CheckForNull
         @Deprecated
         public FormValidation doCheckRemote(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value, @QueryParameter String credentialsId) {
-            return Jenkins.getInstance().getDescriptorByType(ModuleLocation.DescriptorImpl.class).doCheckCredentialsId(
-                    req, context, value, credentialsId);
+            Jenkins instance = Jenkins.getInstance();
+            if (instance != null) {
+                ModuleLocation.DescriptorImpl d = instance.getDescriptorByType(ModuleLocation.DescriptorImpl.class);
+                if (d != null) {
+                    return d.doCheckCredentialsId(
+                            req, context, value, credentialsId);
+                }
+            }
+
+            return null;
         }
 
         /**
@@ -2513,7 +2525,8 @@ public class SubversionSCM extends SCM implements Serializable {
     }
 
     private static DescriptorImpl descriptor() {
-        return Jenkins.getInstance() == null ? null : Jenkins.getInstance().getDescriptorByType(DescriptorImpl.class);
+        Jenkins instance = Jenkins.getInstance();
+        return instance == null ? null : instance.getDescriptorByType(DescriptorImpl.class);
     }
 
     /**
@@ -2766,11 +2779,12 @@ public class SubversionSCM extends SCM implements Serializable {
                 // TODO only necessary with externals, or can we always do this?
                 List<AdditionalCredentials> additionalCredentialsList = ((SubversionSCM) scm).getAdditionalCredentials();
                 for (AdditionalCredentials c : additionalCredentialsList) {
-                    if (c.getCredentialsId() != null) {
+                    String credentialsId = c.getCredentialsId();
+                    if (credentialsId != null) {
                         StandardCredentials cred = CredentialsMatchers
                                 .firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class, context,
                                         ACL.SYSTEM, Collections.<DomainRequirement>emptyList()),
-                                        CredentialsMatchers.allOf(CredentialsMatchers.withId(c.getCredentialsId()),
+                                        CredentialsMatchers.allOf(CredentialsMatchers.withId(credentialsId),
                                                 CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(
                                                         StandardCredentials.class), CredentialsMatchers.instanceOf(
                                                         SSHUserPrivateKey.class))));
@@ -2941,7 +2955,12 @@ public class SubversionSCM extends SCM implements Serializable {
                     for (String propertyName : pdp.getParameterDefinitionNames()) {
                         if (url.contains(propertyName)) {
                             ParameterDefinition pd = pdp.getParameterDefinition(propertyName);
-                            String replacement = String.valueOf(pd.getDefaultParameterValue().createVariableResolver(null).resolve(propertyName));
+                            ParameterValue pv = pd.getDefaultParameterValue();
+                            String replacement = "";
+                            if (pv != null) {
+                                replacement = String.valueOf(pv.createVariableResolver(null).resolve(propertyName));
+                            }
+
                             returnURL = returnURL.replace("${" + propertyName + "}", replacement);
                             returnURL = returnURL.replace("$" + propertyName, replacement);
                         }
