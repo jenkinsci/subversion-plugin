@@ -4,10 +4,16 @@ import hudson.XmlFile;
 import hudson.model.AbstractProject;
 import hudson.model.Saveable;
 import hudson.remoting.Channel;
+import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.scm.SubversionSCM.DescriptorImpl.Credential;
 import hudson.scm.SubversionSCM.DescriptorImpl.RemotableSVNAuthenticationProvider;
-import jenkins.model.Jenkins;
+
+import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNURL;
+
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.CredentialsStore;
+import com.cloudbees.plugins.credentials.common.StandardCredentials;
 
 import java.io.File;
 import java.io.IOException;
@@ -16,6 +22,7 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 import static java.util.logging.Level.INFO;
+import static java.util.logging.Level.WARNING;
 
 /**
  * Persists the credential per job. This object is remotable.
@@ -105,8 +112,24 @@ final class PerJobCredentialStore implements Saveable, RemotableSVNAuthenticatio
     private static final ThreadLocal<Boolean> IS_SAVING = new ThreadLocal<Boolean>();
 
     /*package*/ void migrateCredentials(SubversionSCM.DescriptorImpl descriptor) throws IOException {
-        for (Map.Entry<String, Credential> e : credentials.entrySet()) {
-            descriptor.migrateCredentials(project, e.getKey(), e.getValue());
+        Iterable<CredentialsStore> it = CredentialsProvider.lookupStores(project);
+        if (it != null && it.iterator().hasNext()) {
+            CredentialsStore store = it.iterator().next();
+            for (Map.Entry<String, Credential> e : credentials.entrySet()) {
+                StandardCredentials credential =  descriptor.migrateCredentials(store, e.getKey(), e.getValue());
+                ModuleLocation[] locations = ((SubversionSCM) project.getScm()).getLocations();
+                for (int i = 0; i < locations.length; i++) {
+                    try {
+                        if (e.getKey().contains(locations[i].getSVNURL().getHost())) {
+                            locations[i].setCredentialsId(credential.getId());
+                            break;
+                        }
+                    } catch (SVNException ex) {
+                        // Should not happen, but...
+                        LOGGER.log(WARNING, "Repository location with a malformed URL: " + locations[i].remote, ex);
+                    }
+                }
+            }
         }
     }
 }

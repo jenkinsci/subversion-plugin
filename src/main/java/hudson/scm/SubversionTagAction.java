@@ -70,7 +70,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -229,7 +228,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
             newTags.put(e,parser.get("name" + i));
         }
 
-        String credentialsId = parser.get("credentialsId");
+        String credentialsId = parser.get("_.credentialsId");
         StandardCredentials upc = null;
         if (credentialsId != null) {
             Item context = req.findAncestorObject(Item.class);
