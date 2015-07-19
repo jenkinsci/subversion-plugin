@@ -25,8 +25,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.Map;
-import java.util.HashMap;
 
 import javax.servlet.ServletException;
 
@@ -156,7 +154,7 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
             @SuppressWarnings("rawtypes")
             public List<Job> getAllJobs() {
                 Jenkins instance = Jenkins.getInstance();
-                return instance != null ? instance.getAllItems(Job.class) : new ArrayList<Job>();
+                return instance != null ? instance.getAllItems(Job.class) : Collections.<Job>emptyList();
             }
         };
 
