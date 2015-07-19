@@ -1645,21 +1645,26 @@ public class SubversionSCM extends SCM implements Serializable {
             }
             boolean allOk = true;
             Jenkins instance = Jenkins.getInstance();
-            if (instance != null) {
-                for (AbstractProject<?, ?> job : instance.getAllItems(AbstractProject.class)) {
-                    File jobCredentials = new File(job.getRootDir(), "subversion.credentials");
-                    if (jobCredentials.isFile()) {
-                        try {
-                            new PerJobCredentialStore(job).migrateCredentials(this);
-                            job.save();
-                            if (!jobCredentials.delete()) {
-                                LOGGER.log(Level.WARNING, "Could not remove legacy per-job credentials store file: {0}", jobCredentials);
-                                allOk = false;
-                            }
-                        } catch (IOException e) {
-                            LOGGER.log(Level.WARNING, "Could not migrate per-job credentials for " + job.getFullName(), e);
+            List<AbstractProject> allItems;
+            if (instance == null) {
+                allItems = Collections.emptyList();
+            } else {
+                allItems = instance.getAllItems(AbstractProject.class);
+            }
+
+            for (AbstractProject<?, ?> job : allItems) {
+                File jobCredentials = new File(job.getRootDir(), "subversion.credentials");
+                if (jobCredentials.isFile()) {
+                    try {
+                        new PerJobCredentialStore(job).migrateCredentials(this);
+                        job.save();
+                        if (!jobCredentials.delete()) {
+                            LOGGER.log(Level.WARNING, "Could not remove legacy per-job credentials store file: {0}", jobCredentials);
                             allOk = false;
                         }
+                    } catch (IOException e) {
+                        LOGGER.log(Level.WARNING, "Could not migrate per-job credentials for " + job.getFullName(), e);
+                        allOk = false;
                     }
                 }
             }
