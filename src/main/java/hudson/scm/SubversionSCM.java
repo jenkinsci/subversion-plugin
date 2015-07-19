@@ -1394,8 +1394,9 @@ public class SubversionSCM extends SCM implements Serializable {
                 ISVNAuthenticationProvider>();
 
         EnvVars env = null;
-        if (project.getLastCompletedBuild() != null) {
-            env = project.getLastCompletedBuild().getEnvironment(listener);
+        Run<?,?> run = project.getLastCompletedBuild();
+        if (run != null) {
+            env = run.getEnvironment(listener);
         }
 
         for (ModuleLocation loc: getLocations(env, null)) {
