@@ -2522,6 +2522,7 @@ public class SubversionSCM extends SCM implements Serializable {
       }
     }
 
+    @CheckForNull
     private static DescriptorImpl descriptor() {
         Jenkins instance = Jenkins.getInstance();
         return instance == null ? null : instance.getDescriptorByType(DescriptorImpl.class);
