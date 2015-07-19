@@ -364,7 +364,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
                 return desc.doCheckRemote(req, context, value);
             }
         }
-        return null;
+        return FormValidation.warning("Unable to check tags directory.");
     }
 
     public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context, @QueryParameter String tagsDir) {
