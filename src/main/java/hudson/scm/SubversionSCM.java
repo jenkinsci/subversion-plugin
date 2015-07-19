@@ -2276,7 +2276,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 }
             }
 
-            return null;
+            return FormValidation.warning("Unable to check remote.");
         }
 
         /**
