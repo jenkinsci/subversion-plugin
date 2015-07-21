@@ -131,5 +131,11 @@ public class SubversionWorkspaceSelector implements ISVNAdminAreaFactorySelector
      */
     public static final int WC_FORMAT_17 = ISVNWCDb.WC_FORMAT_17;
 
+    /**
+     * @deprecated Pre (non-inclusive) 2.5 the working copy format for 1.7 was 100, however
+     * that has been changed to the official {@link ISVNWCDb#WC_FORMAT_17}.
+     */
+    public static final int OLD_WC_FORMAT_17 = 100;
+
     private static final Logger LOGGER = Logger.getLogger(SubversionWorkspaceSelector.class.getName());
 }

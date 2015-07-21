@@ -111,7 +111,7 @@ public class CheckoutUpdater extends WorkspaceUpdater {
                     checkout.setExternalsHandler(SvnCodec.externalsHandler(svnuc.getExternalsHandler()));
 
                     // Statement to guard against JENKINS-26458.
-                    if (SubversionWorkspaceSelector.workspaceFormat == 100) {
+                    if (SubversionWorkspaceSelector.workspaceFormat == SubversionWorkspaceSelector.OLD_WC_FORMAT_17) {
                         SubversionWorkspaceSelector.workspaceFormat = ISVNWCDb.WC_FORMAT_17;
                     }
 
