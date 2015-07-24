@@ -2372,7 +2372,7 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         public static String getRelativePath(SVNURL repoURL, SVNRepository repository) throws SVNException {
-            String repoPath = repoURL.getPath().substring(repository.getRepositoryRoot(false).getPath().length());
+            String repoPath = repoURL.getPath().substring(repository.getRepositoryRoot(true).getPath().length());
             if(!repoPath.startsWith("/"))    repoPath="/"+repoPath;
             return repoPath;
         }
@@ -2747,7 +2747,7 @@ public class SubversionSCM extends SCM implements Serializable {
                     if (r.getRepositoryUUID(false) == null)
                         r.testConnection(); // make sure values are fetched
                     repositoryUUID = UUID.fromString(r.getRepositoryUUID(false));
-                    repositoryRoot = r.getRepositoryRoot(false);
+                    repositoryRoot = r.getRepositoryRoot(true);
                 }
             }
             return repositoryUUID;
@@ -2816,7 +2816,7 @@ public class SubversionSCM extends SCM implements Serializable {
             return getRepositoryRoot(context, context.getScm());
         }
 
-        public SVNURL getRepositoryRoot(Job context, SCM scm) throws SVNException {
+        public @Nonnull SVNURL getRepositoryRoot(Job context, SCM scm) throws SVNException {
             getUUID(context, scm);
             return repositoryRoot;
         }
