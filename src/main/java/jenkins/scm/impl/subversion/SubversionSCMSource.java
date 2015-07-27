@@ -876,7 +876,7 @@ public class SubversionSCMSource extends SCMSource {
         }
 
         public static String getRelativePath(SVNURL repoURL, SVNRepository repository) throws SVNException {
-            String repoPath = repoURL.getPath().substring(repository.getRepositoryRoot(false).getPath().length());
+            String repoPath = repoURL.getPath().substring(repository.getRepositoryRoot(true).getPath().length());
             if(!repoPath.startsWith("/"))    repoPath="/"+repoPath;
             return repoPath;
         }
