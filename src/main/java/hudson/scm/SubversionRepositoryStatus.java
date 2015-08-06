@@ -19,14 +19,15 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.Map;
-import java.util.HashMap;
 
 import javax.servlet.ServletException;
 
@@ -132,13 +133,19 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
         }
 
         boolean listenerDidSomething = false;
-        for (Listener listener : Jenkins.getInstance().getExtensionList(Listener.class)) {
+        Jenkins instance = Jenkins.getInstance();
+        if (instance == null) {
+            LOGGER.warning("Jenkins instance is null.");
+            return;
+        }
+
+        for (Listener listener : instance.getExtensionList(Listener.class)) {
             try {
                 if (listener.onNotify(uuid, rev, affectedPath)) {
                     listenerDidSomething = true;
                 }
             } catch (Throwable t) {
-                LOGGER.log(WARNING,"Listener " + listener.getClass().getName() + " threw an uncaught exception",t);
+                LOGGER.log(WARNING, "Listener " + listener.getClass().getName() + " threw an uncaught exception", t);
             }
         }
 
@@ -152,7 +159,8 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
         private JobProvider jobProvider = new JobProvider() {
             @SuppressWarnings("rawtypes")
             public List<Job> getAllJobs() {
-                return Jenkins.getInstance().getAllItems(Job.class);
+                Jenkins instance = Jenkins.getInstance();
+                return instance != null ? instance.getAllItems(Job.class) : Collections.<Job>emptyList();
             }
         };
 

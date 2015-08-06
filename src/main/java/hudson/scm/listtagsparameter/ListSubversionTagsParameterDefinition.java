@@ -26,6 +26,7 @@
 package hudson.scm.listtagsparameter;
 
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.AbstractProject;
@@ -354,8 +355,16 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
       return getSubversionSCMDescriptor().createAuthenticationProvider(context);
     }
 
+    @CheckForNull
     public FormValidation doCheckTagsDir(StaplerRequest req, @AncestorInPath Item context, @QueryParameter String value) {
-      return Jenkins.getInstance().getDescriptorByType(SubversionSCM.ModuleLocation.DescriptorImpl.class).doCheckRemote(req, context, value);
+        Jenkins instance = Jenkins.getInstance();
+        if (instance != null) {
+            SubversionSCM.ModuleLocation.DescriptorImpl desc = instance.getDescriptorByType(SubversionSCM.ModuleLocation.DescriptorImpl.class);
+            if (desc != null) {
+                return desc.doCheckRemote(req, context, value);
+            }
+        }
+        return FormValidation.warning("Unable to check tags directory.");
     }
 
     public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context, @QueryParameter String tagsDir) {
