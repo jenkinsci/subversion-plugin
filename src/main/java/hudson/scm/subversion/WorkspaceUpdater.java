@@ -175,7 +175,7 @@ public abstract class WorkspaceUpdater extends AbstractDescribableImpl<Workspace
          */
         protected SVNRevision getRevision(ModuleLocation l) {
             // for the SVN revision, we will use the first off:
-            // - a @NNN prefix of the SVN url
+            // - a @NNN suffix of the SVN url
             // - a value found in a RevisionParameterAction
             // - the revision corresponding to the build timestamp
 
