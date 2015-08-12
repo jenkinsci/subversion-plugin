@@ -171,15 +171,15 @@ public final class SubversionChangeLogBuilder {
 
         // handle case where previous workspace revision is newer than this revision
         if (prevRev.compareTo(thisRev) > 0) {
-        	long temp = thisRev.longValue();
-        	thisRev = new Long(prevRev.longValue());
-        	prevRev = new Long(temp);
+            long temp = thisRev;
+            thisRev = prevRev;
+            prevRev = temp;
         }
 
         logHandler.setContext(context);
         try {
             if(debug)
-                listener.getLogger().printf("Computing changelog of %1s from %2s to %3s\n",
+                listener.getLogger().printf("Computing changelog of %1s from %2s to %3s%n",
                         SVNURL.parseURIEncoded(url), prevRev+1, thisRev);
             svnlc.doLog(SVNURL.parseURIEncoded(url),
                         null,
@@ -227,6 +227,8 @@ public final class SubversionChangeLogBuilder {
 
     private static final LocatorImpl DUMMY_LOCATOR = new LocatorImpl();
 
+    @edu.umd.cs.findbugs.annotations.SuppressWarnings(value = "MS_SHOULD_BE_FINAL",
+    justification = "Debugging environment variable is made editable, so it can be modified through the groovy console.")
     public static boolean debug = false;
 
     static {
