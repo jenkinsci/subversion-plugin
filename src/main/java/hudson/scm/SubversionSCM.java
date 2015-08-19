@@ -1768,7 +1768,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
             /**
              * @param kind
-             *      One of the constants defined in {@link AuthenticationManager},
+             *      One of the constants defined in {@link ISVNAuthenticationManager},
              *      indicating what subtype of {@link SVNAuthentication} is expected.
              */
             public abstract SVNAuthentication createSVNAuthentication(String kind) throws SVNException;
