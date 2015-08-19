@@ -78,6 +78,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.WeakHashMap;
 
+import hudson.remoting.LocalChannel;
 import hudson.security.ACL;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
@@ -1332,11 +1333,9 @@ public class SubversionSCM extends SCM implements Serializable {
         final SVNRevisionState baseline;
         if (_baseline instanceof SVNRevisionState) {
             baseline = (SVNRevisionState)_baseline;
-        }
-        else if (project.getLastBuild()!=null) {
+        } else if (project.getLastBuild()!=null) {
             baseline = (SVNRevisionState)calcRevisionsFromBuild(project.getLastBuild(), launcher != null ? workspace : null, launcher, listener);
-        }
-        else {
+        } else {
             baseline = new SVNRevisionState(null);
         }
 
@@ -1354,9 +1353,8 @@ public class SubversionSCM extends SCM implements Serializable {
             }
             if (project instanceof AbstractProject && repositoryLocationsNoLongerExist(lastCompletedBuild, listener, env)) {
                 // Disable this project, see HUDSON-763
-                listener.getLogger().println(
-                        Messages.SubversionSCM_pollChanges_locationsNoLongerExist(project));
-                disableProject((AbstractProject) project, listener);              
+                listener.getLogger().println(Messages.SubversionSCM_pollChanges_locationsNoLongerExist(project));
+                disableProject((AbstractProject) project, listener);
                 return NO_CHANGES;
             }
 
@@ -1371,33 +1369,39 @@ public class SubversionSCM extends SCM implements Serializable {
                     return BUILD_NOW;
                 }
                 if (!baseline.revisions.containsKey(url)) {
-                    listener.getLogger().println(
-                            Messages.SubversionSCM_pollChanges_locationNotInWorkspace(url));
+                    listener.getLogger().println(Messages.SubversionSCM_pollChanges_locationNotInWorkspace(url));
                     return BUILD_NOW;
                 }
             }
         }
 
-        // determine where to perform polling. prefer the node where the build happened,
-        // in case a cluster is non-uniform. see http://www.nabble.com/svn-connection-from-slave-only-td24970587.html
-        VirtualChannel ch=null;
+        String nodeName = "master";
+        VirtualChannel channel = null;
         if (workspace != null && !isPollFromMaster()) {
-            ch = workspace.getChannel();
+            channel = workspace.getChannel();
+            if (channel != null && channel instanceof Channel) {
+                nodeName = ((Channel) channel).getName();
+            }
         }
-        if (ch==null)   ch= MasterComputer.localChannel;
 
-        final String nodeName = ch instanceof Channel ? ((Channel) ch).getName() : "master";
+        if (channel == null) {
+            channel = FilePath.localChannel;
+        }
 
         final SVNLogHandler logHandler = new SVNLogHandler(createSVNLogFilter(), listener);
 
-        final Map<String,ISVNAuthenticationProvider> authProviders = new LinkedHashMap<String,
-                ISVNAuthenticationProvider>();
+        final Map<String,ISVNAuthenticationProvider> authProviders = new LinkedHashMap<String, ISVNAuthenticationProvider>();
 
-        EnvVars env = null;
-        Run<?,?> run = project.getLastCompletedBuild();
-        if (run != null) {
-            env = run.getEnvironment(listener);
+        Node node;
+        if (nodeName.equals("master")) {
+            node = Jenkins.getInstance();
+        } else {
+            node = Jenkins.getInstance().getNode(nodeName);
         }
+
+        // Reference: https://github.com/jenkinsci/subversion-plugin/pull/131
+        // Right way to get the environment variables when we do polling. http://tinyurl.com/o2o2kg9
+        EnvVars env = project.getEnvironment(node, listener);
 
         for (ModuleLocation loc: getLocations(env, null)) {
             String url;
@@ -1412,7 +1416,7 @@ public class SubversionSCM extends SCM implements Serializable {
         final ISVNAuthenticationProvider defaultAuthProvider = createAuthenticationProvider(project, null);
 
         // figure out the remote revisions
-        return ch.call(new CompareAgainstBaselineCallable(baseline, logHandler, project.getName(), listener, defaultAuthProvider, authProviders, nodeName));
+        return channel.call(new CompareAgainstBaselineCallable(baseline, logHandler, project.getName(), listener, defaultAuthProvider, authProviders, nodeName));
     }
 
     public SVNLogFilter createSVNLogFilter() {
@@ -2986,8 +2990,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 }
             }
 
-            return new ModuleLocation(returnURL, credentialsId, getLocalDir(), getDepthOption(),
-                    isIgnoreExternalsOption());
+            return new ModuleLocation(returnURL, credentialsId, getLocalDir(), getDepthOption(), isIgnoreExternalsOption());
         }
 
         @Extension
