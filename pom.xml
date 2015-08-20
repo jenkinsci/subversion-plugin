@@ -171,20 +171,26 @@ THE SOFTWARE.
           <artifactId>maven-release-plugin</artifactId>
           <version>2.5.2</version>
         </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.14.1</version>
-          <configuration>
-            <systemPropertyVariables>
-              <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
-              <java.awt.headless>true</java.awt.headless>
-            </systemPropertyVariables>
-          </configuration>
-        </plugin>
       </plugins>
     </pluginManagement>
     <plugins>
+      <plugin>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>2.10.3</version>
+        <configuration>
+          <additionalparam>-Xdoclint:none</additionalparam>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.14.1</version>
+        <configuration>
+          <systemPropertyVariables>
+            <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
+            <java.awt.headless>true</java.awt.headless>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>org.jenkins-ci.tools</groupId>
         <artifactId>maven-hpi-plugin</artifactId>
@@ -202,7 +208,6 @@ THE SOFTWARE.
         <version>3.0.1</version>
         <configuration>
           <xmlOutput>true</xmlOutput>
-          <findbugsXmlWithMessages>true</findbugsXmlWithMessages>
           <failOnError>false</failOnError>
         </configuration>
         <executions>
