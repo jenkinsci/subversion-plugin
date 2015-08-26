@@ -2670,6 +2670,13 @@ public class SubversionSCM extends SCM implements Serializable {
         public final String depthOption;
 
         /**
+         * Make subversion depth sticky or not (use "--depth" or "--set-depth" option) for switch
+         * and update commands. Default value is "true" (sticky).
+         */
+        @Exported
+        public boolean stickyDepth;
+
+        /**
          * Flag to ignore subversion externals definitions.
          */
         @Exported
@@ -2686,7 +2693,7 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         @Deprecated
         public ModuleLocation(String remote, String local) {
-            this(remote, null, local, null, false);
+            this(remote, null, local, null, true, false);
         }
 
         /**
@@ -2701,36 +2708,37 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         @Deprecated
         public ModuleLocation(String remote, String local, String depthOption, boolean ignoreExternalsOption) {
-            this(remote,null,local,depthOption,ignoreExternalsOption);
+            this(remote,null,local,depthOption,true,ignoreExternalsOption);
         }
 
         @DataBoundConstructor
-        public ModuleLocation(String remote, String credentialsId, String local, String depthOption, boolean ignoreExternalsOption) {
+        public ModuleLocation(String remote, String credentialsId, String local, String depthOption, boolean stickyDepth, boolean ignoreExternalsOption) {
             this.remote = Util.removeTrailingSlash(Util.fixNull(remote).trim());
             this.credentialsId = credentialsId;
             this.local = fixEmptyAndTrim(local);
             this.depthOption = StringUtils.isEmpty(depthOption) ? SVNDepth.INFINITY.getName() : depthOption;
+			this.stickyDepth = stickyDepth;
             this.ignoreExternalsOption = ignoreExternalsOption;
         }
 
         public ModuleLocation withRemote(String remote) {
-            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption);
+            return new ModuleLocation(remote, credentialsId, local, depthOption, true, ignoreExternalsOption);
         }
 
         public ModuleLocation withCredentialsId(String credentialsId) {
-            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption);
+            return new ModuleLocation(remote, credentialsId, local, depthOption, true, ignoreExternalsOption);
         }
 
         public ModuleLocation withLocal(String local) {
-            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption);
+            return new ModuleLocation(remote, credentialsId, local, depthOption, true, ignoreExternalsOption);
         }
 
         public ModuleLocation withDepthOption(String depthOption) {
-            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption);
+            return new ModuleLocation(remote, credentialsId, local, depthOption, true, ignoreExternalsOption);
         }
 
         public ModuleLocation withIgnoreExternalsOption(boolean ignoreExternalsOption) {
-            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption);
+            return new ModuleLocation(remote, credentialsId, local, depthOption, true, ignoreExternalsOption);
         }
 
         /**
@@ -2895,6 +2903,15 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         /**
+         * Determines if chosen depth shall be set to sticky or not.
+         *
+         * @return true if depth shall be sticky.
+         */
+        public boolean isDepthSticky() {
+            return stickyDepth;
+        }
+
+        /**
          * Determines if subversion externals definitions should be ignored.
          *
          * @return true if subversion externals definitions should be ignored.
@@ -2924,7 +2941,7 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         public ModuleLocation getExpandedLocation(EnvVars env) {
             return new ModuleLocation(env.expand(remote), credentialsId, env.expand(getLocalDir()), getDepthOption(),
-                    isIgnoreExternalsOption());
+                    isDepthSticky(), isIgnoreExternalsOption());
         }
 
         @Override
@@ -2955,7 +2972,7 @@ public class SubversionSCM extends SCM implements Serializable {
                         modules.add(new ModuleLocation(remoteLoc,
                                 credentialIds != null && credentialIds.length > i ? credentialIds[i] : null,
                                 Util.nullify(localLocations[i]),
-                            depthOptions != null ? depthOptions[i] : null,
+                            depthOptions != null ? depthOptions[i] : null, true,
                             isIgnoreExternals != null && isIgnoreExternals[i]));
                     }
                 }
@@ -2990,7 +3007,8 @@ public class SubversionSCM extends SCM implements Serializable {
                 }
             }
 
-            return new ModuleLocation(returnURL, credentialsId, getLocalDir(), getDepthOption(), isIgnoreExternalsOption());
+            return new ModuleLocation(returnURL, credentialsId, getLocalDir(), getDepthOption(),
+                    isDepthSticky(), isIgnoreExternalsOption());
         }
 
         @Extension

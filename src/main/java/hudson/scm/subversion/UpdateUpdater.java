@@ -155,11 +155,11 @@ public class UpdateUpdater extends WorkspaceUpdater {
                 switch (svnCommand) {
                     case UPDATE:
                         listener.getLogger().println("Updating " + location.remote + " at revision " + revisionName);
-                        svnuc.doUpdate(local.getCanonicalFile(), r, svnDepth, true, true);
+                        svnuc.doUpdate(local.getCanonicalFile(), r, svnDepth, true, location.isDepthSticky());
                         break;
                     case SWITCH:
                         listener.getLogger().println("Switching to " + location.remote + " at revision " + revisionName);
-                        svnuc.doSwitch(local.getCanonicalFile(), location.getSVNURL(), r, r, svnDepth, true, true, true);
+                        svnuc.doSwitch(local.getCanonicalFile(), location.getSVNURL(), r, r, svnDepth, true, location.isDepthSticky(), true);
                         break;
                     case CHECKOUT:
                         // This case is handled by the (svnCommand == SvnCommandToUse.CHECKOUT) above.
