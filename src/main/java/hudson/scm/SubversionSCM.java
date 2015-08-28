@@ -1667,8 +1667,10 @@ public class SubversionSCM extends SCM implements Serializable {
                 File jobCredentials = new File(job.getRootDir(), "subversion.credentials");
                 if (jobCredentials.isFile()) {
                     try {
-                        new PerJobCredentialStore(job).migrateCredentials(this);
-                        job.save();
+                        if (job.getScm() instanceof SubversionSCM) {
+                            new PerJobCredentialStore(job).migrateCredentials(this);
+                            job.save();
+                        } // else: job is not using Subversion anymore
                         if (!jobCredentials.delete()) {
                             LOGGER.log(Level.WARNING, "Could not remove legacy per-job credentials store file: {0}", jobCredentials);
                             allOk = false;
