@@ -2711,6 +2711,11 @@ public class SubversionSCM extends SCM implements Serializable {
             this(remote,null,local,depthOption,true,ignoreExternalsOption);
         }
 
+        @Deprecated
+        public ModuleLocation(String remote, String credentialsId, String local, String depthOption, boolean ignoreExternalsOption) {
+            this(remote,credentialsId,local,depthOption,true,ignoreExternalsOption);
+        }
+
         @DataBoundConstructor
         public ModuleLocation(String remote, String credentialsId, String local, String depthOption, boolean stickyDepth, boolean ignoreExternalsOption) {
             this.remote = Util.removeTrailingSlash(Util.fixNull(remote).trim());
