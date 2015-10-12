@@ -139,7 +139,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
 
             try {
                 File local = new File(ws, location.getLocalDir());
-                SubversionUpdateEventHandler eventHandler = new SubversionUpdateEventHandler(listener.getLogger(), externals, local, location.getLocalDir());
+                SubversionUpdateEventHandler eventHandler = new SubversionUpdateEventHandler(listener.getLogger(), externals, local, location.getLocalDir(), quietOperation);
                 svnuc.setEventHandler(eventHandler);
                 svnuc.setExternalsHandler(eventHandler);
 
@@ -154,11 +154,11 @@ public class UpdateUpdater extends WorkspaceUpdater {
                 
                 switch (svnCommand) {
                     case UPDATE:
-                        listener.getLogger().println("Updating " + location.remote + " at revision " + revisionName);
+                        listener.getLogger().println("Updating " + location.remote + " at revision " + revisionName + (quietOperation ? " --quiet" : ""));
                         svnuc.doUpdate(local.getCanonicalFile(), r, svnDepth, true, true);
                         break;
                     case SWITCH:
-                        listener.getLogger().println("Switching to " + location.remote + " at revision " + revisionName);
+                        listener.getLogger().println("Switching to " + location.remote + " at revision " + revisionName + (quietOperation ? " --quiet" : ""));
                         svnuc.doSwitch(local.getCanonicalFile(), location.getSVNURL(), r, r, svnDepth, true, true, true);
                         break;
                     case CHECKOUT:

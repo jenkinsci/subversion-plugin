@@ -245,6 +245,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
     private boolean ignoreDirPropChanges;
     private boolean filterChangelog;
+    private boolean quietOperation;
 
     /**
      * A cache of the svn:externals (keyed by project).
@@ -335,7 +336,19 @@ public class SubversionSCM extends SCM implements Serializable {
     public SubversionSCM(List<ModuleLocation> locations, WorkspaceUpdater workspaceUpdater,
             SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages,
             String includedRegions, boolean ignoreDirPropChanges) {
-        this(locations, workspaceUpdater, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages, includedRegions, ignoreDirPropChanges, false, null);
+        this(locations, workspaceUpdater, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages, includedRegions, ignoreDirPropChanges, false, null, false);
+    }
+
+    /**
+     *  @deprecated
+     */
+    public SubversionSCM(List<ModuleLocation> locations, WorkspaceUpdater workspaceUpdater,
+                         SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers,
+                         String excludedRevprop, String excludedCommitMessages,
+                         String includedRegions, boolean ignoreDirPropChanges, boolean filterChangelog,
+                         List<AdditionalCredentials> additionalCredentials) {
+        this(locations, workspaceUpdater, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages,
+                includedRegions, ignoreDirPropChanges, filterChangelog, additionalCredentials, false);
     }
 
     @DataBoundConstructor
@@ -343,7 +356,7 @@ public class SubversionSCM extends SCM implements Serializable {
                          SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers,
                          String excludedRevprop, String excludedCommitMessages,
                          String includedRegions, boolean ignoreDirPropChanges, boolean filterChangelog,
-                         List<AdditionalCredentials> additionalCredentials) {
+                         List<AdditionalCredentials> additionalCredentials, boolean quietOperation) {
         for (Iterator<ModuleLocation> itr = locations.iterator(); itr.hasNext(); ) {
             ModuleLocation ml = itr.next();
             String remote = Util.fixEmptyAndTrim(ml.remote);
@@ -367,6 +380,7 @@ public class SubversionSCM extends SCM implements Serializable {
         this.includedRegions = includedRegions;
         this.ignoreDirPropChanges = ignoreDirPropChanges;
         this.filterChangelog = filterChangelog;
+        this.quietOperation = quietOperation;
     }
 
     /**
@@ -666,6 +680,11 @@ public class SubversionSCM extends SCM implements Serializable {
       return filterChangelog;
     }
 
+    @Exported
+    public boolean isQuietOperation() {
+        return quietOperation;
+    }
+
     /**
      * Sets the <tt>SVN_REVISION_n</tt> and <tt>SVN_URL_n</tt> environment variables during the build.
      */
@@ -894,7 +913,7 @@ public class SubversionSCM extends SCM implements Serializable {
         Set<String> unauthenticatedRealms = new LinkedHashSet<String>();
         for (ModuleLocation location : getLocations(env, build)) {
             CheckOutTask checkOutTask =
-                    new CheckOutTask(build, this, location, build.getTimestamp().getTime(), listener, env);
+                    new CheckOutTask(build, this, location, build.getTimestamp().getTime(), listener, env, quietOperation);
             externals.addAll(workspace.act(checkOutTask));
             unauthenticatedRealms.addAll(checkOutTask.getUnauthenticatedRealms());
             // olamy: remove null check at it cause test failure
@@ -949,13 +968,14 @@ public class SubversionSCM extends SCM implements Serializable {
     private static class CheckOutTask extends UpdateTask implements FileCallable<List<External>> {
         private final UpdateTask task;
 
-         public CheckOutTask(Run<?, ?> build, SubversionSCM parent, ModuleLocation location, Date timestamp, TaskListener listener, EnvVars env) {
+        public CheckOutTask(Run<?, ?> build, SubversionSCM parent, ModuleLocation location, Date timestamp, TaskListener listener, EnvVars env, boolean quietOperation) {
             this.authProvider = parent.createAuthenticationProvider(build.getParent(), location);
             this.timestamp = timestamp;
             this.listener = listener;
             this.location = location;
             this.revisions = build.getAction(RevisionParameterAction.class);
             this.task = parent.getWorkspaceUpdater().createTask();
+            this.quietOperation = quietOperation;
         }
 
         public Set<String> getUnauthenticatedRealms() {
@@ -2957,8 +2977,8 @@ public class SubversionSCM extends SCM implements Serializable {
                         modules.add(new ModuleLocation(remoteLoc,
                                 credentialIds != null && credentialIds.length > i ? credentialIds[i] : null,
                                 Util.nullify(localLocations[i]),
-                            depthOptions != null ? depthOptions[i] : null,
-                            isIgnoreExternals != null && isIgnoreExternals[i]));
+                                depthOptions != null ? depthOptions[i] : null,
+                                isIgnoreExternals != null && isIgnoreExternals[i]));
                     }
                 }
             }
