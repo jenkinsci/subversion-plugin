@@ -779,6 +779,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     /**
      * Makes sure that quiet operation shows lesser output.
      */
+    @Issue("JENKINS-14541")
     public void testQuietCheckout() throws Exception {
         SubversionSCM local = loadSvnRepo();
         local.setWorkspaceUpdater(new CheckoutUpdater());
@@ -796,9 +797,11 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         FreeStyleBuild bVerbose = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserIdCause()).get());
         List<String> logsVerbose = bVerbose.getLog(LOG_LIMIT);
         //  This line in log should NOT end with --quiet
-        assertTrue(!logsVerbose.get(4).endsWith("--quiet"));
+        assertFalse(logsVerbose.get(4).endsWith("--quiet"));
         assertTrue(logsVerbose.get(5).endsWith("readme.txt"));
         assertTrue(logsVerbose.get(6).equals("At revision 1"));
+
+        assertTrue(logsQuiet.size() < logsVerbose.size());
     }
 
     /**
