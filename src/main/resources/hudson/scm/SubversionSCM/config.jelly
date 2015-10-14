@@ -34,7 +34,7 @@ THE SOFTWARE.
   <f:dropdownDescriptorSelector title="${%Check-out Strategy}" field="workspaceUpdater" descriptors="${descriptor.getWorkspaceUpdaterDescriptors()}"/>
 
   <f:entry title="${%Quiet check-out}" field="quietOperation">
-    <f:checkbox default="false"/>
+    <f:checkbox default="true"/>
   </f:entry>
 
   <t:listScmBrowsers name="svn.browser" />

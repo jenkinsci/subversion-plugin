@@ -777,6 +777,31 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     }
 
     /**
+     * Makes sure that quiet operation shows lesser output.
+     */
+    public void testQuietCheckout() throws Exception {
+        SubversionSCM local = loadSvnRepo();
+        local.setWorkspaceUpdater(new CheckoutUpdater());
+        FreeStyleProject p = createFreeStyleProject("quietOperation");
+        p.setScm(local);
+
+        local.setquietOperation(true);
+        FreeStyleBuild bQuiet = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserIdCause()).get());
+        List<String> logsQuiet = bQuiet.getLog(LOG_LIMIT);
+        //  This line in log should end with --quiet
+        assertTrue(logsQuiet.get(4).endsWith("--quiet"));
+        assertTrue(logsQuiet.get(5).equals("At revision 1"));
+
+        local.setquietOperation(false);
+        FreeStyleBuild bVerbose = assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserIdCause()).get());
+        List<String> logsVerbose = bVerbose.getLog(LOG_LIMIT);
+        //  This line in log should NOT end with --quiet
+        assertTrue(!logsVerbose.get(4).endsWith("--quiet"));
+        assertTrue(logsVerbose.get(5).endsWith("readme.txt"));
+        assertTrue(logsVerbose.get(6).equals("At revision 1"));
+    }
+
+    /**
      * Makes sure the symbolic link is checked out correctly. There seems to be
      */
     @Bug(3904)

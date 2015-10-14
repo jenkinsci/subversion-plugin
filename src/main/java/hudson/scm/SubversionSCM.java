@@ -686,6 +686,13 @@ public class SubversionSCM extends SCM implements Serializable {
     }
 
     /**
+     * Convenience method solely for testing.
+     */
+    public void setquietOperation(boolean quietOperation) {
+        this.quietOperation = quietOperation;
+    }
+
+    /**
      * Sets the <tt>SVN_REVISION_n</tt> and <tt>SVN_URL_n</tt> environment variables during the build.
      */
     @Override
