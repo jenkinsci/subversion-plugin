@@ -3003,8 +3003,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 return null;  //To change body of implemented methods use File | Settings | File Templates.
             }
 
-            public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
-                                                       @QueryParameter String remote) {
+            public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context, @QueryParameter String remote) {
                 if (context == null || !context.hasPermission(Item.CONFIGURE)) {
                     return new StandardListBoxModel();
                 }
@@ -3012,142 +3011,151 @@ public class SubversionSCM extends SCM implements Serializable {
             }
 
             public ListBoxModel fillCredentialsIdItems(@Nonnull Item context, String remote) {
-              List<DomainRequirement> domainRequirements;
-              if (remote == null) {
-                      domainRequirements = Collections.<DomainRequirement>emptyList();
-              } else {
-                  domainRequirements = URIRequirementBuilder.fromUri(remote.trim()).build();
-              }
-              return new StandardListBoxModel()
-                      .withEmptySelection()
-                      .withMatching(
-                              CredentialsMatchers.anyOf(
-                                      CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
-                                      CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
-                                      CredentialsMatchers.instanceOf(SSHUserPrivateKey.class)
-                              ),
-                              CredentialsProvider.lookupCredentials(StandardCredentials.class,
-                                      context,
-                                      ACL.SYSTEM,
-                                      domainRequirements)
-                      );
-          }
+                List<DomainRequirement> domainRequirements;
+                if (remote == null) {
+                    domainRequirements = Collections.<DomainRequirement>emptyList();
+                } else {
+                    domainRequirements = URIRequirementBuilder.fromUri(remote.trim()).build();
+                }
+                return new StandardListBoxModel()
+                        .withEmptySelection()
+                        .withMatching(
+                                CredentialsMatchers.anyOf(
+                                        CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
+                                        CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
+                                        CredentialsMatchers.instanceOf(SSHUserPrivateKey.class)
+                                ),
+                                CredentialsProvider.lookupCredentials(StandardCredentials.class,
+                                        context,
+                                        ACL.SYSTEM,
+                                        domainRequirements)
+                        );
+            }
 
-          /**
-           * validate the value for a remote (repository) location.
-           */
-          public FormValidation doCheckRemote(StaplerRequest req, @AncestorInPath Item context, @QueryParameter String remote) {
-              // syntax check first
-              String url = Util.fixEmptyAndTrim(remote);
-              if (url == null)
-                  return FormValidation.error(Messages.SubversionSCM_doCheckRemote_required());
+            /**
+             * Validate the value for a remote (repository) location.
+             */
+            public FormValidation doCheckRemote(StaplerRequest req, @AncestorInPath Item context,
+                    @QueryParameter String remote) {
 
-              if(descriptor().isValidateRemoteUpToVar()) {
-                  url = (url.indexOf('$') != -1) ? url.substring(0, url.indexOf('$')) : url;
-              } else {
-                  url = new EnvVars(EnvVars.masterEnvVars).expand(url);
-              }
+                // syntax check first
+                String url = Util.fixEmptyAndTrim(remote);
+                if (url == null) {
+                    return FormValidation.error(Messages.SubversionSCM_doCheckRemote_required());
+                }
 
-              if(!URL_PATTERN.matcher(url).matches())
-                  return FormValidation.errorWithMarkup(
-                      Messages.SubversionSCM_doCheckRemote_invalidUrl());
+                if (descriptor().isValidateRemoteUpToVar()) {
+                    url = (url.indexOf('$') != -1) ? url.substring(0, url.indexOf('$')) : url;
+                } else {
+                    url = new EnvVars(EnvVars.masterEnvVars).expand(url);
+                }
 
-              return FormValidation.ok();
-          }
+                if (!URL_PATTERN.matcher(url).matches()) {
+                    return FormValidation.errorWithMarkup(Messages.SubversionSCM_doCheckRemote_invalidUrl());
+                }
+                return FormValidation.ok();
+            }
 
-          /**
-           * validate the value for a remote (repository) location.
-           */
-          public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath Item context, @QueryParameter String remote, @QueryParameter String value) {
-              // Test the connection only if we have job configure permission
-              if (context == null || !context.hasPermission(Item.CONFIGURE)) {
-                  return FormValidation.ok();
-              }
-              return checkCredentialsId(req, context, remote, value);
-          }
+            /**
+             * Validate the value for a remote (repository) location.
+             */
+            public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath Item context,
+                    @QueryParameter String remote, @QueryParameter String value) {
 
-          /**
-           * validate the value for a remote (repository) location.
-           */
-          public FormValidation checkCredentialsId(StaplerRequest req, @Nonnull Item context, String remote, String value) {
-              // if check remote is reporting an issue then we don't need to
-              String url = Util.fixEmptyAndTrim(remote);
-              if (url == null)
-                  return FormValidation.ok();
+                // Test the connection only if we have job configure permission
+                if (context == null || !context.hasPermission(Item.CONFIGURE)) {
+                    return FormValidation.ok();
+                }
+                return checkCredentialsId(req, context, remote, value);
+            }
 
-              if(descriptor().isValidateRemoteUpToVar()) {
-                  url = (url.indexOf('$') != -1) ? url.substring(0, url.indexOf('$')) : url;
-              } else {
-                  url = new EnvVars(EnvVars.masterEnvVars).expand(url);
-              }
+            /**
+             * Validate the value for a remote (repository) location.
+             */
+            public FormValidation checkCredentialsId(StaplerRequest req, @Nonnull Item context, String remote, String value) {
+                // if check remote is reporting an issue then we don't need to
+                String url = Util.fixEmptyAndTrim(remote);
+                if (url == null) {
+                    return FormValidation.ok();
+                }
 
-              if(!URL_PATTERN.matcher(url).matches())
-                  return FormValidation.ok();
+                if (descriptor().isValidateRemoteUpToVar()) {
+                    url = (url.indexOf('$') != -1) ? url.substring(0, url.indexOf('$')) : url;
+                } else {
+                    url = new EnvVars(EnvVars.masterEnvVars).expand(url);
+                }
 
-              try {
-                  String urlWithoutRevision = SvnHelper.getUrlWithoutRevision(url);
+                if (!URL_PATTERN.matcher(url).matches()) {
+                    return FormValidation.ok();
+                }
 
-                  SVNURL repoURL = SVNURL.parseURIDecoded(urlWithoutRevision);
+                try {
+                    String urlWithoutRevision = SvnHelper.getUrlWithoutRevision(url);
 
-                  StandardCredentials credentials = lookupCredentials(context, value, repoURL);
-                  if (descriptor().checkRepositoryPath(context,repoURL, credentials)!=SVNNodeKind.NONE) {
-                      // something exists; now check revision if any
+                    SVNURL repoURL = SVNURL.parseURIDecoded(urlWithoutRevision);
 
-                      SVNRevision revision = getRevisionFromRemoteUrl(url);
-                      if (revision != null && !revision.isValid()) {
-                          return FormValidation.errorWithMarkup(Messages.SubversionSCM_doCheckRemote_invalidRevision());
-                      }
+                    StandardCredentials credentials = lookupCredentials(context, value, repoURL);
+                    if (descriptor().checkRepositoryPath(context, repoURL, credentials) != SVNNodeKind.NONE) {
+                        // something exists; now check revision if any
 
-                      return FormValidation.ok();
-                  }
+                        SVNRevision revision = getRevisionFromRemoteUrl(url);
+                        if (revision != null && !revision.isValid()) {
+                            return FormValidation.errorWithMarkup(Messages.SubversionSCM_doCheckRemote_invalidRevision());
+                        }
 
-                  SVNRepository repository = null;
-                  try {
-                      repository = descriptor().getRepository(context,repoURL, credentials, Collections.<String, Credentials>emptyMap(), null);
-                      long rev = repository.getLatestRevision();
-                      // now go back the tree and find if there's anything that exists
-                      String repoPath = descriptor().getRelativePath(repoURL, repository);
-                      String p = repoPath;
-                      while(p.length()>0) {
-                          p = SVNPathUtil.removeTail(p);
-                          if(repository.checkPath(p,rev)==SVNNodeKind.DIR) {
-                              // found a matching path
-                              List<SVNDirEntry> entries = new ArrayList<SVNDirEntry>();
-                              repository.getDir(p,rev,false,entries);
+                        return FormValidation.ok();
+                    }
 
-                              // build up the name list
-                              List<String> paths = new ArrayList<String>();
-                              for (SVNDirEntry e : entries)
-                                  if(e.getKind()==SVNNodeKind.DIR)
-                                      paths.add(e.getName());
+                    SVNRepository repository = null;
+                    try {
+                        repository = descriptor().getRepository(context, repoURL, credentials, Collections.<String,
+                                Credentials>emptyMap(), null);
+                        long rev = repository.getLatestRevision();
+                        // now go back the tree and find if there's anything that exists
+                        String repoPath = descriptor().getRelativePath(repoURL, repository);
+                        String p = repoPath;
+                        while (p.length() > 0) {
+                            p = SVNPathUtil.removeTail(p);
+                            if (repository.checkPath(p, rev) == SVNNodeKind.DIR) {
+                                // found a matching path
+                                List<SVNDirEntry> entries = new ArrayList<SVNDirEntry>();
+                                repository.getDir(p, rev, false, entries);
 
-                              String head = SVNPathUtil.head(repoPath.substring(p.length() + 1));
-                              String candidate = EditDistance.findNearest(head,paths);
+                                // build up the name list
+                                List<String> paths = new ArrayList<String>();
+                                for (SVNDirEntry e : entries) {
+                                    if (e.getKind() == SVNNodeKind.DIR) {
+                                        paths.add(e.getName());
+                                    }
+                                }
 
-                              return FormValidation.error(
-                                  Messages.SubversionSCM_doCheckRemote_badPathSuggest(p, head,
-                                      candidate != null ? "/" + candidate : ""));
-                          }
-                      }
+                                String head = SVNPathUtil.head(repoPath.substring(p.length() + 1));
+                                String candidate = EditDistance.findNearest(head, paths);
 
-                      return FormValidation.error(
-                          Messages.SubversionSCM_doCheckRemote_badPath(repoPath));
-                  } finally {
-                      if (repository != null)
-                          repository.closeSession();
-                  }
-              } catch (SVNException e) {
-                  LOGGER.log(Level.INFO, "Failed to access subversion repository "+url,e);
-                  String message = Messages.SubversionSCM_doCheckRemote_exceptionMsg1(
-                      Util.escape(url), Util.escape(e.getErrorMessage().getFullMessage()),
-                      "javascript:document.getElementById('svnerror').style.display='block';"
-                        + "document.getElementById('svnerrorlink').style.display='none';"
-                        + "return false;")
-                    + "<br/><pre id=\"svnerror\" style=\"display:none\">"
-                    + Functions.printThrowable(e) + "</pre>";
-                  return FormValidation.errorWithMarkup(message);
-              }
-          }
+                                return FormValidation.error(
+                                        Messages.SubversionSCM_doCheckRemote_badPathSuggest(p, head,
+                                                candidate != null ? "/" + candidate : ""));
+                            }
+                        }
+
+                        return FormValidation.error(Messages.SubversionSCM_doCheckRemote_badPath(repoPath));
+                    } finally {
+                        if (repository != null) {
+                            repository.closeSession();
+                        }
+                    }
+                } catch (SVNException e) {
+                    LOGGER.log(Level.INFO, "Failed to access subversion repository: " + url, e);
+                    String message = Messages.SubversionSCM_doCheckRemote_exceptionMsg1(
+                            Util.escape(url), Util.escape(e.getErrorMessage().getFullMessage()),
+                            "javascript:document.getElementById('svnerror').style.display='block';"
+                                    + "document.getElementById('svnerrorlink').style.display='none';"
+                                    + "return false;")
+                            + "<br/><pre id=\"svnerror\" style=\"display:none\">"
+                            + Functions.printThrowable(e) + "</pre>";
+                    return FormValidation.errorWithMarkup(message);
+                }
+            }
 
             /**
              * validate the value for a local location (local checkout directory).
