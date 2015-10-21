@@ -33,7 +33,6 @@ import hudson.scm.SubversionSCM.External;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.scm.SvnClientManager;
 import jenkins.MasterToSlaveFileCallable;
-import jenkins.SlaveToMasterFileCallable;
 import org.kohsuke.stapler.export.ExportedBean;
 import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNDepth;
