@@ -1329,50 +1329,23 @@ public class SubversionSCM extends SCM implements Serializable {
     }
 
     @Override
-    public PollingResult compareRemoteRevisionWith(Job<?,?> project, Launcher launcher, FilePath workspace, final TaskListener listener, SCMRevisionState _baseline) throws IOException, InterruptedException {
+    public PollingResult compareRemoteRevisionWith(Job<?, ?> project, Launcher launcher, FilePath workspace, final
+            TaskListener listener, SCMRevisionState _baseline) throws IOException, InterruptedException {
+
         final SVNRevisionState baseline;
         if (_baseline instanceof SVNRevisionState) {
-            baseline = (SVNRevisionState)_baseline;
-        } else if (project.getLastBuild()!=null) {
-            baseline = (SVNRevisionState)calcRevisionsFromBuild(project.getLastBuild(), launcher != null ? workspace : null, launcher, listener);
+            baseline = (SVNRevisionState) _baseline;
+        } else if (project.getLastBuild() != null) {
+            baseline = (SVNRevisionState) calcRevisionsFromBuild(project.getLastBuild(), launcher != null ? workspace
+                    : null, launcher, listener);
         } else {
             baseline = new SVNRevisionState(null);
         }
 
+        // The job was never built before
         if (project.getLastBuild() == null) {
             listener.getLogger().println(Messages.SubversionSCM_pollChanges_noBuilds());
             return BUILD_NOW;
-        }
-
-        Run<?,?> lastCompletedBuild = project.getLastCompletedBuild();
-
-        if (lastCompletedBuild!=null) {
-            EnvVars env = lastCompletedBuild.getEnvironment(listener);
-            if (lastCompletedBuild instanceof AbstractBuild) {
-                EnvVarsUtils.overrideAll(env, ((AbstractBuild) lastCompletedBuild).getBuildVariables());
-            }
-            if (project instanceof AbstractProject && repositoryLocationsNoLongerExist(lastCompletedBuild, listener, env)) {
-                // Disable this project, see HUDSON-763
-                listener.getLogger().println(Messages.SubversionSCM_pollChanges_locationsNoLongerExist(project));
-                disableProject((AbstractProject) project, listener);
-                return NO_CHANGES;
-            }
-
-            // are the locations checked out in the workspace consistent with the current configuration?
-            for (ModuleLocation loc : getLocations(env, lastCompletedBuild)) {
-                // baseline.revisions has URIdecoded URL
-                String url;
-                try {
-                    url = loc.getSVNURL().toDecodedString();
-                } catch (SVNException ex) {
-                    ex.printStackTrace(listener.error(Messages.SubversionSCM_pollChanges_exception(loc.getURL())));
-                    return BUILD_NOW;
-                }
-                if (!baseline.revisions.containsKey(url)) {
-                    listener.getLogger().println(Messages.SubversionSCM_pollChanges_locationNotInWorkspace(url));
-                    return BUILD_NOW;
-                }
-            }
         }
 
         String nodeName = "master";
@@ -1388,10 +1361,6 @@ public class SubversionSCM extends SCM implements Serializable {
             channel = FilePath.localChannel;
         }
 
-        final SVNLogHandler logHandler = new SVNLogHandler(createSVNLogFilter(), listener);
-
-        final Map<String,ISVNAuthenticationProvider> authProviders = new LinkedHashMap<String, ISVNAuthenticationProvider>();
-
         Node node;
         if (nodeName.equals("master")) {
             node = Jenkins.getInstance();
@@ -1403,7 +1372,39 @@ public class SubversionSCM extends SCM implements Serializable {
         // Right way to get the environment variables when we do polling. http://tinyurl.com/o2o2kg9
         EnvVars env = project.getEnvironment(node, listener);
 
-        for (ModuleLocation loc: getLocations(env, null)) {
+        Run<?, ?> lastCompletedBuild = project.getLastCompletedBuild();
+
+        if (lastCompletedBuild != null) {
+            if (project instanceof AbstractProject && repositoryLocationsNoLongerExist(lastCompletedBuild, listener, env)) {
+                // Disable this project, see HUDSON-763
+                listener.getLogger().println(Messages.SubversionSCM_pollChanges_locationsNoLongerExist(project));
+                disableProject((AbstractProject) project, listener);
+                return NO_CHANGES;
+            }
+
+            // Are the locations checked out in the workspace consistent with the current configuration?
+            for (ModuleLocation loc : getLocations(env, lastCompletedBuild)) {
+                // baseline.revisions has URIdecoded URL
+                String url;
+                try {
+                    url = loc.getSVNURL().toDecodedString();
+                } catch (SVNException ex) {
+                    listener.error(Messages.SubversionSCM_pollChanges_exception(loc.getURL()));
+                    return BUILD_NOW;
+                }
+                if (!baseline.revisions.containsKey(url)) {
+                    listener.getLogger().println(Messages.SubversionSCM_pollChanges_locationNotInWorkspace(url));
+                    return BUILD_NOW;
+                }
+            }
+        }
+
+        final SVNLogHandler logHandler = new SVNLogHandler(createSVNLogFilter(), listener);
+
+        final Map<String, ISVNAuthenticationProvider> authProviders = new LinkedHashMap<String,
+                ISVNAuthenticationProvider>();
+
+        for (ModuleLocation loc : getLocations(env, null)) {
             String url;
             try {
                 url = loc.getExpandedLocation(project).getSVNURL().toDecodedString();
@@ -1416,7 +1417,8 @@ public class SubversionSCM extends SCM implements Serializable {
         final ISVNAuthenticationProvider defaultAuthProvider = createAuthenticationProvider(project, null);
 
         // figure out the remote revisions
-        return channel.call(new CompareAgainstBaselineCallable(baseline, logHandler, project.getName(), listener, defaultAuthProvider, authProviders, nodeName));
+        return channel.call(new CompareAgainstBaselineCallable(baseline, logHandler, project.getName(), listener,
+                defaultAuthProvider, authProviders, nodeName));
     }
 
     public SVNLogFilter createSVNLogFilter() {
