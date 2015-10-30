@@ -24,6 +24,8 @@ import org.tmatesoft.svn.core.auth.*;
 
 import javax.security.auth.DestroyFailedException;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
@@ -389,6 +391,71 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
         }
     }
 
+    /**
+     * Wrapper to allow certificate master/slave transit as byte array.
+     * As SVNKit API only support certificate file on disk, this content is written
+     * in a temporary file.
+     * TODO: add support to clean this temporary files more often the JVM restart
+     */
+    public static class RemoteSVNSSLAuthentication extends SVNSSLAuthentication {
+        private final byte[] certificate;
+        private File temporaryCertificateFile;
+        private String certificatePath;
+
+        public RemoteSVNSSLAuthentication(byte[] certificate, String password, SVNURL url) {
+            super((File)null, password, false, url, false);
+            this.certificate = certificate.clone();
+        }
+
+        public File getCertificateFile() {
+            FileOutputStream fos = null;
+            if (temporaryCertificateFile == null) {
+                try {
+                    temporaryCertificateFile = File.createTempFile("jenkins-subversion-sslcert", ".p12");
+
+                    fos = new FileOutputStream(temporaryCertificateFile);
+                    fos.write(certificate);
+                    temporaryCertificateFile.deleteOnExit();
+
+                } catch(IOException ioe) {
+                    if (temporaryCertificateFile != null) {
+                        if (!temporaryCertificateFile.delete()) {
+                            temporaryCertificateFile.deleteOnExit();
+                        }
+                    }
+                    temporaryCertificateFile = null;
+                    // Then let authentication fails as is
+                } finally {
+                    if (fos != null) {
+                        try {
+                            fos.close();
+                        } catch (IOException e) {
+                            fos = null;
+                        }
+                    }
+                }
+            }
+            return temporaryCertificateFile;
+        }
+
+        @Override
+        public String getCertificatePath() {
+            if (certificatePath != null) {
+                return certificatePath;
+            } else {
+                File target = getCertificateFile();
+                if (target != null && target.exists()) {
+                    return target.getAbsolutePath();
+                }
+            }
+            return null;
+        }
+
+        public void setCertificatePath(String path) {
+            this.certificatePath = path;
+        }
+    }
+
     public static class SVNCertificateAuthenticationBuilder implements SVNAuthenticationBuilder {
         private static final long serialVersionUID = 1L;
 
@@ -454,9 +521,8 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
 
         public List<SVNAuthentication> build(String kind, SVNURL url) {
             if (ISVNAuthenticationManager.SSL.equals(kind)) {
-                SVNSSLAuthentication authentication =
-                        new SVNSSLAuthentication(String.valueOf(certificateFile), Scrambler.descramble(password), false, url, false);
-                authentication.setCertificatePath("dummy"); // TODO: remove this JENKINS-19175 workaround
+                RemoteSVNSSLAuthentication authentication =
+                        new RemoteSVNSSLAuthentication(certificateFile, Scrambler.descramble(password), url);
                 return Collections.<SVNAuthentication>singletonList(
                         authentication);
             }
