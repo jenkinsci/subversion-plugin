@@ -3075,20 +3075,20 @@ public class SubversionSCM extends SCM implements Serializable {
              * Validate the value for a remote (repository) location.
              */
             public FormValidation checkCredentialsId(StaplerRequest req, @Nonnull Item context, String remote, String value) {
-                // if check remote is reporting an issue then we don't need to
                 String url = Util.fixEmptyAndTrim(remote);
                 if (url == null) {
                     return FormValidation.ok();
                 }
 
-                if (descriptor().isValidateRemoteUpToVar()) {
-                    url = (url.indexOf('$') != -1) ? url.substring(0, url.indexOf('$')) : url;
-                } else {
-                    url = new EnvVars(EnvVars.masterEnvVars).expand(url);
-                }
-
+                // TODO: It would be interesting to include global variables.
+                url = new EnvVars(EnvVars.masterEnvVars).expand(url);
                 if (!URL_PATTERN.matcher(url).matches()) {
                     return FormValidation.ok();
+                }
+
+                // Is the URL repository parameterized?
+                if (url.indexOf('$') != -1) {
+                    return FormValidation.warning("This repository has a parameterized URL, validation skipped.");
                 }
 
                 try {
@@ -3147,15 +3147,8 @@ public class SubversionSCM extends SCM implements Serializable {
                         }
                     }
                 } catch (SVNException e) {
-                    LOGGER.log(Level.INFO, "Failed to access subversion repository: " + url, e);
-                    String message = Messages.SubversionSCM_doCheckRemote_exceptionMsg1(
-                            Util.escape(url), Util.escape(e.getErrorMessage().getFullMessage()),
-                            "javascript:document.getElementById('svnerror').style.display='block';"
-                                    + "document.getElementById('svnerrorlink').style.display='none';"
-                                    + "return false;")
-                            + "<br/><pre id=\"svnerror\" style=\"display:none\">"
-                            + Functions.printThrowable(e) + "</pre>";
-                    return FormValidation.errorWithMarkup(message);
+                    LOGGER.log(Level.WARNING, "Unable to access to subversion repository. " + e.getMessage());
+                    return FormValidation.warning("Unable to access to subversion repository");
                 }
             }
 
