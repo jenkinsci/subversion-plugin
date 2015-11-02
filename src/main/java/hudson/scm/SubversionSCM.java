@@ -3086,9 +3086,9 @@ public class SubversionSCM extends SCM implements Serializable {
                     return FormValidation.ok();
                 }
 
-                // Is the URL repository parameterized?
+                // Is the repository URL parameterized?
                 if (url.indexOf('$') != -1) {
-                    return FormValidation.warning("This repository has a parameterized URL, validation skipped.");
+                    return FormValidation.warning("This repository URL is parameterized, validation skipped.");
                 }
 
                 try {
@@ -3147,8 +3147,8 @@ public class SubversionSCM extends SCM implements Serializable {
                         }
                     }
                 } catch (SVNException e) {
-                    LOGGER.log(Level.WARNING, "Unable to access to subversion repository. " + e.getMessage());
-                    return FormValidation.warning("Unable to access to subversion repository");
+                    LOGGER.log(Level.SEVERE, "Unable to access to subversion repository. " + e.getMessage());
+                    return FormValidation.error("Unable to access to subversion repository");
                 }
             }
 
