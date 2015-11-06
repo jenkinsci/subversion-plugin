@@ -454,9 +454,10 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
 
         public List<SVNAuthentication> build(String kind, SVNURL url) {
             if (ISVNAuthenticationManager.SSL.equals(kind)) {
-                SVNSSLAuthentication authentication =
-                        new SVNSSLAuthentication(String.valueOf(certificateFile), Scrambler.descramble(password), false, url, false);
-                authentication.setCertificatePath("dummy"); // TODO: remove this JENKINS-19175 workaround
+                SVNSSLAuthentication authentication = SVNSSLAuthentication.newInstance(
+                        certificateFile,
+                        Scrambler.descramble(password).toCharArray(),
+                        false, url, false);
                 return Collections.<SVNAuthentication>singletonList(
                         authentication);
             }

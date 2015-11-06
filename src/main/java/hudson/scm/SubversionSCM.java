@@ -1993,10 +1993,10 @@ public class SubversionSCM extends SCM implements Serializable {
             public SVNAuthentication createSVNAuthentication(String kind) {
                 if(kind.equals(ISVNAuthenticationManager.SSL))
                     try {
-                        SVNSSLAuthentication authentication = new SVNSSLAuthentication(
-                                String.valueOf(Base64.decode(certificate.getPlainText().toCharArray())),
-                                Scrambler.descramble(Secret.toString(password)), false, null, false);
-                        authentication.setCertificatePath("dummy"); // TODO: remove this JENKINS-19175 workaround
+                        SVNSSLAuthentication authentication = SVNSSLAuthentication.newInstance(
+                                Base64.decode(certificate.getPlainText().toCharArray()),
+                                Scrambler.descramble(Secret.toString(password)).toCharArray(),
+                                false, null, false);
                         return authentication;
                     } catch (IOException e) {
                         throw new Error(e); // can't happen
