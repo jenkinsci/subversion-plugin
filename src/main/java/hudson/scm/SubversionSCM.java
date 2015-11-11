@@ -54,6 +54,7 @@ import com.cloudbees.plugins.credentials.domains.SchemeSpecification;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.cloudbees.plugins.credentials.impl.CertificateCredentialsImpl;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
+
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.BulkChange;
@@ -95,19 +96,24 @@ import hudson.scm.subversion.UpdateWithRevertUpdater;
 import hudson.scm.subversion.WorkspaceUpdater;
 import hudson.scm.subversion.WorkspaceUpdater.UpdateTask;
 import hudson.scm.subversion.WorkspaceUpdaterDescriptor;
+import hudson.util.AbstractTaskListener;
 import hudson.util.EditDistance;
 import hudson.util.FormValidation;
+import hudson.util.IOException2;
 import hudson.util.LogTaskListener;
 import hudson.util.MultipartFormDataParser;
 import hudson.util.Scrambler;
 import hudson.util.Secret;
+import hudson.util.StreamTaskListener;
 import hudson.util.TimeUnit2;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
@@ -129,6 +135,12 @@ import java.util.Random;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.UUID;
+import java.util.concurrent.AbstractExecutorService;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
@@ -177,9 +189,13 @@ import org.tmatesoft.svn.core.wc.SVNRevision;
 import org.tmatesoft.svn.core.wc.SVNWCClient;
 import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Lists;
 import com.trilead.ssh2.DebugLogger;
 import com.trilead.ssh2.SCPClient;
 import com.trilead.ssh2.crypto.Base64;
+
 import javax.annotation.Nonnull;
 
 /**
@@ -202,7 +218,21 @@ import javax.annotation.Nonnull;
  */
 @SuppressWarnings("rawtypes")
 public class SubversionSCM extends SCM implements Serializable {
-    /**
+
+    private static final int MAX_CHECKOUT_THREADS;
+    static {
+    	String prop = System.getProperty("jenkins.subversion-plugin.maxCheckoutThreads", "4");
+    	int nr;
+    	try {
+    		nr = Integer.parseInt(prop);
+    	} catch (NumberFormatException e) {
+    		nr = 4;
+    	}
+    	
+    	MAX_CHECKOUT_THREADS = nr > 0 ? nr : 1;
+    }
+
+	/**
      * the locations field is used to store all configured SVN locations (with
      * their local and remote part). Direct access to this field should be
      * avoided and the getLocations() method should be used instead. This is
@@ -873,7 +903,7 @@ public class SubversionSCM extends SCM implements Serializable {
      *      if the operation failed. Otherwise the set of local workspace paths
      *      (relative to the workspace root) that has loaded due to svn:external.
      */
-    private List<External> checkout(Run build, FilePath workspace, TaskListener listener, EnvVars env) throws IOException, InterruptedException {
+    private List<External> checkout(final Run build, final FilePath workspace, final TaskListener listener, final EnvVars env) throws IOException, InterruptedException {
         if (repositoryLocationsNoLongerExist(build, listener, env)) {
             Run lsb = build.getParent().getLastSuccessfulBuild();
             if (build instanceof AbstractBuild && lsb != null && build.getNumber()-lsb.getNumber()>10
@@ -890,21 +920,54 @@ public class SubversionSCM extends SCM implements Serializable {
             }
         }
 
-        List<External> externals = new ArrayList<External>();
+        final List<External> externals = Collections.synchronizedList(new ArrayList<External>());
         Set<String> unauthenticatedRealms = new LinkedHashSet<String>();
-        for (ModuleLocation location : getLocations(env, build)) {
-            CheckOutTask checkOutTask =
-                    new CheckOutTask(build, this, location, build.getTimestamp().getTime(), listener, env);
-            externals.addAll(workspace.act(checkOutTask));
-            unauthenticatedRealms.addAll(checkOutTask.getUnauthenticatedRealms());
-            // olamy: remove null check at it cause test failure
-            // see https://github.com/jenkinsci/subversion-plugin/commit/de23a2b781b7b86f41319977ce4c11faee75179b#commitcomment-1551273
-            /*if ( externalsFound != null ){
-                externals.addAll(externalsFound);
-            } else {
-                externals.addAll( new ArrayList<External>( 0 ) );
-            }*/
+        
+        ModuleLocation[] expandedLocations = getLocations(env, build);
+        
+        checkForLocationDuplicatesOrOverlaps(expandedLocations,listener);
+        
+        int numberOfExecutors = Math.min(MAX_CHECKOUT_THREADS, expandedLocations.length);
+        
+        final ExecutorService service;
+        
+        if (numberOfExecutors > 1) {
+        	 service = Executors.newFixedThreadPool(numberOfExecutors);
+        	 listener.getLogger().println("checking out/updating with " + numberOfExecutors + " parallel threads");
+        } else {
+        	 service = new CurrentThreadExecutorService();
         }
+        
+        @SuppressWarnings("deprecation")
+		final TaskListener syncedListener = new StreamTaskListener(new SynchronizedPrintStream(listener.getLogger()));
+        
+        final Set<String> synchronizedUnauthenticatedRealms = Collections.synchronizedSet(unauthenticatedRealms);
+        
+        List<java.util.concurrent.Callable<Void>> callables = Lists.newArrayListWithExpectedSize(expandedLocations.length);
+        for (final ModuleLocation location : expandedLocations) {
+        	callables.add(new java.util.concurrent.Callable<Void>() {
+				
+				public Void call() throws Exception {
+					CheckOutTask checkOutTask =
+		                    new CheckOutTask(build, SubversionSCM.this, location, build.getTimestamp().getTime(), syncedListener, env);
+					externals.addAll(workspace.act(checkOutTask));
+					synchronizedUnauthenticatedRealms.addAll(checkOutTask.getUnauthenticatedRealms());
+					return null;
+				}
+			});
+        }
+        
+        List<Future<Void>> futures = service.invokeAll(callables);
+        for (Future<Void> future : futures) {
+        	
+            try {
+				future.get();
+			} catch (ExecutionException e) {
+				throw new IOException(e);
+			}
+        }
+        service.shutdownNow();
+        
         if (additionalCredentials != null) {
             for (AdditionalCredentials c : additionalCredentials) {
                 unauthenticatedRealms.remove(c.getRealm());
@@ -933,6 +996,127 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         return externals;
+    }
+    
+    /**
+     * Checks that there a no 2 locations which try to checkout to the same local location, 
+     * as that may cause E200030: BUSY errors.
+     */
+    static boolean checkForLocationDuplicatesOrOverlaps(ModuleLocation[] expandedLocations,
+            TaskListener listener) {
+        if (expandedLocations.length < 2) {
+            return false;
+        }
+        
+        Set<String> localPaths = new HashSet<String>();
+        for (ModuleLocation loc : expandedLocations) {
+        	
+        	String locationPath = loc.getLocalDir();
+        	if (!locationPath.endsWith("/")) {
+        		locationPath += "/";
+        	}
+        	
+        	for (String path : localPaths) {
+        		if (path.startsWith(locationPath) || locationPath.startsWith(path)) {
+        			listener.getLogger().println("WARN: you have 2 repository locations with overlapping local checkout paths: "
+        		            +path+", "+locationPath
+                            +".\n This may cause subsequent errors - e.g. E200030: BUSY");
+                    return true;
+        		}
+        	}
+        	
+        	localPaths.add(locationPath);
+        }
+        
+        return false;
+    }
+
+    /**
+     * {@link PrintStream} which is synchronized on line level.
+     * 
+     * @author ckutz
+     */
+    private static class SynchronizedPrintStream extends PrintStream {
+
+		public SynchronizedPrintStream(OutputStream out) {
+			super(out);
+		}
+
+		@Override
+		public synchronized void println(boolean x) {
+			super.println(x);
+		}
+
+		@Override
+		public synchronized void println(char x) {
+			super.println(x);
+		}
+
+		@Override
+		public synchronized void println(int x) {
+			super.println(x);
+		}
+
+		@Override
+		public synchronized void println(long x) {
+			super.println(x);
+		}
+
+		@Override
+		public synchronized void println(float x) {
+			super.println(x);
+		}
+
+		@Override
+		public synchronized void println(double x) {
+			super.println(x);
+		}
+
+		@Override
+		public synchronized void println(char[] x) {
+			super.println(x);
+		}
+
+		@Override
+		public synchronized void println(String x) {
+			super.println(x);
+		}
+
+		@Override
+		public synchronized void println(Object x) {
+			super.println(x);
+		}
+    }
+    
+    private static class CurrentThreadExecutorService extends AbstractExecutorService {
+
+    	private boolean terminated = false;
+    	
+		public void shutdown() {
+			terminated = true;
+		}
+
+		public List<Runnable> shutdownNow() {
+			terminated = true;
+			return Collections.emptyList();
+		}
+
+		public boolean isShutdown() {
+			return terminated;
+		}
+
+		public boolean isTerminated() {
+			return terminated;
+		}
+
+		public boolean awaitTermination(long timeout, TimeUnit unit)
+				throws InterruptedException {
+			return true;
+		}
+
+		public void execute(Runnable command) {
+			command.run();
+		}
     }
 
     private synchronized Map<Job, List<External>> getProjectExternalsCache() {

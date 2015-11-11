@@ -12,14 +12,17 @@ import hudson.FilePath;
 import hudson.model.AbstractBuild;
 import hudson.remoting.VirtualChannel;
 import hudson.scm.SubversionSCM.ModuleLocation;
+import hudson.util.StreamTaskListener;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Test;
 import org.jvnet.hudson.test.Bug;
+import org.jvnet.hudson.test.Url;
 
 /**
  * Unit tests for {@link SubversionSCM}.
@@ -103,6 +106,32 @@ public class SubversionSCMUnitTest {
         
         assertThat(envVars.get("SVN_URL_2"), is("/remotepath2"));
         assertThat(envVars.get("SVN_REVISION_2"), is("42"));
+    }
+    
+    @Test
+    @Url("https://github.com/jenkinsci/subversion-plugin/pull/110#issuecomment-73030817")
+    public void shouldDetectOverlappingModules() {
+    	ModuleLocation[] locations = new ModuleLocation[2];
+    	locations[0] = new ModuleLocation("", null, "/trunk", null, false);
+    	
+    	locations[1] = new ModuleLocation("", null, "/trunk/someSubPath/", null, false);
+    	
+    	boolean foundDuplicates = SubversionSCM.checkForLocationDuplicatesOrOverlaps(locations, new StreamTaskListener(System.out));
+    	
+    	assertThat(foundDuplicates, is(true));
+    }
+    
+    @Test
+    @Url("https://github.com/jenkinsci/subversion-plugin/pull/110#issuecomment-73030817")
+    public void shouldNotBeConfusedByPartialDirectoryNameMatch() {
+    	ModuleLocation[] locations = new ModuleLocation[2];
+    	locations[0] = new ModuleLocation("", null, "/trunk/someSubPath", null, false);
+    	
+    	locations[1] = new ModuleLocation("", null, "/trunk/someSubPath_and_more/", null, false);
+    	
+    	boolean foundDuplicates = SubversionSCM.checkForLocationDuplicatesOrOverlaps(locations, new StreamTaskListener(System.out));
+    	
+    	assertThat(foundDuplicates, is(false));
     }
     
     private SubversionSCM mockSCMForBuildEnvVars() {
