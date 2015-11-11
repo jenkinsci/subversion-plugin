@@ -65,4 +65,40 @@ public class ListSubversionTagsParameterDefinitionTest extends AbstractSubversio
             }
         });
     }
+
+    
+    /**
+     * Make sure we are giving the tag matched when default empty and maxTags is 1.
+     */
+    @Bug(14155)
+    public void testDefaultFromTags() throws Exception {
+        Proc p = runSvnServe(getClass().getResource("JENKINS-14155.zip"));
+        try {
+            ListSubversionTagsParameterDefinition def = new ListSubversionTagsParameterDefinition("FOO", "svn://localhost/tags/"
+			, "(.*)" // tagsFilter
+			, ""     // defaultValue => Needs to be empty
+			, "1"    // maxTags => Needs to set to one
+			, true   // reverseByDate, so we will get the most recent item
+			, false  
+			, null);
+            List<String> tags = def.getTags();
+            List<String> expected = Arrays.asList("d");
+            
+            if (!expected.equals(tags))  {
+                // retry. Maybe the svnserve just didn't start up correctly, yet
+                System.out.println("First attempt failed. Retrying.");
+                Thread.sleep(300L);
+                tags = def.getTags();
+                if (!expected.equals(tags))  {
+                    dumpRepositoryContents();
+                
+                    Assert.fail("Expected " + expected + ", but got " + tags);
+                }
+            }
+            
+        } finally {
+            p.kill();
+        }
+
+    }
 }

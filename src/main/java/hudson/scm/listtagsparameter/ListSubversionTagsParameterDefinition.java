@@ -144,6 +144,9 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
   @Override
   public ParameterValue getDefaultParameterValue() {
     if (StringUtils.isEmpty(this.defaultValue)) {
+      if ( isInt(this.maxTags) && Integer.parseInt(this.maxTags) == 1 ){
+        return new ListSubversionTagsParameterValue(getName(), getTagsDir(), this.getTags().get(0));
+      }
       return null;
     }
     return new ListSubversionTagsParameterValue(getName(), getTagsDir(), this.defaultValue);
