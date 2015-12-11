@@ -141,13 +141,17 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
     return value;
   }
   
-  @Override
-  public ParameterValue getDefaultParameterValue() {
-    if (StringUtils.isEmpty(this.defaultValue)) {
-      return null;
+    @Override
+    public ParameterValue getDefaultParameterValue() {
+        if (StringUtils.isEmpty(this.defaultValue)) {
+            List<String> tags = getTags(null);
+            if (tags.size() > 0) {
+              return new ListSubversionTagsParameterValue(getName(), getTagsDir(), tags.get(0));
+            }
+            return null;
+        }
+        return new ListSubversionTagsParameterValue(getName(), getTagsDir(), this.defaultValue);
     }
-    return new ListSubversionTagsParameterValue(getName(), getTagsDir(), this.defaultValue);
-  }
 
   @Override
   public DescriptorImpl getDescriptor() {
