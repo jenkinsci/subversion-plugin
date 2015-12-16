@@ -61,7 +61,6 @@ import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.FilePath.FileCallable;
-import hudson.Functions;
 import hudson.Launcher;
 import hudson.Util;
 import hudson.init.InitMilestone;
@@ -95,7 +94,6 @@ import hudson.scm.subversion.UpdateWithRevertUpdater;
 import hudson.scm.subversion.WorkspaceUpdater;
 import hudson.scm.subversion.WorkspaceUpdater.UpdateTask;
 import hudson.scm.subversion.WorkspaceUpdaterDescriptor;
-import hudson.util.EditDistance;
 import hudson.util.FormValidation;
 import hudson.util.LogTaskListener;
 import hudson.util.MultipartFormDataParser;
@@ -164,7 +162,6 @@ import org.tmatesoft.svn.core.internal.io.dav.DAVRepositoryFactory;
 import org.tmatesoft.svn.core.internal.io.dav.http.DefaultHTTPConnectionFactory;
 import org.tmatesoft.svn.core.internal.io.fs.FSRepositoryFactory;
 import org.tmatesoft.svn.core.internal.io.svn.SVNRepositoryFactoryImpl;
-import org.tmatesoft.svn.core.internal.util.SVNPathUtil;
 import org.tmatesoft.svn.core.internal.wc.DefaultSVNOptions;
 import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminAreaFactory;
 import org.tmatesoft.svn.core.io.SVNCapability;
@@ -2291,8 +2288,7 @@ public class SubversionSCM extends SCM implements Serializable {
             if (instance != null) {
                 ModuleLocation.DescriptorImpl d = instance.getDescriptorByType(ModuleLocation.DescriptorImpl.class);
                 if (d != null) {
-                    return d.doCheckCredentialsId(
-                            req, context, value, credentialsId);
+                    return d.doCheckCredentialsId(req, context, value, credentialsId);
                 }
             }
 
@@ -2316,7 +2312,8 @@ public class SubversionSCM extends SCM implements Serializable {
             SVNRepository repository = null;
 
             try {
-                repository = getRepository(context,repoURL,credentials, Collections.<String, Credentials>emptyMap(), null);
+                repository = getRepository(context, repoURL, credentials, Collections.<String, Credentials>emptyMap(),
+                        null);
                 repository.testConnection();
 
                 long rev = repository.getLatestRevision();
@@ -2336,8 +2333,9 @@ public class SubversionSCM extends SCM implements Serializable {
                 }
                 throw e;
             } finally {
-                if (repository != null)
+                if (repository != null) {
                     repository.closeSession();
+                }
             }
         }
 
@@ -3002,7 +3000,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
             @Override
             public String getDisplayName() {
-                return null;  //To change body of implemented methods use File | Settings | File Templates.
+                return null;
             }
 
             public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context, @QueryParameter String remote) {
@@ -3040,20 +3038,23 @@ public class SubversionSCM extends SCM implements Serializable {
             public FormValidation doCheckRemote(StaplerRequest req, @AncestorInPath Item context,
                     @QueryParameter String remote) {
 
-                // syntax check first
+                // repository URL is required
                 String url = Util.fixEmptyAndTrim(remote);
                 if (url == null) {
                     return FormValidation.error(Messages.SubversionSCM_doCheckRemote_required());
                 }
 
-                if (descriptor().isValidateRemoteUpToVar()) {
-                    url = (url.indexOf('$') != -1) ? url.substring(0, url.indexOf('$')) : url;
-                } else {
-                    url = new EnvVars(EnvVars.masterEnvVars).expand(url);
+                // Is the repository URL parameterized?
+                if (url.indexOf('$') != -1) {
+                    return FormValidation.warning("This repository URL is parameterized, syntax validation skipped");
                 }
 
-                if (!URL_PATTERN.matcher(url).matches()) {
-                    return FormValidation.errorWithMarkup(Messages.SubversionSCM_doCheckRemote_invalidUrl());
+                // repository URL syntax
+                try {
+                    SVNURL.parseURIEncoded(url);
+                } catch (SVNException svne) {
+                    LOGGER.log(Level.SEVERE, svne.getMessage());
+                    return FormValidation.error(Messages.SubversionSCM_doCheckRemote_invalidUrl());
                 }
                 return FormValidation.ok();
             }
@@ -3075,81 +3076,27 @@ public class SubversionSCM extends SCM implements Serializable {
              * Validate the value for a remote (repository) location.
              */
             public FormValidation checkCredentialsId(StaplerRequest req, @Nonnull Item context, String remote, String value) {
-                String url = Util.fixEmptyAndTrim(remote);
-                if (url == null) {
-                    return FormValidation.ok();
-                }
-
-                // TODO: It would be interesting to include global variables.
-                url = new EnvVars(EnvVars.masterEnvVars).expand(url);
-                if (!URL_PATTERN.matcher(url).matches()) {
-                    return FormValidation.ok();
-                }
 
                 // Is the repository URL parameterized?
-                if (url.indexOf('$') != -1) {
-                    return FormValidation.warning("This repository URL is parameterized, validation skipped.");
+                if (remote.indexOf('$') != -1) {
+                    return FormValidation.warning("The repository URL is parameterized, connection check skipped");
                 }
 
                 try {
-                    String urlWithoutRevision = SvnHelper.getUrlWithoutRevision(url);
-
-                    SVNURL repoURL = SVNURL.parseURIDecoded(urlWithoutRevision);
-
+                    SVNURL repoURL = SVNURL.parseURIEncoded(remote);
                     StandardCredentials credentials = lookupCredentials(context, value, repoURL);
-                    if (descriptor().checkRepositoryPath(context, repoURL, credentials) != SVNNodeKind.NONE) {
-                        // something exists; now check revision if any
-
-                        SVNRevision revision = getRevisionFromRemoteUrl(url);
-                        if (revision != null && !revision.isValid()) {
-                            return FormValidation.errorWithMarkup(Messages.SubversionSCM_doCheckRemote_invalidRevision());
-                        }
-
-                        return FormValidation.ok();
-                    }
-
-                    SVNRepository repository = null;
-                    try {
-                        repository = descriptor().getRepository(context, repoURL, credentials, Collections.<String,
-                                Credentials>emptyMap(), null);
-                        long rev = repository.getLatestRevision();
-                        // now go back the tree and find if there's anything that exists
-                        String repoPath = descriptor().getRelativePath(repoURL, repository);
-                        String p = repoPath;
-                        while (p.length() > 0) {
-                            p = SVNPathUtil.removeTail(p);
-                            if (repository.checkPath(p, rev) == SVNNodeKind.DIR) {
-                                // found a matching path
-                                List<SVNDirEntry> entries = new ArrayList<SVNDirEntry>();
-                                repository.getDir(p, rev, false, entries);
-
-                                // build up the name list
-                                List<String> paths = new ArrayList<String>();
-                                for (SVNDirEntry e : entries) {
-                                    if (e.getKind() == SVNNodeKind.DIR) {
-                                        paths.add(e.getName());
-                                    }
-                                }
-
-                                String head = SVNPathUtil.head(repoPath.substring(p.length() + 1));
-                                String candidate = EditDistance.findNearest(head, paths);
-
-                                return FormValidation.error(
-                                        Messages.SubversionSCM_doCheckRemote_badPathSuggest(p, head,
-                                                candidate != null ? "/" + candidate : ""));
-                            }
-                        }
-
-                        return FormValidation.error(Messages.SubversionSCM_doCheckRemote_badPath(repoPath));
-                    } finally {
-                        if (repository != null) {
-                            repository.closeSession();
-                        }
+                    SVNRepository repo = descriptor().getRepository(context, repoURL, credentials, Collections.<String, Credentials>emptyMap(), null);
+                    String repoRoot = repo.getRepositoryRoot(false).toString();
+                    String repoPath = repo.getLocation().toString().substring(repoRoot.length());
+                    SVNNodeKind svnNodeKind = repo.checkPath(repoPath, SVNRevision.HEAD.getNumber());
+                    if (svnNodeKind != SVNNodeKind.DIR) {
+                        return FormValidation.error("Credentials looks fine but the repository URL is invalid");
                     }
                 } catch (SVNException e) {
-                    LOGGER.log(Level.SEVERE, "Unable to access to subversion repository. " + e.getMessage());
-                    return FormValidation.error("Unable to access to subversion repository");
+                    LOGGER.log(Level.SEVERE, e.getErrorMessage().getMessage());
+                    return FormValidation.error("Unable to access to repository");
                 }
+                return FormValidation.ok();
             }
 
             /**
@@ -3249,9 +3196,10 @@ public class SubversionSCM extends SCM implements Serializable {
      * Gets the revision from a remote URL - i.e. the part after '@' if any
      *
      * @return the revision or null
+     *
+     * TODO: This method should be in {@link SVNURL}.
      */
-    private static SVNRevision getRevisionFromRemoteUrl(
-            String remoteUrlPossiblyWithRevision) {
+    private static SVNRevision getRevisionFromRemoteUrl(String remoteUrlPossiblyWithRevision) {
         int idx = remoteUrlPossiblyWithRevision.lastIndexOf('@');
         int slashIdx = remoteUrlPossiblyWithRevision.lastIndexOf('/');
         if (idx > 0 && idx > slashIdx) {
