@@ -37,6 +37,7 @@ import org.apache.commons.io.IOUtils;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
+import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.SVNException;
 
@@ -293,6 +294,8 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                     }
                     }
 
+                } catch (SVNCancelException e) {
+                    LOGGER.log(WARNING, "Failed to handle Subversion commit notification. If you are using svn:externals feature ensure that the credentials of the externals are added on the Additional Credentials field", e);
                 } catch (SVNException e) {
                     LOGGER.log(WARNING, "Failed to handle Subversion commit notification", e);
                 } catch (IOException e) {
