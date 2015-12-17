@@ -154,18 +154,21 @@ public final class SubversionChangeLogBuilder {
     private boolean buildModule(PathContext context, SVNLogClient svnlc, DirAwareSVNXMLLogHandler logHandler) throws IOException2 {
         String url = context.url;
         PrintStream logger = listener.getLogger();
+
         Long prevRev = previousRevisions.get(url);
-        if(prevRev==null) {
-            logger.println("no revision recorded for "+url+" in the previous build");
+        if (prevRev == null) {
+            logger.println("No revision recorded for " + url + " in the previous build");
             return false;
         }
+
         Long thisRev = thisRevisions.get(url);
         if (thisRev == null) {
-            listener.error("No revision found for URL: " + url + " in " + SubversionSCM.getRevisionFile(build) + ". Revision file contains: " + thisRevisions.keySet());
+            listener.error("No revision found for " + url + " in " + SubversionSCM.getRevisionFile(build) + ". Revision file contains: " + thisRevisions.keySet());
             return false;
         }
-        if(thisRev.equals(prevRev)) {
-            logger.println("no change for "+url+" since the previous build");
+
+        if (thisRev.equals(prevRev)) {
+            logger.println("No changes for " + url + " since the previous build");
             return false;
         }
 
