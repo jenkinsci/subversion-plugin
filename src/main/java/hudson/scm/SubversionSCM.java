@@ -77,11 +77,9 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.WeakHashMap;
 
-import hudson.remoting.LocalChannel;
 import hudson.security.ACL;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
-import jenkins.model.Jenkins.MasterComputer;
 import hudson.remoting.Callable;
 import hudson.remoting.Channel;
 import hudson.remoting.VirtualChannel;
@@ -163,6 +161,7 @@ import org.tmatesoft.svn.core.internal.io.dav.http.DefaultHTTPConnectionFactory;
 import org.tmatesoft.svn.core.internal.io.fs.FSRepositoryFactory;
 import org.tmatesoft.svn.core.internal.io.svn.SVNRepositoryFactoryImpl;
 import org.tmatesoft.svn.core.internal.wc.DefaultSVNOptions;
+import org.tmatesoft.svn.core.internal.wc.SVNPath;
 import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminAreaFactory;
 import org.tmatesoft.svn.core.io.SVNCapability;
 import org.tmatesoft.svn.core.io.SVNRepository;
@@ -3077,6 +3076,12 @@ public class SubversionSCM extends SCM implements Serializable {
              */
             public FormValidation checkCredentialsId(StaplerRequest req, @Nonnull Item context, String remote, String value) {
 
+                // Ignore validation if repository URL is empty
+                String url = Util.fixEmptyAndTrim(remote);
+                if (url == null) {
+                    return FormValidation.ok();
+                }
+
                 // Is the repository URL parameterized?
                 if (remote.indexOf('$') != -1) {
                     return FormValidation.warning("The repository URL is parameterized, connection check skipped");
@@ -3085,10 +3090,12 @@ public class SubversionSCM extends SCM implements Serializable {
                 try {
                     SVNURL repoURL = SVNURL.parseURIEncoded(remote);
                     StandardCredentials credentials = lookupCredentials(context, value, repoURL);
-                    SVNRepository repo = descriptor().getRepository(context, repoURL, credentials, Collections.<String, Credentials>emptyMap(), null);
+                    SVNRepository repo = descriptor().getRepository(context, repoURL, credentials, Collections
+                            .<String, Credentials>emptyMap(), null);
                     String repoRoot = repo.getRepositoryRoot(false).toString();
                     String repoPath = repo.getLocation().toString().substring(repoRoot.length());
-                    SVNNodeKind svnNodeKind = repo.checkPath(repoPath, SVNRevision.HEAD.getNumber());
+                    SVNPath path = new SVNPath(repoPath, true, true);
+                    SVNNodeKind svnNodeKind = repo.checkPath(path.getTarget(), path.getPegRevision().getNumber());
                     if (svnNodeKind != SVNNodeKind.DIR) {
                         return FormValidation.error("Credentials looks fine but the repository URL is invalid");
                     }
