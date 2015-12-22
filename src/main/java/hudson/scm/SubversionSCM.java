@@ -3136,7 +3136,8 @@ public class SubversionSCM extends SCM implements Serializable {
      * The main point of this is to prevent infinite hang, so it should be a rather long value to avoid
      * accidental time out problem.
      */
-    public static int DEFAULT_TIMEOUT = Integer.getInteger(SubversionSCM.class.getName() + ".timeout", 3600 * 1000);
+    public static final int DEFAULT_TIMEOUT = Integer.getInteger(SubversionSCM.class.getName() + ".timeout", 3600 *
+            1000);
 
     /**
      * Property to control whether SCM polling happens from the slave or master
@@ -3146,7 +3147,7 @@ public class SubversionSCM extends SCM implements Serializable {
     /**
      * If set to non-null, read configuration from this directory instead of "~/.subversion".
      */
-    public static String CONFIG_DIR = System.getProperty(SubversionSCM.class.getName() + ".configDir");
+    public static final String CONFIG_DIR = System.getProperty(SubversionSCM.class.getName() + ".configDir");
 
     /**
      * Enables trace logging of Ganymed SSH library.

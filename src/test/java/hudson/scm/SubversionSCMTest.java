@@ -97,8 +97,8 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         super.setUp();
         repo = SVNURL.parseURIDecoded("http://subversion.tigris.org/svn/subclipse");
 
-        // during the test, don't pollute the global authentication cache.
-        SubversionSCM.CONFIG_DIR = createTmpDir().getAbsolutePath();
+        // during the test, don't pollute the user's configuration (esp. authentication cache).
+        System.setProperty(SubversionSCM.class.getName() + ".configDir", createTmpDir().getAbsolutePath());
     }
 
     @PresetData(ANONYMOUS_READONLY)
