@@ -28,6 +28,7 @@ package hudson.scm.listtagsparameter;
 import hudson.EnvVars;
 import hudson.model.AbstractBuild;
 import hudson.model.ParameterValue;
+import hudson.model.Run;
 import hudson.util.VariableResolver;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.export.Exported;
@@ -51,7 +52,7 @@ public class ListSubversionTagsParameterValue extends ParameterValue {
   }
 
   @Override
-  public void buildEnvVars(AbstractBuild<?,?> build, EnvVars env) {
+  public void buildEnvironment(Run<?,?> build, EnvVars env) {
     env.put(getName(), getTag());
   }
 
