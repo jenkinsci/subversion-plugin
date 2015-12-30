@@ -155,48 +155,56 @@ public final class SubversionChangeLogBuilder {
         String url = context.url;
         PrintStream logger = listener.getLogger();
 
-        Long prevRev = previousRevisions.get(url);
-        if (prevRev == null) {
-            logger.println("No revision recorded for " + url + " in the previous build");
-            return false;
-        }
-
-        Long thisRev = thisRevisions.get(url);
-        if (thisRev == null) {
-            listener.error("No revision found for " + url + " in " + SubversionSCM.getRevisionFile(build) + ". Revision file contains: " + thisRevisions.keySet());
-            return false;
-        }
-
-        if (thisRev.equals(prevRev)) {
-            logger.println("No changes for " + url + " since the previous build");
-            return false;
-        }
-
-        // handle case where previous workspace revision is newer than this revision
-        if (prevRev.compareTo(thisRev) > 0) {
-            long temp = thisRev;
-            thisRev = prevRev;
-            prevRev = temp;
-        }
-
-        logHandler.setContext(context);
         try {
-            if(debug)
+            SVNURL repoURL = SVNURL.parseURIEncoded(url);
+
+            Long prevRev = previousRevisions.get(url);
+            if (prevRev == null) {
+                logger.println("No revision recorded for " + repoURL + " in the previous build");
+                return false;
+            }
+
+            Long thisRev = thisRevisions.get(url);
+            if (thisRev == null) {
+                listener.error("No revision found for " + repoURL + " in " + SubversionSCM.getRevisionFile(build) + "" +
+                        ". Revision file contains: " + thisRevisions.keySet());
+                return false;
+            }
+
+            if (thisRev.equals(prevRev)) {
+                logger.println("No changes for " + repoURL + " since the previous build");
+                return false;
+            }
+
+            // handle case where previous workspace revision is newer than this revision
+            if (prevRev.compareTo(thisRev) > 0) {
+                long temp = thisRev;
+                thisRev = prevRev;
+                prevRev = temp;
+            }
+
+            logHandler.setContext(context);
+
+            if (debug) {
                 listener.getLogger().printf("Computing changelog of %1s from %2s to %3s%n",
-                        SVNURL.parseURIEncoded(url), prevRev+1, thisRev);
+                        SVNURL.parseURIEncoded(url), prevRev + 1, thisRev);
+            }
+
             svnlc.doLog(SVNURL.parseURIEncoded(url),
-                        null,
-                        SVNRevision.UNDEFINED,
-                        SVNRevision.create(prevRev+1),
-                        SVNRevision.create(thisRev),
-                        false, // Don't stop on copy.
-                        true, // Report paths.
-                        0, // Retrieve log entries for unlimited number of revisions.
-                        debug ? new DebugSVNLogHandler(logHandler) : logHandler);
-            if(debug)
+                    null,
+                    SVNRevision.UNDEFINED,
+                    SVNRevision.create(prevRev + 1),
+                    SVNRevision.create(thisRev),
+                    false, // Don't stop on copy.
+                    true, // Report paths.
+                    0, // Retrieve log entries for unlimited number of revisions.
+                    debug ? new DebugSVNLogHandler(logHandler) : logHandler);
+
+            if (debug) {
                 listener.getLogger().println("done");
+            }
         } catch (SVNException e) {
-            throw new IOException2("revision check failed on "+url,e);
+            throw new IOException2("revision check failed on " + url, e);
         }
         return true;
     }
