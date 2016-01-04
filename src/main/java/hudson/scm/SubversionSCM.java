@@ -3092,7 +3092,7 @@ public class SubversionSCM extends SCM implements Serializable {
                     StandardCredentials credentials = lookupCredentials(context, value, repoURL);
                     SVNRepository repo = descriptor().getRepository(context, repoURL, credentials, Collections
                             .<String, Credentials>emptyMap(), null);
-                    String repoRoot = repo.getRepositoryRoot(false).toDecodedString();
+                    String repoRoot = repo.getRepositoryRoot(true).toDecodedString();
                     String repoPath = repo.getLocation().toDecodedString().substring(repoRoot.length());
                     SVNPath path = new SVNPath(repoPath, true, true);
                     SVNNodeKind svnNodeKind = repo.checkPath(path.getTarget(), path.getPegRevision().getNumber());
