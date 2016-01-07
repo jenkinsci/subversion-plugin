@@ -32,6 +32,7 @@ import hudson.scm.SubversionSCM;
 import hudson.scm.SubversionSCM.External;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.scm.SvnClientManager;
+import jenkins.MasterToSlaveFileCallable;
 import org.kohsuke.stapler.export.ExportedBean;
 import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNDepth;
@@ -93,7 +94,7 @@ public abstract class WorkspaceUpdater extends AbstractDescribableImpl<Workspace
      * A number of contextual objects are defined as fields, to be used by the {@link #perform()} method.
      * These fields are set by {@link SubversionSCM} before the invocation.
      */
-    public static abstract class UpdateTask implements Serializable {
+    public static abstract class UpdateTask extends MasterToSlaveFileCallable<List<External>> implements Serializable {
         // fields that are set by the caller as context for the perform method
 
         /**

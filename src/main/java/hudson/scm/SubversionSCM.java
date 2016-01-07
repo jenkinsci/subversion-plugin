@@ -79,6 +79,7 @@ import java.util.WeakHashMap;
 
 import hudson.security.ACL;
 import hudson.util.ListBoxModel;
+import jenkins.MasterToSlaveFileCallable;
 import jenkins.model.Jenkins;
 import hudson.remoting.Callable;
 import hudson.remoting.Channel;
@@ -942,10 +943,10 @@ public class SubversionSCM extends SCM implements Serializable {
     /**
      * Either run "svn co" or "svn up" equivalent.
      */
-    private static class CheckOutTask extends UpdateTask implements FileCallable<List<External>> {
+    private static class CheckOutTask extends UpdateTask {
         private final UpdateTask task;
 
-         public CheckOutTask(Run<?, ?> build, SubversionSCM parent, ModuleLocation location, Date timestamp, TaskListener listener, EnvVars env) {
+        public CheckOutTask(Run<?, ?> build, SubversionSCM parent, ModuleLocation location, Date timestamp, TaskListener listener, EnvVars env) {
             this.authProvider = parent.createAuthenticationProvider(build.getParent(), location);
             this.timestamp = timestamp;
             this.listener = listener;
@@ -988,25 +989,25 @@ public class SubversionSCM extends SCM implements Serializable {
             return delegateTo(task);
         }
 
-        private void checkClockOutOfSync() {
-            try {
-                SVNDirEntry dir = clientManager.createRepository(location.getSVNURL(), true).info("/", -1);
-                if (dir != null) {// I don't think this can ever be null, but be defensive
-                    if (dir.getDate() != null && dir.getDate().after(new Date())) // see http://www.nabble.com/NullPointerException-in-SVN-Checkout-Update-td21609781.html that reported this being null.
-                    {
-                        listener.getLogger().println(Messages.SubversionSCM_ClockOutOfSync());
-                    }
+    private void checkClockOutOfSync() {
+        try {
+            SVNDirEntry dir = clientManager.createRepository(location.getSVNURL(), true).info("/", -1);
+            if (dir != null) {// I don't think this can ever be null, but be defensive
+                if (dir.getDate() != null && dir.getDate().after(new Date())) // see http://www.nabble.com/NullPointerException-in-SVN-Checkout-Update-td21609781.html that reported this being null.
+                {
+                    listener.getLogger().println(Messages.SubversionSCM_ClockOutOfSync());
                 }
-            } catch (SVNAuthenticationException e) {
-                // if we don't have access to '/', ignore. error
-                LOGGER.log(Level.FINE,"Failed to estimate the remote time stamp",e);
-            } catch (SVNException e) {
-                LOGGER.log(Level.INFO,"Failed to estimate the remote time stamp",e);
             }
+        } catch (SVNAuthenticationException e) {
+            // if we don't have access to '/', ignore. error
+            LOGGER.log(Level.FINE,"Failed to estimate the remote time stamp",e);
+        } catch (SVNException e) {
+            LOGGER.log(Level.INFO,"Failed to estimate the remote time stamp",e);
         }
-
-        private static final long serialVersionUID = 1L;
     }
+
+    private static final long serialVersionUID = 1L;
+}
 
     /**
      *
@@ -1230,7 +1231,7 @@ public class SubversionSCM extends SCM implements Serializable {
      * @return
      *      null if the parsing somehow fails. Otherwise a map from the repository URL to revisions.
      */
-    private static class BuildRevisionMapTask implements FileCallable<List<SvnInfoP>> {
+    private static class BuildRevisionMapTask extends MasterToSlaveFileCallable<List<SvnInfoP>> {
         private final ISVNAuthenticationProvider defaultAuthProvider;
         private final Map<String,ISVNAuthenticationProvider> authProviders;
         private final TaskListener listener;
