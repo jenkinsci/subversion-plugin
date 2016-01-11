@@ -28,6 +28,7 @@ package hudson.scm.listtagsparameter;
 import hudson.EnvVars;
 import hudson.model.AbstractBuild;
 import hudson.model.ParameterValue;
+import hudson.model.Run;
 import hudson.util.VariableResolver;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.export.Exported;
@@ -40,8 +41,8 @@ import org.kohsuke.stapler.export.Exported;
  */
 public class ListSubversionTagsParameterValue extends ParameterValue {
 
-  @Exported(visibility=3) private String tagsDir; // this att comes from ListSubversionTagsParameterDefinition
-  @Exported(visibility=3) private String tag;
+  private String tagsDir; // this att comes from ListSubversionTagsParameterDefinition
+  private String tag;
 
   @DataBoundConstructor
   public ListSubversionTagsParameterValue(String name, String tagsDir, String tag) {
@@ -51,7 +52,7 @@ public class ListSubversionTagsParameterValue extends ParameterValue {
   }
 
   @Override
-  public void buildEnvVars(AbstractBuild<?,?> build, EnvVars env) {
+  public void buildEnvironment(Run<?,?> build, EnvVars env) {
     env.put(getName(), getTag());
   }
 
@@ -86,6 +87,7 @@ public class ListSubversionTagsParameterValue extends ParameterValue {
     return result;
   }
 
+  @Exported(visibility=3)
   public String getTag() {
     return tag;
   }
@@ -94,6 +96,7 @@ public class ListSubversionTagsParameterValue extends ParameterValue {
     this.tag = tag;
   }
 
+  @Exported(visibility=3)
   public String getTagsDir() {
     return tagsDir;
   }

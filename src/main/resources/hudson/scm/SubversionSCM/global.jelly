@@ -37,10 +37,5 @@ THE SOFTWARE.
         <f:entry title="${%Exclusion revprop name}" help="/descriptor/hudson.scm.SubversionSCM/help/excludedRevprop">
             <f:textbox name="svn.global_excluded_revprop" value="${descriptor.globalExcludedRevprop}"/>
         </f:entry>
-        <f:optionalBlock
-            name="svn.validateRemoteUpToVar"
-            checked="${descriptor.validateRemoteUpToVar}"
-            title="${%Validate repository URLs up to the first variable name}"
-            help="/descriptor/hudson.scm.SubversionSCM/help/validateRemoteUpToVar"/>
     </f:section>
 </j:jelly>

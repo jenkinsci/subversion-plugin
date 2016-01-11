@@ -242,7 +242,7 @@ public class SubversionSCMSource extends SCMSource {
             throws IOException {
         SVNRepositoryView repository = null;
         try {
-            listener.getLogger().println("Opening conection to " + remoteBase);
+            listener.getLogger().println("Opening connection to " + remoteBase);
             SVNURL repoURL = SVNURL.parseURIEncoded(remoteBase);
             repository = openSession(repoURL);
             String repoPath = SubversionSCM.DescriptorImpl.getRelativePath(repoURL, repository.getRepository());
@@ -876,7 +876,7 @@ public class SubversionSCMSource extends SCMSource {
         }
 
         public static String getRelativePath(SVNURL repoURL, SVNRepository repository) throws SVNException {
-            String repoPath = repoURL.getPath().substring(repository.getRepositoryRoot(false).getPath().length());
+            String repoPath = repoURL.getPath().substring(repository.getRepositoryRoot(true).getPath().length());
             if(!repoPath.startsWith("/"))    repoPath="/"+repoPath;
             return repoPath;
         }

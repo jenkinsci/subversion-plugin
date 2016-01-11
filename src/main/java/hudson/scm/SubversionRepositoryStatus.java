@@ -19,14 +19,15 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.Map;
-import java.util.HashMap;
 
 import javax.servlet.ServletException;
 
@@ -36,6 +37,7 @@ import org.apache.commons.io.IOUtils;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
+import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.SVNException;
 
@@ -132,13 +134,19 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
         }
 
         boolean listenerDidSomething = false;
-        for (Listener listener : Jenkins.getInstance().getExtensionList(Listener.class)) {
+        Jenkins instance = Jenkins.getInstance();
+        if (instance == null) {
+            LOGGER.warning("Jenkins instance is null.");
+            return;
+        }
+
+        for (Listener listener : instance.getExtensionList(Listener.class)) {
             try {
                 if (listener.onNotify(uuid, rev, affectedPath)) {
                     listenerDidSomething = true;
                 }
             } catch (Throwable t) {
-                LOGGER.log(WARNING,"Listener " + listener.getClass().getName() + " threw an uncaught exception",t);
+                LOGGER.log(WARNING, "Listener " + listener.getClass().getName() + " threw an uncaught exception", t);
             }
         }
 
@@ -146,13 +154,27 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
 
         rsp.setStatus(SC_OK);
     }
+
+    private static class SubversionRepoUUIDAndRootPath {
+        public final UUID uuid;
+        public final String rootPath;
+
+        public SubversionRepoUUIDAndRootPath(UUID uuid, String rootPath) {
+            this.uuid = uuid;
+            this.rootPath = rootPath;
+        }
+    }
+
     @Extension
     public static class JobTriggerListenerImpl extends Listener {
+
+        private Map<String, UUID> remoteUUIDCache = new HashMap<String, UUID>();
 
         private JobProvider jobProvider = new JobProvider() {
             @SuppressWarnings("rawtypes")
             public List<Job> getAllJobs() {
-                return Jenkins.getInstance().getAllItems(Job.class);
+                Jenkins instance = Jenkins.getInstance();
+                return instance != null ? instance.getAllItems(Job.class) : Collections.<Job>emptyList();
             }
         };
 
@@ -161,10 +183,70 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
             this.jobProvider = jobProvider;
         }
 
+        private SubversionRepoUUIDAndRootPath remoteUUIDAndRootPathFromCacheOrFromSVN(Job job, SCM scm, ModuleLocation moduleLocation, String urlFromConfiguration) throws SVNException {
+            SubversionRepoUUIDAndRootPath uuidAndRootPath = null;
+            for (Map.Entry<String, UUID> e : remoteUUIDCache.entrySet()) {
+                String remoteRepoRootURL = e.getKey();
+                String remoteRepoRootURLWithSlash = remoteRepoRootURL + "/";
+                if (urlFromConfiguration.startsWith(remoteRepoRootURLWithSlash) || urlFromConfiguration.equals(remoteRepoRootURL)) {
+                    UUID uuid = e.getValue();
+                    String rootPath = SVNURL.parseURIDecoded(e.getKey()).getPath();
+                    uuidAndRootPath = new SubversionRepoUUIDAndRootPath(uuid, rootPath);
+
+                    LOGGER.finer("Using cached uuid for module location " + urlFromConfiguration + " of job "+ job);
+                    break;
+                }
+            }
+
+            if (uuidAndRootPath == null) {
+                if (LOGGER.isLoggable(FINER)) {
+                    LOGGER.finer("Could not find " + urlFromConfiguration + " in " + remoteUUIDCache.keySet());
+                }
+                UUID remoteUUID = moduleLocation.getUUID(job, scm);
+                SVNURL repositoryRoot = moduleLocation.getRepositoryRoot(job, scm);
+                remoteUUIDCache.put(repositoryRoot.toString(), remoteUUID);
+                uuidAndRootPath = new SubversionRepoUUIDAndRootPath(remoteUUID, repositoryRoot.getPath());
+            }
+            return uuidAndRootPath;
+        }
+
+        boolean doModuleLocationHasAPathFromAffectedPath(String configuredRepoFullPath, String rootRepoPath, Set<String> affectedPath) {
+            boolean containsAnAffectedPath = false;
+            if (configuredRepoFullPath.startsWith(rootRepoPath)) {
+                String remainingRepoPath = configuredRepoFullPath.substring(rootRepoPath.length());
+                if (remainingRepoPath.startsWith("/")) remainingRepoPath=remainingRepoPath.substring(1);
+                String remainingRepoPathSlash = remainingRepoPath + '/';
+
+                for (String path : affectedPath) {
+                    if (path.equals(remainingRepoPath) /*for files*/ || 
+                            path.startsWith(remainingRepoPathSlash) /*for dirs*/ ||
+                            remainingRepoPath.length() == 0 /*when someone is checking out the whole repo (that is, configuredRepoFullPath==rootRepoPath)*/) {
+                        // this project is possibly changed. poll now.
+                        // if any of the data we used was bogus, the trigger will not detect a change
+                        containsAnAffectedPath = true;
+                        break;
+                    }
+                }
+            }
+            return containsAnAffectedPath;
+        }
+
+        private void scheduleImediatePollingOfJob(Job job, SCMTrigger trigger, List<SvnInfo> infos) {
+            LOGGER.fine("Scheduling the immediate polling of " + job);
+
+            final RevisionParameterAction[] actions;
+            if (infos.isEmpty()) {
+                actions = new RevisionParameterAction[0];
+            } else {
+                actions = new RevisionParameterAction[] { new RevisionParameterAction(infos) };
+            }
+
+            trigger.run(actions);
+        }
+
         @Override
         public boolean onNotify(UUID uuid, long rev, Set<String> affectedPath) {
             boolean scmFound = false, triggerFound = false, uuidFound = false, pathFound = false;
-            Map<String, UUID> remoteUUIDCache = new HashMap<String, UUID>();
             LOGGER.fine("Starting subversion locations checks for all jobs");
             for (Job p : this.jobProvider.getAllJobs()) {
                 SCMTriggerItem scmTriggerItem = SCMTriggerItem.SCMTriggerItems.asSCMTriggerItem(p);
@@ -188,71 +270,32 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                     boolean projectMatches = false;
                     for (ModuleLocation loc : sscm.getProjectLocations(p)) {
                         //LOGGER.fine("Checking uuid for module location + " + loc + " of job "+ p);
-                        String url = loc.getURL();
+                        String urlFromConfiguration = loc.getURL();
     
-                        String repositoryRootPath = null;
-
-                        UUID remoteUUID = null;
-                        for (Map.Entry<String, UUID> e : remoteUUIDCache.entrySet()) {
-                            if (url.startsWith(e.getKey())) {
-                                remoteUUID = e.getValue();
-                                repositoryRootPath = SVNURL.parseURIDecoded(e.getKey()).getPath();
-                                LOGGER.finer("Using cached uuid for module location " + url + " of job "+ p);
-                                break;
-                            }
-                        }
-    
-                        if (remoteUUID == null) {
-                            if (LOGGER.isLoggable(FINER)) {
-                                LOGGER.finer("Could not find " + loc.getURL() + " in " + remoteUUIDCache.keySet().toString());
-                            }
-                            remoteUUID = loc.getUUID(p, scm);
-                            SVNURL repositoryRoot = loc.getRepositoryRoot(p, scm);
-                            repositoryRootPath = repositoryRoot.getPath();
-                            remoteUUIDCache.put(repositoryRoot.toString(), remoteUUID);
-                        }
-    
+                        SubversionRepoUUIDAndRootPath uuidAndRootPath = this.remoteUUIDAndRootPathFromCacheOrFromSVN(p, sscm, loc, urlFromConfiguration);
+                        UUID remoteUUID = uuidAndRootPath.uuid;
                         if (remoteUUID.equals(uuid)) uuidFound = true; else continue;
-    
-                        String m = loc.getSVNURL().getPath();
-                        String n = repositoryRootPath;
-                        if(!m.startsWith(n))    continue;   // repository root should be a subpath of the module path, but be defensive
 
-                        String remaining = m.substring(n.length());
-                        if(remaining.startsWith("/"))   remaining=remaining.substring(1);
-                        String remainingSlash = remaining + '/';
+                        String configuredRepoFullPath = loc.getSVNURL().getPath();
+                        String rootRepoPath = uuidAndRootPath.rootPath;
+                        if (this.doModuleLocationHasAPathFromAffectedPath(configuredRepoFullPath, rootRepoPath, affectedPath)) {
+                            projectMatches = true;
+                            pathFound = true;
+                        }
 
                         if ( rev != -1 ) {
                             infos.add(new SvnInfo(loc.getURL(), rev));
                         }
-
-                        for (String path : affectedPath) {
-                            if(path.equals(remaining) /*for files*/ || path.startsWith(remainingSlash) /*for dirs*/
-                            || remaining.length()==0/*when someone is checking out the whole repo (that is, m==n)*/) {
-                                // this project is possibly changed. poll now.
-                                // if any of the data we used was bogus, the trigger will not detect a change
-                                projectMatches = true;
-                                pathFound = true;
-                            }
                         }
-                    }
 
                     if (projectMatches) {
-                        LOGGER.fine("Scheduling the immediate polling of "+p);
-
-                        final RevisionParameterAction[] actions;
-                        if (infos.isEmpty()) {
-                            actions = new RevisionParameterAction[0];
-                        } else {
-                            actions = new RevisionParameterAction[] {
-                                    new RevisionParameterAction(infos)};
-                        }
-
-                        trigger.run(actions);
+                        this.scheduleImediatePollingOfJob(p, trigger, infos);
                         break SCMS;
                     }
                     }
 
+                } catch (SVNCancelException e) {
+                    LOGGER.log(WARNING, "Failed to handle Subversion commit notification. If you are using svn:externals feature ensure that the credentials of the externals are added on the Additional Credentials field", e);
                 } catch (SVNException e) {
                     LOGGER.log(WARNING, "Failed to handle Subversion commit notification", e);
                 } catch (IOException e) {

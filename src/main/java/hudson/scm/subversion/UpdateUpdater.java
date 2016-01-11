@@ -85,14 +85,14 @@ public class UpdateUpdater extends WorkspaceUpdater {
             }
 
             try {
-                SVNInfo svnkitInfo = parseSvnInfo(module);
-                SvnInfo svnInfo = new SvnInfo(svnkitInfo);
+                SVNInfo svnInfo = parseSvnInfo(module);
 
                 String url = location.getSVNURL().toString();
+                String wcUrl = svnInfo.getURL().toString();
                 
-                if (!svnInfo.url.equals(url)) {
-                    if (isSameRepository(location, svnkitInfo)) {
-                        listener.getLogger().println("Switching from " + svnInfo.url + " to " + url);
+                if (!wcUrl.equals(url)) {
+                    if (isSameRepository(location, svnInfo)) {
+                        listener.getLogger().println("Switching from " + wcUrl + " to " + url);
                         return SvnCommandToUse.SWITCH;
                     } else {
                         listener.getLogger().println("Checking out a fresh workspace because the workspace is not " + url);
@@ -166,9 +166,9 @@ public class UpdateUpdater extends WorkspaceUpdater {
                         break;
                 }
             } catch (SVNCancelException e) {
+                e.printStackTrace(listener.getLogger());
                 if (isAuthenticationFailedError(e)) {
-                    e.printStackTrace(listener.error("Failed to check out " + location.remote));
-                    throw (AbortException) new AbortException().initCause(e);
+                    throw new AbortException("Failed to check out " + location.remote);
                 } else {
                     listener.error("Subversion update has been canceled");
                     throw (InterruptedException)new InterruptedException().initCause(e);

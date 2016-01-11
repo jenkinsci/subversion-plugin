@@ -154,46 +154,57 @@ public final class SubversionChangeLogBuilder {
     private boolean buildModule(PathContext context, SVNLogClient svnlc, DirAwareSVNXMLLogHandler logHandler) throws IOException2 {
         String url = context.url;
         PrintStream logger = listener.getLogger();
-        Long prevRev = previousRevisions.get(url);
-        if(prevRev==null) {
-            logger.println("no revision recorded for "+url+" in the previous build");
-            return false;
-        }
-        Long thisRev = thisRevisions.get(url);
-        if (thisRev == null) {
-            listener.error("No revision found for URL: " + url + " in " + SubversionSCM.getRevisionFile(build) + ". Revision file contains: " + thisRevisions.keySet());
-            return false;
-        }
-        if(thisRev.equals(prevRev)) {
-            logger.println("no change for "+url+" since the previous build");
-            return false;
-        }
 
-        // handle case where previous workspace revision is newer than this revision
-        if (prevRev.compareTo(thisRev) > 0) {
-        	long temp = thisRev.longValue();
-        	thisRev = new Long(prevRev.longValue());
-        	prevRev = new Long(temp);
-        }
-
-        logHandler.setContext(context);
         try {
-            if(debug)
-                listener.getLogger().printf("Computing changelog of %1s from %2s to %3s\n",
-                        SVNURL.parseURIEncoded(url), prevRev+1, thisRev);
+            SVNURL repoURL = SVNURL.parseURIEncoded(url);
+
+            Long prevRev = previousRevisions.get(url);
+            if (prevRev == null) {
+                logger.println("No revision recorded for " + repoURL + " in the previous build");
+                return false;
+            }
+
+            Long thisRev = thisRevisions.get(url);
+            if (thisRev == null) {
+                listener.error("No revision found for " + repoURL + " in " + SubversionSCM.getRevisionFile(build) + "" +
+                        ". Revision file contains: " + thisRevisions.keySet());
+                return false;
+            }
+
+            if (thisRev.equals(prevRev)) {
+                logger.println("No changes for " + repoURL + " since the previous build");
+                return false;
+            }
+
+            // handle case where previous workspace revision is newer than this revision
+            if (prevRev.compareTo(thisRev) > 0) {
+                long temp = thisRev;
+                thisRev = prevRev;
+                prevRev = temp;
+            }
+
+            logHandler.setContext(context);
+
+            if (debug) {
+                listener.getLogger().printf("Computing changelog of %1s from %2s to %3s%n",
+                        SVNURL.parseURIEncoded(url), prevRev + 1, thisRev);
+            }
+
             svnlc.doLog(SVNURL.parseURIEncoded(url),
-                        null,
-                        SVNRevision.UNDEFINED,
-                        SVNRevision.create(prevRev+1),
-                        SVNRevision.create(thisRev),
-                        false, // Don't stop on copy.
-                        true, // Report paths.
-                        0, // Retrieve log entries for unlimited number of revisions.
-                        debug ? new DebugSVNLogHandler(logHandler) : logHandler);
-            if(debug)
+                    null,
+                    SVNRevision.UNDEFINED,
+                    SVNRevision.create(prevRev + 1),
+                    SVNRevision.create(thisRev),
+                    false, // Don't stop on copy.
+                    true, // Report paths.
+                    0, // Retrieve log entries for unlimited number of revisions.
+                    debug ? new DebugSVNLogHandler(logHandler) : logHandler);
+
+            if (debug) {
                 listener.getLogger().println("done");
+            }
         } catch (SVNException e) {
-            throw new IOException2("revision check failed on "+url,e);
+            throw new IOException2("revision check failed on " + url, e);
         }
         return true;
     }
@@ -227,6 +238,8 @@ public final class SubversionChangeLogBuilder {
 
     private static final LocatorImpl DUMMY_LOCATOR = new LocatorImpl();
 
+    @edu.umd.cs.findbugs.annotations.SuppressWarnings(value = "MS_SHOULD_BE_FINAL",
+    justification = "Debugging environment variable is made editable, so it can be modified through the groovy console.")
     public static boolean debug = false;
 
     static {

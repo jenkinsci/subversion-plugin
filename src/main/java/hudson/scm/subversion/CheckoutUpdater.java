@@ -39,6 +39,7 @@ import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.internal.util.DefaultSVNDebugLogger;
+import org.tmatesoft.svn.core.internal.wc17.db.ISVNWCDb;
 import org.tmatesoft.svn.core.internal.wc2.compat.SvnCodec;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 import org.tmatesoft.svn.core.wc.SVNUpdateClient;
@@ -86,13 +87,11 @@ public class CheckoutUpdater extends WorkspaceUpdater {
                 sct.start();
 
                 try {
-                	
-                	SVNRevision r = getRevision(location);
+                    SVNRevision r = getRevision(location);
+                    String revisionName = r.getDate() != null ? fmt.format(r.getDate()) : r.toString();
 
-                    String revisionName = r.getDate() != null ?
-                    		fmt.format(r.getDate()) : r.toString();
-                	
-                    listener.getLogger().println("Checking out " + location.remote + " at revision " + revisionName);
+                    listener.getLogger().println("Checking out " + location.getSVNURL().toString() + " at revision " +
+                            revisionName);
 
                     File local = new File(ws, location.getLocalDir());
                     SubversionUpdateEventHandler eventHandler = new SubversionUpdateEventHandler(new PrintStream(pos), externals, local, location.getLocalDir());
@@ -108,6 +107,11 @@ public class CheckoutUpdater extends WorkspaceUpdater {
                     checkout.setAllowUnversionedObstructions(true);
                     checkout.setIgnoreExternals(location.isIgnoreExternalsOption());
                     checkout.setExternalsHandler(SvnCodec.externalsHandler(svnuc.getExternalsHandler()));
+
+                    // Statement to guard against JENKINS-26458.
+                    if (SubversionWorkspaceSelector.workspaceFormat == SubversionWorkspaceSelector.OLD_WC_FORMAT_17) {
+                        SubversionWorkspaceSelector.workspaceFormat = ISVNWCDb.WC_FORMAT_17;
+                    }
 
                     // Workaround for SVNKIT-430 is to set the working copy format when
                     // a checkout is performed.

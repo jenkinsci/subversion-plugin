@@ -15,6 +15,7 @@ import hudson.model.Item;
 import hudson.remoting.Channel;
 import hudson.security.ACL;
 import hudson.util.Scrambler;
+import hudson.util.Secret;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.tmatesoft.svn.core.SVNErrorCode;
 import org.tmatesoft.svn.core.SVNErrorMessage;
@@ -371,7 +372,8 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
 
         public SVNUsernamePrivateKeysAuthenticationBuilder(SSHUserPrivateKey c) {
             username = c.getUsername();
-            passphrase = Scrambler.scramble(c.getPassphrase().getPlainText());
+            Secret secret = c.getPassphrase();
+            this.passphrase = secret != null ? Scrambler.scramble(secret.getPlainText()) : null;
             privateKeys = new ArrayList<String>(c.getPrivateKeys());
         }
 
@@ -452,9 +454,10 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
 
         public List<SVNAuthentication> build(String kind, SVNURL url) {
             if (ISVNAuthenticationManager.SSL.equals(kind)) {
-                SVNSSLAuthentication authentication =
-                        new SVNSSLAuthentication(String.valueOf(certificateFile), Scrambler.descramble(password), false, url, false);
-                authentication.setCertificatePath("dummy"); // TODO: remove this JENKINS-19175 workaround
+                SVNSSLAuthentication authentication = SVNSSLAuthentication.newInstance(
+                        certificateFile,
+                        Scrambler.descramble(password).toCharArray(),
+                        false, url, false);
                 return Collections.<SVNAuthentication>singletonList(
                         authentication);
             }
