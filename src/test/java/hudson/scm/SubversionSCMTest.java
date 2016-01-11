@@ -51,6 +51,7 @@ import org.dom4j.Document;
 import org.dom4j.io.DOMReader;
 import org.junit.Test;
 import org.jvnet.hudson.test.*;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
 import org.jvnet.hudson.test.recipes.PresetData;
 import org.tmatesoft.svn.core.*;
@@ -61,7 +62,6 @@ import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
 import org.tmatesoft.svn.core.wc.SVNCommitClient;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 import org.tmatesoft.svn.core.wc.SVNStatus;
-import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
 import java.io.*;
 import java.net.MalformedURLException;
@@ -73,10 +73,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import static hudson.scm.SubversionSCM.compareSVNAuthentications;
-import static org.jvnet.hudson.test.recipes.PresetData.DataSet.ANONYMOUS_READONLY;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
+import static org.jvnet.hudson.test.recipes.PresetData.DataSet.ANONYMOUS_READONLY;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -1711,10 +1710,11 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     }
 
     /**
-     * Test related to https://issues.jenkins-ci.org/browse/JENKINS-5347
+     * Test using commit times
      *
      * @throws Throwable
      */
+    @Issue("JENKINS-5347")
     public void testUseCommitTimes() throws Throwable {
         // Given a subversion workspace where the commit times should be used
         // When the workspace is checked out
@@ -1731,10 +1731,11 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     }
 
     /**
-     * Test related to https://issues.jenkins-ci.org/browse/JENKINS-5347
+     * Test not using commit times
      *
      * @throws Throwable
      */
+    @Issue("JENKINS-5347")
     public void testNotUseCommitTimes() throws Throwable {
         // Given a subversion workspace where the commit times should NOT be used
         // When the workspace is checked out
