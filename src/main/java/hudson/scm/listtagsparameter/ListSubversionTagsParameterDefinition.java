@@ -91,29 +91,31 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
   private final boolean reverseByDate;
   private final boolean reverseByName;
   private final String defaultValue;
+  private final boolean useLatestTag;
   private final String maxTags;
   private static final String SVN_BRANCHES = "branches";
   private static final String SVN_TAGS = "tags";
   private static final String SVN_TRUNK = "trunk";
   
   @Deprecated
-  public ListSubversionTagsParameterDefinition(String name, String tagsDir, String tagsFilter, String defaultValue, String maxTags, boolean reverseByDate, boolean reverseByName, String uuid) {
-    this(name, tagsDir, null, tagsFilter, defaultValue, maxTags, reverseByDate, reverseByName);
+  public ListSubversionTagsParameterDefinition(String name, String tagsDir, String tagsFilter, String defaultValue, boolean useLatestTag, String maxTags, boolean reverseByDate, boolean reverseByName, String uuid) {
+    this(name, tagsDir, null, tagsFilter, defaultValue, useLatestTag, maxTags, reverseByDate, reverseByName);
   }
 
   @Deprecated
-  public ListSubversionTagsParameterDefinition(String name, String tagsDir, String tagsFilter, String defaultValue, String maxTags, boolean reverseByDate, boolean reverseByName, String uuid, String credentialsId) {
-      this(name, tagsDir, credentialsId, tagsFilter, defaultValue, maxTags, reverseByDate, reverseByName);
+  public ListSubversionTagsParameterDefinition(String name, String tagsDir, String tagsFilter, String defaultValue, boolean useLatestTag, String maxTags, boolean reverseByDate, boolean reverseByName, String uuid, String credentialsId) {
+      this(name, tagsDir, credentialsId, tagsFilter, defaultValue, useLatestTag, maxTags, reverseByDate, reverseByName);
   }
 
   @DataBoundConstructor
-  public ListSubversionTagsParameterDefinition(String name, String tagsDir, String credentialsId, String tagsFilter, String defaultValue, String maxTags, boolean reverseByDate, boolean reverseByName) {
+  public ListSubversionTagsParameterDefinition(String name, String tagsDir, String credentialsId, String tagsFilter, String defaultValue, boolean useLatestTag, String maxTags, boolean reverseByDate, boolean reverseByName) {
     super(name, ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("TagDescription"));
     this.tagsDir = Util.removeTrailingSlash(tagsDir);
     this.tagsFilter = tagsFilter;
     this.reverseByDate = reverseByDate;
     this.reverseByName = reverseByName;
     this.defaultValue = defaultValue;
+    this.useLatestTag = useLatestTag;
     this.maxTags = maxTags;
     this.credentialsId = credentialsId;
   }
@@ -143,7 +145,13 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
   
     @Override
     public ParameterValue getDefaultParameterValue() {
-        if (StringUtils.isEmpty(this.defaultValue)) {
+        if (isUseLatestTag()) {
+            List<String> tags = getTags(null, "tags", true);
+            if (tags.size() > 0) {
+              return new ListSubversionTagsParameterValue(getName(), getTagsDir() + "/tags", tags.get(0));
+            }
+            return null;
+        } else if (StringUtils.isEmpty(this.defaultValue)) {
             List<String> tags = getTags(null);
             if (tags.size() > 0) {
               return new ListSubversionTagsParameterValue(getName(), getTagsDir(), tags.get(0));
@@ -158,6 +166,10 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
     return (DescriptorImpl) super.getDescriptor();
   }
 
+  @Nonnull public List<String> getTags(@Nullable Job context) {
+      return getTags(context, "", isReverseByDate()); 
+  }
+
   /**
    * Returns a list of Subversion dirs to be displayed in
    * {@code ListSubversionTagsParameterDefinition/index.jelly}.
@@ -168,31 +180,33 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
    * <p>This method never returns {@code null}. In case an error happens, the
    * returned list contains an error message prefixed by {@code !}.</p>
    */
-  @Nonnull public List<String> getTags(@Nullable Job context) {
+  @Nonnull public List<String> getTags(@Nullable Job context, String subDir, boolean localReverseByDate) {
     List<String> dirs = new ArrayList<String>();
+
+    String tmpTagsDir = StringUtils.isEmpty(subDir) ? getTagsDir() : getTagsDir() + "/" + subDir;
 
     try {
       ISVNAuthenticationProvider authProvider = CredentialsSVNAuthenticationProviderImpl.createAuthenticationProvider(
-              context, getTagsDir(), getCredentialsId(), null
+              context, tmpTagsDir, getCredentialsId(), null
       );
       ISVNAuthenticationManager authManager = SubversionSCM.createSvnAuthenticationManager(authProvider);
-      SVNURL repoURL = SVNURL.parseURIDecoded(getTagsDir());
+      SVNURL repoURL = SVNURL.parseURIDecoded(tmpTagsDir);
 
       SVNRepository repo = SVNRepositoryFactory.create(repoURL);
       repo.setAuthenticationManager(authManager);
       SVNLogClient logClient = new SVNLogClient(authManager, null);
       
       if (isSVNRepositoryProjectRoot(repo)) {
-        dirs = this.getSVNRootRepoDirectories(logClient, repoURL);
+        dirs = this.getSVNRootRepoDirectories(logClient, repoURL, localReverseByDate);
       } else {
         SimpleSVNDirEntryHandler dirEntryHandler = new SimpleSVNDirEntryHandler(tagsFilter);
         logClient.doList(repoURL, SVNRevision.HEAD, SVNRevision.HEAD, false, SVNDepth.IMMEDIATES, SVNDirEntry.DIRENT_TIME, dirEntryHandler);
-        dirs = dirEntryHandler.getDirs(isReverseByDate(), isReverseByName());
+        dirs = dirEntryHandler.getDirs(localReverseByDate, isReverseByName());
       }
     }
     catch(SVNException e) {
       // logs are not translated (IMO, this is a bad idea to translate logs)
-      LOGGER.log(Level.SEVERE, "An SVN exception occurred while listing the directory entries at " + getTagsDir(), e);
+      LOGGER.log(Level.SEVERE, "An SVN exception occurred while listing the directory entries at " + tmpTagsDir, e);
       return Collections.singletonList("!" + ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("SVNException"));
     }
 
@@ -201,7 +215,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
       removeParentDir(dirs);
     }
     else {
-      LOGGER.log(Level.INFO, "No directory entries were found for the following SVN repository: {0}", getTagsDir());
+      LOGGER.log(Level.INFO, "No directory entries were found for the following SVN repository: {0}", tmpTagsDir);
       return Collections.singletonList("!" + ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("NoDirectoryEntriesFound"));
     }
     
@@ -241,6 +255,10 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
   public String getMaxTags() {
     return maxTags;
   }  
+
+  public boolean isUseLatestTag() {
+    return useLatestTag;
+  }
 
   /**
    * Checks to see if given repository contains a trunk, branches, and tags
@@ -295,12 +313,12 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
    * @return List of directories.
    * @throws SVNException
    */
-  private List<String> getSVNRootRepoDirectories(SVNLogClient logClient, SVNURL repoURL) throws SVNException {
+  private List<String> getSVNRootRepoDirectories(SVNLogClient logClient, SVNURL repoURL, boolean localReverseByDate) throws SVNException {
     // Get the branches repository contents
     SVNURL branchesRepo = repoURL.appendPath(SVN_BRANCHES, true);
     SimpleSVNDirEntryHandler branchesEntryHandler = new SimpleSVNDirEntryHandler(null);
     logClient.doList(branchesRepo, SVNRevision.HEAD, SVNRevision.HEAD, false, SVNDepth.IMMEDIATES, SVNDirEntry.DIRENT_ALL, branchesEntryHandler);
-    List<String> branches = branchesEntryHandler.getDirs(isReverseByDate(), isReverseByName());
+    List<String> branches = branchesEntryHandler.getDirs(localReverseByDate, isReverseByName());
     branches.remove("");
     appendTargetDir(SVN_BRANCHES, branches);
 
@@ -308,7 +326,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
     SVNURL tagsRepo = repoURL.appendPath(SVN_TAGS, true);
     SimpleSVNDirEntryHandler tagsEntryHandler = new SimpleSVNDirEntryHandler(null);
     logClient.doList(tagsRepo, SVNRevision.HEAD, SVNRevision.HEAD, false, SVNDepth.IMMEDIATES, SVNDirEntry.DIRENT_ALL, tagsEntryHandler);
-    List<String> tags = tagsEntryHandler.getDirs(isReverseByDate(), isReverseByName());
+    List<String> tags = tagsEntryHandler.getDirs(localReverseByDate, isReverseByName());
     tags.remove("");
     appendTargetDir(SVN_TAGS, tags);
 

@@ -28,7 +28,7 @@ public class ListSubversionTagsParameterDefinitionTest extends AbstractSubversio
     public void testListTags() throws Exception {
         Proc p = runSvnServe(getClass().getResource("JENKINS-11933.zip"));
         try {
-            ListSubversionTagsParameterDefinition def = new ListSubversionTagsParameterDefinition("FOO", "svn://localhost/", null, "", "", "", false, false);
+            ListSubversionTagsParameterDefinition def = new ListSubversionTagsParameterDefinition("FOO", "svn://localhost/", null, "", "", false, "", false, false);
             List<String> tags = def.getTags(null);
             List<String> expected = Arrays.asList("trunk", "tags/a", "tags/b", "tags/c");
             
