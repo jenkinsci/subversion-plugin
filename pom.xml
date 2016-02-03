@@ -28,7 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>1.568</version>
+    <version>2.3</version>
   </parent>
 
   <artifactId>subversion</artifactId>
@@ -37,6 +37,7 @@ THE SOFTWARE.
 
   <name>Jenkins Subversion Plug-in</name>
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Subversion+Plugin</url>
+
   <licenses>
     <license>
       <name>MIT license</name>
@@ -57,6 +58,7 @@ THE SOFTWARE.
     <url>http://github.com/jenkinsci/${project.artifactId}-plugin</url>
     <tag>HEAD</tag>
   </scm>
+
   <distributionManagement>
     <repository>
       <id>maven.jenkins-ci.org</id>
@@ -65,8 +67,12 @@ THE SOFTWARE.
   </distributionManagement>
 
   <properties>
-    <maven-hpi-plugin.version>1.96</maven-hpi-plugin.version>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <jenkins.version>1.568</jenkins.version>
+    <jenkins-test-harness.version>1.568</jenkins-test-harness.version>
+    <java.level>7</java.level>
+    <java.level.test>${java.level}</java.level.test>
+    <findbugs.failOnError>false</findbugs.failOnError>
+    <hpi-plugin.version>1.115</hpi-plugin.version>
   </properties>
 
   <repositories>
@@ -80,6 +86,7 @@ THE SOFTWARE.
       <url>http://maven.tmatesoft.com/content/repositories/releases/</url>
     </repository>
   </repositories>
+
   <pluginRepositories>
     <pluginRepository>
       <id>repo.jenkins-ci.org</id>
@@ -145,93 +152,20 @@ THE SOFTWARE.
       <scope>test</scope>
     </dependency>
 
-    <dependency>
-      <groupId>org.jenkins-ci.main</groupId>
-      <artifactId>jenkins-test-harness</artifactId>
-      <version>${project.parent.version}</version>
-      <scope>test</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>org.jvnet.hudson.plugins</groupId>
-          <artifactId>subversion</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
   </dependencies>
 
   <build>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <artifactId>maven-release-plugin</artifactId>
-          <version>2.5.2</version>
-        </plugin>
-      </plugins>
-    </pluginManagement>
     <plugins>
-      <plugin>
-        <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.10.3</version>
-        <configuration>
-          <additionalparam>-Xdoclint:none</additionalparam>
-        </configuration>
-      </plugin>
-      <plugin>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.14.1</version>
-        <configuration>
-          <systemPropertyVariables>
-            <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
-            <java.awt.headless>true</java.awt.headless>
-          </systemPropertyVariables>
-        </configuration>
-      </plugin>
       <plugin>
         <groupId>org.jenkins-ci.tools</groupId>
         <artifactId>maven-hpi-plugin</artifactId>
-        <version>${maven-hpi-plugin.version}</version>
+        <version>${hpi-plugin.version}</version>
         <configuration>
           <maskClasses>com.trilead.ssh2.</maskClasses>
           <systemProperties>
             <hudson.bundled.plugins>${basedir}/work/plugins/subversion.hpl</hudson.bundled.plugins>
           </systemProperties>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>findbugs-maven-plugin</artifactId>
-        <version>3.0.2</version>
-        <configuration>
-          <xmlOutput>true</xmlOutput>
-          <failOnError>false</failOnError>
-        </configuration>
-        <executions>
-          <execution>
-            <id>findbugs</id>
-            <goals>
-              <goal>check</goal>
-            </goals>
-            <phase>verify</phase>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <artifactId>maven-enforcer-plugin</artifactId>
-        <version>1.2</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>enforce</goal>
-            </goals>
-            <configuration>
-              <rules>
-                <requireMavenVersion>
-                  <version>3.0</version>
-                </requireMavenVersion>
-              </rules>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
     </plugins>
   </build>
