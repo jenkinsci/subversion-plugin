@@ -72,7 +72,6 @@ THE SOFTWARE.
     <java.level>6</java.level>
     <java.level.test>${java.level}</java.level.test>
     <findbugs.failOnError>false</findbugs.failOnError>
-    <hpi-plugin.version>1.115</hpi-plugin.version>
   </properties>
 
   <repositories>
