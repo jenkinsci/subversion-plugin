@@ -36,13 +36,10 @@ import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.EnvVars;
 import hudson.Extension;
 import hudson.Functions;
 import hudson.Util;
-import hudson.model.AbstractProject;
 import hudson.model.Item;
-import hudson.model.Job;
 import hudson.model.TaskListener;
 import hudson.scm.CredentialsSVNAuthenticationProviderImpl;
 import hudson.scm.FilterSVNAuthenticationManager;
@@ -52,7 +49,6 @@ import hudson.scm.subversion.SvnHelper;
 import hudson.security.ACL;
 import hudson.util.EditDistance;
 import hudson.util.FormValidation;
-import hudson.util.IOException2;
 import hudson.util.ListBoxModel;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
@@ -183,6 +179,7 @@ public class SubversionSCMSource extends SCMSource {
         return remoteBase;
     }
 
+    @CheckForNull
     public synchronized String getUuid() {
         if (uuid == null) {
             SVNRepositoryView repository = null;
@@ -191,6 +188,9 @@ public class SubversionSCMSource extends SCMSource {
                 repository = openSession(repoURL);
                 uuid = repository.getUuid();
             } catch (SVNException e) {
+                LOGGER.log(Level.WARNING, "Could not connect to remote repository " + remoteBase + " to determine UUID",
+                        e);
+            } catch (IOException e) {
                 LOGGER.log(Level.WARNING, "Could not connect to remote repository " + remoteBase + " to determine UUID",
                         e);
             } finally {
@@ -228,7 +228,7 @@ public class SubversionSCMSource extends SCMSource {
             );
         } catch (SVNException e) {
             e.printStackTrace(listener.error("Could not communicate with Subversion server"));
-            throw new IOException2(e.getMessage(), e);
+            throw new IOException(e);
         } finally {
             closeSession(repository);
         }
@@ -250,7 +250,7 @@ public class SubversionSCMSource extends SCMSource {
             SVNRepositoryView.NodeEntry svnEntry = repository.getNode(path, -1);
             return new SCMRevisionImpl(head, svnEntry.getRevision());
         } catch (SVNException e) {
-            throw new IOException2(e.getMessage(), e);
+            throw new IOException(e);
         } finally {
             closeSession(repository);
         }
@@ -262,7 +262,7 @@ public class SubversionSCMSource extends SCMSource {
         }
     }
 
-    private SVNRepositoryView openSession(SVNURL repoURL) throws SVNException {
+    private SVNRepositoryView openSession(SVNURL repoURL) throws SVNException, IOException {
         return new SVNRepositoryView(repoURL, credentialsId == null ? null : CredentialsMatchers
                 .firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class, getOwner(),
                         ACL.SYSTEM, URIRequirementBuilder.fromUri(repoURL.toString()).build()),
@@ -334,7 +334,7 @@ public class SubversionSCMSource extends SCMSource {
                                                         SVNPathUtil.append(candidateRootPath, path),
                                                         candidateRevision) != SVNNodeKind.NONE;
                                             } catch (SVNException e) {
-                                                throw new IOException2(e.getMessage(), e);
+                                                throw new IOException(e);
                                             }
                                         }
                                     }, listener)) {
