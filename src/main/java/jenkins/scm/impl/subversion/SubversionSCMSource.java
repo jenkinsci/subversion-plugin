@@ -293,6 +293,9 @@ public class SubversionSCMSource extends SCMSource {
         }
         for (Map.Entry<List<String>, SortedSet<List<String>>> entry : includePaths.entrySet()) {
             for (List<String> path : entry.getValue()) {
+                if (prefix.size() >= path.size()) {
+                    continue;
+                }
                 String name = path.get(prefix.size());
                 SVNRepositoryView.ChildEntry[] children = node.getChildren().clone();
                 Arrays.sort(children, new Comparator<SVNRepositoryView.ChildEntry>() {
