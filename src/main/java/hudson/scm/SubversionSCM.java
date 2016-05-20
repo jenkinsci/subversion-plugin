@@ -3003,7 +3003,7 @@ public class SubversionSCM extends SCM implements Serializable {
             }
 
             public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context, @QueryParameter String remote) {
-                if (context == null || !context.hasPermission(Item.CONFIGURE)) {
+                if (context == null || !context.hasPermission(Item.EXTENDED_READ)) {
                     return new StandardListBoxModel();
                 }
                 return fillCredentialsIdItems(context, remote);
@@ -3065,7 +3065,7 @@ public class SubversionSCM extends SCM implements Serializable {
                     @QueryParameter String remote, @QueryParameter String value) {
 
                 // Test the connection only if we have job configure permission
-                if (context == null || !context.hasPermission(Item.CONFIGURE)) {
+                if (context == null || !context.hasPermission(Item.EXTENDED_READ)) {
                     return FormValidation.ok();
                 }
                 return checkCredentialsId(req, context, remote, value);
@@ -3287,7 +3287,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
             public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
                                                          @QueryParameter String realm) {
-                if (context == null || !context.hasPermission(Item.CONFIGURE)) {
+                if (context == null || !context.hasPermission(Item.EXTENDED_READ)) {
                     return new StandardListBoxModel();
                 }
                 List<DomainRequirement> domainRequirements;

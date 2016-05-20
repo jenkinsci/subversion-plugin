@@ -714,7 +714,7 @@ public class SubversionSCMSource extends SCMSource {
         @SuppressWarnings("unused") // by stapler
         public ListBoxModel doFillCredentialsIdItems(@AncestorInPath SCMSourceOwner context,
                                                      @QueryParameter String remoteBase) {
-            if (context == null || !context.hasPermission(Item.CONFIGURE)) {
+            if (context == null || !context.hasPermission(Item.EXTENDED_READ)) {
                 return new StandardListBoxModel();
             }
             List<DomainRequirement> domainRequirements;
@@ -740,7 +740,7 @@ public class SubversionSCMSource extends SCMSource {
         public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath SCMSourceOwner context, @QueryParameter String remoteBase, @QueryParameter String value) {
             // TODO suspiciously similar to SubversionSCM.ModuleLocation.DescriptorImpl.checkCredentialsId; refactor into shared method?
             // Test the connection only if we have job configure permission
-            if (context == null || !context.hasPermission(Item.CONFIGURE)) {
+            if (context == null || !context.hasPermission(Item.EXTENDED_READ)) {
                 return FormValidation.ok();
             }
 
