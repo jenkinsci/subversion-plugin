@@ -739,8 +739,8 @@ public class SubversionSCMSource extends SCMSource {
          */
         public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath SCMSourceOwner context, @QueryParameter String remoteBase, @QueryParameter String value) {
             // TODO suspiciously similar to SubversionSCM.ModuleLocation.DescriptorImpl.checkCredentialsId; refactor into shared method?
-            // Test the connection only if we have job configure permission
-            if (context == null || !context.hasPermission(Item.EXTENDED_READ)) {
+            // Test the connection only if we may use the credentials
+            if (context == null || !context.hasPermission(CredentialsProvider.USE_ITEM)) {
                 return FormValidation.ok();
             }
 
