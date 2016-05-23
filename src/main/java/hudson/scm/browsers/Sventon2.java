@@ -120,7 +120,7 @@ public class Sventon2 extends AbstractSventon {
         public FormValidation doCheckUrl(@AncestorInPath Item project,
                                          @QueryParameter(fixEmpty=true) final String value)
                 throws IOException, ServletException {
-            if(!project.hasPermission(Item.CONFIGURE))  return FormValidation.ok(); // can't check
+            if(!project.hasPermission(Item.EXTENDED_READ))  return FormValidation.ok(); // can't check
             if(value==null) // nothing entered yet
                 return FormValidation.ok();
 

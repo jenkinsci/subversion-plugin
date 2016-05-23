@@ -234,7 +234,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
             Item context = req.findAncestorObject(Item.class);
             final List<Authentication> authentications = new ArrayList<Authentication>(2);
             authentications.add(Jenkins.getAuthentication());
-            if (context.hasPermission(Item.CONFIGURE)) {
+            if (context.hasPermission(Item.CONFIGURE)) { // TODO should this check EXTENDED_READ?
                 authentications.add(ACL.SYSTEM);
             }
             for (Authentication a : authentications) {
@@ -357,7 +357,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
                     Jenkins.getAuthentication(),
                     domainRequirements)
             );
-            if (context.hasPermission(Item.CONFIGURE)) {
+            if (context.hasPermission(Item.EXTENDED_READ)) {
                 c.addAll(CredentialsProvider.lookupCredentials(StandardCredentials.class,
                                 context,
                                 ACL.SYSTEM,
