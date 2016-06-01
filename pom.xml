@@ -122,6 +122,12 @@ THE SOFTWARE.
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-scm-step</artifactId>
       <version>${workflow.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.httpcomponents</groupId>
+          <artifactId>httpclient</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <dependency>
