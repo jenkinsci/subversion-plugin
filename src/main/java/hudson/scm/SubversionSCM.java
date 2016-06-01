@@ -80,7 +80,6 @@ import java.util.WeakHashMap;
 import hudson.security.ACL;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
-import hudson.remoting.Callable;
 import hudson.remoting.Channel;
 import hudson.remoting.VirtualChannel;
 import hudson.scm.UserProvidedCredential.AuthenticationManagerImpl;
@@ -177,6 +176,10 @@ import com.trilead.ssh2.DebugLogger;
 import com.trilead.ssh2.SCPClient;
 import com.trilead.ssh2.crypto.Base64;
 import javax.annotation.Nonnull;
+import jenkins.MasterToSlaveFileCallable;
+import jenkins.security.Roles;
+import jenkins.security.SlaveToMasterCallable;
+import org.jenkinsci.remoting.RoleChecker;
 
 /**
  * Subversion SCM.
@@ -979,6 +982,11 @@ public class SubversionSCM extends SCM implements Serializable {
             }
         }
 
+        @Override
+        public void checkRoles(RoleChecker checker) throws SecurityException {
+            checker.check(this, Roles.SLAVE);
+        }
+
         /**
          * This round-about way of executing the task ensures that the error-prone {@link #delegateTo(UpdateTask)} method
          * correctly copies everything.
@@ -1230,7 +1238,7 @@ public class SubversionSCM extends SCM implements Serializable {
      * @return
      *      null if the parsing somehow fails. Otherwise a map from the repository URL to revisions.
      */
-    private static class BuildRevisionMapTask implements FileCallable<List<SvnInfoP>> {
+    private static class BuildRevisionMapTask extends MasterToSlaveFileCallable<List<SvnInfoP>> {
         private final ISVNAuthenticationProvider defaultAuthProvider;
         private final Map<String,ISVNAuthenticationProvider> authProviders;
         private final TaskListener listener;
@@ -1910,7 +1918,8 @@ public class SubversionSCM extends SCM implements Serializable {
                         String privateKey;
                         if(channel!=null) {
                             // remote
-                            privateKey = channel.call(new Callable<String,IOException>() {
+                            // Unsafe in general, but we should have already converted $JENKINS_HOME/subversion-credentials anyway.
+                            privateKey = channel.call(new SlaveToMasterCallable<String,IOException>() {
                                 /**
                                  *
                                  */

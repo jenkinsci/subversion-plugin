@@ -61,7 +61,6 @@ import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
 import org.tmatesoft.svn.core.wc.SVNCommitClient;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 import org.tmatesoft.svn.core.wc.SVNStatus;
-import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
 import java.io.*;
 import java.net.MalformedURLException;
@@ -422,7 +421,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         String repoUUID = "71c3de6d-444a-0410-be80-ed276b4c234a";
 
         WebClient wc = new WebClient();
-        WebRequestSettings wr = new WebRequestSettings(new URL(getURL() + "subversion/" + repoUUID + "/notifyCommit"), HttpMethod.POST);
+        WebRequest wr = new WebRequest(new URL(getURL() + "subversion/" + repoUUID + "/notifyCommit"), HttpMethod.POST);
         wr.setRequestBody("A   trunk/hudson/test-projects/trivial-ant/build.xml");
         wr.setAdditionalHeader("Content-Type", "text/plain;charset=UTF-8");
 
@@ -447,7 +446,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         String repoUUID = "71c3de6d-444a-0410-be80-ed276b4c234a";
 
         WebClient wc = new WebClient();
-        WebRequestSettings wr = new WebRequestSettings(new URL(getURL() + "subversion/" + repoUUID + "/notifyCommit"), HttpMethod.POST);
+        WebRequest wr = new WebRequest(new URL(getURL() + "subversion/" + repoUUID + "/notifyCommit"), HttpMethod.POST);
         wr.setRequestBody("A   trunk/hudson/test-projects/trivial-ant/build.xml\n" +
         		"M   trunk/hudson/test-projects/trivial-maven/src/main/");
         wr.setAdditionalHeader("Content-Type", "text/plain;charset=UTF-8");
