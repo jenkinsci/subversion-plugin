@@ -1227,9 +1227,6 @@ public class SubversionSCM extends SCM implements Serializable {
     /**
      * Checks .svn files in the workspace and finds out revisions of the modules
      * that the workspace has.
-     *
-     * @return
-     *      null if the parsing somehow fails. Otherwise a map from the repository URL to revisions.
      */
     private static class BuildRevisionMapTask extends MasterToSlaveFileCallable<List<SvnInfoP>> {
         private final ISVNAuthenticationProvider defaultAuthProvider;
@@ -1249,6 +1246,10 @@ public class SubversionSCM extends SCM implements Serializable {
             }
         }
 
+        /**
+         * @return
+         *      null if the parsing somehow fails. Otherwise a map from the repository URL to revisions.
+         */
         public List<SvnInfoP> invoke(File ws, VirtualChannel channel) throws IOException {
             List<SvnInfoP> revisions = new ArrayList<SvnInfoP>();
 

@@ -61,7 +61,7 @@ import java.util.logging.Logger;
 import static javax.servlet.http.HttpServletResponse.SC_FORBIDDEN;
 
 /**
- * Represents the SVN authentication credential given by the user via the &lt;enterCredential> form fragment.
+ * Represents the SVN authentication credential given by the user via the {@code <enterCredential>} form fragment.
  * This is just a value object.
  *
  * @author Kohsuke Kawaguchi
