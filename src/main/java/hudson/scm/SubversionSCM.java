@@ -177,7 +177,9 @@ import com.trilead.ssh2.SCPClient;
 import com.trilead.ssh2.crypto.Base64;
 import javax.annotation.Nonnull;
 import jenkins.MasterToSlaveFileCallable;
+import jenkins.security.Roles;
 import jenkins.security.SlaveToMasterCallable;
+import org.jenkinsci.remoting.RoleChecker;
 
 /**
  * Subversion SCM.
@@ -943,7 +945,7 @@ public class SubversionSCM extends SCM implements Serializable {
     /**
      * Either run "svn co" or "svn up" equivalent.
      */
-    private static class CheckOutTask extends UpdateTask {
+    private static class CheckOutTask extends UpdateTask implements FileCallable<List<External>> {
         private final UpdateTask task;
 
          public CheckOutTask(Run<?, ?> build, SubversionSCM parent, ModuleLocation location, Date timestamp, TaskListener listener, EnvVars env) {
@@ -978,6 +980,11 @@ public class SubversionSCM extends SCM implements Serializable {
             } finally {
                 clientManager.dispose();
             }
+        }
+
+        @Override
+        public void checkRoles(RoleChecker checker) throws SecurityException {
+            checker.check(this, Roles.SLAVE);
         }
 
         /**
