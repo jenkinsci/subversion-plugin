@@ -40,8 +40,6 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.commons.io.FileUtils;
-import org.jenkinsci.plugins.workflow.steps.scm.AbstractSampleRepoRule;
-import static org.jenkinsci.plugins.workflow.steps.scm.AbstractSampleRepoRule.run;
 import org.jvnet.hudson.test.JenkinsRule;
 
 public final class SubversionSampleRepoRule extends AbstractSampleRepoRule {
