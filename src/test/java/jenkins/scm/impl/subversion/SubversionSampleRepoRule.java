@@ -49,7 +49,8 @@ public final class SubversionSampleRepoRule extends AbstractSampleRepoRule {
     private File repo;
     private File wc;
 
-    @Override protected void before() throws Throwable {
+    @Override
+    protected void before() throws Throwable {
         super.before();
         repo = tmp.newFolder();
         wc = tmp.newFolder();
@@ -61,7 +62,7 @@ public final class SubversionSampleRepoRule extends AbstractSampleRepoRule {
 
     public String rootUrl() throws URISyntaxException {
         URI u = repo.toURI();
-         // TODO SVN rejects File.toUri syntax (requires blank authority field)
+        // TODO SVN rejects File.toUri syntax (requires blank authority field)
         return new URI(u.getScheme(), "", u.getPath(), u.getFragment()).toString();
     }
 
@@ -81,7 +82,8 @@ public final class SubversionSampleRepoRule extends AbstractSampleRepoRule {
         return prjUrl() + "/tags";
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         try {
             return rootUrl();
         } catch (URISyntaxException x) {
