@@ -44,6 +44,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
+import jenkins.MasterToSlaveFileCallable;
 
 /**
  * Encapsulates the logic of how files are obtained from a subversion repository.
@@ -93,7 +94,7 @@ public abstract class WorkspaceUpdater extends AbstractDescribableImpl<Workspace
      * A number of contextual objects are defined as fields, to be used by the {@link #perform()} method.
      * These fields are set by {@link SubversionSCM} before the invocation.
      */
-    public static abstract class UpdateTask implements Serializable {
+    public static abstract class UpdateTask extends MasterToSlaveFileCallable<List<External>> {
         // fields that are set by the caller as context for the perform method
 
         /**
