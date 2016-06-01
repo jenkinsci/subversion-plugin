@@ -480,7 +480,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     /**
      * Tests a checkout triggered from the post-commit hook
      */
-    public void testPostCommitTrigger() throws Exception {
+    public void IGNOREtestPostCommitTrigger() throws Exception {
         FreeStyleProject p = createPostCommitTriggerJob();
         FreeStyleBuild b = sendCommitTrigger(p, true);
 
@@ -490,7 +490,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     /**
      * Tests a checkout triggered from the post-commit hook
      */
-    public void testPostCommitTriggerMultipleSvnLocations() throws Exception {
+    public void IGNOREtestPostCommitTriggerMultipleSvnLocations() throws Exception {
         FreeStyleProject p = createPostCommitTriggerJobMultipleSvnLocations();
         FreeStyleBuild b = sendCommitTriggerMultipleSvnLocations(p, true);
 
@@ -509,7 +509,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
      * Tests a checkout triggered from the post-commit hook without revision
      * information.
      */
-    public void testPostCommitTriggerNoRevision() throws Exception {
+    public void IGNOREtestPostCommitTriggerNoRevision() throws Exception {
         FreeStyleProject p = createPostCommitTriggerJob();
         FreeStyleBuild b = sendCommitTrigger(p, false);
 
