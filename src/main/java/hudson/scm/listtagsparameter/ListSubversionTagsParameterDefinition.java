@@ -170,7 +170,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
    */
   @Nonnull public List<String> getTags(@Nullable Job context) {
     List<String> dirs = new ArrayList<String>();
-
+    SVNLogClient logClient = null;
     try {
       ISVNAuthenticationProvider authProvider = CredentialsSVNAuthenticationProviderImpl.createAuthenticationProvider(
               context, getTagsDir(), getCredentialsId(), null
@@ -180,7 +180,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
 
       SVNRepository repo = SVNRepositoryFactory.create(repoURL);
       repo.setAuthenticationManager(authManager);
-      SVNLogClient logClient = new SVNLogClient(authManager, null);
+      logClient = new SVNLogClient(authManager, null);
       
       if (isSVNRepositoryProjectRoot(repo)) {
         dirs = this.getSVNRootRepoDirectories(logClient, repoURL);
@@ -194,6 +194,10 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
       // logs are not translated (IMO, this is a bad idea to translate logs)
       LOGGER.log(Level.SEVERE, "An SVN exception occurred while listing the directory entries at " + getTagsDir(), e);
       return Collections.singletonList("!" + ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("SVNException"));
+    } finally {
+      if (logClient != null) {
+        logClient.getOperationsFactory().dispose();
+      }
     }
 
     // SVNKit's doList() method returns also the parent dir, so we need to remove it
