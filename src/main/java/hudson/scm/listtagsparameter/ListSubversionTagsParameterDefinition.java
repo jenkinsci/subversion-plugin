@@ -67,6 +67,7 @@ import org.tmatesoft.svn.core.io.SVNRepository;
 import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
 import org.tmatesoft.svn.core.wc.SVNLogClient;
 import org.tmatesoft.svn.core.wc.SVNRevision;
+import org.tmatesoft.svn.core.wc.SVNClientManager;
 
 /**
  * Defines a new {@link ParameterDefinition} to be displayed at the top of the
@@ -170,7 +171,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
    */
   @Nonnull public List<String> getTags(@Nullable Job context) {
     List<String> dirs = new ArrayList<String>();
-    SVNLogClient logClient = null;
+    SVNClientManager clientManager = null;
     try {
       ISVNAuthenticationProvider authProvider = CredentialsSVNAuthenticationProviderImpl.createAuthenticationProvider(
               context, getTagsDir(), getCredentialsId(), null
@@ -180,7 +181,8 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
 
       SVNRepository repo = SVNRepositoryFactory.create(repoURL);
       repo.setAuthenticationManager(authManager);
-      logClient = new SVNLogClient(authManager, null);
+      clientManager = SVNClientManager.newInstance(null,authManager);
+      SVNLogClient logClient = clientManager.getLogClient();
       
       if (isSVNRepositoryProjectRoot(repo)) {
         dirs = this.getSVNRootRepoDirectories(logClient, repoURL);
@@ -195,8 +197,8 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
       LOGGER.log(Level.SEVERE, "An SVN exception occurred while listing the directory entries at " + getTagsDir(), e);
       return Collections.singletonList("!" + ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("SVNException"));
     } finally {
-      if (logClient != null) {
-        logClient.getOperationsFactory().dispose();
+      if (clientManager != null) {
+        clientManager.dispose();
       }
     }
 
