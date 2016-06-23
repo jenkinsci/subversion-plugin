@@ -99,6 +99,12 @@ THE SOFTWARE.
       <version>1.8.11</version>
     </dependency>
     <dependency>
+      <groupId>org.tmatesoft.svnkit</groupId>
+      <artifactId>svnkit-cli</artifactId>
+      <version>1.8.11</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>mapdb-api</artifactId>
       <version>1.0.1.0</version>

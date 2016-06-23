@@ -55,10 +55,10 @@ public class SubversionStepTest {
     public void multipleSCMs() throws Exception {
         sampleRepo.init();
         otherRepo.basicInit();
-        otherRepo.svn("co", otherRepo.trunkUrl(), ".");
+        otherRepo.svnkit("co", otherRepo.trunkUrl(), otherRepo.wc());
         otherRepo.write("otherfile", "");
-        otherRepo.svn("add", "otherfile");
-        otherRepo.svn("commit", "--message=init");
+        otherRepo.svnkit("add", otherRepo.wc() + "/otherfile");
+        otherRepo.svnkit("commit", "--message=init", otherRepo.wc());
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "demo");
         p.addTrigger(new SCMTrigger(""));
         p.setQuietPeriod(3); // so it only does one build
@@ -79,11 +79,11 @@ public class SubversionStepTest {
         assertTrue(artifacts.child("main/file").isFile());
         assertTrue(artifacts.child("other/otherfile").isFile());
         sampleRepo.write("file2", "");
-        sampleRepo.svn("add", "file2");
-        sampleRepo.svn("commit", "--message=+file2");
+        sampleRepo.svnkit("add", sampleRepo.wc() + "/file2");
+        sampleRepo.svnkit("commit", "--message=+file2", sampleRepo.wc());
         otherRepo.write("otherfile2", "");
-        otherRepo.svn("add", "otherfile2");
-        otherRepo.svn("commit", "--message=+otherfile2");
+        otherRepo.svnkit("add", otherRepo.wc() + "/otherfile2");
+        otherRepo.svnkit("commit", "--message=+otherfile2", otherRepo.wc());
         sampleRepo.notifyCommit(r, "prj/trunk/file2");
         otherRepo.notifyCommit(r, "prj/trunk/otherfile2");
         r.waitUntilNoActivity();
