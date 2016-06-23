@@ -40,10 +40,12 @@ import org.tmatesoft.svn.core.wc.SVNStatusClient;
 import org.tmatesoft.svn.core.wc2.SvnGetStatus;
 
 import java.io.File;
+import org.junit.Ignore;
 
 /**
  * @author schristou88
  */
+@Ignore("TODO org.tmatesoft.svn.core.SVNException: svn: E175002: PROPFIND of '/trunk/hudson/test-projects/trivial-ant': 405 Method Not Allowed (https://svn.jenkins-ci.org)")
 public class SVNWorkingCopyTest extends AbstractSubversionTest {
   public void testCheckoutWorkingCopyFormat14() throws Exception {
     checkoutAndVerifyWithFormat(SVNAdminArea14.WC_FORMAT);

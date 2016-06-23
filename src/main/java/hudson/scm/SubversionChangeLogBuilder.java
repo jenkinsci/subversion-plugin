@@ -58,6 +58,7 @@ import java.io.Serializable;
 import java.util.Map;
 import java.util.Collection;
 import javax.annotation.Nonnull;
+import jenkins.MasterToSlaveFileCallable;
 
 /**
  * Builds <tt>changelog.xml</tt> for {@link SubversionSCM}.
@@ -247,7 +248,7 @@ public final class SubversionChangeLogBuilder {
         DUMMY_LOCATOR.setColumnNumber(-1);
     }
 
-    private static class GetContextForPath implements FileCallable<PathContext> {
+    private static class GetContextForPath extends MasterToSlaveFileCallable<PathContext> {
         private final ISVNAuthenticationProvider authProvider;
 
         public GetContextForPath(ISVNAuthenticationProvider authProvider) {
