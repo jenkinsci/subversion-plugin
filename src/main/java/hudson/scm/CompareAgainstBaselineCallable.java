@@ -13,6 +13,7 @@ import java.text.DateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import jenkins.security.MasterToSlaveCallable;
 
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNURL;
@@ -23,7 +24,7 @@ import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
  * 
  * @author kutzi
  */
-final class CompareAgainstBaselineCallable implements DelegatingCallable<PollingResult, IOException> {
+final class CompareAgainstBaselineCallable extends MasterToSlaveCallable<PollingResult,IOException> implements DelegatingCallable<PollingResult, IOException> {
     private final SVNLogHandler logHandler;
     private final String projectName;
     private final SVNRevisionState baseline;
