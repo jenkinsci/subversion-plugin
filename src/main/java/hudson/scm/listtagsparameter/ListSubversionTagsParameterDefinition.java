@@ -179,6 +179,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
       SVNURL repoURL = SVNURL.parseURIDecoded(getTagsDir());
 
       SVNRepository repo = SVNRepositoryFactory.create(repoURL);
+      repo.setTunnelProvider( SubversionSCM.createDefaultSVNOptions() );
       repo.setAuthenticationManager(authManager);
       SVNLogClient logClient = new SVNLogClient(authManager, null);
       
@@ -255,6 +256,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
         return true;
       }
     } catch (SVNException e) {
+      LOGGER.log(Level.SEVERE, "An SVN exception occurred", e);
       return false;
     }
     return false;
