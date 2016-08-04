@@ -179,7 +179,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
       SVNURL repoURL = SVNURL.parseURIDecoded(getTagsDir());
 
       SVNRepository repo = SVNRepositoryFactory.create(repoURL);
-      repo.setTunnelProvider( SubversionSCM.createDefaultSVNOptions() );
+      repo.setTunnelProvider(SubversionSCM.createDefaultSVNOptions());
       repo.setAuthenticationManager(authManager);
       SVNLogClient logClient = new SVNLogClient(authManager, null);
       
