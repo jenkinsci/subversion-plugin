@@ -182,7 +182,6 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
       clientManager.setAuthenticationManager(authManager);
       
       SVNURL repoURL = SVNURL.parseURIDecoded(getTagsDir());
-      
       SVNRepository repo = SVNRepositoryFactory.create(repoURL);
       repo.setAuthenticationManager(authManager);
       SVNLogClient logClient = clientManager.getLogClient();
