@@ -371,7 +371,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
         return FormValidation.warning("Unable to check tags directory.");
     }
 
-    public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context, @QueryParameter String tagsDir) {
+    public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Job<?,?> context, @QueryParameter String tagsDir) {
       if (context == null || !context.hasPermission(Item.BUILD)) {
         return new StandardListBoxModel();
       }
