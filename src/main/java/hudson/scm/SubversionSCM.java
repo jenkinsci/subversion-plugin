@@ -885,8 +885,8 @@ public class SubversionSCM extends SCM implements Serializable {
 
                 listener.getLogger().println("One or more repository locations do not exist anymore for " + build.getParent().getName() + ", project will be disabled.");
                 disableProject(((AbstractBuild) build).getProject(), listener);
-                return null;
             }
+            return null;
         }
 
         List<External> externals = new ArrayList<External>();

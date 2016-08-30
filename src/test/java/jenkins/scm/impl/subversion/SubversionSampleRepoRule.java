@@ -40,9 +40,11 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.commons.io.FileUtils;
+import static org.junit.Assert.assertEquals;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.tmatesoft.svn.cli.svn.SVN;
 import org.tmatesoft.svn.cli.svnadmin.SVNAdmin;
+import org.tmatesoft.svn.core.wc.SVNClientManager;
 
 public final class SubversionSampleRepoRule extends AbstractSampleRepoRule {
 
@@ -154,6 +156,7 @@ public final class SubversionSampleRepoRule extends AbstractSampleRepoRule {
         write("file", "");
         svnkit("add", wc() + "/file");
         svnkit("commit", "--message=init", wc());
+        assertEquals(2, revision());
     }
 
     private static String uuid(String url) throws Exception {
@@ -177,6 +180,14 @@ public final class SubversionSampleRepoRule extends AbstractSampleRepoRule {
             listener.onNotify(UUID.fromString(uuid(rootUrl())), -1, Collections.singleton(path));
         }
         r.waitUntilNoActivity();
+    }
+
+    /**
+     * Gets the repository revision just committed.
+     */
+    public long revision() throws Exception {
+        // .getLookClient().doGetYoungestRevision(repo) would show last committed revision but would not be sensitive to checked-out branch; which is clearer?
+        return SVNClientManager.newInstance().getStatusClient().doStatus(wc, true).getRemoteRevision().getNumber(); // http://stackoverflow.com/a/2295674/12916
     }
 
 }
