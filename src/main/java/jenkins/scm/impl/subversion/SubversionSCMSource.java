@@ -727,6 +727,12 @@ public class SubversionSCMSource extends SCMSource {
         public int hashCode() {
             return (int) (revision ^ (revision >>> 32));
         }
+
+        @Override
+        public String toString() {
+            return Long.toString(revision);
+        }
+
     }
 
     static class StringListComparator implements Comparator<List<String>> {
