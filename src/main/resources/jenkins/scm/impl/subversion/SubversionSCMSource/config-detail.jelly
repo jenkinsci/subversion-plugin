@@ -31,9 +31,9 @@
     <f:select/>
   </f:entry>
   <f:entry title="${%Include branches}" field="includes">
-    <f:textbox default="trunk,branches/*,tags/*,sandbox/*"/>
+    <f:textbox default="${descriptor.DEFAULT_INCLUDES}"/>
   </f:entry>
   <f:entry title="${%Exclude branches}" field="excludes">
-    <f:textbox/>
+    <f:textbox default="${descriptor.DEFAULT_EXCLUDES}"/>
   </f:entry>
 </j:jelly>
