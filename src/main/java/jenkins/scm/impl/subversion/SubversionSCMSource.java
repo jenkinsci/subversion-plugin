@@ -103,6 +103,7 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import jenkins.model.Jenkins;
 import org.kohsuke.stapler.DataBoundSetter;
 
 /**
@@ -784,13 +785,16 @@ public class SubversionSCMSource extends SCMSource {
          */
         @SuppressWarnings("unused") // by stapler
         public ListBoxModel doFillCredentialsIdItems(@AncestorInPath SCMSourceOwner context,
-                                                     @QueryParameter String remoteBase) {
-            if (context == null || !context.hasPermission(Item.EXTENDED_READ)) {
-                return new StandardListBoxModel();
+                                                     @QueryParameter String remoteBase,
+                                                     @QueryParameter String credentialsId) {
+            if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
+                context != null && !context.hasPermission(Item.EXTENDED_READ)) {
+                return new StandardListBoxModel().includeCurrentValue(credentialsId);
             }
             List<DomainRequirement> domainRequirements;
             domainRequirements = URIRequirementBuilder.fromUri(remoteBase.trim()).build();
             return new StandardListBoxModel()
+                    // TODO JENKINS-35553 update to newer APIs
                     .withEmptySelection()
                     .withMatching(
                             CredentialsMatchers.anyOf(
@@ -811,7 +815,8 @@ public class SubversionSCMSource extends SCMSource {
         public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath SCMSourceOwner context, @QueryParameter String remoteBase, @QueryParameter String value) {
             // TODO suspiciously similar to SubversionSCM.ModuleLocation.DescriptorImpl.checkCredentialsId; refactor into shared method?
             // Test the connection only if we may use the credentials
-            if (context == null || !context.hasPermission(CredentialsProvider.USE_ITEM)) {
+            if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
+                context != null && !context.hasPermission(CredentialsProvider.USE_ITEM)) {
                 return FormValidation.ok();
             }
 
