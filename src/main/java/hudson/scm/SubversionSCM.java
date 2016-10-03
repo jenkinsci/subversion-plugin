@@ -3012,7 +3012,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 return null;
             }
 
-            public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context, @QueryParameter String remote) {
+            public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Job<?,?> context, @QueryParameter String remote) {
                 if (context == null || !context.hasPermission(Item.EXTENDED_READ)) {
                     return new StandardListBoxModel();
                 }
@@ -3295,7 +3295,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 return null;
             }
 
-            public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
+            public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Job<?,?> context,
                                                          @QueryParameter String realm) {
                 if (context == null || !context.hasPermission(Item.EXTENDED_READ)) {
                     return new StandardListBoxModel();
