@@ -106,12 +106,7 @@ public class Phabricator extends SubversionRepositoryBrowser {
     @Extension
     public static class PhabricatorDescriptor extends Descriptor<RepositoryBrowser<?>> {
         public String getDisplayName() {
-            return "phabricator";
-        }
-
-        @Override
-        public Phabricator newInstance(StaplerRequest req, JSONObject jsonObject) throws FormException {
-            return req.bindJSON(Phabricator.class, jsonObject);
+            return "Phabricator";
         }
     }
 }
