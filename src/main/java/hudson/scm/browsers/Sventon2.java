@@ -42,6 +42,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import jenkins.model.Jenkins;
 
 /**
  * {@link RepositoryBrowser} for Sventon 2.x.
@@ -120,7 +121,10 @@ public class Sventon2 extends AbstractSventon {
         public FormValidation doCheckUrl(@AncestorInPath Item project,
                                          @QueryParameter(fixEmpty=true) final String value)
                 throws IOException, ServletException {
-            if(!project.hasPermission(Item.EXTENDED_READ))  return FormValidation.ok(); // can't check
+            if (project == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
+                project != null && !project.hasPermission(Item.EXTENDED_READ)) {
+                return FormValidation.ok();
+            }
             if(value==null) // nothing entered yet
                 return FormValidation.ok();
 
