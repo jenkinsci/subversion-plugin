@@ -61,13 +61,6 @@ THE SOFTWARE.
     <tag>HEAD</tag>
   </scm>
 
-  <distributionManagement>
-    <repository>
-      <id>maven.jenkins-ci.org</id>
-      <url>http://maven.jenkins-ci.org/content/repositories/releases/</url>
-    </repository>
-  </distributionManagement>
-
   <properties>
     <jenkins.version>1.609.3</jenkins.version>
     <java.level>6</java.level>
@@ -77,22 +70,10 @@ THE SOFTWARE.
 
   <repositories>
     <repository>
-      <id>repo.jenkins-ci.org</id>
-      <url>http://repo.jenkins-ci.org/public/</url>
-    </repository>
-
-    <repository>
       <id>mavenTMateSoftReleasesRepository</id>
       <url>http://maven.tmatesoft.com/content/repositories/releases/</url>
     </repository>
   </repositories>
-
-  <pluginRepositories>
-    <pluginRepository>
-      <id>repo.jenkins-ci.org</id>
-      <url>http://repo.jenkins-ci.org/public/</url>
-    </pluginRepository>
-  </pluginRepositories>
 
   <dependencies>
     <dependency>
