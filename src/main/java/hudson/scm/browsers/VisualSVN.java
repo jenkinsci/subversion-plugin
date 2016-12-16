@@ -1,7 +1,7 @@
 /*
  * The MIT License
  * 
- * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi, Daniel Dyer
+ * Copyright (c) 2016, Sun Microsystems, Inc., Kohsuke Kawaguchi, Arnost Havelka
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,17 +35,19 @@ import hudson.model.Descriptor;
 import hudson.scm.EditType;
 import hudson.scm.RepositoryBrowser;
 import hudson.scm.SubversionChangeLogSet;
-import hudson.scm.SubversionRepositoryBrowser;
 import hudson.scm.SubversionChangeLogSet.Path;
+import hudson.scm.SubversionRepositoryBrowser;
+import hudson.scm.subversion.Messages;
 
 
 /**
  * {@link RepositoryBrowser} for Subversion.
  *
+ * https://issues.jenkins-ci.org/browse/JENKINS-30176
+ * 
  * @author Arnost Havelka
- * @since 2.5.8
+ * @since TODO
  */
-// https://issues.jenkins-ci.org/browse/JENKINS-30176
 public class VisualSVN extends SubversionRepositoryBrowser {
 	
 	private static final Logger LOGGER = Logger.getLogger(VisualSVN.class.getName());
@@ -53,7 +55,7 @@ public class VisualSVN extends SubversionRepositoryBrowser {
     @Extension
     public static class DescriptorImpl extends Descriptor<RepositoryBrowser<?>> {
         public String getDisplayName() {
-            return "VisualSVN";
+        	return Messages.SubversionSCM_browsers_VisualSVN();
         }
     }
 
@@ -67,7 +69,7 @@ public class VisualSVN extends SubversionRepositoryBrowser {
      * It may contain a query parameter like <tt>?root=foobar</tt>, so relative
      * URL construction needs to be done with care.</p>
      */
-    public final String url;
+    private final String url;
 
     /**
      * Creates a new VisualSVN object.
@@ -81,8 +83,14 @@ public class VisualSVN extends SubversionRepositoryBrowser {
         this.url = validateUrl(url);
     }
 
-    private String validateUrl(URL url) {
+    private String validateUrl(URL url) throws MalformedURLException {
+    	if (url == null) {
+    		throw new MalformedURLException(Messages.SubversionSCM_doCheckRemote_invalidUrl());
+    	}
     	String value = url.toString();
+    	if (value == null || value.equals("")) {
+    		throw new MalformedURLException(Messages.SubversionSCM_doCheckRemote_invalidUrl());
+    	}
     	if(value.endsWith("/")) {
     		value = value.substring(0, value.length() - 1);
     	}
