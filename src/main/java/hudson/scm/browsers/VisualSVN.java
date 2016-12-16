@@ -26,6 +26,7 @@ package hudson.scm.browsers;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -74,9 +75,9 @@ public class VisualSVN extends SubversionRepositoryBrowser {
     /**
      * Creates a new VisualSVN object.
      *
-     * @param                url  DOCUMENT ME!
+     * @param                url  base URL
      *
-     * @throws               MalformedURLException  DOCUMENT ME!
+     * @throws               MalformedURLException  when URL is not valid (empty)
      */
     @DataBoundConstructor
     public VisualSVN(URL url) throws MalformedURLException {
@@ -97,16 +98,12 @@ public class VisualSVN extends SubversionRepositoryBrowser {
 		return value;
 	}
 
-	/**
-     * Returns the diff link value.
-     *
-     * @param   path  the given path value.
-     *
-     * @return  the diff link value.
-     *
-     * @throws  IOException  DOCUMENT ME!
-     */
-    @Override public URL getDiffLink(Path path) throws IOException {
+	/*
+	 * (non-Javadoc)
+	 * @see hudson.scm.SubversionRepositoryBrowser#getDiffLink(hudson.scm.SubversionChangeLogSet.Path)
+	 */
+    @Override
+    public URL getDiffLink(Path path) throws IOException {
         if (path.getEditType() != EditType.EDIT) {
             return null; // no diff if this is not an edit change
         }
@@ -114,40 +111,38 @@ public class VisualSVN extends SubversionRepositoryBrowser {
     	// https://demo-server.visualsvn.com/!/#tortoisesvn/commit/r27333/head/trunk/src/Utils/MiscUI/SciEdit.cpp
         int r = path.getLogEntry().getRevision();
     	String value = String.format("%s/commit/r%d/head%s", url, r, path.getValue());
-    	LOGGER.fine("DiffLink URL: " + value);
+    	if (LOGGER.isLoggable(Level.FINE)) {
+    		LOGGER.fine("DiffLink URL: " + value);
+    	}
         return new URL(value);
     }
 
-    /**
-     * Returns the file link value.
-     *
-     * @param   path  the given path value.
-     *
-     * @return  the file link value.
-     *
-     * @throws  IOException  DOCUMENT ME!
+    /*
+     * (non-Javadoc)
+     * @see hudson.scm.SubversionRepositoryBrowser#getFileLink(hudson.scm.SubversionChangeLogSet.Path)
      */
-    @Override public URL getFileLink(Path path) throws IOException {
+    @Override
+    public URL getFileLink(Path path) throws IOException {
     	// https://demo-server.visualsvn.com/!/#tortoisesvn/view/head/svnrobots.txt
     	String value = String.format("%s/view/head%s", url, path.getValue());
-    	LOGGER.fine("FileLink URL: " + value);
+    	if (LOGGER.isLoggable(Level.FINE)) {
+    		LOGGER.fine("FileLink URL: " + value);
+    	}
         return new URL(value);
     }
 
-    /**
-     * Returns the change set link value.
-     *
-     * @param   changeSet  the given changeSet value.
-     *
-     * @return  the change set link value.
-     *
-     * @throws  IOException  DOCUMENT ME!
+    /*
+     * (non-Javadoc)
+     * @see hudson.scm.RepositoryBrowser#getChangeSetLink(hudson.scm.ChangeLogSet.Entry)
      */
-    @Override public URL getChangeSetLink(SubversionChangeLogSet.LogEntry changeSet)
+    @Override
+    public URL getChangeSetLink(SubversionChangeLogSet.LogEntry changeSet)
                                    throws IOException {
     	// https://demo-server.visualsvn.com/!/#tortoisesvn/commit/r27333
         String value = String.format("%s/commit/r%d", url, changeSet.getRevision());
-    	LOGGER.fine("ChangeSetLink URL: " + value);
+        if (LOGGER.isLoggable(Level.FINE)) {
+        	LOGGER.fine("ChangeSetLink URL: " + value);
+        }
         return new URL(value);
     }
 
