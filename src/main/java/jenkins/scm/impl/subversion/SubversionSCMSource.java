@@ -101,7 +101,10 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import jenkins.model.Jenkins;
+import org.kohsuke.stapler.DataBoundSetter;
 
 /**
  * A {@link SCMSource} for Subversion.
@@ -110,33 +113,35 @@ import java.util.regex.Pattern;
  */
 public class SubversionSCMSource extends SCMSource {
 
-    private static final String DEFAULT_INCLUDES = "trunk,branches/*,tags/*,sandbox/*";
-
-    private static final String DEFAULT_EXCLUDES = "";
-
     public static final StringListComparator COMPARATOR = new StringListComparator();
 
     public static final Logger LOGGER = Logger.getLogger(SubversionSCMSource.class.getName());
 
     private final String remoteBase;
 
-    private final String credentialsId;
+    private String credentialsId = ""; // TODO null would be a better default, but need to check null safety on usages
 
-    private final String includes;
+    private String includes = DescriptorImpl.DEFAULT_INCLUDES;
 
-    private final String excludes;
+    private String excludes = DescriptorImpl.DEFAULT_EXCLUDES;
 
     @GuardedBy("this")
     private transient String uuid;
 
-    @DataBoundConstructor
-    @SuppressWarnings("unused") // by stapler
+    @Deprecated
     public SubversionSCMSource(String id, String remoteBase, String credentialsId, String includes, String excludes) {
         super(id);
         this.remoteBase = StringUtils.removeEnd(remoteBase, "/") + "/";
-        this.credentialsId = credentialsId;
-        this.includes = StringUtils.defaultIfEmpty(includes, DEFAULT_INCLUDES);
-        this.excludes = StringUtils.defaultIfEmpty(excludes, DEFAULT_EXCLUDES);
+        setCredentialsId(credentialsId);
+        setIncludes(StringUtils.defaultIfEmpty(includes, DescriptorImpl.DEFAULT_INCLUDES));
+        setExcludes(StringUtils.defaultIfEmpty(excludes, DescriptorImpl.DEFAULT_EXCLUDES));
+    }
+
+    @DataBoundConstructor
+    @SuppressWarnings("unused") // by stapler
+    public SubversionSCMSource(String id, String remoteBase) {
+        super(id);
+        this.remoteBase = StringUtils.removeEnd(remoteBase, "/") + "/";
     }
 
     /**
@@ -149,6 +154,11 @@ public class SubversionSCMSource extends SCMSource {
         return credentialsId;
     }
 
+    @DataBoundSetter
+    public void setCredentialsId(String credentialsId) {
+        this.credentialsId = credentialsId;
+    }
+
     /**
      * Gets the comma separated list of exclusions.
      *
@@ -159,6 +169,11 @@ public class SubversionSCMSource extends SCMSource {
         return excludes;
     }
 
+    @DataBoundSetter
+    public void setExcludes(String excludes) {
+        this.excludes = excludes;
+    }
+
     /**
      * Gets the comma separated list of inclusions.
      *
@@ -167,6 +182,11 @@ public class SubversionSCMSource extends SCMSource {
     @SuppressWarnings("unused") // by stapler
     public String getIncludes() {
         return includes;
+    }
+
+    @DataBoundSetter
+    public void setIncludes(String includes) {
+        this.includes = includes;
     }
 
     /**
@@ -254,6 +274,47 @@ public class SubversionSCMSource extends SCMSource {
         } finally {
             closeSession(repository);
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected SCMRevision retrieve(String unparsedRevision, TaskListener listener) throws IOException, InterruptedException {
+        try {
+            listener.getLogger().println("Opening connection to " + remoteBase);
+            SVNURL repoURL = SVNURL.parseURIEncoded(remoteBase);
+            SVNRepositoryView repository = openSession(repoURL);
+            String repoPath = SubversionSCM.DescriptorImpl.getRelativePath(repoURL, repository.getRepository());
+            String base;
+            long revision;
+            Matcher pathAtRev = Pattern.compile("(.+)@(\\d+)").matcher(unparsedRevision);
+            if (pathAtRev.matches()) {
+                base = pathAtRev.group(1);
+                revision = Long.parseLong(pathAtRev.group(2));
+            } else {
+                base = unparsedRevision;
+                revision = -1;
+            }
+            String path = SVNPathUtil.append(repoPath, base);
+            long resolvedRevision = repository.getNode(path, -1).getRevision();
+            if (resolvedRevision == -1) {
+                listener.getLogger().println("Could not find " + path);
+                return null;
+            }
+            return new SCMRevisionImpl(new SCMHead(base), revision == -1 ? resolvedRevision : revision);
+        } catch (SVNException e) {
+            throw new IOException(e);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected Set<String> retrieveRevisions(TaskListener listener) throws IOException, InterruptedException {
+        // Default implementation should do what we need: normally includes tags as well as branches.
+        return super.retrieveRevisions(listener);
     }
 
     private static void closeSession(@CheckForNull SVNRepositoryView repository) {
@@ -667,6 +728,12 @@ public class SubversionSCMSource extends SCMSource {
         public int hashCode() {
             return (int) (revision ^ (revision >>> 32));
         }
+
+        @Override
+        public String toString() {
+            return Long.toString(revision);
+        }
+
     }
 
     static class StringListComparator implements Comparator<List<String>> {
@@ -694,6 +761,11 @@ public class SubversionSCMSource extends SCMSource {
     @Extension
     @SuppressWarnings("unused") // by jenkins
     public static class DescriptorImpl extends SCMSourceDescriptor {
+
+        public static final String DEFAULT_INCLUDES = "trunk,branches/*,tags/*,sandbox/*";
+
+        public static final String DEFAULT_EXCLUDES = "";
+
         static final Pattern URL_PATTERN = Pattern.compile("(https?|svn(\\+[a-z0-9]+)?|file)://.+");
 
         /**
@@ -713,13 +785,16 @@ public class SubversionSCMSource extends SCMSource {
          */
         @SuppressWarnings("unused") // by stapler
         public ListBoxModel doFillCredentialsIdItems(@AncestorInPath SCMSourceOwner context,
-                                                     @QueryParameter String remoteBase) {
-            if (context == null || !context.hasPermission(Item.EXTENDED_READ)) {
-                return new StandardListBoxModel();
+                                                     @QueryParameter String remoteBase,
+                                                     @QueryParameter String credentialsId) {
+            if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
+                context != null && !context.hasPermission(Item.EXTENDED_READ)) {
+                return new StandardListBoxModel().includeCurrentValue(credentialsId);
             }
             List<DomainRequirement> domainRequirements;
             domainRequirements = URIRequirementBuilder.fromUri(remoteBase.trim()).build();
             return new StandardListBoxModel()
+                    // TODO JENKINS-35553 update to newer APIs
                     .withEmptySelection()
                     .withMatching(
                             CredentialsMatchers.anyOf(
@@ -740,7 +815,8 @@ public class SubversionSCMSource extends SCMSource {
         public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath SCMSourceOwner context, @QueryParameter String remoteBase, @QueryParameter String value) {
             // TODO suspiciously similar to SubversionSCM.ModuleLocation.DescriptorImpl.checkCredentialsId; refactor into shared method?
             // Test the connection only if we may use the credentials
-            if (context == null || !context.hasPermission(CredentialsProvider.USE_ITEM)) {
+            if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
+                context != null && !context.hasPermission(CredentialsProvider.USE_ITEM)) {
                 return FormValidation.ok();
             }
 
