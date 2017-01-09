@@ -24,6 +24,7 @@
 package jenkins.scm.impl.subversion;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -34,13 +35,18 @@ import org.jenkinsci.plugins.workflow.steps.Step;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
+import org.jenkinsci.remoting.RoleChecker;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNInfo;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 
 import hudson.Extension;
 import hudson.FilePath;
+import hudson.FilePath.FileCallable;
+import hudson.remoting.VirtualChannel;
+import jenkins.security.Roles;
 
 /**
  * Provides data from svn info.
@@ -94,9 +100,29 @@ public final class SvninfoStep extends Step {
 
         @Override
         protected Map<String, String> run() throws Exception {
+            final FilePath filepath = this.getContext().get(FilePath.class).child(this.path);
+            return Collections.unmodifiableMap(filepath.act(new SvnInfoFileCallable()));
+        }
+
+        private static final long serialVersionUID = 1L;
+
+    }
+
+    private static final class SvnInfoFileCallable implements FileCallable<Map<String, String>> {
+
+        private static final long serialVersionUID = 1456116737119973646L;
+
+        @Override
+        public void checkRoles(final RoleChecker checker) throws SecurityException {
+            checker.check(this, Roles.SLAVE);
+        }
+
+        @Override
+        public Map<String, String> invoke(final File file, final VirtualChannel channel)
+            throws IOException, InterruptedException {
+
             final SVNClientManager clientManager = SVNClientManager.newInstance();
             try {
-                final File file = new File(this.getContext().get(FilePath.class).child(this.path).toURI());
                 final SVNInfo info = clientManager.getWCClient().doInfo(file, SVNRevision.WORKING);
                 final Map<String, String> result = new LinkedHashMap<String, String>();
                 result.put("REVISION", Long.toString(info.getRevision().getNumber()));
@@ -105,14 +131,13 @@ public final class SvninfoStep extends Step {
                 result.put("REPOSITORY_UUID", info.getRepositoryUUID());
                 result.put("LAST_AUTHOR", info.getAuthor());
                 result.put("LAST_CHANGE_REVISION", Long.toString(info.getCommittedRevision().getNumber()));
-                return Collections.unmodifiableMap(result);
+                return result;
+            } catch (final SVNException e) {
+                throw new IOException("failed to get svn infos for " + file, e);
             } finally {
                 clientManager.dispose();
             }
         }
-
-        private static final long serialVersionUID = 1L;
-
     }
 
 }
