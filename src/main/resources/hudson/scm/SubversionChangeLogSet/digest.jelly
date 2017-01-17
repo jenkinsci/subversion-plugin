@@ -60,7 +60,7 @@ THE SOFTWARE.
       <ol>
         <j:forEach var="cs" items="${it.logs}" varStatus="loop">
           <li>
-            ${cs.msgAnnotated}
+            <j:out value="${cs.msgAnnotated}"/>
             (<a href="${changesBaseUrl}changes#detail${loop.index}">${%detail}</a>
 
             <j:set var="cslink" value="${browser.getChangeSetLink(cs)}"/>
