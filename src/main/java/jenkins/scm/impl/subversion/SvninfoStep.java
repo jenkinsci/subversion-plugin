@@ -35,7 +35,6 @@ import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
 import org.jenkinsci.plugins.workflow.steps.SynchronousNonBlockingStepExecution;
-import org.jenkinsci.remoting.RoleChecker;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
@@ -44,9 +43,8 @@ import org.tmatesoft.svn.core.wc.SVNRevision;
 
 import hudson.Extension;
 import hudson.FilePath;
-import hudson.FilePath.FileCallable;
 import hudson.remoting.VirtualChannel;
-import jenkins.security.Roles;
+import jenkins.MasterToSlaveFileCallable;
 
 /**
  * Provides data from svn info.
@@ -108,14 +106,9 @@ public final class SvninfoStep extends Step {
 
     }
 
-    private static final class SvnInfoFileCallable implements FileCallable<Map<String, String>> {
+    private static final class SvnInfoFileCallable extends MasterToSlaveFileCallable<Map<String, String>> {
 
         private static final long serialVersionUID = 1456116737119973646L;
-
-        @Override
-        public void checkRoles(final RoleChecker checker) throws SecurityException {
-            checker.check(this, Roles.SLAVE);
-        }
 
         @Override
         public Map<String, String> invoke(final File file, final VirtualChannel channel)
