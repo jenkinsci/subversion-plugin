@@ -44,7 +44,7 @@ THE SOFTWARE.
               <a href="${browser.getChangeSetLink(cs)}">${cs.revision}</a>
               by <a href="${rootURL}/${cs.author.url}/">${cs.author}</a>:
             </b><br/>
-            ${cs.msgAnnotated}
+            <j:out value="${cs.msgAnnotated}"/>
           </div>
         </td>
       </tr>

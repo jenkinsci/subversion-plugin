@@ -28,8 +28,8 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>2.14</version>
-    <relativePath />
+    <version>2.19</version>
+    <relativePath/>
   </parent>
 
   <artifactId>subversion</artifactId>
@@ -64,16 +64,23 @@ THE SOFTWARE.
   <properties>
     <jenkins.version>1.609.3</jenkins.version>
     <java.level>6</java.level>
+    <no-test-jar>false</no-test-jar>
     <workflow.version>1.14.2</workflow.version>
     <findbugs.failOnError>false</findbugs.failOnError>
   </properties>
 
   <repositories>
     <repository>
-      <id>mavenTMateSoftReleasesRepository</id>
-      <url>http://maven.tmatesoft.com/content/repositories/releases/</url>
+      <id>repo.jenkins-ci.org</id>
+      <url>https://repo.jenkins-ci.org/public/</url>
     </repository>
   </repositories>
+  <pluginRepositories>
+    <pluginRepository>
+      <id>repo.jenkins-ci.org</id>
+      <url>https://repo.jenkins-ci.org/public/</url>
+    </pluginRepository>
+  </pluginRepositories>
 
   <dependencies>
     <dependency>
@@ -176,16 +183,6 @@ THE SOFTWARE.
             <hudson.bundled.plugins>${basedir}/work/plugins/subversion.hpl</hudson.bundled.plugins>
           </systemProperties>
         </configuration>
-      </plugin>
-      <plugin>
-        <artifactId>maven-jar-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>test-jar</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
     </plugins>
   </build>
