@@ -30,11 +30,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousNonBlockingStepExecution;
 import org.jenkinsci.plugins.workflow.steps.Step;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
+import org.jenkinsci.plugins.workflow.steps.SynchronousNonBlockingStepExecution;
 import org.jenkinsci.remoting.RoleChecker;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.tmatesoft.svn.core.SVNException;
@@ -89,7 +89,7 @@ public final class SvninfoStep extends Step {
 
     }
 
-    public static final class Execution extends AbstractSynchronousNonBlockingStepExecution<Map<String, String>> {
+    static final class Execution extends SynchronousNonBlockingStepExecution<Map<String, String>> {
 
         private final String path;
 
