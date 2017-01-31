@@ -12,6 +12,7 @@ import com.cloudbees.plugins.credentials.common.UsernameCredentials;
 import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.model.Item;
 import hudson.model.TaskListener;
 import hudson.remoting.Channel;
@@ -62,8 +63,7 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
     private static final SVNAuthentication ANONYMOUS = new SVNUserNameAuthentication("", false, null, false);
 
     public CredentialsSVNAuthenticationProviderImpl(Credentials credentials) {
-        this.provider =
-                new RemotableSVNAuthenticationBuilderProvider(credentials, Collections.<String, Credentials>emptyMap(), /* TODO */ TaskListener.NULL);
+        this(credentials, null, /* TODO */ TaskListener.NULL);
     }
 
     public CredentialsSVNAuthenticationProviderImpl(Credentials credentials,
@@ -294,6 +294,7 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
 
         private final Credentials defaultCredentials;
         private final Map<String, Credentials> credentialsByRealm;
+        @CheckForNull
         private final TaskListener listener;
 
         public RemotableSVNAuthenticationBuilderProvider(Credentials defaultCredentials,
