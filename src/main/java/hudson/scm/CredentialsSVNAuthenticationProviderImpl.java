@@ -15,10 +15,12 @@ import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import hudson.model.Item;
 import hudson.model.TaskListener;
 import hudson.remoting.Channel;
+import hudson.scm.subversion.Messages;
 import hudson.security.ACL;
 import hudson.util.Scrambler;
 import hudson.util.Secret;
 import org.apache.commons.beanutils.PropertyUtils;
+import org.apache.commons.lang.StringUtils;
 import org.tmatesoft.svn.core.SVNErrorCode;
 import org.tmatesoft.svn.core.SVNErrorMessage;
 import org.tmatesoft.svn.core.SVNURL;
@@ -320,14 +322,14 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
             TaskListener l = listener == null ? TaskListener.NULL : listener;
             Credentials c = credentialsByRealm.get(realm);
             if (c != null) {
-                l.getLogger().printf("Found credentials %s in realm ‘%s’%n", CredentialsNameProvider.name(c), realm);
+                l.getLogger().println(Messages.CredentialsSVNAuthenticationProviderImpl_credentials_in_realm(CredentialsNameProvider.name(c), realm));
             } else {
                 c = defaultCredentials;
                 String name = c != null ? CredentialsNameProvider.name(c) : "<none>";
                 if (credentialsByRealm.isEmpty()) {
-                    l.getLogger().printf("Using sole credentials %s in realm ‘%s’%n", name, realm);
+                    l.getLogger().println(Messages.CredentialsSVNAuthenticationProviderImpl_sole_credentials(name, realm));
                 } else {
-                    l.getLogger().printf("No credentials found for realm ‘%s’ among %s; falling back to %s%n", realm, credentialsByRealm.keySet(), name);
+                    l.getLogger().println(Messages.CredentialsSVNAuthenticationProviderImpl_missing_credentials(realm, StringUtils.join(credentialsByRealm.keySet(), "’, ‘"), name));
                 }
             }
             if (c instanceof CertificateCredentials) {
