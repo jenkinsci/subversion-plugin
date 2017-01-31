@@ -320,10 +320,10 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
             TaskListener l = listener == null ? TaskListener.NULL : listener;
             Credentials c = credentialsByRealm.get(realm);
             if (c != null) {
-                listener.getLogger().printf("Found credentials %s in realm ‘%s’%n", CredentialsNameProvider.name(c), realm);
+                l.getLogger().printf("Found credentials %s in realm ‘%s’%n", CredentialsNameProvider.name(c), realm);
             } else {
                 c = defaultCredentials;
-                listener.getLogger().printf("No credentials found for realm ‘%s’ among %s; falling back to %s%n", realm, credentialsByRealm.keySet(), defaultCredentials != null ? CredentialsNameProvider.name(defaultCredentials) : "<none>");
+                l.getLogger().printf("No credentials found for realm ‘%s’ among %s; falling back to %s%n", realm, credentialsByRealm.keySet(), defaultCredentials != null ? CredentialsNameProvider.name(defaultCredentials) : "<none>");
             }
             if (c instanceof CertificateCredentials) {
                 return new SVNCertificateAuthenticationBuilder((CertificateCredentials) c);
