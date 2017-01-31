@@ -4,6 +4,7 @@ import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsMatcher;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.CertificateCredentials;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
@@ -12,6 +13,7 @@ import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import hudson.model.Item;
+import hudson.model.TaskListener;
 import hudson.remoting.Channel;
 import hudson.security.ACL;
 import hudson.util.Scrambler;
@@ -59,16 +61,23 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
 
     public CredentialsSVNAuthenticationProviderImpl(Credentials credentials) {
         this.provider =
-                new RemotableSVNAuthenticationBuilderProvider(credentials, Collections.<String, Credentials>emptyMap());
+                new RemotableSVNAuthenticationBuilderProvider(credentials, Collections.<String, Credentials>emptyMap(), /* TODO */ TaskListener.NULL);
     }
 
     public CredentialsSVNAuthenticationProviderImpl(Credentials credentials,
-                                                    Map<String, Credentials> credentialsByRealm) {
+                                                    Map<String, Credentials> credentialsByRealm,
+                                                    TaskListener listener) {
         this.provider = new RemotableSVNAuthenticationBuilderProvider(credentials,
-                credentialsByRealm == null ? Collections.<String, Credentials>emptyMap() : credentialsByRealm);
+                credentialsByRealm == null ? Collections.<String, Credentials>emptyMap() : credentialsByRealm, listener);
     }
 
-    public static CredentialsSVNAuthenticationProviderImpl createAuthenticationProvider(Item context, String remote, String credentialsId, Map<String,String> additionalCredentialIds) {
+    @Deprecated
+    public CredentialsSVNAuthenticationProviderImpl(Credentials credentials,
+                                                    Map<String, Credentials> credentialsByRealm) {
+        this(credentials, credentialsByRealm, TaskListener.NULL);
+    }
+
+    public static CredentialsSVNAuthenticationProviderImpl createAuthenticationProvider(Item context, String remote, String credentialsId, Map<String,String> additionalCredentialIds, TaskListener listener) {
         StandardCredentials defaultCredentials;
         if (credentialsId == null) {
             defaultCredentials = null;
@@ -98,12 +107,18 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
                 }
             }
         }
-        return new CredentialsSVNAuthenticationProviderImpl(defaultCredentials, additional);
+        return new CredentialsSVNAuthenticationProviderImpl(defaultCredentials, additional, listener);
+    }
+
+    @Deprecated
+    public static CredentialsSVNAuthenticationProviderImpl createAuthenticationProvider(Item context, String remote, String credentialsId, Map<String,String> additionalCredentialIds) {
+        return createAuthenticationProvider(context, remote, credentialsId, additionalCredentialIds, TaskListener.NULL);
     }
 
     public static CredentialsSVNAuthenticationProviderImpl createAuthenticationProvider(Item context, SubversionSCM scm,
                                                                                         SubversionSCM.ModuleLocation
-                                                                                                location) {
+                                                                                                location,
+                                                                                        TaskListener listener) {
         StandardCredentials defaultCredentials;
         if (location == null) {
             defaultCredentials = null;
@@ -127,7 +142,14 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
                 }
             }
         }
-        return new CredentialsSVNAuthenticationProviderImpl(defaultCredentials, additional);
+        return new CredentialsSVNAuthenticationProviderImpl(defaultCredentials, additional, listener);
+    }
+
+    @Deprecated
+    public static CredentialsSVNAuthenticationProviderImpl createAuthenticationProvider(Item context, SubversionSCM scm,
+                                                                                        SubversionSCM.ModuleLocation
+                                                                                                location) {
+        return createAuthenticationProvider(context, scm, location, TaskListener.NULL);
     }
 
     private static CredentialsMatcher idMatcher(String credentialsId) {
@@ -270,11 +292,20 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
 
         private final Credentials defaultCredentials;
         private final Map<String, Credentials> credentialsByRealm;
+        private final TaskListener listener;
 
         public RemotableSVNAuthenticationBuilderProvider(Credentials defaultCredentials,
-                                                         Map<String, Credentials> credentialsByRealm) {
+                                                         Map<String, Credentials> credentialsByRealm,
+                                                         TaskListener listener) {
             this.defaultCredentials = defaultCredentials;
             this.credentialsByRealm = credentialsByRealm;
+            this.listener = listener == TaskListener.NULL ? null : listener;
+        }
+
+        @Deprecated
+        public RemotableSVNAuthenticationBuilderProvider(Credentials defaultCredentials,
+                                                         Map<String, Credentials> credentialsByRealm) {
+            this(defaultCredentials, credentialsByRealm, TaskListener.NULL);
         }
 
         /**
@@ -284,10 +315,15 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
             return Channel.current().export(SVNAuthenticationBuilderProvider.class, this);
         }
 
+        @Override
         public SVNAuthenticationBuilder getBuilder(String realm) {
+            TaskListener l = listener == null ? TaskListener.NULL : listener;
             Credentials c = credentialsByRealm.get(realm);
-            if (c == null) {
+            if (c != null) {
+                listener.getLogger().printf("Found credentials %s in realm ‘%s’%n", CredentialsNameProvider.name(c), realm);
+            } else {
                 c = defaultCredentials;
+                listener.getLogger().printf("No credentials found for realm ‘%s’ among %s; falling back to %s%n", realm, credentialsByRealm.keySet(), defaultCredentials != null ? CredentialsNameProvider.name(defaultCredentials) : "<none>");
             }
             if (c instanceof CertificateCredentials) {
                 return new SVNCertificateAuthenticationBuilder((CertificateCredentials) c);

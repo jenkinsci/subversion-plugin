@@ -949,7 +949,7 @@ public class SubversionSCM extends SCM implements Serializable {
         private final UpdateTask task;
 
          public CheckOutTask(Run<?, ?> build, SubversionSCM parent, ModuleLocation location, Date timestamp, TaskListener listener, EnvVars env) {
-            this.authProvider = parent.createAuthenticationProvider(build.getParent(), location);
+            this.authProvider = parent.createAuthenticationProvider(build.getParent(), location, listener);
             this.timestamp = timestamp;
             this.listener = listener;
             this.location = location;
@@ -1032,7 +1032,7 @@ public class SubversionSCM extends SCM implements Serializable {
      * This method must be executed on the slave where svn operations are performed.
      *
      * @param authProvider
-     *      The value obtained from {@link #createAuthenticationProvider(Job,ModuleLocation)}.
+     *      The value obtained from {@link #createAuthenticationProvider(Job,ModuleLocation, TaskListener)}.
      *      If the operation runs on slaves,
      *      (and properly remoted, if the svn operations run on slaves.)
      */
@@ -1100,10 +1100,16 @@ public class SubversionSCM extends SCM implements Serializable {
      * @see SubversionSCM#createSvnClientManager(ISVNAuthenticationProvider)
      */
     public ISVNAuthenticationProvider createAuthenticationProvider(Job<?, ?> inContextOf,
-                                                                   ModuleLocation location) {
-        return CredentialsSVNAuthenticationProviderImpl.createAuthenticationProvider(inContextOf, this, location);
+                                                                   ModuleLocation location,
+                                                                   TaskListener listener) {
+        return CredentialsSVNAuthenticationProviderImpl.createAuthenticationProvider(inContextOf, this, location, listener);
     }
 
+    @Deprecated
+    public ISVNAuthenticationProvider createAuthenticationProvider(Job<?, ?> inContextOf,
+                                                                   ModuleLocation location) {
+        return createAuthenticationProvider(inContextOf, location, TaskListener.NULL);
+    }
 
 
     public static final class SvnInfo implements Serializable, Comparable<SvnInfo> {
@@ -1246,10 +1252,10 @@ public class SubversionSCM extends SCM implements Serializable {
             this.listener = listener;
             this.externals = externals;
             this.locations = parent.getLocations(env, build);
-            this.defaultAuthProvider = parent.createAuthenticationProvider(build.getParent(), null);
+            this.defaultAuthProvider = parent.createAuthenticationProvider(build.getParent(), null, listener);
             this.authProviders = new LinkedHashMap<String, ISVNAuthenticationProvider>();
             for (ModuleLocation loc: locations) {
-                authProviders.put(loc.remote, parent.createAuthenticationProvider(build.getParent(), loc));
+                authProviders.put(loc.remote, parent.createAuthenticationProvider(build.getParent(), loc, listener));
             }
         }
 
@@ -1417,9 +1423,9 @@ public class SubversionSCM extends SCM implements Serializable {
                 ex.printStackTrace(listener.error(Messages.SubversionSCM_pollChanges_exception(loc.getURL())));
                 return BUILD_NOW;
             }
-            authProviders.put(url, createAuthenticationProvider(project, loc));
+            authProviders.put(url, createAuthenticationProvider(project, loc, listener));
         }
-        final ISVNAuthenticationProvider defaultAuthProvider = createAuthenticationProvider(project, null);
+        final ISVNAuthenticationProvider defaultAuthProvider = createAuthenticationProvider(project, null, listener);
 
         // figure out the remote revisions
         return channel.call(new CompareAgainstBaselineCallable(baseline, logHandler, project.getName(), listener,
@@ -2384,7 +2390,7 @@ public class SubversionSCM extends SCM implements Serializable {
             SVNRepository repository = SVNRepositoryFactory.create(repoURL, session);
         
             ISVNAuthenticationManager sam = createSvnAuthenticationManager(
-                    new CredentialsSVNAuthenticationProviderImpl(credentials, additionalCredentials)
+                    new CredentialsSVNAuthenticationProviderImpl(credentials, additionalCredentials, /* TODO */ TaskListener.NULL)
             );
             sam = new FilterSVNAuthenticationManager(sam) {
                 // If there's no time out, the blocking read operation may hang forever, because TCP itself

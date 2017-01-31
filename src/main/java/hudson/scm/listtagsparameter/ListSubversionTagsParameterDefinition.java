@@ -36,6 +36,7 @@ import hudson.model.Job;
 import hudson.model.ParameterDefinition;
 import hudson.model.ParameterValue;
 import hudson.model.ParametersDefinitionProperty;
+import hudson.model.TaskListener;
 import hudson.scm.CredentialsSVNAuthenticationProviderImpl;
 import hudson.scm.SubversionSCM;
 import hudson.util.FormValidation;
@@ -173,7 +174,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
 
     try {
       ISVNAuthenticationProvider authProvider = CredentialsSVNAuthenticationProviderImpl.createAuthenticationProvider(
-              context, getTagsDir(), getCredentialsId(), null
+              context, getTagsDir(), getCredentialsId(), null, TaskListener.NULL
       );
       ISVNAuthenticationManager authManager = SubversionSCM.createSvnAuthenticationManager(authProvider);
       SVNURL repoURL = SVNURL.parseURIDecoded(getTagsDir());
