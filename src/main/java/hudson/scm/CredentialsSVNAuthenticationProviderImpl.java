@@ -323,7 +323,12 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
                 l.getLogger().printf("Found credentials %s in realm ‘%s’%n", CredentialsNameProvider.name(c), realm);
             } else {
                 c = defaultCredentials;
-                l.getLogger().printf("No credentials found for realm ‘%s’ among %s; falling back to %s%n", realm, credentialsByRealm.keySet(), defaultCredentials != null ? CredentialsNameProvider.name(defaultCredentials) : "<none>");
+                String name = c != null ? CredentialsNameProvider.name(c) : "<none>";
+                if (credentialsByRealm.isEmpty()) {
+                    l.getLogger().printf("Using sole credentials %s in realm ‘%s’%n", name, realm);
+                } else {
+                    l.getLogger().printf("No credentials found for realm ‘%s’ among %s; falling back to %s%n", realm, credentialsByRealm.keySet(), name);
+                }
             }
             if (c instanceof CertificateCredentials) {
                 return new SVNCertificateAuthenticationBuilder((CertificateCredentials) c);
