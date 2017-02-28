@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import jenkins.scm.impl.mock.AbstractSampleRepoRule;
 import org.apache.commons.io.FileUtils;
 import static org.junit.Assert.assertEquals;
 import org.jvnet.hudson.test.JenkinsRule;

@@ -28,8 +28,8 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>2.19</version>
-    <relativePath/>
+    <version>2.23</version>
+    <relativePath />
   </parent>
 
   <artifactId>subversion</artifactId>
@@ -67,6 +67,7 @@ THE SOFTWARE.
     <no-test-jar>false</no-test-jar>
     <workflow.version>1.14.2</workflow.version>
     <findbugs.failOnError>false</findbugs.failOnError>
+    <scm-api-plugin.version>2.0.8-20170228.204551-2</scm-api-plugin.version> <!-- TODO https://github.com/jenkinsci/scm-api-plugin/pull/32 -->
   </properties>
 
   <repositories>
@@ -112,7 +113,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>scm-api</artifactId>
-      <version>1.3</version>
+      <version>${scm-api-plugin.version}</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -160,6 +161,13 @@ THE SOFTWARE.
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>matrix-project</artifactId>
       <version>1.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>scm-api</artifactId>
+      <version>${scm-api-plugin.version}</version>
+      <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
     <dependency>
