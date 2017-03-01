@@ -104,6 +104,7 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import jenkins.model.Jenkins;
+import jenkins.scm.api.SCMHeadEvent;
 import org.kohsuke.stapler.DataBoundSetter;
 
 /**
@@ -226,7 +227,9 @@ public class SubversionSCMSource extends SCMSource {
      */
     @NonNull
     @Override
-    protected void retrieve(@NonNull final SCMHeadObserver observer,
+    protected void retrieve(@CheckForNull SCMSourceCriteria criteria,
+                            @NonNull final SCMHeadObserver observer,
+                            @CheckForNull SCMHeadEvent<?> event,
                             @NonNull TaskListener listener)
             throws IOException {
         SVNRepositoryView repository = null;
@@ -244,7 +247,9 @@ public class SubversionSCMSource extends SCMSource {
                     toPaths(splitCludes(includes)),
                     prefix,
                     prefix,
-                    toPaths(splitCludes(excludes)), getCriteria(), observer
+                    toPaths(splitCludes(excludes)),
+                    criteria,
+                    observer
             );
         } catch (SVNException e) {
             e.printStackTrace(listener.error("Could not communicate with Subversion server"));
