@@ -132,6 +132,9 @@ public class SubversionEventHandlerImpl extends SVNEventAdapter {
         } else if (action == SVNEventAction.LOCK_FAILED){
             out.println("failed to lock    " + path);
             return;
+        } else if (action == SVNEventAction.RESTORE){
+            out.println("Restored    " + path);
+            return;
         }
 
         /*
