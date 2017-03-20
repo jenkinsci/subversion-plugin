@@ -183,7 +183,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
                         
                         //show error instead of check out, useful for big repositories
                          listener.getLogger().println("Workspace appear to be locked, so Failing the build");
-+                        throw (InterruptedException) new InterruptedException().initCause(e);
+                         throw (InterruptedException) new InterruptedException().initCause(e);
                     }
                     if (errorCode == SVNErrorCode.WC_OBSTRUCTED_UPDATE) {
                         // HUDSON-1882. If existence of local files cause an update to fail,
