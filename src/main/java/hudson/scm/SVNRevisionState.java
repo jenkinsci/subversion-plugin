@@ -14,7 +14,7 @@ public final class SVNRevisionState extends SCMRevisionState implements Serializ
      * are implicitly pulled in via svn:externals, but it excludes those locations that
      * are added via svn:externals in a way that fixes revisions.
      */
-    final Map<String,Long> revisions;
+    public final Map<String,Long> revisions;
 
     SVNRevisionState(Map<String, Long> revisions) {
         this.revisions = revisions;
