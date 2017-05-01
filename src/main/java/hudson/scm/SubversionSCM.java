@@ -666,12 +666,18 @@ public class SubversionSCM extends SCM implements Serializable {
     }
 
     /**
+     * Needed to make Mockito happy due to not picking up the parent implementation.
+     */
+    @Override
+    public void buildEnvVars(AbstractBuild<?,?> build, Map<String,String> env) {
+        buildEnvVars((Run)build, env);
+    }
+
+    /**
      * Sets the <tt>SVN_REVISION_n</tt> and <tt>SVN_URL_n</tt> environment variables during the build.
      */
     @Override
-    public void buildEnvVars(AbstractBuild<?, ?> build, Map<String, String> env) {
-        super.buildEnvVars(build, env);
-
+    public void buildEnvVars(Run<?, ?> build, Map<String, String> env) {
         ModuleLocation[] svnLocations = getLocations(new EnvVars(env), build);
 
         try {

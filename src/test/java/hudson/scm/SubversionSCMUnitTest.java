@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.model.AbstractBuild;
+import hudson.model.Run;
 import hudson.remoting.VirtualChannel;
 import hudson.scm.SubversionSCM.ModuleLocation;
 
@@ -108,6 +109,7 @@ public class SubversionSCMUnitTest {
     private SubversionSCM mockSCMForBuildEnvVars() {
         SubversionSCM scm = mock(SubversionSCM.class);
         doCallRealMethod().when(scm).buildEnvVars(any(AbstractBuild.class), anyMapOf(String.class, String.class));
+        doCallRealMethod().when(scm).buildEnvVars(any(Run.class), anyMapOf(String.class, String.class));
         return scm;
     }
 }
