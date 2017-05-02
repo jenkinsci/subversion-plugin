@@ -670,7 +670,7 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     @Override
     public void buildEnvVars(AbstractBuild<?,?> build, Map<String,String> env) {
-        buildEnvVars((Run)build, env);
+        buildEnvironment((Run)build, env);
     }
 
     /**
