@@ -109,7 +109,7 @@ public class SubversionSCMUnitTest {
     private SubversionSCM mockSCMForBuildEnvVars() {
         SubversionSCM scm = mock(SubversionSCM.class);
         doCallRealMethod().when(scm).buildEnvVars(any(AbstractBuild.class), anyMapOf(String.class, String.class));
-        doCallRealMethod().when(scm).buildEnvVars(any(Run.class), anyMapOf(String.class, String.class));
+        doCallRealMethod().when(scm).buildEnvironment(any(Run.class), anyMapOf(String.class, String.class));
         return scm;
     }
 }

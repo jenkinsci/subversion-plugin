@@ -28,7 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>2.27-20170501.155323-2</version> <!-- TODO: Switch to 2.27 once https://github.com/jenkinsci/plugin-pom/pull/59 is released -->
+    <version>2.27</version>
     <relativePath />
   </parent>
 
@@ -62,9 +62,9 @@ THE SOFTWARE.
   </scm>
 
   <properties>
-    <jenkins-core.version>2.58-20170501.171905-3</jenkins-core.version> <!-- TODO: Switch to release once https://github.com/jenkinsci/jenkins/pull/2730 is merged and released -->
-    <jenkins-war.version>2.58-20170501.171927-3</jenkins-war.version> <!-- TODO: Switch to release once https://github.com/jenkinsci/jenkins/pull/2730 is merged and released -->
-    <java.level>7</java.level>
+    <jenkins-core.version>2.58-20170502.192524-8</jenkins-core.version> <!-- TODO: Switch to release once https://github.com/jenkinsci/jenkins/pull/2730 is merged and released -->
+    <jenkins-war.version>2.58-20170502.192544-8</jenkins-war.version> <!-- TODO: Switch to release once https://github.com/jenkinsci/jenkins/pull/2730 is merged and released -->
+    <java.level>8</java.level>
     <no-test-jar>false</no-test-jar>
     <workflow.version>1.14.2</workflow.version>
     <findbugs.failOnError>false</findbugs.failOnError>

@@ -677,7 +677,7 @@ public class SubversionSCM extends SCM implements Serializable {
      * Sets the <tt>SVN_REVISION_n</tt> and <tt>SVN_URL_n</tt> environment variables during the build.
      */
     @Override
-    public void buildEnvVars(Run<?, ?> build, Map<String, String> env) {
+    public void buildEnvironment(Run<?, ?> build, Map<String, String> env) {
         ModuleLocation[] svnLocations = getLocations(new EnvVars(env), build);
 
         try {
