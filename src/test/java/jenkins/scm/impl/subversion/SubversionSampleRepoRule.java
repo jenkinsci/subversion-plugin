@@ -39,13 +39,20 @@ import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import jenkins.scm.impl.mock.AbstractSampleRepoRule;
 import org.apache.commons.io.FileUtils;
+import static org.junit.Assert.assertEquals;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.tmatesoft.svn.cli.svn.SVN;
+import org.tmatesoft.svn.cli.svnadmin.SVNAdmin;
+import org.tmatesoft.svn.core.wc.SVNClientManager;
 
 public final class SubversionSampleRepoRule extends AbstractSampleRepoRule {
 
     private File repo;
     private File wc;
+    @Deprecated
+    private boolean checkedSvnCLI;
 
     @Override
     protected void before() throws Throwable {
@@ -89,27 +96,68 @@ public final class SubversionSampleRepoRule extends AbstractSampleRepoRule {
         }
     }
 
+    /**
+     * For more portable tests, run {@link #svnkit} instead, using {@link #wc} to refer to the working copy where needed.
+     */
+    @Deprecated
     public void svn(String... cmds) throws Exception {
+        if (!checkedSvnCLI) {
+            run(true, tmp.getRoot(), "svn", "--version");
+            checkedSvnCLI = true;
+        }
         List<String> args = new ArrayList<String>();
         args.add("svn");
         args.addAll(Arrays.asList(cmds));
         run(false, wc, args.toArray(new String[args.size()]));
     }
+    
+    public String wc() {
+        return wc.getAbsolutePath();
+    }
+
+    public void svnkit(String... cmds) throws Exception {
+        class MySVN extends SVN {
+            public void _run(String... cmds) {
+                super.run(cmds);
+            }
+            @Override
+            public void success() {
+                // Unable to call setCompleted() so Cancellator will not work; probably irrelevant.
+            }
+            @Override
+            public void failure() {
+                throw new AssertionError("svn command failed");
+            }
+        }
+        new MySVN()._run(cmds);
+    }
 
     public void basicInit() throws Exception {
-        run(true, tmp.getRoot(), "svn", "--version");
-        run(true, tmp.getRoot(), "svnadmin", "--version");
-        run(true, repo, "svnadmin", "create", "--compatible-version=1.5", repo.getAbsolutePath());
-        svn("mkdir", "--parents", "--message=structure", trunkUrl(), branchesUrl(), tagsUrl());
+        class MySVNAdmin extends SVNAdmin {
+            public void _run(String... cmds) {
+                run(cmds);
+            }
+            @Override
+            public void success() {
+                // Unable to call setCompleted() so Cancellator will not work; probably irrelevant.
+            }
+            @Override
+            public void failure() {
+                throw new AssertionError("svn command failed");
+            }
+        }
+        new MySVNAdmin()._run("create", /* do we care? "--pre-1.6-compatible",*/ repo.getAbsolutePath());
+        svnkit("mkdir", "--parents", "--message=structure", trunkUrl(), branchesUrl(), tagsUrl());
         System.out.println("Initialized " + this + " and working copy " + wc);
     }
 
     public void init() throws Exception {
         basicInit();
-        svn("co", trunkUrl(), ".");
+        svnkit("co", trunkUrl(), wc());
         write("file", "");
-        svn("add", "file");
-        svn("commit", "--message=init");
+        svnkit("add", wc() + "/file");
+        svnkit("commit", "--message=init", wc());
+        assertEquals(2, revision());
     }
 
     private static String uuid(String url) throws Exception {
@@ -133,6 +181,14 @@ public final class SubversionSampleRepoRule extends AbstractSampleRepoRule {
             listener.onNotify(UUID.fromString(uuid(rootUrl())), -1, Collections.singleton(path));
         }
         r.waitUntilNoActivity();
+    }
+
+    /**
+     * Gets the repository revision just committed.
+     */
+    public long revision() throws Exception {
+        // .getLookClient().doGetYoungestRevision(repo) would show last committed revision but would not be sensitive to checked-out branch; which is clearer?
+        return SVNClientManager.newInstance().getStatusClient().doStatus(wc, true).getRemoteRevision().getNumber(); // http://stackoverflow.com/a/2295674/12916
     }
 
 }

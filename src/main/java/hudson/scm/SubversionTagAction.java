@@ -340,7 +340,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
         }
 
         public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context, @AncestorInPath Run run) {
-            if (context == null || !context.hasPermission(SCM.TAG)) {
+            if (/* TODO consider making available in global context as well */context == null || !context.hasPermission(SCM.TAG)) {
                 return new ListBoxModel();
             }
             Set<StandardCredentials> c = new LinkedHashSet<StandardCredentials>();
