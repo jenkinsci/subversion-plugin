@@ -665,12 +665,14 @@ public class SubversionSCM extends SCM implements Serializable {
       return filterChangelog;
     }
 
+    // TODO: 2.60+ Delete this override.
     @Override
     public void buildEnvVars(AbstractBuild<?,?> build, Map<String,String> env) {
         buildEnvironment(build, env);
     }
 
     /**
+     * TODO: 2.60+ - add @Override.
      * Sets the <tt>SVN_REVISION_n</tt> and <tt>SVN_URL_n</tt> environment variables during the build.
      */
     public void buildEnvironment(Run<?, ?> build, Map<String, String> env) {
