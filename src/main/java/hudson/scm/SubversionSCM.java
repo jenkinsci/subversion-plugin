@@ -463,6 +463,13 @@ public class SubversionSCM extends SCM implements Serializable {
     public ModuleLocation[] getLocations(AbstractBuild<?,?> build) {
         return getLocations(null, build);
     }
+    
+    /**
+     * Fix for the backward-compatibility with svn-tag plugin
+     */
+    public ModuleLocation[] getLocations(EnvVars env, AbstractBuild<?,?> build) {
+        return getLocations(env, (Run<?,?>)build);
+    }
 
     /**
      * List of all configured svn locations, expanded according to all env vars
@@ -1104,7 +1111,14 @@ public class SubversionSCM extends SCM implements Serializable {
         return CredentialsSVNAuthenticationProviderImpl.createAuthenticationProvider(inContextOf, this, location);
     }
 
-
+    @Deprecated
+    public ISVNAuthenticationProvider createAuthenticationProvider(AbstractProject<?,?> inContextOf, ModuleLocation location) {
+        SubversionSCM scm = null;
+        if (inContextOf != null && inContextOf.getScm() instanceof SubversionSCM) {
+            scm = (SubversionSCM)inContextOf.getScm();
+        }
+        return CredentialsSVNAuthenticationProviderImpl.createAuthenticationProvider(inContextOf, scm, location);
+    }
 
     public static final class SvnInfo implements Serializable, Comparable<SvnInfo> {
         /**
