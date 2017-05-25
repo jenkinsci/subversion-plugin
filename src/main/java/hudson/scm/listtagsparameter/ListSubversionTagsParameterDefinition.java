@@ -25,6 +25,7 @@
 
 package hudson.scm.listtagsparameter;
 
+import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.Extension;
@@ -38,6 +39,7 @@ import hudson.model.ParameterValue;
 import hudson.model.ParametersDefinitionProperty;
 import hudson.scm.CredentialsSVNAuthenticationProviderImpl;
 import hudson.scm.SubversionSCM;
+import hudson.security.ACL;
 import hudson.util.FormValidation;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -144,6 +146,14 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
     @Override
     public ParameterValue getDefaultParameterValue() {
         if (StringUtils.isEmpty(this.defaultValue)) {
+            if (Jenkins.getAuthentication().equals(ACL.SYSTEM)) {
+                // When run from a system thread, for example TimerTrigger, we have no way of knowing who configured this.
+                return null;
+            } else if (!Jenkins.getActiveInstance().hasPermission(CredentialsProvider.USE_ITEM)) {
+                // Really we want to check USE_ITEM on the Job context, but we cannot find that here.
+                // The best we can do is allow a computed default only to users who are more or less admins.
+                return null;
+            }
             List<String> tags = getTags(null);
             if (tags.size() > 0) {
               return new ListSubversionTagsParameterValue(getName(), getTagsDir(), tags.get(0));
@@ -372,7 +382,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
     }
 
     public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context, @QueryParameter String tagsDir) {
-      if (context == null || !context.hasPermission(Item.BUILD)) {
+      if (context == null || !context.hasPermission(CredentialsProvider.USE_ITEM)) {
         return new StandardListBoxModel();
       }
       return Jenkins.getInstance().getDescriptorByType(
@@ -380,7 +390,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
     }
 
     public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath Item context, @QueryParameter String tagsDir, @QueryParameter String value) {
-      if (context == null || !context.hasPermission(Item.BUILD)) {
+      if (context == null || !context.hasPermission(CredentialsProvider.USE_ITEM)) {
         return FormValidation.ok();
       }
       return Jenkins.getInstance().getDescriptorByType(
@@ -401,7 +411,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
 
     public ListBoxModel doFillTagItems(@AncestorInPath Job<?,?> context, @QueryParameter String param) {
         ListBoxModel model = new ListBoxModel();
-        if (context != null) {
+        if (context != null && context.hasPermission(CredentialsProvider.USE_ITEM)) {
             ParametersDefinitionProperty prop = context.getProperty(ParametersDefinitionProperty.class);
             if (prop != null) {
                 ParameterDefinition def = prop.getParameterDefinition(param);
