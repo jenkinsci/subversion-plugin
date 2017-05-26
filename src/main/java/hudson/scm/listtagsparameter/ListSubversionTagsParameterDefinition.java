@@ -383,7 +383,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
     }
 
     public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context, @QueryParameter String tagsDir) {
-      if (context == null || !context.hasPermission(CredentialsProvider.USE_ITEM)) {
+      if (context == null || !context.hasPermission(Item.EXTENDED_READ)) {
         return new StandardListBoxModel();
       }
       return Jenkins.getInstance().getDescriptorByType(
