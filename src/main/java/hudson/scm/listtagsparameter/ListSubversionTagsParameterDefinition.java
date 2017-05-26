@@ -147,14 +147,6 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
     @Override
     public ParameterValue getDefaultParameterValue() {
         if (StringUtils.isEmpty(this.defaultValue)) {
-            if (Jenkins.getAuthentication().equals(ACL.SYSTEM)) {
-                // When run from a system thread, for example TimerTrigger, we have no way of knowing who configured this.
-                return null;
-            } else if (!Jenkins.getActiveInstance().hasPermission(CredentialsProvider.USE_ITEM)) {
-                // Really we want to check USE_ITEM on the Job context, but we cannot find that here.
-                // The best we can do is allow a computed default only to users who are more or less admins.
-                return null;
-            }
             List<String> tags = getTags(null);
             if (tags.size() > 0) {
               return new ListSubversionTagsParameterValue(getName(), getTagsDir(), tags.get(0));
@@ -413,7 +405,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
 
     public ListBoxModel doFillTagItems(@AncestorInPath Job<?,?> context, @QueryParameter String param) {
         ListBoxModel model = new ListBoxModel();
-        if (context != null && context.hasPermission(CredentialsProvider.USE_ITEM)) {
+        if (context != null && context.hasPermission(Item.BUILD)) {
             ParametersDefinitionProperty prop = context.getProperty(ParametersDefinitionProperty.class);
             if (prop != null) {
                 ParameterDefinition def = prop.getParameterDefinition(param);
