@@ -100,7 +100,7 @@ public class CheckoutUpdater extends WorkspaceUpdater {
                     svnuc.setIgnoreExternals(location.isIgnoreExternalsOption());
                     SVNDepth svnDepth = getSvnDepth(location.getDepthOption());
                     SvnCheckout checkout = svnuc.getOperationsFactory().createCheckout();
-                    checkout.setSource(SvnTarget.fromURL(location.getSVNURL(), SVNRevision.HEAD));
+                    checkout.setSource(SvnTarget.fromURL(location.getSVNURL(), r));
                     checkout.setSingleTarget(SvnTarget.fromFile(local.getCanonicalFile()));
                     checkout.setDepth(svnDepth);
                     checkout.setRevision(r);
