@@ -3046,7 +3046,7 @@ public class SubversionSCM extends SCM implements Serializable {
             /**
              * Validate the value for a remote (repository) location.
              */
-            public FormValidation doCheckRemote(StaplerRequest req, @AncestorInPath Item context,
+            public FormValidation doCheckRemote(/* TODO unused, delete */StaplerRequest req, @AncestorInPath Item context,
                     @QueryParameter String remote) {
 
                 // repository URL is required
@@ -3088,7 +3088,7 @@ public class SubversionSCM extends SCM implements Serializable {
             /**
              * Validate the value for a remote (repository) location.
              */
-            public FormValidation checkCredentialsId(StaplerRequest req, @Nonnull Item context, String remote, String value) {
+            public FormValidation checkCredentialsId(/* TODO unused, delete */StaplerRequest req, @Nonnull Item context, String remote, String value) {
 
                 // Ignore validation if repository URL is empty
                 String url = Util.fixEmptyAndTrim(remote);
