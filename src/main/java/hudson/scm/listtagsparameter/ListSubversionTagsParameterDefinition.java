@@ -374,6 +374,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
         return FormValidation.warning("Unable to check tags directory.");
     }
 
+    // used from config.jelly
     public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context, @QueryParameter String tagsDir) {
       if (context == null || !context.hasPermission(Item.EXTENDED_READ)) {
         return new StandardListBoxModel();
@@ -382,6 +383,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
               SubversionSCM.ModuleLocation.DescriptorImpl.class).fillCredentialsIdItems(context, tagsDir);
     }
 
+    // used from config.jelly
     @RequirePOST
     public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath Item context, @QueryParameter String tagsDir, @QueryParameter String value) {
       if (context == null || !context.hasPermission(CredentialsProvider.USE_ITEM)) {
@@ -403,6 +405,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
       return FormValidation.ok();
     }
 
+    // used from index.jelly
     public ListBoxModel doFillTagItems(@AncestorInPath Job<?,?> context, @QueryParameter String param) {
         ListBoxModel model = new ListBoxModel();
         if (context != null && context.hasPermission(Item.BUILD)) {
