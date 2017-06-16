@@ -3107,7 +3107,7 @@ public class SubversionSCM extends SCM implements Serializable {
                     }
                 } catch (SVNException e) {
                     LOGGER.log(Level.SEVERE, e.getErrorMessage().getMessage());
-                    return FormValidation.error("Unable to access to repository");
+                    return FormValidation.error("Unable to access the repository");
                 }
                 return FormValidation.ok();
             }
