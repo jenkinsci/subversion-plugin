@@ -62,7 +62,7 @@ public class NoopUpdater extends WorkspaceUpdater {
 
     }
 
-    @Extension(ordinal = 100) // this is the default, so given a higher ordinal
+    @Extension
     public static class DescriptorImpl extends WorkspaceUpdaterDescriptor {
         @Override
         public String getDisplayName() {
