@@ -66,29 +66,29 @@ public class SVNRepositoryView {
 
     public SVNRepositoryView(SVNURL repoURL, StandardCredentials credentials) throws SVNException, IOException {
         repository = SVNRepositoryFactory.create(repoURL);
-
-        File configDir = SVNWCUtil.getDefaultConfigurationDirectory();
-
-        ISVNAuthenticationManager sam = new SVNAuthenticationManager(configDir, null, null);
-
-        sam.setAuthenticationProvider(new CredentialsSVNAuthenticationProviderImpl(credentials));
-        SVNAuthStoreHandlerImpl.install(sam);
-        sam = new FilterSVNAuthenticationManager(sam) {
-            // If there's no time out, the blocking read operation may hang forever, because TCP itself
-            // has no timeout. So always use some time out. If the underlying implementation gives us some
-            // value (which may come from ~/.subversion), honor that, as long as it sets some timeout value.
-            @Override
-            public int getReadTimeout(SVNRepository repository) {
-                int r = super.getReadTimeout(repository);
-                if (r <= 0) {
-                    r = (int) TimeUnit2.MINUTES.toMillis(1);
-                }
-                return r;
-            }
-        };
-        repository.setTunnelProvider(SVNWCUtil.createDefaultOptions(true));
-        repository.setAuthenticationManager(sam);
         try {
+            File configDir = SVNWCUtil.getDefaultConfigurationDirectory();
+
+            ISVNAuthenticationManager sam = new SVNAuthenticationManager(configDir, null, null);
+
+            sam.setAuthenticationProvider(new CredentialsSVNAuthenticationProviderImpl(credentials));
+            SVNAuthStoreHandlerImpl.install(sam);
+            sam = new FilterSVNAuthenticationManager(sam) {
+                // If there's no time out, the blocking read operation may hang forever, because TCP itself
+                // has no timeout. So always use some time out. If the underlying implementation gives us some
+                // value (which may come from ~/.subversion), honor that, as long as it sets some timeout value.
+                @Override
+                public int getReadTimeout(SVNRepository repository) {
+                    int r = super.getReadTimeout(repository);
+                    if (r <= 0) {
+                        r = (int) TimeUnit2.MINUTES.toMillis(1);
+                    }
+                    return r;
+                }
+            };
+            repository.setTunnelProvider(SVNWCUtil.createDefaultOptions(true));
+            repository.setAuthenticationManager(sam);
+
             uuid = repository.getRepositoryUUID(true);
             if (uuid == null) { // TODO is this even possible? Javadoc is unclear.
                 throw new IOException("Could not find UUID for " + repoURL);
