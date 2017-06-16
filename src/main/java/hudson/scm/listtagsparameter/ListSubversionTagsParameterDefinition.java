@@ -65,6 +65,7 @@ import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
 import org.tmatesoft.svn.core.io.SVNRepository;
 import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
+import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNLogClient;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 
@@ -171,16 +172,19 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
   @Nonnull public List<String> getTags(@Nullable Job context) {
     List<String> dirs = new ArrayList<String>();
 
+    SVNClientManager clientManager = SVNClientManager.newInstance();
+
     try {
       ISVNAuthenticationProvider authProvider = CredentialsSVNAuthenticationProviderImpl.createAuthenticationProvider(
               context, getTagsDir(), getCredentialsId(), null
       );
       ISVNAuthenticationManager authManager = SubversionSCM.createSvnAuthenticationManager(authProvider);
+      clientManager.setAuthenticationManager(authManager);
+      
       SVNURL repoURL = SVNURL.parseURIDecoded(getTagsDir());
-
       SVNRepository repo = SVNRepositoryFactory.create(repoURL);
       repo.setAuthenticationManager(authManager);
-      SVNLogClient logClient = new SVNLogClient(authManager, null);
+      SVNLogClient logClient = clientManager.getLogClient();
       
       if (isSVNRepositoryProjectRoot(repo)) {
         dirs = this.getSVNRootRepoDirectories(logClient, repoURL);
@@ -194,6 +198,9 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
       // logs are not translated (IMO, this is a bad idea to translate logs)
       LOGGER.log(Level.SEVERE, "An SVN exception occurred while listing the directory entries at " + getTagsDir(), e);
       return Collections.singletonList("!" + ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("SVNException"));
+    }
+    finally {
+        clientManager.dispose();
     }
 
     // SVNKit's doList() method returns also the parent dir, so we need to remove it
