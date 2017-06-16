@@ -940,7 +940,7 @@ public class SubversionSCMSource extends SCMSource {
             SVNRepository repository = SVNRepositoryFactory.create(repoURL, session);
 
             ISVNAuthenticationManager sam = SubversionSCM.createSvnAuthenticationManager(
-                    new CredentialsSVNAuthenticationProviderImpl(credentials, additionalCredentials)
+                    new CredentialsSVNAuthenticationProviderImpl(credentials, additionalCredentials, /* TODO */ TaskListener.NULL)
             );
             sam = new FilterSVNAuthenticationManager(sam) {
                 // If there's no time out, the blocking read operation may hang forever, because TCP itself

@@ -115,7 +115,7 @@ public final class SubversionChangeLogBuilder {
         for (ModuleLocation l : scm.getLocations(env, build)) {
             ISVNAuthenticationProvider authProvider =
                     CredentialsSVNAuthenticationProviderImpl
-                            .createAuthenticationProvider(build.getParent(), scm, l);
+                            .createAuthenticationProvider(build.getParent(), scm, l, listener);
             final SVNClientManager manager = SubversionSCM.createClientManager(authProvider).getCore();
             try {
                 SVNLogClient svnlc = manager.getLogClient();
@@ -128,7 +128,7 @@ public final class SubversionChangeLogBuilder {
         }
         ISVNAuthenticationProvider authProvider =
                 CredentialsSVNAuthenticationProviderImpl
-                        .createAuthenticationProvider(build.getParent(), scm, null);
+                        .createAuthenticationProvider(build.getParent(), scm, null, listener);
         final SVNClientManager manager = SubversionSCM.createClientManager(authProvider).getCore();
         try {
             SVNLogClient svnlc = manager.getLogClient();
