@@ -2270,17 +2270,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 //    (so we store the password info here)
                 repository = SVNRepositoryFactory.create(SVNURL.parseURIDecoded(url));
                 repository.setTunnelProvider( createDefaultSVNOptions() );
-                AuthenticationManagerImpl authManager = upc.new AuthenticationManagerImpl(logWriter) {
-                    @Override
-                    protected void onSuccess(String realm, Credential cred) {
-                        LOGGER.info("Persisted "+cred+" for "+realm);
-                        credentials.put(realm, cred);
-                        save();
-                        if (upc.inContextOf!=null)
-                            new PerJobCredentialStore(upc.inContextOf).acknowledgeAuthentication(realm,cred);
-
-                    }
-                };
+                AuthenticationManagerImpl authManager = upc.new AuthenticationManagerImpl(logWriter);
                 authManager.setAuthenticationForced(true);
                 repository.setAuthenticationManager(authManager);
                 repository.testConnection();
