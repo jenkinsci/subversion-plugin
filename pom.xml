@@ -33,7 +33,7 @@ THE SOFTWARE.
   </parent>
 
   <artifactId>subversion</artifactId>
-  <version>2.7.3-SNAPSHOT</version>
+  <version>2.8-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
   <name>Jenkins Subversion Plug-in</name>
@@ -46,13 +46,6 @@ THE SOFTWARE.
       <comments>All source code is under the MIT license.</comments>
     </license>
   </licenses>
-
-  <developers>
-    <developer>
-      <name>Many</name>
-      <id>kohsuke abayer dodok1 dty huybrechts mindless pgweiss stephenconnolly rseguy kutzi etc</id>
-    </developer>
-  </developers>
 
   <scm>
     <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
