@@ -104,6 +104,7 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import jenkins.model.Jenkins;
+import jenkins.scm.api.SCMHeadEvent;
 import org.kohsuke.stapler.DataBoundSetter;
 
 /**
@@ -226,7 +227,9 @@ public class SubversionSCMSource extends SCMSource {
      */
     @NonNull
     @Override
-    protected void retrieve(@NonNull final SCMHeadObserver observer,
+    protected void retrieve(@CheckForNull SCMSourceCriteria criteria,
+                            @NonNull final SCMHeadObserver observer,
+                            @CheckForNull SCMHeadEvent<?> event,
                             @NonNull TaskListener listener)
             throws IOException {
         SVNRepositoryView repository = null;
@@ -244,7 +247,9 @@ public class SubversionSCMSource extends SCMSource {
                     toPaths(splitCludes(includes)),
                     prefix,
                     prefix,
-                    toPaths(splitCludes(excludes)), getCriteria(), observer
+                    toPaths(splitCludes(excludes)),
+                    criteria,
+                    observer
             );
         } catch (SVNException e) {
             e.printStackTrace(listener.error("Could not communicate with Subversion server"));
@@ -281,10 +286,11 @@ public class SubversionSCMSource extends SCMSource {
      */
     @Override
     protected SCMRevision retrieve(String unparsedRevision, TaskListener listener) throws IOException, InterruptedException {
+        SVNRepositoryView repository = null;
         try {
             listener.getLogger().println("Opening connection to " + remoteBase);
             SVNURL repoURL = SVNURL.parseURIEncoded(remoteBase);
-            SVNRepositoryView repository = openSession(repoURL);
+            repository = openSession(repoURL);
             String repoPath = SubversionSCM.DescriptorImpl.getRelativePath(repoURL, repository.getRepository());
             String base;
             long revision;
@@ -305,6 +311,8 @@ public class SubversionSCMSource extends SCMSource {
             return new SCMRevisionImpl(new SCMHead(base), revision == -1 ? resolvedRevision : revision);
         } catch (SVNException e) {
             throw new IOException(e);
+        } finally {
+            closeSession(repository);
         }
     }
 
@@ -932,7 +940,7 @@ public class SubversionSCMSource extends SCMSource {
             SVNRepository repository = SVNRepositoryFactory.create(repoURL, session);
 
             ISVNAuthenticationManager sam = SubversionSCM.createSvnAuthenticationManager(
-                    new CredentialsSVNAuthenticationProviderImpl(credentials, additionalCredentials)
+                    new CredentialsSVNAuthenticationProviderImpl(credentials, additionalCredentials, /* TODO */ TaskListener.NULL)
             );
             sam = new FilterSVNAuthenticationManager(sam) {
                 // If there's no time out, the blocking read operation may hang forever, because TCP itself

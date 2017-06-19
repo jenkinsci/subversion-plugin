@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import jenkins.scm.impl.mock.AbstractSampleRepoRule;
 import org.apache.commons.io.FileUtils;
 import static org.junit.Assert.assertEquals;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -62,6 +63,14 @@ public final class SubversionSampleRepoRule extends AbstractSampleRepoRule {
 
     public void write(String rel, String text) throws IOException {
         FileUtils.write(new File(wc, rel), text);
+    }
+
+    public void writeConf(String rel, String text) throws IOException {
+        FileUtils.write(new File(new File(repo, "conf"), rel), text);
+    }
+
+    public File root() {
+        return repo;
     }
 
     public String rootUrl() throws URISyntaxException {
@@ -173,11 +182,15 @@ public final class SubversionSampleRepoRule extends AbstractSampleRepoRule {
         throw new IllegalStateException("no output");
     }
 
+    public UUID uuid() throws Exception {
+        return UUID.fromString(uuid(rootUrl()));
+    }
+
     public void notifyCommit(JenkinsRule r, String path) throws Exception {
         synchronousPolling(r);
         // Mocking the web POST, with crumb, is way too hard, and get an IllegalStateException: STREAMED from doNotifyCommit’s getReader anyway.
         for (SubversionRepositoryStatus.Listener listener : ExtensionList.lookup(SubversionRepositoryStatus.Listener.class)) {
-            listener.onNotify(UUID.fromString(uuid(rootUrl())), -1, Collections.singleton(path));
+            listener.onNotify(uuid(), -1, Collections.singleton(path));
         }
         r.waitUntilNoActivity();
     }

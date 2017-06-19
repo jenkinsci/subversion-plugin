@@ -1223,8 +1223,12 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
     private void attemptAccess(ISVNAuthenticationManager m) throws SVNException {
         SVNRepository repository = SVNRepositoryFactory.create(repo);
-        repository.setAuthenticationManager(m);
-        repository.testConnection();
+        try {
+            repository.setAuthenticationManager(m);
+            repository.testConnection();
+        } finally {
+            repository.closeSession();
+        }
     }
 
     private ISVNAuthenticationManager createInMemoryManager() {
