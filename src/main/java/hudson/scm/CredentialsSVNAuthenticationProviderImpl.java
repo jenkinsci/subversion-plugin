@@ -132,7 +132,7 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
         }
         Map<String, Credentials> additional = new HashMap<String, Credentials>();
         if (scm != null) {
-            for (SubversionSCM.AdditionalCredentials c : scm.getAdditionalCredentials()) {
+            for (AdditionalCredentials c : scm.getAdditionalCredentials()) {
                 if (c.getCredentialsId() != null) {
                     StandardCredentials cred = CredentialsMatchers
                             .firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class, context,

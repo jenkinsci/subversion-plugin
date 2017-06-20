@@ -45,6 +45,7 @@ import hudson.scm.CredentialsSVNAuthenticationProviderImpl;
 import hudson.scm.FilterSVNAuthenticationManager;
 import hudson.scm.SubversionRepositoryStatus;
 import hudson.scm.SubversionSCM;
+import hudson.scm.AdditionalCredentials;
 import hudson.scm.subversion.SvnHelper;
 import hudson.security.ACL;
 import hudson.util.EditDistance;
@@ -121,6 +122,8 @@ public class SubversionSCMSource extends SCMSource {
     private final String remoteBase;
 
     private String credentialsId = ""; // TODO null would be a better default, but need to check null safety on usages
+    
+    private List<AdditionalCredentials> additionalCredentials;
 
     private String includes = DescriptorImpl.DEFAULT_INCLUDES;
 
@@ -136,13 +139,23 @@ public class SubversionSCMSource extends SCMSource {
         setCredentialsId(credentialsId);
         setIncludes(StringUtils.defaultIfEmpty(includes, DescriptorImpl.DEFAULT_INCLUDES));
         setExcludes(StringUtils.defaultIfEmpty(excludes, DescriptorImpl.DEFAULT_EXCLUDES));
+        this.additionalCredentials =  new ArrayList<AdditionalCredentials>();
     }
-
-    @DataBoundConstructor
+    
+    //kept old constructor without additionalCredentials for backwards compatibility
     @SuppressWarnings("unused") // by stapler
     public SubversionSCMSource(String id, String remoteBase) {
         super(id);
         this.remoteBase = StringUtils.removeEnd(remoteBase, "/") + "/";
+        this.additionalCredentials =  new ArrayList<AdditionalCredentials>();
+    }
+
+    @DataBoundConstructor
+    @SuppressWarnings("unused") // by stapler
+    public SubversionSCMSource(String id, String remoteBase, List<AdditionalCredentials> additionalCredentials) {
+        super(id);
+        this.remoteBase = StringUtils.removeEnd(remoteBase, "/") + "/";
+        this.additionalCredentials =  additionalCredentials;
     }
 
     /**
@@ -158,6 +171,14 @@ public class SubversionSCMSource extends SCMSource {
     @DataBoundSetter
     public void setCredentialsId(String credentialsId) {
         this.credentialsId = credentialsId;
+    }
+    @DataBoundSetter
+    public void setAdditionalCredentials(List<AdditionalCredentials> additionalCredentials) {
+        this.additionalCredentials = additionalCredentials;
+    }
+    //without getter jelly will crash
+    public List<AdditionalCredentials> getAdditionalCredentials() {
+        return(additionalCredentials);
     }
 
     /**
@@ -273,7 +294,7 @@ public class SubversionSCMSource extends SCMSource {
             String repoPath = SubversionSCM.DescriptorImpl.getRelativePath(repoURL, repository.getRepository());
             String path = SVNPathUtil.append(repoPath, head.getName());
             SVNRepositoryView.NodeEntry svnEntry = repository.getNode(path, -1);
-            return new SCMRevisionImpl(head, svnEntry.getRevision());
+            return new SCMRevisionImpl(head, svnEntry.getRevision(), (additionalCredentials.size()>0));
         } catch (SVNException e) {
             throw new IOException(e);
         } finally {
@@ -308,7 +329,7 @@ public class SubversionSCMSource extends SCMSource {
                 listener.getLogger().println("Could not find " + path);
                 return null;
             }
-            return new SCMRevisionImpl(new SCMHead(base), revision == -1 ? resolvedRevision : revision);
+            return new SCMRevisionImpl(new SCMHead(base), revision == -1 ? resolvedRevision : revision, (additionalCredentials.size()>0));
         } catch (SVNException e) {
             throw new IOException(e);
         } finally {
@@ -409,7 +430,7 @@ public class SubversionSCMSource extends SCMSource {
                                     }, listener)) {
                                 listener.getLogger().println("Met criteria");
                                 SCMHead head = new SCMHead(childPath);
-                                observer.observe(head, new SCMRevisionImpl(head, svnEntry.getRevision()));
+                                observer.observe(head, new SCMRevisionImpl(head, svnEntry.getRevision(), (additionalCredentials.size()>0)));
                                 if (!observer.isObserving()) {
                                     return;
                                 }
@@ -689,8 +710,9 @@ public class SubversionSCMSource extends SCMSource {
             // name contains an @ so need to ensure there is an @ at the end of the name
             remote.append('@');
         }
-        return new SubversionSCM(remote.toString(), credentialsId, ".");
+        return new SubversionSCM(remote.toString(), credentialsId, ".", additionalCredentials);
     }
+
 
     /**
      * Our implementation.
@@ -701,14 +723,27 @@ public class SubversionSCMSource extends SCMSource {
          * The subversion revision.
          */
         private long revision;
+        /**
+         * Indicates whether externals are used. If so, revision is considered non-deterministic.
+         */
+        private boolean usesExternals;
 
-        public SCMRevisionImpl(SCMHead head, long revision) {
+        public SCMRevisionImpl(SCMHead head, long revision, boolean usesExternals) {
             super(head);
             this.revision = revision;
+            this.usesExternals = usesExternals;
         }
 
         public long getRevision() {
             return revision;
+        }
+
+        public boolean isDeterministic() {
+            //non-deterministic when using externals, to force Jenkins to recurse into subdirectories
+            if(usesExternals) {
+                return false;
+            }
+            return true;
         }
 
         /**

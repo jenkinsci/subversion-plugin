@@ -91,6 +91,7 @@ import hudson.scm.subversion.UpdateWithRevertUpdater;
 import hudson.scm.subversion.WorkspaceUpdater;
 import hudson.scm.subversion.WorkspaceUpdater.UpdateTask;
 import hudson.scm.subversion.WorkspaceUpdaterDescriptor;
+import hudson.scm.AdditionalCredentials;
 import hudson.util.FormValidation;
 import hudson.util.LogTaskListener;
 import hudson.util.MultipartFormDataParser;
@@ -297,7 +298,7 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     public SubversionSCM(List<ModuleLocation> locations,
             boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages) {
-    	this(locations, useUpdate, false, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages);
+        this(locations, useUpdate, false, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages);
     }
 
     /**
@@ -372,28 +373,35 @@ public class SubversionSCM extends SCM implements Serializable {
      * Convenience constructor, especially during testing.
      */
     public SubversionSCM(String svnUrl) {
-        this(svnUrl, null, ".");
+        this(svnUrl, null, ".", new ArrayList<AdditionalCredentials>());
     }
 
     /**
      * Convenience constructor, especially during testing.
      */
     public SubversionSCM(String svnUrl, String local) {
-        this(svnUrl, null, local);
+        this(svnUrl, null, local, new ArrayList<AdditionalCredentials>());
     }
 
     /**
      * Convenience constructor, especially during testing.
      */
     public SubversionSCM(String svnUrl, String credentialId, String local) {
-        this(new String[]{svnUrl}, new String[]{credentialId}, new String[]{local});
+        this(new String[]{svnUrl}, new String[]{credentialId}, new String[]{local}, new ArrayList<AdditionalCredentials>());
+    }
+
+    /**
+     * Convenience constructor, especially during testing.
+     */
+    public SubversionSCM(String svnUrl, String credentialId, String local, List<AdditionalCredentials> additionalCredentials) {
+        this(new String[]{svnUrl}, new String[]{credentialId}, new String[]{local}, additionalCredentials);
     }
 
     /**
      * Convenience constructor, especially during testing.
      */
     public SubversionSCM(String[] svnUrls, String[] locals) {
-        this(svnUrls, null, locals);
+        this(svnUrls, null, locals, new ArrayList<AdditionalCredentials>());
     }
 
     /**
@@ -401,6 +409,14 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     public SubversionSCM(String[] svnUrls, String[] credentialIds, String[] locals) {
         this(ModuleLocation.parse(svnUrls, credentialIds, locals, null,null), true, false, null, null, null, null, null);
+    }
+
+
+    /**
+     * Convenience constructor, especially during testing.
+     */
+    public SubversionSCM(String[] svnUrls, String[] credentialIds, String[] locals, List<AdditionalCredentials> additionalCredentials) {
+        this(ModuleLocation.parse(svnUrls, credentialIds, locals, null,null), new UpdateUpdater(), null, null, null, null, null, null, false, false, additionalCredentials);
     }
 
     /**
@@ -418,7 +434,7 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     @Exported
     public ModuleLocation[] getLocations() {
-    	return getLocations(null, null);
+        return getLocations(null, null);
     }
 
     @Override public String getKey() {
@@ -777,36 +793,36 @@ public class SubversionSCM extends SCM implements Serializable {
             try {
                 String line;
                 while((line=br.readLine())!=null) {
-                	boolean isPinned = false;
-                	int indexLast = line.length();
-                	if (line.lastIndexOf("::p") == indexLast-3) {
-                		isPinned = true;
-                		indexLast -= 3;
-                	}
-                	int index = line.lastIndexOf('/');
+                    boolean isPinned = false;
+                    int indexLast = line.length();
+                    if (line.lastIndexOf("::p") == indexLast-3) {
+                        isPinned = true;
+                        indexLast -= 3;
+                    }
+                    int index = line.lastIndexOf('/');
                     if(index<0) {
                         continue;   // invalid line?
                     }
                     try {
-                    	String url = line.substring(0, index);
-                    	long revision = Long.parseLong(line.substring(index+1,indexLast));
-                    	Long oldRevision = revisions.get(url);
-                    	if (isPinned) {
-                    		if (!prunePinnedExternals) {
-                    			if (oldRevision == null)
-                    				// If we're writing pinned, only write if there are no unpinned
-                    				revisions.put(url, revision);
-                    		}
-                    	} else {
-                    		// unpinned
-                        	if (oldRevision == null || oldRevision > revision)
-                        		// For unpinned, take minimum
-                        		revisions.put(url, revision);
-                    	}
-                	} catch (NumberFormatException e) {
-                	    // perhaps a corrupted line.
-                	    LOGGER.log(WARNING, "Error parsing line " + line, e);
-                	}
+                        String url = line.substring(0, index);
+                        long revision = Long.parseLong(line.substring(index+1,indexLast));
+                        Long oldRevision = revisions.get(url);
+                        if (isPinned) {
+                            if (!prunePinnedExternals) {
+                                if (oldRevision == null)
+                                    // If we're writing pinned, only write if there are no unpinned
+                                    revisions.put(url, revision);
+                            }
+                        } else {
+                            // unpinned
+                            if (oldRevision == null || oldRevision > revision)
+                                // For unpinned, take minimum
+                                revisions.put(url, revision);
+                        }
+                    } catch (NumberFormatException e) {
+                        // perhaps a corrupted line.
+                        LOGGER.log(WARNING, "Error parsing line " + line, e);
+                    }
                 }
             } finally {
                 br.close();
@@ -2759,7 +2775,7 @@ public class SubversionSCM extends SCM implements Serializable {
          * possible "@NNN" suffix.
          */
         public String getURL() {
-        	return SvnHelper.getUrlWithoutRevision(remote);
+            return SvnHelper.getUrlWithoutRevision(remote);
         }
 
         /**
@@ -3238,98 +3254,5 @@ public class SubversionSCM extends SCM implements Serializable {
                         CredentialsMatchers.withId(credentialsId));
     }
 
-    public static class AdditionalCredentials extends AbstractDescribableImpl<AdditionalCredentials> {
-        @NonNull
-        private final String realm;
-        @CheckForNull
-        private final String credentialsId;
-
-        @DataBoundConstructor
-        public AdditionalCredentials(@NonNull String realm, @CheckForNull String credentialsId) {
-            realm.getClass(); // throw NPE if null
-            this.realm = realm;
-            this.credentialsId = credentialsId;
-        }
-
-        @NonNull
-        public String getRealm() {
-            return realm;
-        }
-
-        @CheckForNull
-        public String getCredentialsId() {
-            return credentialsId;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (!(o instanceof AdditionalCredentials)) {
-                return false;
-            }
-
-            AdditionalCredentials that = (AdditionalCredentials) o;
-
-            if (!realm.equals(that.realm)) {
-                return false;
-            }
-            if (credentialsId != null ? !credentialsId.equals(that.credentialsId) : that.credentialsId != null) {
-                return false;
-            }
-
-            return true;
-        }
-
-        @Override
-        public int hashCode() {
-            int result = realm.hashCode();
-            result = 31 * result + (credentialsId != null ? credentialsId.hashCode() : 0);
-            return result;
-        }
-
-        @Extension
-        public static class DescriptorImpl extends Descriptor<AdditionalCredentials> {
-
-            @Override
-            public String getDisplayName() {
-                return null;
-            }
-
-            public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
-                                                         @QueryParameter String realm) {
-                if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
-                    context != null && !context.hasPermission(Item.EXTENDED_READ)) {
-                    return new StandardListBoxModel();
-                }
-                List<DomainRequirement> domainRequirements;
-                if (realm == null) {
-                    domainRequirements = Collections.<DomainRequirement>emptyList();
-                } else {
-                    if (realm.startsWith("<") && realm.contains(">")) {
-                        int index = realm.indexOf('>');
-                        assert index > 1;
-                        domainRequirements = URIRequirementBuilder.fromUri(realm.substring(1, index).trim()).build();
-                    } else {
-                        domainRequirements = Collections.<DomainRequirement>emptyList();
-                    }
-                }
-                return new StandardListBoxModel()
-                        .withEmptySelection()
-                        .withMatching(
-                                CredentialsMatchers.anyOf(
-                                        CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
-                                        CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
-                                        CredentialsMatchers.instanceOf(SSHUserPrivateKey.class)
-                                ),
-                                CredentialsProvider.lookupCredentials(StandardCredentials.class,
-                                        context,
-                                        ACL.SYSTEM,
-                                        domainRequirements)
-                        );
-            }
-
-        }
-    }
+    
 }
