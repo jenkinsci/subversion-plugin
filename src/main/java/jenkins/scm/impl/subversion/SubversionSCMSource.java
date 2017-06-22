@@ -45,7 +45,7 @@ import hudson.scm.CredentialsSVNAuthenticationProviderImpl;
 import hudson.scm.FilterSVNAuthenticationManager;
 import hudson.scm.SubversionRepositoryStatus;
 import hudson.scm.SubversionSCM;
-import hudson.scm.AdditionalCredentials;
+import hudson.scm.SubversionSCM.AdditionalCredentials;
 import hudson.scm.subversion.SvnHelper;
 import hudson.security.ACL;
 import hudson.util.EditDistance;
@@ -142,7 +142,7 @@ public class SubversionSCMSource extends SCMSource {
         this.additionalCredentials =  new ArrayList<AdditionalCredentials>();
     }
     
-    //kept old constructor without additionalCredentials for backwards compatibility
+    @DataBoundConstructor
     @SuppressWarnings("unused") // by stapler
     public SubversionSCMSource(String id, String remoteBase) {
         super(id);
@@ -150,13 +150,6 @@ public class SubversionSCMSource extends SCMSource {
         this.additionalCredentials =  new ArrayList<AdditionalCredentials>();
     }
 
-    @DataBoundConstructor
-    @SuppressWarnings("unused") // by stapler
-    public SubversionSCMSource(String id, String remoteBase, List<AdditionalCredentials> additionalCredentials) {
-        super(id);
-        this.remoteBase = StringUtils.removeEnd(remoteBase, "/") + "/";
-        this.additionalCredentials =  additionalCredentials;
-    }
 
     /**
      * Gets the credentials id.

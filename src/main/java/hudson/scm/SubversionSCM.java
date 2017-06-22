@@ -91,7 +91,6 @@ import hudson.scm.subversion.UpdateWithRevertUpdater;
 import hudson.scm.subversion.WorkspaceUpdater;
 import hudson.scm.subversion.WorkspaceUpdater.UpdateTask;
 import hudson.scm.subversion.WorkspaceUpdaterDescriptor;
-import hudson.scm.AdditionalCredentials;
 import hudson.util.FormValidation;
 import hudson.util.LogTaskListener;
 import hudson.util.MultipartFormDataParser;
@@ -3253,6 +3252,99 @@ public class SubversionSCM extends SCM implements Serializable {
                                 URIRequirementBuilder.fromUri(repoURL.toString()).build()),
                         CredentialsMatchers.withId(credentialsId));
     }
-
     
+    public static class AdditionalCredentials extends AbstractDescribableImpl<AdditionalCredentials> {
+        @NonNull
+        private final String realm;
+        @CheckForNull
+        private final String credentialsId;
+
+        @DataBoundConstructor
+        public AdditionalCredentials(@NonNull String realm, @CheckForNull String credentialsId) {
+            realm.getClass(); // throw NPE if null
+            this.realm = realm;
+            this.credentialsId = credentialsId;
+        }
+
+        @NonNull
+        public String getRealm() {
+            return realm;
+        }
+
+        @CheckForNull
+        public String getCredentialsId() {
+            return credentialsId;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof AdditionalCredentials)) {
+                return false;
+            }
+
+            AdditionalCredentials that = (AdditionalCredentials) o;
+
+            if (!realm.equals(that.realm)) {
+                return false;
+            }
+            if (credentialsId != null ? !credentialsId.equals(that.credentialsId) : that.credentialsId != null) {
+                return false;
+            }
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = realm.hashCode();
+            result = 31 * result + (credentialsId != null ? credentialsId.hashCode() : 0);
+            return result;
+        }
+
+        @Extension
+        public static class DescriptorImpl extends Descriptor<AdditionalCredentials> {
+
+            @Override
+            public String getDisplayName() {
+                return null;
+            }
+
+            public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
+                                                         @QueryParameter String realm) {
+                if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
+                    context != null && !context.hasPermission(Item.EXTENDED_READ)) {
+                    return new StandardListBoxModel();
+                }
+                List<DomainRequirement> domainRequirements;
+                if (realm == null) {
+                    domainRequirements = Collections.<DomainRequirement>emptyList();
+                } else {
+                    if (realm.startsWith("<") && realm.contains(">")) {
+                        int index = realm.indexOf('>');
+                        assert index > 1;
+                        domainRequirements = URIRequirementBuilder.fromUri(realm.substring(1, index).trim()).build();
+                    } else {
+                        domainRequirements = Collections.<DomainRequirement>emptyList();
+                    }
+                }
+                return new StandardListBoxModel()
+                        .withEmptySelection()
+                        .withMatching(
+                                CredentialsMatchers.anyOf(
+                                        CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
+                                        CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
+                                        CredentialsMatchers.instanceOf(SSHUserPrivateKey.class)
+                                ),
+                                CredentialsProvider.lookupCredentials(StandardCredentials.class,
+                                        context,
+                                        ACL.SYSTEM,
+                                        domainRequirements)
+                        );
+            }
+
+        }
+    }    
 }
