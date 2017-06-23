@@ -47,6 +47,7 @@ import hudson.scm.SubversionRepositoryStatus;
 import hudson.scm.SubversionSCM;
 import hudson.scm.SubversionSCM.AdditionalCredentials;
 import hudson.scm.subversion.SvnHelper;
+import hudson.scm.subversion.UpdateUpdater;
 import hudson.security.ACL;
 import hudson.util.EditDistance;
 import hudson.util.FormValidation;
@@ -139,7 +140,6 @@ public class SubversionSCMSource extends SCMSource {
         setCredentialsId(credentialsId);
         setIncludes(StringUtils.defaultIfEmpty(includes, DescriptorImpl.DEFAULT_INCLUDES));
         setExcludes(StringUtils.defaultIfEmpty(excludes, DescriptorImpl.DEFAULT_EXCLUDES));
-        this.additionalCredentials =  new ArrayList<AdditionalCredentials>();
     }
     
     @DataBoundConstructor
@@ -147,7 +147,6 @@ public class SubversionSCMSource extends SCMSource {
     public SubversionSCMSource(String id, String remoteBase) {
         super(id);
         this.remoteBase = StringUtils.removeEnd(remoteBase, "/") + "/";
-        this.additionalCredentials =  new ArrayList<AdditionalCredentials>();
     }
 
 
@@ -171,6 +170,9 @@ public class SubversionSCMSource extends SCMSource {
     }
     //without getter jelly will crash
     public List<AdditionalCredentials> getAdditionalCredentials() {
+        if(additionalCredentials==null) {
+            return Collections.emptyList();
+        }
         return(additionalCredentials);
     }
 
@@ -287,7 +289,7 @@ public class SubversionSCMSource extends SCMSource {
             String repoPath = SubversionSCM.DescriptorImpl.getRelativePath(repoURL, repository.getRepository());
             String path = SVNPathUtil.append(repoPath, head.getName());
             SVNRepositoryView.NodeEntry svnEntry = repository.getNode(path, -1);
-            return new SCMRevisionImpl(head, svnEntry.getRevision(), (additionalCredentials.size()>0));
+            return new SCMRevisionImpl(head, svnEntry.getRevision(), (additionalCredentials!=null && additionalCredentials.size()>0));
         } catch (SVNException e) {
             throw new IOException(e);
         } finally {
@@ -322,7 +324,7 @@ public class SubversionSCMSource extends SCMSource {
                 listener.getLogger().println("Could not find " + path);
                 return null;
             }
-            return new SCMRevisionImpl(new SCMHead(base), revision == -1 ? resolvedRevision : revision, (additionalCredentials.size()>0));
+            return new SCMRevisionImpl(new SCMHead(base), revision == -1 ? resolvedRevision : revision, (additionalCredentials!=null && additionalCredentials.size()>0));
         } catch (SVNException e) {
             throw new IOException(e);
         } finally {
@@ -423,7 +425,7 @@ public class SubversionSCMSource extends SCMSource {
                                     }, listener)) {
                                 listener.getLogger().println("Met criteria");
                                 SCMHead head = new SCMHead(childPath);
-                                observer.observe(head, new SCMRevisionImpl(head, svnEntry.getRevision(), (additionalCredentials.size()>0)));
+                                observer.observe(head, new SCMRevisionImpl(head, svnEntry.getRevision(), (additionalCredentials!=null && additionalCredentials.size()>0)));
                                 if (!observer.isObserving()) {
                                     return;
                                 }
@@ -703,7 +705,7 @@ public class SubversionSCMSource extends SCMSource {
             // name contains an @ so need to ensure there is an @ at the end of the name
             remote.append('@');
         }
-        return new SubversionSCM(remote.toString(), credentialsId, ".", additionalCredentials);
+        return new SubversionSCM(SubversionSCM.ModuleLocation.parse(new String[]{remote.toString()}, new String[]{credentialsId}, new String[]{"."}, null,null), new UpdateUpdater(), null, null, null, null, null, null, false, false, additionalCredentials);
     }
 
 

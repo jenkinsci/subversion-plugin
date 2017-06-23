@@ -297,7 +297,7 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     public SubversionSCM(List<ModuleLocation> locations,
             boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages) {
-        this(locations, useUpdate, false, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages);
+    	this(locations, useUpdate, false, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages);
     }
 
     /**
@@ -372,35 +372,28 @@ public class SubversionSCM extends SCM implements Serializable {
      * Convenience constructor, especially during testing.
      */
     public SubversionSCM(String svnUrl) {
-        this(svnUrl, null, ".", new ArrayList<AdditionalCredentials>());
+        this(svnUrl, null, ".");
     }
 
     /**
      * Convenience constructor, especially during testing.
      */
     public SubversionSCM(String svnUrl, String local) {
-        this(svnUrl, null, local, new ArrayList<AdditionalCredentials>());
+        this(svnUrl, null, local);
     }
 
     /**
      * Convenience constructor, especially during testing.
      */
     public SubversionSCM(String svnUrl, String credentialId, String local) {
-        this(new String[]{svnUrl}, new String[]{credentialId}, new String[]{local}, new ArrayList<AdditionalCredentials>());
-    }
-
-    /**
-     * Convenience constructor, especially during testing.
-     */
-    public SubversionSCM(String svnUrl, String credentialId, String local, List<AdditionalCredentials> additionalCredentials) {
-        this(new String[]{svnUrl}, new String[]{credentialId}, new String[]{local}, additionalCredentials);
+        this(new String[]{svnUrl}, new String[]{credentialId}, new String[]{local});
     }
 
     /**
      * Convenience constructor, especially during testing.
      */
     public SubversionSCM(String[] svnUrls, String[] locals) {
-        this(svnUrls, null, locals, new ArrayList<AdditionalCredentials>());
+        this(svnUrls, null, locals);
     }
 
     /**
@@ -408,14 +401,6 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     public SubversionSCM(String[] svnUrls, String[] credentialIds, String[] locals) {
         this(ModuleLocation.parse(svnUrls, credentialIds, locals, null,null), true, false, null, null, null, null, null);
-    }
-
-
-    /**
-     * Convenience constructor, especially during testing.
-     */
-    public SubversionSCM(String[] svnUrls, String[] credentialIds, String[] locals, List<AdditionalCredentials> additionalCredentials) {
-        this(ModuleLocation.parse(svnUrls, credentialIds, locals, null,null), new UpdateUpdater(), null, null, null, null, null, null, false, false, additionalCredentials);
     }
 
     /**
@@ -433,7 +418,7 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     @Exported
     public ModuleLocation[] getLocations() {
-        return getLocations(null, null);
+    	return getLocations(null, null);
     }
 
     @Override public String getKey() {
@@ -792,36 +777,36 @@ public class SubversionSCM extends SCM implements Serializable {
             try {
                 String line;
                 while((line=br.readLine())!=null) {
-                    boolean isPinned = false;
-                    int indexLast = line.length();
-                    if (line.lastIndexOf("::p") == indexLast-3) {
-                        isPinned = true;
-                        indexLast -= 3;
-                    }
-                    int index = line.lastIndexOf('/');
+                	boolean isPinned = false;
+                	int indexLast = line.length();
+                	if (line.lastIndexOf("::p") == indexLast-3) {
+                		isPinned = true;
+                		indexLast -= 3;
+                	}
+                	int index = line.lastIndexOf('/');
                     if(index<0) {
                         continue;   // invalid line?
                     }
                     try {
-                        String url = line.substring(0, index);
-                        long revision = Long.parseLong(line.substring(index+1,indexLast));
-                        Long oldRevision = revisions.get(url);
-                        if (isPinned) {
-                            if (!prunePinnedExternals) {
-                                if (oldRevision == null)
-                                    // If we're writing pinned, only write if there are no unpinned
-                                    revisions.put(url, revision);
-                            }
-                        } else {
-                            // unpinned
-                            if (oldRevision == null || oldRevision > revision)
-                                // For unpinned, take minimum
-                                revisions.put(url, revision);
-                        }
-                    } catch (NumberFormatException e) {
-                        // perhaps a corrupted line.
-                        LOGGER.log(WARNING, "Error parsing line " + line, e);
-                    }
+                    	String url = line.substring(0, index);
+                    	long revision = Long.parseLong(line.substring(index+1,indexLast));
+                    	Long oldRevision = revisions.get(url);
+                    	if (isPinned) {
+                    		if (!prunePinnedExternals) {
+                    			if (oldRevision == null)
+                    				// If we're writing pinned, only write if there are no unpinned
+                    				revisions.put(url, revision);
+                    		}
+                    	} else {
+                    		// unpinned
+                        	if (oldRevision == null || oldRevision > revision)
+                        		// For unpinned, take minimum
+                        		revisions.put(url, revision);
+                    	}
+                	} catch (NumberFormatException e) {
+                	    // perhaps a corrupted line.
+                	    LOGGER.log(WARNING, "Error parsing line " + line, e);
+                	}
                 }
             } finally {
                 br.close();
@@ -2774,7 +2759,7 @@ public class SubversionSCM extends SCM implements Serializable {
          * possible "@NNN" suffix.
          */
         public String getURL() {
-            return SvnHelper.getUrlWithoutRevision(remote);
+        	return SvnHelper.getUrlWithoutRevision(remote);
         }
 
         /**
@@ -3252,7 +3237,7 @@ public class SubversionSCM extends SCM implements Serializable {
                                 URIRequirementBuilder.fromUri(repoURL.toString()).build()),
                         CredentialsMatchers.withId(credentialsId));
     }
-    
+
     public static class AdditionalCredentials extends AbstractDescribableImpl<AdditionalCredentials> {
         @NonNull
         private final String realm;
@@ -3346,5 +3331,5 @@ public class SubversionSCM extends SCM implements Serializable {
             }
 
         }
-    }    
+    }
 }
