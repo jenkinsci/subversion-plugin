@@ -66,7 +66,7 @@ public class SVNRepositoryView {
 
     public SVNRepositoryView(SVNURL repoURL, StandardCredentials credentials) throws SVNException, IOException {
         repository = SVNRepositoryFactory.create(repoURL);
-        success = false;
+        boolean success = false;
         try {
             File configDir = SVNWCUtil.getDefaultConfigurationDirectory();
 
