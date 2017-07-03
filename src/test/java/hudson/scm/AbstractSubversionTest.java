@@ -49,14 +49,14 @@ public abstract class AbstractSubversionTest extends HudsonTestCase  {
     	this.descriptor.configure(req, formData);
     }
 
-    protected Proc runSvnServe(URL zip) throws Exception {
+    public static Proc runSvnServe(URL zip) throws Exception {
         return runSvnServe(new CopyExisting(zip).allocate());
     }
 
     /**
      * Runs svnserve to serve the specified directory as a subversion repository.
      */
-    protected Proc runSvnServe(File repo) throws Exception {
+    public static Proc runSvnServe(File repo) throws Exception {
         LocalLauncher launcher = new LocalLauncher(StreamTaskListener.fromStdout());
         try {
             launcher.launch().cmds("svnserve","--help").start().join();

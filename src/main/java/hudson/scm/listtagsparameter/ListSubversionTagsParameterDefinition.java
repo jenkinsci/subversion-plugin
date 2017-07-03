@@ -25,6 +25,7 @@
 
 package hudson.scm.listtagsparameter;
 
+import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.Extension;
@@ -39,6 +40,7 @@ import hudson.model.ParametersDefinitionProperty;
 import hudson.model.TaskListener;
 import hudson.scm.CredentialsSVNAuthenticationProviderImpl;
 import hudson.scm.SubversionSCM;
+import hudson.security.ACL;
 import hudson.util.FormValidation;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -58,6 +60,7 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNDirEntry;
 import org.tmatesoft.svn.core.SVNException;
@@ -377,16 +380,19 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
         return FormValidation.warning("Unable to check tags directory.");
     }
 
+    // used from config.jelly
     public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context, @QueryParameter String tagsDir) {
-      if (context == null || !context.hasPermission(Item.BUILD)) {
+      if (context == null || !context.hasPermission(Item.EXTENDED_READ)) {
         return new StandardListBoxModel();
       }
       return Jenkins.getInstance().getDescriptorByType(
               SubversionSCM.ModuleLocation.DescriptorImpl.class).fillCredentialsIdItems(context, tagsDir);
     }
 
+    // used from config.jelly
+    @RequirePOST
     public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath Item context, @QueryParameter String tagsDir, @QueryParameter String value) {
-      if (context == null || !context.hasPermission(Item.BUILD)) {
+      if (context == null || !context.hasPermission(CredentialsProvider.USE_ITEM)) {
         return FormValidation.ok();
       }
       return Jenkins.getInstance().getDescriptorByType(
@@ -405,9 +411,10 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
       return FormValidation.ok();
     }
 
+    // used from index.jelly
     public ListBoxModel doFillTagItems(@AncestorInPath Job<?,?> context, @QueryParameter String param) {
         ListBoxModel model = new ListBoxModel();
-        if (context != null) {
+        if (context != null && context.hasPermission(Item.BUILD)) {
             ParametersDefinitionProperty prop = context.getProperty(ParametersDefinitionProperty.class);
             if (prop != null) {
                 ParameterDefinition def = prop.getParameterDefinition(param);
