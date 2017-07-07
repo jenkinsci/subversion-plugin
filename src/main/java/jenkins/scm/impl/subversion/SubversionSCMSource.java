@@ -70,6 +70,8 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.tmatesoft.svn.core.SVNDirEntry;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNNodeKind;
@@ -141,14 +143,13 @@ public class SubversionSCMSource extends SCMSource {
         setIncludes(StringUtils.defaultIfEmpty(includes, DescriptorImpl.DEFAULT_INCLUDES));
         setExcludes(StringUtils.defaultIfEmpty(excludes, DescriptorImpl.DEFAULT_EXCLUDES));
     }
-    
+
     @DataBoundConstructor
     @SuppressWarnings("unused") // by stapler
     public SubversionSCMSource(String id, String remoteBase) {
         super(id);
         this.remoteBase = StringUtils.removeEnd(remoteBase, "/") + "/";
     }
-
 
     /**
      * Gets the credentials id.
@@ -169,6 +170,7 @@ public class SubversionSCMSource extends SCMSource {
         this.additionalCredentials = additionalCredentials;
     }
     //without getter jelly will crash
+    @Restricted(NoExternalUse.class)
     public List<AdditionalCredentials> getAdditionalCredentials() {
         if(additionalCredentials==null) {
             return Collections.emptyList();
@@ -289,7 +291,7 @@ public class SubversionSCMSource extends SCMSource {
             String repoPath = SubversionSCM.DescriptorImpl.getRelativePath(repoURL, repository.getRepository());
             String path = SVNPathUtil.append(repoPath, head.getName());
             SVNRepositoryView.NodeEntry svnEntry = repository.getNode(path, -1);
-            return new SCMRevisionImpl(head, svnEntry.getRevision(), (additionalCredentials!=null && additionalCredentials.size()>0));
+            return new SCMRevisionImpl(head, svnEntry.getRevision());
         } catch (SVNException e) {
             throw new IOException(e);
         } finally {
@@ -324,7 +326,7 @@ public class SubversionSCMSource extends SCMSource {
                 listener.getLogger().println("Could not find " + path);
                 return null;
             }
-            return new SCMRevisionImpl(new SCMHead(base), revision == -1 ? resolvedRevision : revision, (additionalCredentials!=null && additionalCredentials.size()>0));
+            return new SCMRevisionImpl(new SCMHead(base), revision == -1 ? resolvedRevision : revision);
         } catch (SVNException e) {
             throw new IOException(e);
         } finally {
@@ -425,7 +427,7 @@ public class SubversionSCMSource extends SCMSource {
                                     }, listener)) {
                                 listener.getLogger().println("Met criteria");
                                 SCMHead head = new SCMHead(childPath);
-                                observer.observe(head, new SCMRevisionImpl(head, svnEntry.getRevision(), (additionalCredentials!=null && additionalCredentials.size()>0)));
+                                observer.observe(head, new SCMRevisionImpl(head, svnEntry.getRevision()));
                                 if (!observer.isObserving()) {
                                     return;
                                 }
@@ -708,7 +710,6 @@ public class SubversionSCMSource extends SCMSource {
         return new SubversionSCM(SubversionSCM.ModuleLocation.parse(new String[]{remote.toString()}, new String[]{credentialsId}, new String[]{"."}, null,null), new UpdateUpdater(), null, null, null, null, null, null, false, false, additionalCredentials);
     }
 
-
     /**
      * Our implementation.
      */
@@ -718,27 +719,14 @@ public class SubversionSCMSource extends SCMSource {
          * The subversion revision.
          */
         private long revision;
-        /**
-         * Indicates whether externals are used. If so, revision is considered non-deterministic.
-         */
-        private boolean usesExternals;
 
-        public SCMRevisionImpl(SCMHead head, long revision, boolean usesExternals) {
+        public SCMRevisionImpl(SCMHead head, long revision) {
             super(head);
             this.revision = revision;
-            this.usesExternals = usesExternals;
         }
 
         public long getRevision() {
             return revision;
-        }
-
-        public boolean isDeterministic() {
-            //non-deterministic when using externals, to force Jenkins to recurse into subdirectories
-            if(usesExternals) {
-                return false;
-            }
-            return true;
         }
 
         /**
