@@ -175,7 +175,7 @@ public class SubversionSCMSource extends SCMSource {
         if(additionalCredentials==null) {
             return Collections.emptyList();
         }
-        return(additionalCredentials);
+        return Collections.unmodifiableList(additionalCredentials);
     }
 
     /**
