@@ -36,4 +36,7 @@
   <f:entry title="${%Exclude branches}" field="excludes">
     <f:textbox default="${descriptor.DEFAULT_EXCLUDES}"/>
   </f:entry>
+  <f:entry title="${%Force scanning for updates in externals}" field="forceScanExternals">
+    <f:checkbox/>
+  </f:entry>
 </j:jelly>

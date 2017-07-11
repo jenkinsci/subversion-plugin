@@ -68,6 +68,8 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.tmatesoft.svn.core.SVNDirEntry;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNNodeKind;
@@ -126,6 +128,8 @@ public class SubversionSCMSource extends SCMSource {
     private String includes = DescriptorImpl.DEFAULT_INCLUDES;
 
     private String excludes = DescriptorImpl.DEFAULT_EXCLUDES;
+    
+    private boolean forceScanExternals = false;
 
     @GuardedBy("this")
     private transient String uuid;
@@ -189,6 +193,22 @@ public class SubversionSCMSource extends SCMSource {
     @DataBoundSetter
     public void setIncludes(String includes) {
         this.includes = includes;
+    }
+
+    /**
+     * Gets the force scan for externals flag
+     * Workaround for not handling revision numbers of externals.
+     *
+     * @return the force scan for externals flag.
+     */
+    @Restricted(NoExternalUse.class)
+    public boolean getForceScanExternals() {
+        return forceScanExternals;
+    }
+    
+    @DataBoundSetter
+    public void setForceScanExternals(boolean forceScanExternals) {
+        this.forceScanExternals = forceScanExternals;
     }
 
     /**
@@ -274,7 +294,11 @@ public class SubversionSCMSource extends SCMSource {
             String repoPath = SubversionSCM.DescriptorImpl.getRelativePath(repoURL, repository.getRepository());
             String path = SVNPathUtil.append(repoPath, head.getName());
             SVNRepositoryView.NodeEntry svnEntry = repository.getNode(path, -1);
-            return new SCMRevisionImpl(head, svnEntry.getRevision());
+            SCMRevisionImpl revImpl = new SCMRevisionImpl(head, svnEntry.getRevision());
+            if(forceScanExternals) {
+                revImpl.setDeterministic(false);
+            }
+            return revImpl;
         } catch (SVNException e) {
             throw new IOException(e);
         } finally {
@@ -309,7 +333,11 @@ public class SubversionSCMSource extends SCMSource {
                 listener.getLogger().println("Could not find " + path);
                 return null;
             }
-            return new SCMRevisionImpl(new SCMHead(base), revision == -1 ? resolvedRevision : revision);
+            SCMRevisionImpl revImpl = new SCMRevisionImpl(new SCMHead(base), revision == -1 ? resolvedRevision : revision);
+            if(forceScanExternals) {
+                revImpl.setDeterministic(false);
+            }
+            return revImpl;
         } catch (SVNException e) {
             throw new IOException(e);
         } finally {
@@ -410,7 +438,11 @@ public class SubversionSCMSource extends SCMSource {
                                     }, listener)) {
                                 listener.getLogger().println("Met criteria");
                                 SCMHead head = new SCMHead(childPath);
-                                observer.observe(head, new SCMRevisionImpl(head, svnEntry.getRevision()));
+                                SCMRevisionImpl revImpl = new SCMRevisionImpl(head, svnEntry.getRevision());
+                                if(forceScanExternals) {
+                                    revImpl.setDeterministic(false);
+                                }
+                                observer.observe(head, revImpl);
                                 if (!observer.isObserving()) {
                                     return;
                                 }
@@ -702,14 +734,29 @@ public class SubversionSCMSource extends SCMSource {
          * The subversion revision.
          */
         private long revision;
+        
+        /**
+         * Whether or not the revision number is deterministic.
+         * Workaround for not handling revision numbers of externals.
+         */
+        private boolean deterministic;
 
         public SCMRevisionImpl(SCMHead head, long revision) {
             super(head);
             this.revision = revision;
+            deterministic = true;
         }
 
         public long getRevision() {
             return revision;
+        }
+        
+        public void setDeterministic(boolean deterministic) {
+            this.deterministic = deterministic;
+        }
+        
+        public boolean isDeterministic() {
+            return deterministic;
         }
 
         /**
