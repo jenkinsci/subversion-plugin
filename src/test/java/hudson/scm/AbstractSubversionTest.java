@@ -1,40 +1,47 @@
 package hudson.scm;
 
 import hudson.ClassicPluginStrategy;
+import hudson.FilePath;
 import hudson.Launcher.LocalLauncher;
 import hudson.Proc;
-import hudson.scm.SubversionSCM.DescriptorImpl;
 import hudson.util.StreamTaskListener;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import net.sf.json.JSONObject;
 
-import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
-import org.jvnet.hudson.test.HudsonTestCase;
 import org.kohsuke.stapler.StaplerRequest;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
 import org.junit.AssumptionViolatedException;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
+import org.jvnet.hudson.test.BuildWatcher;
+import org.jvnet.hudson.test.JenkinsRule;
 
 /**
  * Base class for Subversion related tests.
  *
  * @author Kohsuke Kawaguchi
  */
-public abstract class AbstractSubversionTest extends HudsonTestCase  {
-    protected DescriptorImpl descriptor;
+// TODO perhaps merge into SubversionSampleRepoRule
+public abstract class AbstractSubversionTest {
 
-    @Override
-    protected void setUp() throws Exception {
-        super.setUp();
-        descriptor = hudson.getDescriptorByType(DescriptorImpl.class);
-    }
-    
+    @ClassRule
+    public static BuildWatcher buildWatcher = new BuildWatcher();
+
+    @Rule
+    public JenkinsRule r = new JenkinsRule();
+
+    @Rule
+    public TemporaryFolder tmp = new TemporaryFolder();
+
     /**
      * Configure the SVN workspace format - i.e. the format of the local workspace copy.
      * 
@@ -46,7 +53,7 @@ public abstract class AbstractSubversionTest extends HudsonTestCase  {
     	
     	JSONObject formData = new JSONObject();
     	
-    	this.descriptor.configure(req, formData);
+    	r.jenkins.getDescriptorByType(SubversionSCM.DescriptorImpl.class).configure(req, formData);
     }
 
     public static void checkForSvnServe() throws InterruptedException {
@@ -59,8 +66,19 @@ public abstract class AbstractSubversionTest extends HudsonTestCase  {
         }
     }
 
-    public static Proc runSvnServe(URL zip) throws Exception {
-        return runSvnServe(new CopyExisting(zip).allocate());
+    public Proc runSvnServe(URL zip) throws Exception {
+        return runSvnServe(tmp, zip);
+    }
+
+    public static Proc runSvnServe(TemporaryFolder tmp, URL zip) throws Exception {
+        File target = tmp.newFolder();
+        InputStream is = zip.openStream();
+        try {
+            new FilePath(target).unzipFrom(is);
+        } finally {
+            is.close();
+        }
+        return runSvnServe(target);
     }
 
     /**
