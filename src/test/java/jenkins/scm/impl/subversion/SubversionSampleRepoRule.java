@@ -104,15 +104,20 @@ public final class SubversionSampleRepoRule extends AbstractSampleRepoRule {
         }
     }
 
+    @Deprecated
+    private void checkForSvnCLI() throws Exception {
+        if (!checkedSvnCLI) {
+            run(true, tmp.getRoot(), "svn", "--version");
+            checkedSvnCLI = true;
+        }
+    }
+
     /**
      * For more portable tests, run {@link #svnkit} instead, using {@link #wc} to refer to the working copy where needed.
      */
     @Deprecated
     public void svn(String... cmds) throws Exception {
-        if (!checkedSvnCLI) {
-            run(true, tmp.getRoot(), "svn", "--version");
-            checkedSvnCLI = true;
-        }
+        checkForSvnCLI();
         List<String> args = new ArrayList<String>();
         args.add("svn");
         args.addAll(Arrays.asList(cmds));
@@ -168,7 +173,8 @@ public final class SubversionSampleRepoRule extends AbstractSampleRepoRule {
         assertEquals(2, revision());
     }
 
-    private static String uuid(String url) throws Exception {
+    private String uuid(String url) throws Exception {
+        checkForSvnCLI(); // TODO better to use SVNKit
         Process proc = new ProcessBuilder("svn", "info", "--xml", url).start();
         BufferedReader r = new BufferedReader(new InputStreamReader(proc.getInputStream()));
         Pattern p = Pattern.compile("<uuid>(.+)</uuid>");

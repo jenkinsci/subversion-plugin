@@ -10,7 +10,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import net.sf.json.JSONObject;
 
-import org.junit.Assert;
 import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
 import org.jvnet.hudson.test.HudsonTestCase;
 import org.kohsuke.stapler.StaplerRequest;
@@ -20,6 +19,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
+import org.junit.AssumptionViolatedException;
 
 /**
  * Base class for Subversion related tests.
@@ -49,6 +49,16 @@ public abstract class AbstractSubversionTest extends HudsonTestCase  {
     	this.descriptor.configure(req, formData);
     }
 
+    public static void checkForSvnServe() throws InterruptedException {
+        LocalLauncher launcher = new LocalLauncher(StreamTaskListener.fromStdout());
+        try {
+            launcher.launch().cmds("svnserve","--help").start().join();
+        } catch (IOException e) {
+            // TODO better to add a docker-fixtures test dep so CI builds can run these tests
+            throw new AssumptionViolatedException("svnserve apparently not installed", e);
+        }
+    }
+
     public static Proc runSvnServe(URL zip) throws Exception {
         return runSvnServe(new CopyExisting(zip).allocate());
     }
@@ -57,12 +67,9 @@ public abstract class AbstractSubversionTest extends HudsonTestCase  {
      * Runs svnserve to serve the specified directory as a subversion repository.
      */
     public static Proc runSvnServe(File repo) throws Exception {
+        checkForSvnServe();
+
         LocalLauncher launcher = new LocalLauncher(StreamTaskListener.fromStdout());
-        try {
-            launcher.launch().cmds("svnserve","--help").start().join();
-        } catch (IOException e) {
-        	Assert.fail("Failed to launch svnserve. Do you have subversion installed?\n" + e);
-        }
 
         // If there is an already existing svnserve running on the machine
         // We need to fail the build. We could change this to if the port is in use, listen to different port
