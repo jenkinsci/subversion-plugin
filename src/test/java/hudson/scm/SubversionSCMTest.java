@@ -881,12 +881,32 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     private void verifyChangelogFilter(boolean shouldFilterLog) throws Exception,
             MalformedURLException, IOException, InterruptedException,
             ExecutionException {
-          File repo = new CopyExisting(getClass().getResource("JENKINS-10449.zip")).allocate();
+        String projectName = String.format("testFilterChangelog-%s", shouldFilterLog);   
+        
+        File repo = new CopyExisting(getClass().getResource("JENKINS-10449.zip")).allocate();
           SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.toURI().toURL().getPath()},
                                                                      new String[]{"."},null,null),
                                                 new UpdateUpdater(), null, "/z.*", "", "", "", "", false, shouldFilterLog, null);
+          
+          @SuppressWarnings("unchecked")
+          ChangeLogSet<Entry> cls = generateChangeLogForSCM(projectName, scm);
+          
+          boolean ignored = true, included = false;
+          for (Entry e : cls) {
+              Collection<String> paths = e.getAffectedPaths();
+              if (paths.contains("/z/q"))
+                  ignored = false;
+              if (paths.contains("/foo"))
+                  included = true;
+          }
 
-          FreeStyleProject p = createFreeStyleProject(String.format("testFilterChangelog-%s", shouldFilterLog));
+          boolean result = ignored && included;
+          assertTrue("Changelog included or excluded entries it shouldn't have.", shouldFilterLog? result : !result);
+    }
+    
+    private ChangeLogSet generateChangeLogForSCM(String projectName, SubversionSCM scm) 
+            throws IOException, InterruptedException, Exception  {
+        FreeStyleProject p = createFreeStyleProject(projectName);
           p.setScm(scm);
           assertBuildStatusSuccess(p.scheduleBuild2(0).get());
 
@@ -906,19 +926,24 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
           AbstractBuild build = p.scheduleBuild2(0).get();
           assertBuildStatusSuccess(build);
-          boolean ignored = true, included = false;
-          @SuppressWarnings("unchecked")
-        ChangeLogSet<Entry> cls = build.getChangeSet();
-          for (Entry e : cls) {
-              Collection<String> paths = e.getAffectedPaths();
-              if (paths.contains("/z/q"))
-                  ignored = false;
-              if (paths.contains("/foo"))
-                  included = true;
-          }
 
-          boolean result = ignored && included;
-          assertTrue("Changelog included or excluded entries it shouldn't have.", shouldFilterLog? result : !result);
+          @SuppressWarnings("unchecked")
+          ChangeLogSet<Entry> cls = build.getChangeSet();
+          return cls;
+    }
+    
+    @Bug(23498)
+    public void testDisabledChangeLog() throws Exception  {
+        String projectName = "testDisabledChangeLog";
+        final boolean changelogEnabled = false;
+                
+        File repo = new CopyExisting(getClass().getResource("JENKINS-10449.zip")).allocate();
+        SubversionSCM scm = new SubversionSCM(ModuleLocation.parse(new String[]{"file://" + repo.toURI().toURL().getPath()},
+                new String[]{"."}, null, null),
+                new UpdateUpdater(), null, "/z.*", "", "", "", "", false, changelogEnabled, false, null);
+        @SuppressWarnings("unchecked")
+        ChangeLogSet<Entry> cls = generateChangeLogForSCM(projectName, scm);
+        assertTrue("The changelog should be empty", cls.isEmptySet());
     }
     
     /**

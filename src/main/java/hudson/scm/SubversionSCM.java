@@ -244,6 +244,10 @@ public class SubversionSCM extends SCM implements Serializable {
     private Boolean doRevert;
 
     private boolean ignoreDirPropChanges;
+    /**
+     * @since TODO: define a version
+     */
+    private Boolean calculateChangelog;
     private boolean filterChangelog;
 
     /**
@@ -338,11 +342,24 @@ public class SubversionSCM extends SCM implements Serializable {
         this(locations, workspaceUpdater, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages, includedRegions, ignoreDirPropChanges, false, null);
     }
 
+    /**
+     *  @deprecated {@link #calculateChangelogFile} has been added
+     */
+    public SubversionSCM(List<ModuleLocation> locations, WorkspaceUpdater workspaceUpdater,
+                         SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers,
+                         String excludedRevprop, String excludedCommitMessages,
+                         String includedRegions, boolean ignoreDirPropChanges, 
+                         boolean filterChangelog,
+                         List<AdditionalCredentials> additionalCredentials) 
+    {
+        this(locations, workspaceUpdater, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages, includedRegions, ignoreDirPropChanges, true, filterChangelog, additionalCredentials);
+    }
+    
     @DataBoundConstructor
     public SubversionSCM(List<ModuleLocation> locations, WorkspaceUpdater workspaceUpdater,
                          SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers,
                          String excludedRevprop, String excludedCommitMessages,
-                         String includedRegions, boolean ignoreDirPropChanges, boolean filterChangelog,
+                         String includedRegions, boolean ignoreDirPropChanges, boolean calculateChangelog, boolean filterChangelog,
                          List<AdditionalCredentials> additionalCredentials) {
         for (Iterator<ModuleLocation> itr = locations.iterator(); itr.hasNext(); ) {
             ModuleLocation ml = itr.next();
@@ -366,6 +383,7 @@ public class SubversionSCM extends SCM implements Serializable {
         this.excludedCommitMessages = excludedCommitMessages;
         this.includedRegions = includedRegions;
         this.ignoreDirPropChanges = ignoreDirPropChanges;
+        this.calculateChangelog = calculateChangelog;
         this.filterChangelog = filterChangelog;
     }
 
@@ -661,6 +679,10 @@ public class SubversionSCM extends SCM implements Serializable {
       return ignoreDirPropChanges;
     }
 
+    public boolean isCalculateChangelog() {
+        return calculateChangelog != null ? calculateChangelog.booleanValue() : true;
+    }
+    
     @Exported
     public boolean isFilterChangelog() {
       return filterChangelog;
@@ -715,7 +737,8 @@ public class SubversionSCM extends SCM implements Serializable {
      * Called after checkout/update has finished to compute the changelog.
      */
     private void calcChangeLog(Run<?,?> build, FilePath workspace, File changelogFile, SCMRevisionState baseline, TaskListener listener, List<External> externals, EnvVars env) throws IOException, InterruptedException {
-        if (baseline == null) {
+        if (!isCalculateChangelog() || baseline == null) {
+            listener.getLogger().println("SVN: Skipping changelog generation: " + (isCalculateChangelog() ? "nothing to compare against" : "disabled"));
             // nothing to compare against
             createEmptyChangeLog(changelogFile, listener, "log");
             return;
