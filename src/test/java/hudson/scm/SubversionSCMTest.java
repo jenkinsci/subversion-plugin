@@ -1190,11 +1190,11 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
     /**
      * Make sure that a failed credential doesn't result in an infinite loop
-     *
-     * TODO: verify that this test case is invalid for new credentials based world order
      */
     @Issue("JENKINS-2909")
-    public void invalidTestInfiniteLoop() throws Exception {
+    @Ignore("TODO verify that this test case is invalid for new credentials based world order")
+    @Test
+    public void infiniteLoop() throws Exception {
         // creates a purely in memory auth manager
         ISVNAuthenticationManager m = createInMemoryManager();
 
@@ -1237,11 +1237,11 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
     /**
      * Even if the default providers remember bogus passwords, Hudson should still attempt what it knows.
-     *
-     * TODO: verify that this test case is invalid for new credentials based world order
      */
     @Issue("JENKINS-3936")
-    public void invalidTest3936()  throws Exception {
+    @Ignore("TODO verify that this test case is invalid for new credentials based world order")
+    @Test
+    public void retainBogusPasswords()  throws Exception {
         // creates a purely in memory auth manager
         ISVNAuthenticationManager m = createInMemoryManager();
 
