@@ -28,6 +28,7 @@ import org.apache.commons.codec.binary.Base64;
 import static org.junit.Assert.*;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
@@ -44,13 +45,16 @@ public class ListSubversionTagsParameterDefinitionTest {
     @Rule
     public JenkinsRule r = new JenkinsRule();
 
+    @Rule
+    public TemporaryFolder tmp = new TemporaryFolder();
+
     /**
      * Make sure we are actually listing tags correctly.
      */
     @Issue("JENKINS-11933")
     @Test
     public void listTags() throws Exception {
-        Proc p = AbstractSubversionTest.runSvnServe(getClass().getResource("JENKINS-11933.zip"));
+        Proc p = AbstractSubversionTest.runSvnServe(tmp, getClass().getResource("JENKINS-11933.zip"));
         try {
             ListSubversionTagsParameterDefinition def = new ListSubversionTagsParameterDefinition("FOO", "svn://localhost/", null, "", "", "", false, false);
             List<String> tags = def.getTags(null);
