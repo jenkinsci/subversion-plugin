@@ -11,6 +11,7 @@ import java.net.URL;
 import org.junit.Assert;
 import org.junit.Test;
 import org.jvnet.hudson.test.Bug;
+import org.jvnet.hudson.test.Issue;
 import org.xml.sax.SAXException;
 
 /**
@@ -24,32 +25,32 @@ public class SubversionChangeLogParserTest extends AbstractSubversionTest {
     private SubversionChangeLogSet changeLogSet;
 
     @Test
-    @Bug(10324)
-    public void testPathsSortedAlphabetically() throws URISyntaxException, IOException, SAXException {
+    @Issue("JENKINS-10324")
+    public void pathsSortedAlphabetically() throws URISyntaxException, IOException, SAXException {
         givenAChangelogFileWithUnsortedPathsInLegacyFormat();
         whenChangelogFileIsParsed();
         thenAffectedPathsMustBeSortedAlphabetically();
     }
 
     @Test
-    @Bug(18574)
-    public void testPathsEqualToValues() throws URISyntaxException, IOException, SAXException {
+    @Issue("JENKINS-18574")
+    public void pathsEqualToValues() throws URISyntaxException, IOException, SAXException {
         givenAChangelogFileWithUnsortedPathsInLegacyFormat();
         whenChangelogFileIsParsed();
         thenPathsMustBeEqualToValues();
     }
     
     @Test
-    @Bug(18574)
-    public void testValueIsRepoPath() throws URISyntaxException, IOException, SAXException {
+    @Issue("JENKINS-18574")
+    public void valueIsRepoPath() throws URISyntaxException, IOException, SAXException {
         givenAChangelogFileWithUnsortedPathsInLegacyFormat();
         whenChangelogFileIsParsed();
         thenValuesMustStartWithSlash();
     }
     
     @Test
-    @Bug(18574)
-    public void testNewChangelogFileForDifferentPathAndValue() throws URISyntaxException, IOException, SAXException {
+    @Issue("JENKINS-18574")
+    public void newChangelogFileForDifferentPathAndValue() throws URISyntaxException, IOException, SAXException {
         givenAChangelogFileWithRelativePathAttributes();
         whenChangelogFileIsParsed();
         thenValuesMustStartWithSlash();
