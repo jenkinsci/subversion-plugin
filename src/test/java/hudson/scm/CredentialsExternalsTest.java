@@ -81,6 +81,7 @@ public class CredentialsExternalsTest {
         } finally {
             serverSocket.close();
         }
+        AbstractSubversionTest.checkForSvnServe();
         Process mainSrv = new ProcessBuilder("svnserve", "-d", "--foreground", "-r", main.root().getAbsolutePath(), "--listen-port", String.valueOf(mainPort)).start();
         try {
             System.err.println("Running svnserve on <svn://localhost:" + mainPort + "> " + main.uuid());

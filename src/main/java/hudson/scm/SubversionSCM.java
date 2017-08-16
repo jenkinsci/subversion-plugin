@@ -180,6 +180,7 @@ import jenkins.MasterToSlaveFileCallable;
 import jenkins.security.Roles;
 import jenkins.security.SlaveToMasterCallable;
 import org.jenkinsci.remoting.RoleChecker;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
  * Subversion SCM.
@@ -3045,7 +3046,7 @@ public class SubversionSCM extends SCM implements Serializable {
             /**
              * Validate the value for a remote (repository) location.
              */
-            public FormValidation doCheckRemote(StaplerRequest req, @AncestorInPath Item context,
+            public FormValidation doCheckRemote(/* TODO unused, delete */StaplerRequest req, @AncestorInPath Item context,
                     @QueryParameter String remote) {
 
                 // repository URL is required
@@ -3072,6 +3073,7 @@ public class SubversionSCM extends SCM implements Serializable {
             /**
              * Validate the value for a remote (repository) location.
              */
+            @RequirePOST
             public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath Item context,
                     @QueryParameter String remote, @QueryParameter String value) {
 
@@ -3086,7 +3088,7 @@ public class SubversionSCM extends SCM implements Serializable {
             /**
              * Validate the value for a remote (repository) location.
              */
-            public FormValidation checkCredentialsId(StaplerRequest req, @Nonnull Item context, String remote, String value) {
+            public FormValidation checkCredentialsId(/* TODO unused, delete */StaplerRequest req, @Nonnull Item context, String remote, String value) {
 
                 // Ignore validation if repository URL is empty
                 String url = Util.fixEmptyAndTrim(remote);
