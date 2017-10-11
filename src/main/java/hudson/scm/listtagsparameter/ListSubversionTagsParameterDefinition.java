@@ -30,6 +30,7 @@ import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.Extension;
 import hudson.Util;
+import hudson.cli.CLICommand;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import hudson.model.Item;
@@ -42,6 +43,8 @@ import hudson.scm.CredentialsSVNAuthenticationProviderImpl;
 import hudson.scm.SubversionSCM;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -143,6 +146,14 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
     // parameter value, but it's of no use because if we return null the build
     // still goes on...
     return value;
+  }
+  
+  @Override
+  public ParameterValue createValue(CLICommand command, String value) throws IOException, InterruptedException {
+	if (value == null) {
+	  return this.getDefaultParameterValue();
+    }
+    return new ListSubversionTagsParameterValue(getName(), getTagsDir(), value);
   }
   
     @Override
