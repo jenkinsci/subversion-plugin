@@ -30,9 +30,13 @@ THE SOFTWARE.
   
   <f:entry title="${%Additional Credentials}" help="/descriptor/hudson.scm.SubversionSCM/help/additionalCredentials">
     <f:repeatableProperty field="additionalCredentials" add="${%Add additional credentials...}"/>
- </f:entry>
+  </f:entry>
 
   <f:dropdownDescriptorSelector title="${%Check-out Strategy}" field="workspaceUpdater" descriptors="${descriptor.getWorkspaceUpdaterDescriptors()}"/>
+
+  <f:entry title="${%Quiet check-out}" field="quietOperation">
+    <f:checkbox default="true"/>
+  </f:entry>
 
   <t:listScmBrowsers name="svn.browser" />
   <f:advanced>

@@ -134,6 +134,11 @@ public abstract class WorkspaceUpdater extends AbstractDescribableImpl<Workspace
         public File ws;
 
         /**
+         * --quiet for subversion operations. Default = false.
+         */
+        public boolean quietOperation;
+
+        /**
          * If the build parameter is specified with specific version numbers, this field captures that. Can be null.
          */
         public RevisionParameterAction revisions;
@@ -158,6 +163,7 @@ public abstract class WorkspaceUpdater extends AbstractDescribableImpl<Workspace
             t.location = this.location;
             t.revisions = this.revisions;
             t.ws = this.ws;
+            t.quietOperation = this.quietOperation;
 
             return t.perform();
         }

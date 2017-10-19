@@ -820,6 +820,33 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     }
 
     /**
+     * Makes sure that quiet operation shows lesser output.
+     */
+    @Issue("JENKINS-14541")
+    @Test
+    public void testQuietCheckout() throws Exception {
+        SubversionSCM local = loadSvnRepo();
+        local.setWorkspaceUpdater(new CheckoutUpdater());
+        FreeStyleProject p = r.createFreeStyleProject("quietOperation");
+        p.setScm(local);
+
+        local.setQuietOperation(true);
+        FreeStyleBuild bQuiet = r.assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserIdCause()).get());
+        List<String> logsQuiet = bQuiet.getLog(LOG_LIMIT);
+        //  This line in log should end with --quiet
+        assertTrue(logsQuiet.get(4).endsWith("--quiet"));
+        assertTrue(logsQuiet.get(5).equals("At revision 1"));
+
+        local.setQuietOperation(false);
+        FreeStyleBuild bVerbose = r.assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserIdCause()).get());
+        List<String> logsVerbose = bVerbose.getLog(LOG_LIMIT);
+        //  This line in log should NOT end with --quiet
+        assertFalse(logsVerbose.get(4).endsWith("--quiet"));
+        assertTrue(logsVerbose.get(5).endsWith("readme.txt"));
+        assertTrue(logsVerbose.get(6).equals("At revision 1"));
+    }
+    
+    /**
      * Makes sure the symbolic link is checked out correctly. There seems to be
      */
     @Issue("JENKINS-3904")
