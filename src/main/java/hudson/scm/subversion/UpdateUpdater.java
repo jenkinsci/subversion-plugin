@@ -150,7 +150,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
                 
                 svnuc.setIgnoreExternals(location.isIgnoreExternalsOption());
                 preUpdate(location, local);
-                SVNDepth svnDepth = getSvnDepth(location.getDepthOption());
+                SVNDepth svnDepth = location.getSvnDepthForUpdate();
                 
                 switch (svnCommand) {
                     case UPDATE:

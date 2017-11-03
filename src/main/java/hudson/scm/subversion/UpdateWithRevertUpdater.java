@@ -60,7 +60,7 @@ public class UpdateWithRevertUpdater extends WorkspaceUpdater {
             listener.getLogger().println("Reverting " + local + " to depth " + module.getDepthOption() + " with ignoreExternals: " + module.isIgnoreExternalsOption());
             final SVNWCClient svnwc = manager.getWCClient();
             svnwc.setIgnoreExternals(module.isIgnoreExternalsOption());
-            svnwc.doRevert(new File[]{local.getCanonicalFile()}, getSvnDepth(module.getDepthOption()), null);
+            svnwc.doRevert(new File[]{local.getCanonicalFile()}, module.getSvnDepthForUpdate(), null);
         }
     }
 

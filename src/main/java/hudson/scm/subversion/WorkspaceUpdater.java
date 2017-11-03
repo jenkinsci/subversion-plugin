@@ -190,15 +190,6 @@ public abstract class WorkspaceUpdater extends AbstractDescribableImpl<Workspace
             return r;
         }
 
-        /**
-         * Returns {@link org.tmatesoft.svn.core.SVNDepth} by string value.
-         *
-         * @return {@link org.tmatesoft.svn.core.SVNDepth} value.
-         */
-        protected static SVNDepth getSvnDepth(String name) {
-            return SVNDepth.fromString(name);
-        }
-
         private static final long serialVersionUID = 1L;
     }
 }
