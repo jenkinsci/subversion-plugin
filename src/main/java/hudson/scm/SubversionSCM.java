@@ -2944,6 +2944,22 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         /**
+         * Returns the SVNDepth to use for reverting the module if svn up with revert before is selected
+         *
+         * This is normally the requested SVN depth except when the user
+         * has requested as-it-is and then we use infinity to actually revert everything
+         *
+         * @return {@link org.tmatesoft.svn.core.SVNDepth} value.
+         */
+        public SVNDepth getSvnDepthForRevert() {
+            if(getDepthOption().equals("unknown")) {
+                return SVNDepth.INFINITY;
+            } else {
+                return getSvnDepth(getDepthOption());
+            }
+        }
+
+        /**
          * Determines if subversion externals definitions should be ignored.
          *
          * @return true if subversion externals definitions should be ignored.
