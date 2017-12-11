@@ -59,7 +59,7 @@ public abstract class AbstractSventon extends SubversionRepositoryBrowser {
         // normalize
         repositoryInstance = repositoryInstance.trim();
 
-        this.repositoryInstance = repositoryInstance == null ? "" : repositoryInstance;
+        this.repositoryInstance = repositoryInstance;
     }
 
     public String getRepositoryInstance() {

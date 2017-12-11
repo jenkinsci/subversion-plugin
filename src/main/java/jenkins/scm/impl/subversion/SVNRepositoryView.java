@@ -29,7 +29,6 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.scm.*;
 import hudson.util.TimeUnit2;
 import jenkins.model.Jenkins;
-import org.apache.commons.io.FileUtils;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.tmatesoft.svn.core.ISVNDirEntryHandler;
@@ -93,15 +92,7 @@ public class SVNRepositoryView {
             if (uuid == null) { // TODO is this even possible? Javadoc is unclear.
                 throw new IOException("Could not find UUID for " + repoURL);
             }
-            Jenkins instance = Jenkins.getInstance();
-            File cacheFile;
-
-            if (instance != null) {
-                cacheFile = new File(new File(instance.getRootDir(), "caches"), "svn-" + uuid + ".db");
-            } else {
-                // This should not happen, however if it does we create a cache file in a temp directory.
-                cacheFile = new File(new File(FileUtils.getTempDirectory(), "caches"), "svn-" + uuid + ".db");
-            }
+            File cacheFile = new File(new File(Jenkins.getInstance().getRootDir(), "caches"), "svn-" + uuid + ".db");
 
             cacheFile.getParentFile().mkdirs();
             DB cache = null;

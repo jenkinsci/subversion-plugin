@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import jenkins.model.Jenkins;
 import jenkins.security.SlaveToMasterCallable;
 
 /**
@@ -102,9 +103,9 @@ public class SubversionWorkspaceSelector implements ISVNAdminAreaFactorySelector
     public static volatile int workspaceFormat = SVNAdminArea14.WC_FORMAT;
 
     public static void syncWorkspaceFormatFromMaster() {
-        Hudson h = Hudson.getInstance();
-        if (h!=null)
-            workspaceFormat = h.getDescriptorByType(SubversionSCM.DescriptorImpl.class).getWorkspaceFormat();
+        Jenkins j = Jenkins.getInstanceOrNull();
+        if (j!=null)
+            workspaceFormat = j.getDescriptorByType(SubversionSCM.DescriptorImpl.class).getWorkspaceFormat();
         else {
             Channel c = Channel.current();
             if (c!=null)    // just being defensive. cannot be null.

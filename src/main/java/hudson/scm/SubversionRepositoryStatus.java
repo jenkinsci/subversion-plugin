@@ -6,6 +6,7 @@ import static java.util.logging.Level.WARNING;
 import static javax.servlet.http.HttpServletResponse.SC_OK;
 
 import hudson.Extension;
+import hudson.ExtensionList;
 import hudson.ExtensionPoint;
 import hudson.model.AbstractModelObject;
 import hudson.model.AbstractProject;
@@ -19,7 +20,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.List;
@@ -134,13 +134,7 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
         }
 
         boolean listenerDidSomething = false;
-        Jenkins instance = Jenkins.getInstance();
-        if (instance == null) {
-            LOGGER.warning("Jenkins instance is null.");
-            return;
-        }
-
-        for (Listener listener : instance.getExtensionList(Listener.class)) {
+        for (Listener listener : ExtensionList.lookup(Listener.class)) {
             try {
                 if (listener.onNotify(uuid, rev, affectedPath)) {
                     listenerDidSomething = true;
@@ -173,8 +167,7 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
         private JobProvider jobProvider = new JobProvider() {
             @SuppressWarnings("rawtypes")
             public List<Job> getAllJobs() {
-                Jenkins instance = Jenkins.getInstance();
-                return instance != null ? instance.getAllItems(Job.class) : Collections.<Job>emptyList();
+                return Jenkins.getInstance().getAllItems(Job.class);
             }
         };
 

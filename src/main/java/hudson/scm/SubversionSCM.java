@@ -1701,15 +1701,8 @@ public class SubversionSCM extends SCM implements Serializable {
                 return;
             }
             boolean allOk = true;
-            Jenkins instance = Jenkins.getInstance();
-            List<AbstractProject> allItems;
-            if (instance == null) {
-                allItems = Collections.emptyList();
-            } else {
-                allItems = instance.getAllItems(AbstractProject.class);
-            }
 
-            for (AbstractProject<?, ?> job : allItems) {
+            for (AbstractProject<?, ?> job : Jenkins.getInstance().getAllItems(AbstractProject.class)) {
                 File jobCredentials = new File(job.getRootDir(), "subversion.credentials");
                 if (jobCredentials.isFile()) {
                     try {
@@ -2580,7 +2573,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
     @CheckForNull
     private static DescriptorImpl descriptor() {
-        Jenkins instance = Jenkins.getInstance();
+        Jenkins instance = Jenkins.getInstanceOrNull();
         return instance == null ? null : instance.getDescriptorByType(DescriptorImpl.class);
     }
 
