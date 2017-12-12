@@ -180,6 +180,18 @@ THE SOFTWARE.
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>matrix-auth</artifactId>
+      <version>1.7</version>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion> <!-- TODO pending matrix-auth 2.x, thus Jenkins 2.60.x -->
+          <groupId>org.jenkins-ci.plugins.icon-shim</groupId>
+          <artifactId>icon-shim</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
   </dependencies>
 
   <build>
