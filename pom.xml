@@ -185,12 +185,12 @@ THE SOFTWARE.
       <artifactId>matrix-auth</artifactId>
       <version>1.7</version>
       <scope>test</scope>
-      <exclusions>
-        <exclusion> <!-- TODO pending matrix-auth 2.x, thus Jenkins 2.60.x -->
-          <groupId>org.jenkins-ci.plugins.icon-shim</groupId>
-          <artifactId>icon-shim</artifactId>
-        </exclusion>
-      </exclusions>
+    </dependency>
+    <dependency> <!-- TODO pending matrix-auth 2.x, thus Jenkins 2.60.x -->
+      <groupId>org.jenkins-ci.plugins.icon-shim</groupId>
+      <artifactId>icon-shim</artifactId>
+      <version>2.0.3</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
