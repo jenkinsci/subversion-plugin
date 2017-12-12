@@ -65,6 +65,7 @@ public class SVNRepositoryView {
 
     public SVNRepositoryView(SVNURL repoURL, StandardCredentials credentials) throws SVNException, IOException {
         repository = SVNRepositoryFactory.create(repoURL);
+        boolean success = false;
         try {
             File configDir = SVNWCUtil.getDefaultConfigurationDirectory();
 
@@ -113,12 +114,11 @@ public class SVNRepositoryView {
             this.cache = cache;
             this.data = this.cache.getHashMap(credentials == null ? "data" : "data-" + credentials.getId());
             cache.commit();
-        } catch (SVNException e) {
-            repository.closeSession();
-            throw e;
-        } catch (IOException e) {
-            repository.closeSession();
-            throw e;
+            success = true;
+        } finally {
+            if (!success) {
+                repository.closeSession();
+            }
         }
     }
 
