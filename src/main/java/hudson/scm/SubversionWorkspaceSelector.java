@@ -110,7 +110,7 @@ public class SubversionWorkspaceSelector implements ISVNAdminAreaFactorySelector
             Channel c = Channel.current();
             if (c!=null)    // just being defensive. cannot be null.
                 try {
-                    workspaceFormat = c.call(new SlaveToMasterCallable<Integer, RuntimeException>() {
+                    workspaceFormat = c.call(new SlaveToMasterCallable<Integer, RuntimeException>() { // TODO JENKINS-48543 bad design
                         private static final long serialVersionUID = 6494337549896104453L;
 
                         public Integer call()  {
