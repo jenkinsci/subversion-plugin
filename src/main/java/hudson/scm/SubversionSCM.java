@@ -348,7 +348,7 @@ public class SubversionSCM extends SCM implements Serializable {
             String includedRegions, boolean ignoreDirPropChanges, boolean filterChangelog,
             List<AdditionalCredentials> additionalCredentials) {
         this(locations, workspaceUpdater, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages, 
-            includedRegions, ignoreDirPropChanges, false, null, false);
+            includedRegions, ignoreDirPropChanges, filterChangelog, additionalCredentials, false);
     }
 
     @DataBoundConstructor
