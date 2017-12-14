@@ -38,6 +38,17 @@ public class SubversionEventHandlerImpl extends SVNEventAdapter {
 
     protected final boolean quietOperation;
 
+    /**
+     * @deprecated use {@link #SubversionEventHandlerImpl(PrintStream, File, boolean)}
+     */
+    @Deprecated
+    public SubversionEventHandlerImpl(PrintStream out, File baseDir) {
+        this(out, baseDir, false);
+    }
+
+    /**
+     * @since 2.10
+     */
     public SubversionEventHandlerImpl(PrintStream out, File baseDir, boolean quietOperation) {
         this.out = out;
         this.baseDir = baseDir;

@@ -62,7 +62,19 @@ final class SubversionUpdateEventHandler extends SubversionEventHandlerImpl impl
      * Relative path from the workspace root to the module root. 
      */
     private final String modulePath;
-    
+
+    /**
+     * @deprecated Use {@link #SubversionUpdateEventHandler(PrintStream, List, File, String, boolean)}
+     */
+    @Deprecated
+    public SubversionUpdateEventHandler(PrintStream out, List<External> externals, File moduleDir,
+                                        String modulePath) {
+        this(out, externals, moduleDir, modulePath, false);
+    }
+
+    /**
+     * @since 2.10
+     */
     public SubversionUpdateEventHandler(PrintStream out, List<External> externals, File moduleDir,
                                         String modulePath, boolean quietOperation) {
         super(out, moduleDir, quietOperation);

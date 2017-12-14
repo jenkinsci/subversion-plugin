@@ -979,7 +979,7 @@ public class SubversionSCM extends SCM implements Serializable {
     private static class CheckOutTask extends UpdateTask implements FileCallable<List<External>> {
         private final UpdateTask task;
 
-        public CheckOutTask(Run<?, ?> build, SubversionSCM parent, ModuleLocation location, Date timestamp,
+        CheckOutTask(Run<?, ?> build, SubversionSCM parent, ModuleLocation location, Date timestamp,
                             TaskListener listener, EnvVars env, boolean quietOperation) {
             this.authProvider = parent.createAuthenticationProvider(build.getParent(), location, listener);
             this.timestamp = timestamp;
@@ -990,13 +990,14 @@ public class SubversionSCM extends SCM implements Serializable {
             this.quietOperation = quietOperation;
         }
 
-        public Set<String> getUnauthenticatedRealms() {
+        Set<String> getUnauthenticatedRealms() {
             if (authProvider instanceof CredentialsSVNAuthenticationProviderImpl) {
                 return ((CredentialsSVNAuthenticationProviderImpl) authProvider).getUnauthenticatedRealms();
             }
             return Collections.emptySet();
         }
 
+        @Override
         public List<External> invoke(File ws, VirtualChannel channel) throws IOException {
             clientManager = createClientManager(authProvider);
             manager = clientManager.getCore();
