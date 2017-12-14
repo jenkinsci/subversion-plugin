@@ -146,4 +146,12 @@ public class VisualSVN extends SubversionRepositoryBrowser {
         return new URL(value);
     }
 
+    /**
+     * Getter for URL property.
+     * @return URL value as {@code String}
+     */
+	public String getUrl()	{
+		return url;
+	}
+	
 }
