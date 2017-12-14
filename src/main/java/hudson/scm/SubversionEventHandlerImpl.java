@@ -36,9 +36,12 @@ public class SubversionEventHandlerImpl extends SVNEventAdapter {
 
     protected final File baseDir;
 
-    public SubversionEventHandlerImpl(PrintStream out, File baseDir) {
+    protected final boolean quietOperation;
+
+    public SubversionEventHandlerImpl(PrintStream out, File baseDir, boolean quietOperation) {
         this.out = out;
         this.baseDir = baseDir;
+        this.quietOperation = quietOperation;
     }
 
     public void handleEvent(SVNEvent event, double progress) throws SVNException {
@@ -54,6 +57,10 @@ public class SubversionEventHandlerImpl extends SVNEventAdapter {
         }
 
         SVNEventAction action = event.getAction();
+        if (quietOperation && (action != SVNEventAction.UPDATE_COMPLETED)) {
+            //  Skips logging
+            return;
+        }
 
         {// commit notifications
             if (action == SVNEventAction.COMMIT_ADDED) {

@@ -30,6 +30,7 @@ import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.Extension;
 import hudson.Util;
+import hudson.cli.CLICommand;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import hudson.model.Item;
@@ -42,6 +43,8 @@ import hudson.scm.CredentialsSVNAuthenticationProviderImpl;
 import hudson.scm.SubversionSCM;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -69,6 +72,7 @@ import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
 import org.tmatesoft.svn.core.io.SVNRepository;
 import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
+import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNLogClient;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 
@@ -145,6 +149,14 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
     return value;
   }
   
+  @Override
+  public ParameterValue createValue(CLICommand command, String value) throws IOException, InterruptedException {
+	if (value == null) {
+	  return this.getDefaultParameterValue();
+    }
+    return new ListSubversionTagsParameterValue(getName(), getTagsDir(), value);
+  }
+  
     @Override
     public ParameterValue getDefaultParameterValue() {
         if (StringUtils.isEmpty(this.defaultValue)) {
@@ -176,6 +188,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
     List<String> dirs = new ArrayList<String>();
 
     SVNRepository repo = null;
+    SVNClientManager clientManager = null;
     try {
       ISVNAuthenticationProvider authProvider = CredentialsSVNAuthenticationProviderImpl.createAuthenticationProvider(
               context, getTagsDir(), getCredentialsId(), null, TaskListener.NULL
@@ -185,7 +198,8 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
 
       repo = SVNRepositoryFactory.create(repoURL);
       repo.setAuthenticationManager(authManager);
-      SVNLogClient logClient = new SVNLogClient(authManager, null);
+      clientManager = SVNClientManager.newInstance(null,authManager);
+      SVNLogClient logClient = clientManager.getLogClient();
       
       if (isSVNRepositoryProjectRoot(repo)) {
         dirs = this.getSVNRootRepoDirectories(logClient, repoURL);
@@ -202,6 +216,9 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
     } finally {
        if (repo != null) {
          repo.closeSession();
+       }
+       if (clientManager != null) {
+         clientManager.dispose();
        }
     }
 

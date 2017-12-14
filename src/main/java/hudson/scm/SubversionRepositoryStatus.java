@@ -256,8 +256,8 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                 if (p instanceof AbstractProject && ((AbstractProject) p).isDisabled()) {
                     continue;
                 }
-                try {
-                    SCMS: for (SCM scm : scmTriggerItem.getSCMs()) {
+                String jobName = p.getName();
+                SCMS: for (SCM scm : scmTriggerItem.getSCMs()) {
                     if (scm instanceof SubversionSCM) scmFound = true; else continue;
 
                     SCMTrigger trigger = scmTriggerItem.getSCMTrigger();
@@ -267,39 +267,41 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
 
                     List<SvnInfo> infos = new ArrayList<SvnInfo>();
 
-                    boolean projectMatches = false;
-                    for (ModuleLocation loc : sscm.getProjectLocations(p)) {
-                        //LOGGER.fine("Checking uuid for module location + " + loc + " of job "+ p);
-                        String urlFromConfiguration = loc.getURL();
-    
-                        SubversionRepoUUIDAndRootPath uuidAndRootPath = this.remoteUUIDAndRootPathFromCacheOrFromSVN(p, sscm, loc, urlFromConfiguration);
-                        UUID remoteUUID = uuidAndRootPath.uuid;
-                        if (remoteUUID.equals(uuid)) uuidFound = true; else continue;
+                    try {
+                        boolean projectMatches = false;
+                        for (ModuleLocation loc : sscm.getProjectLocations(p)) {
+                            String urlFromConfiguration = loc.getURL();
+                            //LOGGER.log(WARNING, "Checking uuid for module location + " + loc + " of job "+ p + " (urlFromConfiguration : " + urlFromConfiguration + ")");
+                        
+                            try {
+                                SubversionRepoUUIDAndRootPath uuidAndRootPath = this.remoteUUIDAndRootPathFromCacheOrFromSVN(p, sscm, loc, urlFromConfiguration);
+                                UUID remoteUUID = uuidAndRootPath.uuid;
+                                if (remoteUUID.equals(uuid)) uuidFound = true; else continue;
 
-                        String configuredRepoFullPath = loc.getSVNURL().getPath();
-                        String rootRepoPath = uuidAndRootPath.rootPath;
-                        if (this.doModuleLocationHasAPathFromAffectedPath(configuredRepoFullPath, rootRepoPath, affectedPath)) {
-                            projectMatches = true;
-                            pathFound = true;
-                        }
+                                String configuredRepoFullPath = loc.getSVNURL().getPath();
+                                String rootRepoPath = uuidAndRootPath.rootPath;
+                                if (this.doModuleLocationHasAPathFromAffectedPath(configuredRepoFullPath, rootRepoPath, affectedPath)) {
+                                    projectMatches = true;
+                                    pathFound = true;
+                                }
 
-                        if ( rev != -1 ) {
-                            infos.add(new SvnInfo(loc.getURL(), rev));
+                                if ( rev != -1 ) {
+                                    infos.add(new SvnInfo(loc.getURL(), rev));
+                                }
+                            } catch (SVNCancelException e) {
+                                LOGGER.log(WARNING, "Failed to handle Subversion commit notification (was trying to access " + urlFromConfiguration + " of job " + jobName + "). If you are using svn:externals feature ensure that the credentials of the externals are added on the Additional Credentials field", e);
+                            } catch (SVNException e) {
+                                LOGGER.log(WARNING, "Failed to handle Subversion commit notification (was trying to access " + urlFromConfiguration + " of job " + jobName + ")", e);
+                            }
+                            
+                            if (projectMatches) {
+                                this.scheduleImediatePollingOfJob(p, trigger, infos);
+                                break SCMS;
+                            }
                         }
-                        }
-
-                    if (projectMatches) {
-                        this.scheduleImediatePollingOfJob(p, trigger, infos);
-                        break SCMS;
+                    } catch(IOException e) {
+                        LOGGER.log(WARNING, "Failed to handle Subversion commit notification (getting module locations failed for job " + jobName + ")", e);
                     }
-                    }
-
-                } catch (SVNCancelException e) {
-                    LOGGER.log(WARNING, "Failed to handle Subversion commit notification. If you are using svn:externals feature ensure that the credentials of the externals are added on the Additional Credentials field", e);
-                } catch (SVNException e) {
-                    LOGGER.log(WARNING, "Failed to handle Subversion commit notification", e);
-                } catch (IOException e) {
-                    LOGGER.log(WARNING, "Failed to handle Subversion commit notification", e);
                 }
             }
             LOGGER.fine("Ended subversion locations checks for all jobs");

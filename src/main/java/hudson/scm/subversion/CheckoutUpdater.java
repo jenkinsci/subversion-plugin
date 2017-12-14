@@ -91,10 +91,11 @@ public class CheckoutUpdater extends WorkspaceUpdater {
                     String revisionName = r.getDate() != null ? fmt.format(r.getDate()) : r.toString();
 
                     listener.getLogger().println("Checking out " + location.getSVNURL().toString() + " at revision " +
-                            revisionName);
+                            revisionName + (quietOperation ? " --quiet" : ""));
 
                     File local = new File(ws, location.getLocalDir());
-                    SubversionUpdateEventHandler eventHandler = new SubversionUpdateEventHandler(new PrintStream(pos), externals, local, location.getLocalDir());
+                    SubversionUpdateEventHandler eventHandler = new SubversionUpdateEventHandler(
+                        new PrintStream(pos), externals, local, location.getLocalDir(), quietOperation);
                     svnuc.setEventHandler(eventHandler);
                     svnuc.setExternalsHandler(eventHandler);
                     svnuc.setIgnoreExternals(location.isIgnoreExternalsOption());
