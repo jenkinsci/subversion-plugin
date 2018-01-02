@@ -200,6 +200,7 @@ public abstract class WorkspaceUpdater extends AbstractDescribableImpl<Workspace
          *      module location depth options or SVNDepth.fromString directly if you've taken the
          *      depth from another source.
          */
+        @Deprecated
         protected static SVNDepth getSvnDepth(String name) {
             return SVNDepth.fromString(name);
         }
