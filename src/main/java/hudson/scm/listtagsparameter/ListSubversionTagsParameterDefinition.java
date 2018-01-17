@@ -41,7 +41,6 @@ import hudson.model.ParametersDefinitionProperty;
 import hudson.model.TaskListener;
 import hudson.scm.CredentialsSVNAuthenticationProviderImpl;
 import hudson.scm.SubversionSCM;
-import hudson.security.ACL;
 import hudson.util.FormValidation;
 
 import java.io.IOException;
@@ -223,13 +222,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
     }
 
     // SVNKit's doList() method returns also the parent dir, so we need to remove it
-    if(dirs != null) {
-      removeParentDir(dirs);
-    }
-    else {
-      LOGGER.log(Level.INFO, "No directory entries were found for the following SVN repository: {0}", getTagsDir());
-      return Collections.singletonList("!" + ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("NoDirectoryEntriesFound"));
-    }
+    removeParentDir(dirs);
     
     // Conform list to the maxTags option.
     Integer max = (isInt(this.maxTags) ? Integer.parseInt(this.maxTags) : null);
