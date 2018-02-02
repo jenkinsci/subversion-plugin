@@ -384,7 +384,7 @@ public class SubversionSCMSource extends SCMSource {
                             final long candidateRevision = svnEntry.getRevision();
                             final long lastModified = svnEntry.getLastModified();
                             listener.getLogger().println(
-                                    "Checking candidate branch " + candidateRootPath + "@" + candidateRevision);
+                                    "Checking candidate branch " + candidateRootPath + "@HEAD");
                             if (branchCriteria == null || branchCriteria.isHead(
                                     new SCMSourceCriteria.Probe() {
                                         @Override
@@ -402,15 +402,21 @@ public class SubversionSCMSource extends SCMSource {
                                             try {
                                                 return repository.checkPath(
                                                         SVNPathUtil.append(candidateRootPath, path),
-                                                        candidateRevision) != SVNNodeKind.NONE;
+                                                        -1) != SVNNodeKind.NONE;
                                             } catch (SVNException e) {
                                                 throw new IOException(e);
                                             }
                                         }
                                     }, listener)) {
                                 listener.getLogger().println("Met criteria");
+                                long branchRevision = candidateRevision;
+                                if (repository.checkPath(candidateRootPath, branchRevision) == SVNNodeKind.NONE)
+                                {
+                                    listener.getLogger().println("Branch older than root folder, using HEAD");
+                                    branchRevision = -1;
+                                }
                                 SCMHead head = new SCMHead(childPath);
-                                observer.observe(head, new SCMRevisionImpl(head, svnEntry.getRevision()));
+                                observer.observe(head, new SCMRevisionImpl(head, branchRevision));
                                 if (!observer.isObserving()) {
                                     return;
                                 }
@@ -418,7 +424,7 @@ public class SubversionSCMSource extends SCMSource {
                                 listener.getLogger().println("Does not meet criteria");
                             }
                         } else {
-                            fetch(listener, repository, svnEntry.getRevision(), repoPath, paths,
+                            fetch(listener, repository, -1, repoPath, paths,
                                     childPrefix,
                                     childRealPath, excludedPaths, branchCriteria, observer);
                         }
