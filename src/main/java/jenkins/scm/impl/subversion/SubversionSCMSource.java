@@ -243,7 +243,6 @@ public class SubversionSCMSource extends SCMSource {
             List<String> prefix = Collections.emptyList();
             fetch(listener,
                     repository,
-                    -1,
                     repoPath,
                     toPaths(splitCludes(includes)),
                     prefix,
@@ -343,7 +342,6 @@ public class SubversionSCMSource extends SCMSource {
 
     void fetch(@NonNull TaskListener listener,
                @NonNull final SVNRepositoryView repository,
-               long rev,
                @NonNull final String repoPath,
                @NonNull SortedSet<List<String>> paths,
                @NonNull List<String> prefix,
@@ -356,8 +354,8 @@ public class SubversionSCMSource extends SCMSource {
         assert prefix.size() == realPath.size();
         assert wildcardStartsWith(realPath, prefix);
         SortedMap<List<String>, SortedSet<List<String>>> includePaths = groupPaths(paths, prefix);
-        listener.getLogger().println("Checking directory " + svnPath + (rev > -1 ? "@" + rev : "@HEAD"));
-        SVNRepositoryView.NodeEntry node = repository.getNode(svnPath, rev);
+        listener.getLogger().println("Checking directory " + svnPath + "@HEAD");
+        SVNRepositoryView.NodeEntry node = repository.getNode(svnPath, -1);
         if (!SVNNodeKind.DIR.equals(node.getType()) || node.getChildren() == null) {
             return;
         }
@@ -424,8 +422,7 @@ public class SubversionSCMSource extends SCMSource {
                                 listener.getLogger().println("Does not meet criteria");
                             }
                         } else {
-                            fetch(listener, repository, -1, repoPath, paths,
-                                    childPrefix,
+                            fetch(listener, repository, repoPath, paths, childPrefix,
                                     childRealPath, excludedPaths, branchCriteria, observer);
                         }
                     }
