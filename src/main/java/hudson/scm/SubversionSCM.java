@@ -979,7 +979,7 @@ public class SubversionSCM extends SCM implements Serializable {
     private static class CheckOutTask extends UpdateTask implements FileCallable<List<External>> {
         private final UpdateTask task;
 
-        public CheckOutTask(Run<?, ?> build, SubversionSCM parent, ModuleLocation location, Date timestamp,
+        CheckOutTask(Run<?, ?> build, SubversionSCM parent, ModuleLocation location, Date timestamp,
                             TaskListener listener, EnvVars env, boolean quietOperation) {
             this.authProvider = parent.createAuthenticationProvider(build.getParent(), location, listener);
             this.timestamp = timestamp;
@@ -990,13 +990,14 @@ public class SubversionSCM extends SCM implements Serializable {
             this.quietOperation = quietOperation;
         }
 
-        public Set<String> getUnauthenticatedRealms() {
+        Set<String> getUnauthenticatedRealms() {
             if (authProvider instanceof CredentialsSVNAuthenticationProviderImpl) {
                 return ((CredentialsSVNAuthenticationProviderImpl) authProvider).getUnauthenticatedRealms();
             }
             return Collections.emptySet();
         }
 
+        @Override
         public List<External> invoke(File ws, VirtualChannel channel) throws IOException {
             clientManager = createClientManager(authProvider);
             manager = clientManager.getCore();
@@ -1082,7 +1083,7 @@ public class SubversionSCM extends SCM implements Serializable {
     public static DefaultSVNOptions createDefaultSVNOptions() {
         DefaultSVNOptions defaultOptions = SVNWCUtil.createDefaultOptions(true);
         DescriptorImpl descriptor = descriptor();
-        if (defaultOptions != null && descriptor != null) {
+        if (defaultOptions != null && descriptor != null) { // TODO JENKINS-48543 bad design
             defaultOptions.setAuthStorageEnabled(descriptor.isStoreAuthToDisk());
         }
         return defaultOptions;
@@ -1701,15 +1702,8 @@ public class SubversionSCM extends SCM implements Serializable {
                 return;
             }
             boolean allOk = true;
-            Jenkins instance = Jenkins.getInstance();
-            List<AbstractProject> allItems;
-            if (instance == null) {
-                allItems = Collections.emptyList();
-            } else {
-                allItems = instance.getAllItems(AbstractProject.class);
-            }
 
-            for (AbstractProject<?, ?> job : allItems) {
+            for (AbstractProject<?, ?> job : Jenkins.getInstance().getAllItems(AbstractProject.class)) {
                 File jobCredentials = new File(job.getRootDir(), "subversion.credentials");
                 if (jobCredentials.isFile()) {
                     try {
@@ -2580,7 +2574,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
     @CheckForNull
     private static DescriptorImpl descriptor() {
-        Jenkins instance = Jenkins.getInstance();
+        Jenkins instance = Jenkins.getInstanceOrNull();
         return instance == null ? null : instance.getDescriptorByType(DescriptorImpl.class);
     }
 
