@@ -24,7 +24,6 @@
 package hudson.scm;
 
 import hudson.Extension;
-import hudson.model.AbstractModelObject;
 import hudson.model.UnprotectedRootAction;
 
 import java.util.regex.Pattern;
@@ -37,13 +36,9 @@ import java.util.UUID;
  * @author Kohsuke Kawaguchi
  */
 @Extension
-public class SubversionStatus extends AbstractModelObject implements UnprotectedRootAction {
+public class SubversionStatus implements UnprotectedRootAction {
     public String getDisplayName() {
         return "Subversion";
-    }
-
-    public String getSearchUrl() {
-        return getUrlName();
     }
 
     public String getIconFileName() {
