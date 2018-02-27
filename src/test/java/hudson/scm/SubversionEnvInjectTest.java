@@ -4,6 +4,7 @@ import hudson.model.FreeStyleProject;
 import hudson.model.TaskListener;
 import org.jenkinsci.plugins.envinject.EnvInjectJobProperty;
 import org.jenkinsci.plugins.envinject.EnvInjectJobPropertyInfo;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
@@ -11,7 +12,7 @@ import org.jvnet.hudson.test.JenkinsRule;
 
 import static org.junit.Assert.assertTrue;
 
-public class SubversionEnvInjectTest {
+@Ignore public class SubversionEnvInjectTest {
 
     public static String REPO_URL = "https://svn.jenkins-ci.org/trunk/hudson/test-projects/${REPO}";
 

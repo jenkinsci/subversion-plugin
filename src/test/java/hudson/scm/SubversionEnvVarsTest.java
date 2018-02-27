@@ -3,14 +3,14 @@ package hudson.scm;
 import hudson.model.FreeStyleProject;
 import hudson.model.TaskListener;
 import hudson.slaves.EnvironmentVariablesNodeProperty;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import static org.junit.Assert.assertFalse;
-
-public class SubversionEnvVarsTest {
+@Ignore public class SubversionEnvVarsTest {
 
     public static String REPO_URL = "https://svn.jenkins-ci.org/${BRANCH}/jenkins/test-projects/model-maven-project";
 

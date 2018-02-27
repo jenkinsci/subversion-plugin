@@ -29,6 +29,7 @@ import hudson.model.FreeStyleProject;
 import hudson.model.queue.QueueTaskFuture;
 import hudson.scm.subversion.WorkspaceUpdater;
 import hudson.scm.subversion.WorkspaceUpdaterDescriptor;
+import org.junit.Ignore;
 import org.jvnet.hudson.test.Issue;
 import org.tmatesoft.svn.core.internal.wc.SVNStatusUtil;
 import org.tmatesoft.svn.core.internal.wc.admin.*;
@@ -44,7 +45,7 @@ import java.io.File;
 /**
  * @author schristou88
  */
-public class SVNWorkingCopyTest extends AbstractSubversionTest {
+@Ignore public class SVNWorkingCopyTest extends AbstractSubversionTest {
   public void testCheckoutWorkingCopyFormat14() throws Exception {
     checkoutAndVerifyWithFormat(SVNAdminArea14.WC_FORMAT);
   }

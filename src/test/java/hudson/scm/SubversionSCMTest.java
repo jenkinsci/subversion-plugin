@@ -49,6 +49,7 @@ import hudson.util.FormValidation;
 import hudson.util.StreamTaskListener;
 import org.dom4j.Document;
 import org.dom4j.io.DOMReader;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.jvnet.hudson.test.*;
 import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
@@ -81,7 +82,7 @@ import static org.jvnet.hudson.test.recipes.PresetData.DataSet.ANONYMOUS_READONL
 // TODO: we're relying on no less than 2 external SVN repos for this test: svn.jenkins-ci.org, subversion.tigris.org
 // while the 1st one is probably okay, we should look that we get rid of the other dependency
 @SuppressWarnings({"rawtypes","deprecation"})
-public class SubversionSCMTest extends AbstractSubversionTest {
+@Ignore  public class SubversionSCMTest extends AbstractSubversionTest {
 
     private static final int LOG_LIMIT = 1000;
 
