@@ -793,7 +793,7 @@ public class SubversionSCMSource extends SCMSource {
          * @return list box model.
          */
         @SuppressWarnings("unused") // by stapler
-        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath SCMSourceOwner context,
+        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
                                                      @QueryParameter String remoteBase,
                                                      @QueryParameter String credentialsId) {
             if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
@@ -822,7 +822,7 @@ public class SubversionSCMSource extends SCMSource {
          * validate the value for a remote (repository) location.
          */
         @RequirePOST
-        public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath SCMSourceOwner context, @QueryParameter String remoteBase, @QueryParameter String value) {
+        public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath Item context, @QueryParameter String remoteBase, @QueryParameter String value) {
             // TODO suspiciously similar to SubversionSCM.ModuleLocation.DescriptorImpl.checkCredentialsId; refactor into shared method?
             // Test the connection only if we may use the credentials
             if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
@@ -848,7 +848,7 @@ public class SubversionSCMSource extends SCMSource {
                                 .lookupCredentials(StandardCredentials.class, context, ACL.SYSTEM,
                                         URIRequirementBuilder.fromUri(repoURL.toString()).build()),
                                 CredentialsMatchers.withId(value));
-                if (checkRepositoryPath(context, repoURL, credentials)!=SVNNodeKind.NONE) {
+                if (checkRepositoryPath(repoURL, credentials)!=SVNNodeKind.NONE) {
                     // something exists; now check revision if any
 
                     SVNRevision revision = getRevisionFromRemoteUrl(url);
@@ -862,7 +862,7 @@ public class SubversionSCMSource extends SCMSource {
 
                 SVNRepository repository = null;
                 try {
-                    repository = getRepository(context, repoURL, credentials,
+                    repository = getRepository(repoURL, credentials,
                             Collections.<String, Credentials>emptyMap(), null);
                     long rev = repository.getLatestRevision();
                     // now go back the tree and find if there's anything that exists
@@ -908,11 +908,11 @@ public class SubversionSCMSource extends SCMSource {
                 return FormValidation.errorWithMarkup(message);
             }
         }
-        public SVNNodeKind checkRepositoryPath(SCMSourceOwner context, SVNURL repoURL, StandardCredentials credentials) throws SVNException {
+        public SVNNodeKind checkRepositoryPath(SVNURL repoURL, StandardCredentials credentials) throws SVNException {
             SVNRepository repository = null;
 
             try {
-                repository = getRepository(context,repoURL,credentials, Collections.<String, Credentials>emptyMap(), null);
+                repository = getRepository(repoURL,credentials, Collections.<String, Credentials>emptyMap(), null);
                 repository.testConnection();
 
                 long rev = repository.getLatestRevision();
@@ -937,7 +937,7 @@ public class SubversionSCMSource extends SCMSource {
             }
         }
 
-        protected SVNRepository getRepository(SCMSourceOwner context, SVNURL repoURL, StandardCredentials credentials,
+        protected SVNRepository getRepository(SVNURL repoURL, StandardCredentials credentials,
                                               Map<String, Credentials> additionalCredentials, ISVNSession session) throws SVNException {
             SVNRepository repository = SVNRepositoryFactory.create(repoURL, session);
 
