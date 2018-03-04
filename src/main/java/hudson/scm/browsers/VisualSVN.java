@@ -29,6 +29,7 @@ import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import hudson.Extension;
@@ -50,13 +51,13 @@ import hudson.scm.subversion.Messages;
  * @since TODO
  */
 public class VisualSVN extends SubversionRepositoryBrowser {
-	
-	private static final Logger LOGGER = Logger.getLogger(VisualSVN.class.getName());
+
+    private static final Logger LOGGER = Logger.getLogger(VisualSVN.class.getName());
 
     @Extension
     public static class DescriptorImpl extends Descriptor<RepositoryBrowser<?>> {
         public String getDisplayName() {
-        	return Messages.SubversionSCM_browsers_VisualSVN();
+            return Messages.SubversionSCM_browsers_VisualSVN();
         }
     }
 
@@ -80,40 +81,40 @@ public class VisualSVN extends SubversionRepositoryBrowser {
      * @throws               MalformedURLException  when URL is not valid (empty)
      */
     @DataBoundConstructor
-    public VisualSVN(URL url) throws MalformedURLException {
+    public VisualSVN(String url) throws MalformedURLException {
         this.url = validateUrl(url);
     }
 
-    private String validateUrl(URL url) throws MalformedURLException {
-    	if (url == null) {
-    		throw new MalformedURLException(Messages.SubversionSCM_doCheckRemote_invalidUrl());
-    	}
-    	String value = url.toString();
-    	if (value == null || value.equals("")) {
-    		throw new MalformedURLException(Messages.SubversionSCM_doCheckRemote_invalidUrl());
-    	}
-    	if(value.endsWith("/")) {
-    		value = value.substring(0, value.length() - 1);
-    	}
-		return value;
-	}
+    private String validateUrl(String url) throws MalformedURLException {
+        String ret = url;
+        if (StringUtils.isBlank(url)) {
+            throw new MalformedURLException(Messages.SubversionSCM_doCheckRemote_invalidUrl());
+        }
 
-	/*
-	 * (non-Javadoc)
-	 * @see hudson.scm.SubversionRepositoryBrowser#getDiffLink(hudson.scm.SubversionChangeLogSet.Path)
-	 */
+        URL test = new URL(url);
+
+        if(ret.endsWith("/")) {
+            ret = ret.substring(0, ret.length() - 1);
+        }
+        return ret;
+    }
+
+    /*
+     * (non-Javadoc)
+     * @see hudson.scm.SubversionRepositoryBrowser#getDiffLink(hudson.scm.SubversionChangeLogSet.Path)
+     */
     @Override
     public URL getDiffLink(Path path) throws IOException {
         if (path.getEditType() != EditType.EDIT) {
             return null; // no diff if this is not an edit change
         }
 
-    	// https://demo-server.visualsvn.com/!/#tortoisesvn/commit/r27333/head/trunk/src/Utils/MiscUI/SciEdit.cpp
+        // https://demo-server.visualsvn.com/!/#tortoisesvn/commit/r27333/head/trunk/src/Utils/MiscUI/SciEdit.cpp
         int r = path.getLogEntry().getRevision();
-    	String value = String.format("%s/commit/r%d/head%s", url, r, path.getValue());
-    	if (LOGGER.isLoggable(Level.FINE)) {
-    		LOGGER.fine("DiffLink URL: " + value);
-    	}
+        String value = String.format("%s/commit/r%d/head%s", url, r, path.getValue());
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.fine("DiffLink URL: " + value);
+        }
         return new URL(value);
     }
 
@@ -123,11 +124,11 @@ public class VisualSVN extends SubversionRepositoryBrowser {
      */
     @Override
     public URL getFileLink(Path path) throws IOException {
-    	// https://demo-server.visualsvn.com/!/#tortoisesvn/view/head/svnrobots.txt
-    	String value = String.format("%s/view/head%s", url, path.getValue());
-    	if (LOGGER.isLoggable(Level.FINE)) {
-    		LOGGER.fine("FileLink URL: " + value);
-    	}
+        // https://demo-server.visualsvn.com/!/#tortoisesvn/view/head/svnrobots.txt
+        String value = String.format("%s/view/head%s", url, path.getValue());
+        if (LOGGER.isLoggable(Level.FINEST)) {
+            LOGGER.finest("FileLink URL: " + value);
+        }
         return new URL(value);
     }
 
@@ -138,10 +139,10 @@ public class VisualSVN extends SubversionRepositoryBrowser {
     @Override
     public URL getChangeSetLink(SubversionChangeLogSet.LogEntry changeSet)
                                    throws IOException {
-    	// https://demo-server.visualsvn.com/!/#tortoisesvn/commit/r27333
+        // https://demo-server.visualsvn.com/!/#tortoisesvn/commit/r27333
         String value = String.format("%s/commit/r%d", url, changeSet.getRevision());
-        if (LOGGER.isLoggable(Level.FINE)) {
-        	LOGGER.fine("ChangeSetLink URL: " + value);
+        if (LOGGER.isLoggable(Level.FINEST)) {
+            LOGGER.finest("ChangeSetLink URL: " + value);
         }
         return new URL(value);
     }
@@ -150,8 +151,8 @@ public class VisualSVN extends SubversionRepositoryBrowser {
      * Getter for URL property.
      * @return URL value as {@code String}
      */
-	public String getUrl()	{
-		return url;
-	}
-	
+    public String getUrl()	{
+        return url;
+    }
+
 }
