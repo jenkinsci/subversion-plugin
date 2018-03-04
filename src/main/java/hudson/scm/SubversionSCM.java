@@ -2709,11 +2709,11 @@ public class SubversionSCM extends SCM implements Serializable {
         @Exported
         public boolean ignoreExternalsOption;
 
-      /**
-       * Flag to cancel the process when checkout/update svn:externals failed.
-       */
-      @Exported
-      public boolean cancelProcessOnExternalsFail;
+        /**
+         * Flag to cancel the process when checkout/update svn:externals failed.
+         */
+        @Exported
+        public boolean cancelProcessOnExternalsFail;
 
         /**
          * Cache of the repository UUID.
@@ -2744,13 +2744,13 @@ public class SubversionSCM extends SCM implements Serializable {
             this(remote,null,local,depthOption,ignoreExternalsOption, false);
         }
 
-      /**
-       * Constructor to support backwards compatibility.
-       */
-      @Deprecated
-      public ModuleLocation(String remote, String credentialsId, String local, String depthOption, boolean ignoreExternalsOption) {
-        this(remote,credentialsId,local,depthOption,ignoreExternalsOption, false);
-      }
+        /**
+         * Constructor to support backwards compatibility.
+         */
+        @Deprecated
+        public ModuleLocation(String remote, String credentialsId, String local, String depthOption, boolean ignoreExternalsOption) {
+          this(remote,credentialsId,local,depthOption,ignoreExternalsOption, false);
+        }
 
         @DataBoundConstructor
         public ModuleLocation(String remote, String credentialsId, String local, String depthOption, boolean ignoreExternalsOption,
@@ -2760,7 +2760,7 @@ public class SubversionSCM extends SCM implements Serializable {
             this.local = fixEmptyAndTrim(local);
             this.depthOption = StringUtils.isEmpty(depthOption) ? SVNDepth.INFINITY.getName() : depthOption;
             this.ignoreExternalsOption = ignoreExternalsOption;
-          this.cancelProcessOnExternalsFail = cancelProcessOnExternalsFail;
+            this.cancelProcessOnExternalsFail = cancelProcessOnExternalsFail;
         }
 
         public ModuleLocation withRemote(String remote) {
@@ -2783,9 +2783,9 @@ public class SubversionSCM extends SCM implements Serializable {
             return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption, cancelProcessOnExternalsFail);
         }
 
-      public ModuleLocation withCancelProcessOnExternalsFailed(boolean cancelProcessOnExternalsFailed) {
-        return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption, cancelProcessOnExternalsFailed);
-      }
+        public ModuleLocation withCancelProcessOnExternalsFailed(boolean cancelProcessOnExternalsFailed) {
+          return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption, cancelProcessOnExternalsFailed);
+        }
 
         /**
          * Local directory to place the file to.
@@ -2957,14 +2957,14 @@ public class SubversionSCM extends SCM implements Serializable {
             return ignoreExternalsOption;
         }
 
-      /**
-       * Determines if the process should be cancelled when checkout/update svn:externals failed.
-       *
-       * @return true if the process should be cancelled when checkout/update svn:externals failed.
-       */
-      public boolean isCancelProcessOnExternalsFail() {
-        return cancelProcessOnExternalsFail;
-      }
+        /**
+         * Determines if the process should be cancelled when checkout/update svn:externals failed.
+         *
+         * @return true if the process should be cancelled when checkout/update svn:externals failed.
+         */
+        public boolean isCancelProcessOnExternalsFail() {
+          return cancelProcessOnExternalsFail;
+        }
 
         /**
          * Expand location value based on Build parametric execution.
@@ -3002,10 +3002,10 @@ public class SubversionSCM extends SCM implements Serializable {
             return parse(remoteLocations, null, localLocations, depthOptions, isIgnoreExternals, null);
         }
 
-      @Deprecated
-      public static List<ModuleLocation> parse(String[] remoteLocations, String[] credentialIds, String[] localLocations, String[] depthOptions, boolean[] isIgnoreExternals) {
-        return parse(remoteLocations, credentialIds, localLocations, depthOptions, isIgnoreExternals, null);
-      }
+        @Deprecated
+        public static List<ModuleLocation> parse(String[] remoteLocations, String[] credentialIds, String[] localLocations, String[] depthOptions, boolean[] isIgnoreExternals) {
+          return parse(remoteLocations, credentialIds, localLocations, depthOptions, isIgnoreExternals, null);
+        }
 
         public static List<ModuleLocation> parse(String[] remoteLocations, String[] credentialIds,
                                                  String[] localLocations, String[] depthOptions,

@@ -55,9 +55,9 @@ THE SOFTWARE.
   <f:entry title="${%Ignore externals}" field="ignoreExternalsOption">
     <f:checkbox default="true"/>
   </f:entry>
-    <f:entry title="${%Cancel process on externals fail}" field="cancelProcessOnExternalsFail">
-        <f:checkbox default="true"/>
-    </f:entry>
+  <f:entry title="${%Cancel process on externals fail}" field="cancelProcessOnExternalsFail">
+    <f:checkbox default="true"/>
+  </f:entry>
   <f:entry>
     <div align="right">
       <input type="button" value="${%Delete}" class="repeatable-delete show-if-not-only" style="margin-left: 1em;"/>
