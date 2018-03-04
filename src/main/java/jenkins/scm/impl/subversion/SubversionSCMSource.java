@@ -243,7 +243,6 @@ public class SubversionSCMSource extends SCMSource {
             List<String> prefix = Collections.emptyList();
             fetch(listener,
                     repository,
-                    -1,
                     repoPath,
                     toPaths(splitCludes(includes)),
                     prefix,
@@ -343,7 +342,6 @@ public class SubversionSCMSource extends SCMSource {
 
     void fetch(@NonNull TaskListener listener,
                @NonNull final SVNRepositoryView repository,
-               long rev,
                @NonNull final String repoPath,
                @NonNull SortedSet<List<String>> paths,
                @NonNull List<String> prefix,
@@ -356,8 +354,8 @@ public class SubversionSCMSource extends SCMSource {
         assert prefix.size() == realPath.size();
         assert wildcardStartsWith(realPath, prefix);
         SortedMap<List<String>, SortedSet<List<String>>> includePaths = groupPaths(paths, prefix);
-        listener.getLogger().println("Checking directory " + svnPath + (rev > -1 ? "@" + rev : "@HEAD"));
-        SVNRepositoryView.NodeEntry node = repository.getNode(svnPath, rev);
+        listener.getLogger().println("Checking directory " + svnPath + "@HEAD");
+        SVNRepositoryView.NodeEntry node = repository.getNode(svnPath, -1);
         if (!SVNNodeKind.DIR.equals(node.getType()) || node.getChildren() == null) {
             return;
         }
@@ -384,7 +382,7 @@ public class SubversionSCMSource extends SCMSource {
                             final long candidateRevision = svnEntry.getRevision();
                             final long lastModified = svnEntry.getLastModified();
                             listener.getLogger().println(
-                                    "Checking candidate branch " + candidateRootPath + "@" + candidateRevision);
+                                    "Checking candidate branch " + candidateRootPath + "@HEAD");
                             if (branchCriteria == null || branchCriteria.isHead(
                                     new SCMSourceCriteria.Probe() {
                                         @Override
@@ -402,15 +400,21 @@ public class SubversionSCMSource extends SCMSource {
                                             try {
                                                 return repository.checkPath(
                                                         SVNPathUtil.append(candidateRootPath, path),
-                                                        candidateRevision) != SVNNodeKind.NONE;
+                                                        -1) != SVNNodeKind.NONE;
                                             } catch (SVNException e) {
                                                 throw new IOException(e);
                                             }
                                         }
                                     }, listener)) {
                                 listener.getLogger().println("Met criteria");
+                                long branchRevision = candidateRevision;
+                                if (repository.checkPath(candidateRootPath, branchRevision) == SVNNodeKind.NONE)
+                                {
+                                    listener.getLogger().println("Branch older than root folder, using HEAD");
+                                    branchRevision = -1;
+                                }
                                 SCMHead head = new SCMHead(childPath);
-                                observer.observe(head, new SCMRevisionImpl(head, svnEntry.getRevision()));
+                                observer.observe(head, new SCMRevisionImpl(head, branchRevision));
                                 if (!observer.isObserving()) {
                                     return;
                                 }
@@ -418,8 +422,7 @@ public class SubversionSCMSource extends SCMSource {
                                 listener.getLogger().println("Does not meet criteria");
                             }
                         } else {
-                            fetch(listener, repository, svnEntry.getRevision(), repoPath, paths,
-                                    childPrefix,
+                            fetch(listener, repository, repoPath, paths, childPrefix,
                                     childRealPath, excludedPaths, branchCriteria, observer);
                         }
                     }
