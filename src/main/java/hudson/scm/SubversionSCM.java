@@ -741,7 +741,7 @@ public class SubversionSCM extends SCM implements Serializable {
     /**
      * Called after checkout/update has finished to compute the changelog.
      */
-    private void calcChangeLog(Run<?,?> build, FilePath workspace, File changelogFile, SCMRevisionState baseline, TaskListener listener, List<External> externals, EnvVars env) throws IOException, InterruptedException {
+    private void calcChangeLog(Run<?,?> build, FilePath workspace, File changelogFile, SCMRevisionState baseline, TaskListener listener, Map<String, List<SubversionSCM.External>> externalsMap, EnvVars env) throws IOException, InterruptedException {
         if (baseline == null) {
             // nothing to compare against
             createEmptyChangeLog(changelogFile, listener, "log");
@@ -754,7 +754,7 @@ public class SubversionSCM extends SCM implements Serializable {
         OutputStream os = new BufferedOutputStream(new FileOutputStream(changelogFile));
         boolean created;
         try {
-            created = new SubversionChangeLogBuilder(build, workspace, (SVNRevisionState) baseline, env, listener, this).run(externals, new StreamResult(os));
+            created = new SubversionChangeLogBuilder(build, workspace, (SVNRevisionState) baseline, env, listener, this).run(externalsMap, new StreamResult(os));
         } finally {
             os.close();
         }
@@ -861,13 +861,19 @@ public class SubversionSCM extends SCM implements Serializable {
             EnvVarsUtils.overrideAll(env, ((AbstractBuild) build).getBuildVariables());
         }
 
-        List<External> externals = null;
-            externals = checkout(build,workspace,listener,env);
+        Map<String, List<External>> externalsMap = checkout(build,workspace,listener,env);
+
+        List<External> externalsForAll = new ArrayList<>();
+        if (externalsMap != null) {
+          for (String moduleLocationRemote : externalsMap.keySet()) {
+            externalsForAll.addAll(externalsMap.get(moduleLocationRemote));
+          }
+        }
 
         // write out the revision file
         PrintWriter w = new PrintWriter(new FileOutputStream(getRevisionFile(build)));
         try {
-            List<SvnInfoP> pList = workspace.act(new BuildRevisionMapTask(build, this, listener, externals, env));
+            List<SvnInfoP> pList = workspace.act(new BuildRevisionMapTask(build, this, listener, externalsForAll, env));
             List<SvnInfo> revList= new ArrayList<SvnInfo>(pList.size());
             for (SvnInfoP p: pList) {
                 if (p.pinned)
@@ -882,14 +888,14 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         // write out the externals info
-        SvnExternalsFileManager.writeExternalsFile(build.getParent(), externals);
+        SvnExternalsFileManager.writeExternalsFile(build.getParent(), externalsForAll);
         Map<Job, List<External>> projectExternalsCache = getProjectExternalsCache();
         synchronized (projectExternalsCache) {
-            projectExternalsCache.put(build.getParent(), externals);
+            projectExternalsCache.put(build.getParent(), externalsForAll);
         }
 
         if (changelogFile != null) {
-            calcChangeLog(build, workspace, changelogFile, baseline, listener, externals, env);
+            calcChangeLog(build, workspace, changelogFile, baseline, listener, externalsMap, env);
         }
     }
 
@@ -904,7 +910,7 @@ public class SubversionSCM extends SCM implements Serializable {
      *      if the operation failed. Otherwise the set of local workspace paths
      *      (relative to the workspace root) that has loaded due to svn:external.
      */
-    private List<External> checkout(Run build, FilePath workspace, TaskListener listener, EnvVars env) throws IOException, InterruptedException {
+    private Map<String, List<External>> checkout(Run build, FilePath workspace, TaskListener listener, EnvVars env) throws IOException, InterruptedException {
         if (repositoryLocationsNoLongerExist(build, listener, env)) {
             Run lsb = build.getParent().getLastSuccessfulBuild();
             if (build instanceof AbstractBuild && lsb != null && build.getNumber()-lsb.getNumber()>10
@@ -921,12 +927,16 @@ public class SubversionSCM extends SCM implements Serializable {
             return null;
         }
 
-        List<External> externals = new ArrayList<External>();
+        Map<String, List<External>> externalsMap = new HashMap<>();
+
         Set<String> unauthenticatedRealms = new LinkedHashSet<String>();
         for (ModuleLocation location : getLocations(env, build)) {
             CheckOutTask checkOutTask =
                     new CheckOutTask(build, this, location, build.getTimestamp().getTime(), listener, env, quietOperation);
+            List<External> externals = new ArrayList<External>();
             externals.addAll(workspace.act(checkOutTask));
+            // save location <---> externals maps
+            externalsMap.put(location.remote, externals);
             unauthenticatedRealms.addAll(checkOutTask.getUnauthenticatedRealms());
             // olamy: remove null check at it cause test failure
             // see https://github.com/jenkinsci/subversion-plugin/commit/de23a2b781b7b86f41319977ce4c11faee75179b#commitcomment-1551273
@@ -963,7 +973,7 @@ public class SubversionSCM extends SCM implements Serializable {
             }
         }
 
-        return externals;
+        return externalsMap;
     }
 
     private synchronized Map<Job, List<External>> getProjectExternalsCache() {
