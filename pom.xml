@@ -49,9 +49,48 @@ THE SOFTWARE.
 
   <developers>
     <developer>
+      <id>kohsuke</id>
+      <name>Kohsuke Kawaguchi</name>
+    </developer>
+    <developer>
+      <id>stephenconnolly</id>
+      <name>Stephen Connolly</name>
+    </developer>
+    <developer>
+      <id>oleg_nenashev</id>
+      <name>Oleg Nenashev</name>
+    </developer>
+    <developer>
+      <id>abayer</id>
+      <name>Andrew Bayer</name>
+    </developer>
+    <developer>
+      <id>dodok1</id>
+      <name>dodok1</name>
+    </developer>
+    <developer>
+      <id>dty</id>
+      <name>dty</name>
+    </developer>
+    <developer>
+      <id>huybrechts</id>
+      <name>Tom Huybrechts</name>
+    </developer>
+    <developer>
+      <id>pgweiss</id>
+      <name>pgweiss</name>
+    </developer>
+    <developer>
+      <id>rseguy</id>
+      <name>rseguy</name>
+    </developer>
+    <developer>
+      <id>kutzi</id>
+      <name>kutzi</name>
+    </developer>
+    <developer>
       <id>ifernandezcalvo</id>
       <name>Ivan Fernandez Calvo</name>
-      <email>kuisathaverat@gmail.com</email>
     </developer>
   </developers>
   
