@@ -23,37 +23,35 @@
  */
 package hudson.scm;
 
-import hudson.model.AbstractProject;
-import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
-import hudson.model.queue.QueueTaskFuture;
-import hudson.scm.subversion.WorkspaceUpdater;
-import hudson.scm.subversion.WorkspaceUpdaterDescriptor;
-import org.jvnet.hudson.test.Issue;
-import org.tmatesoft.svn.core.internal.wc.SVNStatusUtil;
-import org.tmatesoft.svn.core.internal.wc.admin.*;
-import org.tmatesoft.svn.core.internal.wc17.db.ISVNWCDb;
-import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
-import org.tmatesoft.svn.core.wc.SVNClientManager;
-import org.tmatesoft.svn.core.wc.SVNStatus;
-import org.tmatesoft.svn.core.wc.SVNStatusClient;
-import org.tmatesoft.svn.core.wc2.SvnGetStatus;
-
 import java.io.File;
+import static org.junit.Assert.*;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.jvnet.hudson.test.Issue;
+import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminArea14;
+import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminArea15;
+import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminArea16;
+import org.tmatesoft.svn.core.internal.wc17.db.ISVNWCDb;
+import org.tmatesoft.svn.core.wc.SVNClientManager;
 
 /**
  * @author schristou88
  */
+@Ignore("TODO org.tmatesoft.svn.core.SVNException: svn: E175002: PROPFIND of '/trunk/hudson/test-projects/trivial-ant': 405 Method Not Allowed (https://svn.jenkins-ci.org)")
 public class SVNWorkingCopyTest extends AbstractSubversionTest {
-  public void testCheckoutWorkingCopyFormat14() throws Exception {
+  @Test
+  public void checkoutWorkingCopyFormat14() throws Exception {
     checkoutAndVerifyWithFormat(SVNAdminArea14.WC_FORMAT);
   }
 
-  public void testCheckoutWorkingCopyFormat15() throws Exception {
+  @Test
+  public void checkoutWorkingCopyFormat15() throws Exception {
     checkoutAndVerifyWithFormat(SVNAdminArea15.WC_FORMAT);
   }
 
-  public void testCheckoutWorkingCopyFormat16() throws Exception {
+  @Test
+  public void checkoutWorkingCopyFormat16() throws Exception {
     checkoutAndVerifyWithFormat(SVNAdminArea16.WC_FORMAT);
   }
 
@@ -61,17 +59,20 @@ public class SVNWorkingCopyTest extends AbstractSubversionTest {
      * SVN 1.7 in jenkins uses a WC format of {@link SubversionWorkspaceSelector#WC_FORMAT_17}.
      * However we still need to check against the actual working copy format of {@link ISVNWCDb#WC_FORMAT_17}
      */
-  public void testCheckoutWorkingCopyFormat17() throws Exception {
+  @Test
+  public void checkoutWorkingCopyFormat17() throws Exception {
       int checkoutFormat = checkoutWithFormat(SubversionWorkspaceSelector.WC_FORMAT_17);
       assertEquals(ISVNWCDb.WC_FORMAT_17, checkoutFormat);
   }
 
-  public void testCheckoutWorkingCopyFormat18() throws Exception {
+  @Test
+  public void checkoutWorkingCopyFormat18() throws Exception {
     checkoutAndVerifyWithFormat(ISVNWCDb.WC_FORMAT_18);
   }
 
     @Issue("JENKINS-26458")
-    public void testCheckoutWorkingCopyFormat100() throws Exception {
+    @Test
+    public void checkoutWorkingCopyFormat100() throws Exception {
         assertEquals("Working copy of 100 should checkout 1.7",
                 ISVNWCDb.WC_FORMAT_17, checkoutWithFormat(100));
     }
@@ -83,11 +84,11 @@ public class SVNWorkingCopyTest extends AbstractSubversionTest {
   private int checkoutWithFormat(int format) throws Exception {
     super.configureSvnWorkspaceFormat(format);
 
-    FreeStyleProject project = jenkins.createProject(FreeStyleProject.class, "svntest" + format);
+    FreeStyleProject project = r.jenkins.createProject(FreeStyleProject.class, "svntest" + format);
     SubversionSCM subversionSCM = new SubversionSCM("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant");
 
     project.setScm(subversionSCM);
-    assertBuildStatusSuccess(project.scheduleBuild2(0));
+    r.assertBuildStatusSuccess(project.scheduleBuild2(0));
 
     // Create a status client and get the working copy format.
     SVNClientManager testWCVerseion = SVNClientManager.newInstance(null, "testWCVerseion", null);

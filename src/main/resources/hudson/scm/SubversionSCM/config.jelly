@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -->
 
+<?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
   <f:entry title="${%Modules}">
     <f:repeatableProperty field="locations" add="${%Add module...}" minimum="1"/>
@@ -29,9 +30,13 @@ THE SOFTWARE.
   
   <f:entry title="${%Additional Credentials}" help="/descriptor/hudson.scm.SubversionSCM/help/additionalCredentials">
     <f:repeatableProperty field="additionalCredentials" add="${%Add additional credentials...}"/>
- </f:entry>
+  </f:entry>
 
   <f:dropdownDescriptorSelector title="${%Check-out Strategy}" field="workspaceUpdater" descriptors="${descriptor.getWorkspaceUpdaterDescriptors()}"/>
+
+  <f:entry title="${%Quiet check-out}" field="quietOperation">
+    <f:checkbox default="true"/>
+  </f:entry>
 
   <t:listScmBrowsers name="svn.browser" />
   <f:advanced>

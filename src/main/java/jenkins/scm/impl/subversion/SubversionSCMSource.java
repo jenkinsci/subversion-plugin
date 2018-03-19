@@ -36,13 +36,10 @@ import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.EnvVars;
 import hudson.Extension;
 import hudson.Functions;
 import hudson.Util;
-import hudson.model.AbstractProject;
 import hudson.model.Item;
-import hudson.model.Job;
 import hudson.model.TaskListener;
 import hudson.scm.CredentialsSVNAuthenticationProviderImpl;
 import hudson.scm.FilterSVNAuthenticationManager;
@@ -52,7 +49,6 @@ import hudson.scm.subversion.SvnHelper;
 import hudson.security.ACL;
 import hudson.util.EditDistance;
 import hudson.util.FormValidation;
-import hudson.util.IOException2;
 import hudson.util.ListBoxModel;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
@@ -105,7 +101,12 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import jenkins.model.Jenkins;
+import jenkins.scm.api.SCMHeadEvent;
+import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
  * A {@link SCMSource} for Subversion.
@@ -114,33 +115,35 @@ import java.util.regex.Pattern;
  */
 public class SubversionSCMSource extends SCMSource {
 
-    private static final String DEFAULT_INCLUDES = "trunk,branches/*,tags/*,sandbox/*";
-
-    private static final String DEFAULT_EXCLUDES = "";
-
     public static final StringListComparator COMPARATOR = new StringListComparator();
 
     public static final Logger LOGGER = Logger.getLogger(SubversionSCMSource.class.getName());
 
     private final String remoteBase;
 
-    private final String credentialsId;
+    private String credentialsId = ""; // TODO null would be a better default, but need to check null safety on usages
 
-    private final String includes;
+    private String includes = DescriptorImpl.DEFAULT_INCLUDES;
 
-    private final String excludes;
+    private String excludes = DescriptorImpl.DEFAULT_EXCLUDES;
 
     @GuardedBy("this")
     private transient String uuid;
 
-    @DataBoundConstructor
-    @SuppressWarnings("unused") // by stapler
+    @Deprecated
     public SubversionSCMSource(String id, String remoteBase, String credentialsId, String includes, String excludes) {
         super(id);
         this.remoteBase = StringUtils.removeEnd(remoteBase, "/") + "/";
-        this.credentialsId = credentialsId;
-        this.includes = StringUtils.defaultIfEmpty(includes, DEFAULT_INCLUDES);
-        this.excludes = StringUtils.defaultIfEmpty(excludes, DEFAULT_EXCLUDES);
+        setCredentialsId(credentialsId);
+        setIncludes(StringUtils.defaultIfEmpty(includes, DescriptorImpl.DEFAULT_INCLUDES));
+        setExcludes(StringUtils.defaultIfEmpty(excludes, DescriptorImpl.DEFAULT_EXCLUDES));
+    }
+
+    @DataBoundConstructor
+    @SuppressWarnings("unused") // by stapler
+    public SubversionSCMSource(String id, String remoteBase) {
+        super(id);
+        this.remoteBase = StringUtils.removeEnd(remoteBase, "/") + "/";
     }
 
     /**
@@ -153,6 +156,11 @@ public class SubversionSCMSource extends SCMSource {
         return credentialsId;
     }
 
+    @DataBoundSetter
+    public void setCredentialsId(String credentialsId) {
+        this.credentialsId = credentialsId;
+    }
+
     /**
      * Gets the comma separated list of exclusions.
      *
@@ -161,6 +169,11 @@ public class SubversionSCMSource extends SCMSource {
     @SuppressWarnings("unused") // by stapler
     public String getExcludes() {
         return excludes;
+    }
+
+    @DataBoundSetter
+    public void setExcludes(String excludes) {
+        this.excludes = excludes;
     }
 
     /**
@@ -173,6 +186,11 @@ public class SubversionSCMSource extends SCMSource {
         return includes;
     }
 
+    @DataBoundSetter
+    public void setIncludes(String includes) {
+        this.includes = includes;
+    }
+
     /**
      * Gets the base SVN URL of the project.
      *
@@ -183,6 +201,7 @@ public class SubversionSCMSource extends SCMSource {
         return remoteBase;
     }
 
+    @CheckForNull
     public synchronized String getUuid() {
         if (uuid == null) {
             SVNRepositoryView repository = null;
@@ -191,6 +210,9 @@ public class SubversionSCMSource extends SCMSource {
                 repository = openSession(repoURL);
                 uuid = repository.getUuid();
             } catch (SVNException e) {
+                LOGGER.log(Level.WARNING, "Could not connect to remote repository " + remoteBase + " to determine UUID",
+                        e);
+            } catch (IOException e) {
                 LOGGER.log(Level.WARNING, "Could not connect to remote repository " + remoteBase + " to determine UUID",
                         e);
             } finally {
@@ -206,7 +228,9 @@ public class SubversionSCMSource extends SCMSource {
      */
     @NonNull
     @Override
-    protected void retrieve(@NonNull final SCMHeadObserver observer,
+    protected void retrieve(@CheckForNull SCMSourceCriteria criteria,
+                            @NonNull final SCMHeadObserver observer,
+                            @CheckForNull SCMHeadEvent<?> event,
                             @NonNull TaskListener listener)
             throws IOException {
         SVNRepositoryView repository = null;
@@ -219,16 +243,17 @@ public class SubversionSCMSource extends SCMSource {
             List<String> prefix = Collections.emptyList();
             fetch(listener,
                     repository,
-                    -1,
                     repoPath,
                     toPaths(splitCludes(includes)),
                     prefix,
                     prefix,
-                    toPaths(splitCludes(excludes)), getCriteria(), observer
+                    toPaths(splitCludes(excludes)),
+                    criteria,
+                    observer
             );
         } catch (SVNException e) {
             e.printStackTrace(listener.error("Could not communicate with Subversion server"));
-            throw new IOException2(e.getMessage(), e);
+            throw new IOException(e);
         } finally {
             closeSession(repository);
         }
@@ -250,10 +275,54 @@ public class SubversionSCMSource extends SCMSource {
             SVNRepositoryView.NodeEntry svnEntry = repository.getNode(path, -1);
             return new SCMRevisionImpl(head, svnEntry.getRevision());
         } catch (SVNException e) {
-            throw new IOException2(e.getMessage(), e);
+            throw new IOException(e);
         } finally {
             closeSession(repository);
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected SCMRevision retrieve(String unparsedRevision, TaskListener listener) throws IOException, InterruptedException {
+        SVNRepositoryView repository = null;
+        try {
+            listener.getLogger().println("Opening connection to " + remoteBase);
+            SVNURL repoURL = SVNURL.parseURIEncoded(remoteBase);
+            repository = openSession(repoURL);
+            String repoPath = SubversionSCM.DescriptorImpl.getRelativePath(repoURL, repository.getRepository());
+            String base;
+            long revision;
+            Matcher pathAtRev = Pattern.compile("(.+)@(\\d+)").matcher(unparsedRevision);
+            if (pathAtRev.matches()) {
+                base = pathAtRev.group(1);
+                revision = Long.parseLong(pathAtRev.group(2));
+            } else {
+                base = unparsedRevision;
+                revision = -1;
+            }
+            String path = SVNPathUtil.append(repoPath, base);
+            long resolvedRevision = repository.getNode(path, -1).getRevision();
+            if (resolvedRevision == -1) {
+                listener.getLogger().println("Could not find " + path);
+                return null;
+            }
+            return new SCMRevisionImpl(new SCMHead(base), revision == -1 ? resolvedRevision : revision);
+        } catch (SVNException e) {
+            throw new IOException(e);
+        } finally {
+            closeSession(repository);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected Set<String> retrieveRevisions(TaskListener listener) throws IOException, InterruptedException {
+        // Default implementation should do what we need: normally includes tags as well as branches.
+        return super.retrieveRevisions(listener);
     }
 
     private static void closeSession(@CheckForNull SVNRepositoryView repository) {
@@ -262,7 +331,7 @@ public class SubversionSCMSource extends SCMSource {
         }
     }
 
-    private SVNRepositoryView openSession(SVNURL repoURL) throws SVNException {
+    private SVNRepositoryView openSession(SVNURL repoURL) throws SVNException, IOException {
         return new SVNRepositoryView(repoURL, credentialsId == null ? null : CredentialsMatchers
                 .firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class, getOwner(),
                         ACL.SYSTEM, URIRequirementBuilder.fromUri(repoURL.toString()).build()),
@@ -273,7 +342,6 @@ public class SubversionSCMSource extends SCMSource {
 
     void fetch(@NonNull TaskListener listener,
                @NonNull final SVNRepositoryView repository,
-               long rev,
                @NonNull final String repoPath,
                @NonNull SortedSet<List<String>> paths,
                @NonNull List<String> prefix,
@@ -286,8 +354,8 @@ public class SubversionSCMSource extends SCMSource {
         assert prefix.size() == realPath.size();
         assert wildcardStartsWith(realPath, prefix);
         SortedMap<List<String>, SortedSet<List<String>>> includePaths = groupPaths(paths, prefix);
-        listener.getLogger().println("Checking directory " + svnPath + (rev > -1 ? "@" + rev : "@HEAD"));
-        SVNRepositoryView.NodeEntry node = repository.getNode(svnPath, rev);
+        listener.getLogger().println("Checking directory " + svnPath + "@HEAD");
+        SVNRepositoryView.NodeEntry node = repository.getNode(svnPath, -1);
         if (!SVNNodeKind.DIR.equals(node.getType()) || node.getChildren() == null) {
             return;
         }
@@ -314,7 +382,7 @@ public class SubversionSCMSource extends SCMSource {
                             final long candidateRevision = svnEntry.getRevision();
                             final long lastModified = svnEntry.getLastModified();
                             listener.getLogger().println(
-                                    "Checking candidate branch " + candidateRootPath + "@" + candidateRevision);
+                                    "Checking candidate branch " + candidateRootPath + "@HEAD");
                             if (branchCriteria == null || branchCriteria.isHead(
                                     new SCMSourceCriteria.Probe() {
                                         @Override
@@ -332,15 +400,21 @@ public class SubversionSCMSource extends SCMSource {
                                             try {
                                                 return repository.checkPath(
                                                         SVNPathUtil.append(candidateRootPath, path),
-                                                        candidateRevision) != SVNNodeKind.NONE;
+                                                        -1) != SVNNodeKind.NONE;
                                             } catch (SVNException e) {
-                                                throw new IOException2(e.getMessage(), e);
+                                                throw new IOException(e);
                                             }
                                         }
                                     }, listener)) {
                                 listener.getLogger().println("Met criteria");
+                                long branchRevision = candidateRevision;
+                                if (repository.checkPath(candidateRootPath, branchRevision) == SVNNodeKind.NONE)
+                                {
+                                    listener.getLogger().println("Branch older than root folder, using HEAD");
+                                    branchRevision = -1;
+                                }
                                 SCMHead head = new SCMHead(childPath);
-                                observer.observe(head, new SCMRevisionImpl(head, svnEntry.getRevision()));
+                                observer.observe(head, new SCMRevisionImpl(head, branchRevision));
                                 if (!observer.isObserving()) {
                                     return;
                                 }
@@ -348,8 +422,7 @@ public class SubversionSCMSource extends SCMSource {
                                 listener.getLogger().println("Does not meet criteria");
                             }
                         } else {
-                            fetch(listener, repository, svnEntry.getRevision(), repoPath, paths,
-                                    childPrefix,
+                            fetch(listener, repository, repoPath, paths, childPrefix,
                                     childRealPath, excludedPaths, branchCriteria, observer);
                         }
                     }
@@ -667,6 +740,12 @@ public class SubversionSCMSource extends SCMSource {
         public int hashCode() {
             return (int) (revision ^ (revision >>> 32));
         }
+
+        @Override
+        public String toString() {
+            return Long.toString(revision);
+        }
+
     }
 
     static class StringListComparator implements Comparator<List<String>> {
@@ -694,6 +773,11 @@ public class SubversionSCMSource extends SCMSource {
     @Extension
     @SuppressWarnings("unused") // by jenkins
     public static class DescriptorImpl extends SCMSourceDescriptor {
+
+        public static final String DEFAULT_INCLUDES = "trunk,branches/*,tags/*,sandbox/*";
+
+        public static final String DEFAULT_EXCLUDES = "";
+
         static final Pattern URL_PATTERN = Pattern.compile("(https?|svn(\\+[a-z0-9]+)?|file)://.+");
 
         /**
@@ -712,14 +796,17 @@ public class SubversionSCMSource extends SCMSource {
          * @return list box model.
          */
         @SuppressWarnings("unused") // by stapler
-        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath SCMSourceOwner context,
-                                                     @QueryParameter String remoteBase) {
-            if (context == null || !context.hasPermission(Item.CONFIGURE)) {
-                return new StandardListBoxModel();
+        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
+                                                     @QueryParameter String remoteBase,
+                                                     @QueryParameter String credentialsId) {
+            if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
+                context != null && !context.hasPermission(Item.EXTENDED_READ)) {
+                return new StandardListBoxModel().includeCurrentValue(credentialsId);
             }
             List<DomainRequirement> domainRequirements;
             domainRequirements = URIRequirementBuilder.fromUri(remoteBase.trim()).build();
             return new StandardListBoxModel()
+                    // TODO JENKINS-35553 update to newer APIs
                     .withEmptySelection()
                     .withMatching(
                             CredentialsMatchers.anyOf(
@@ -737,10 +824,12 @@ public class SubversionSCMSource extends SCMSource {
         /**
          * validate the value for a remote (repository) location.
          */
-        public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath SCMSourceOwner context, @QueryParameter String remoteBase, @QueryParameter String value) {
+        @RequirePOST
+        public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath Item context, @QueryParameter String remoteBase, @QueryParameter String value) {
             // TODO suspiciously similar to SubversionSCM.ModuleLocation.DescriptorImpl.checkCredentialsId; refactor into shared method?
-            // Test the connection only if we have job configure permission
-            if (context == null || !context.hasPermission(Item.CONFIGURE)) {
+            // Test the connection only if we may use the credentials
+            if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
+                context != null && !context.hasPermission(CredentialsProvider.USE_ITEM)) {
                 return FormValidation.ok();
             }
 
@@ -762,7 +851,7 @@ public class SubversionSCMSource extends SCMSource {
                                 .lookupCredentials(StandardCredentials.class, context, ACL.SYSTEM,
                                         URIRequirementBuilder.fromUri(repoURL.toString()).build()),
                                 CredentialsMatchers.withId(value));
-                if (checkRepositoryPath(context, repoURL, credentials)!=SVNNodeKind.NONE) {
+                if (checkRepositoryPath(repoURL, credentials)!=SVNNodeKind.NONE) {
                     // something exists; now check revision if any
 
                     SVNRevision revision = getRevisionFromRemoteUrl(url);
@@ -776,7 +865,7 @@ public class SubversionSCMSource extends SCMSource {
 
                 SVNRepository repository = null;
                 try {
-                    repository = getRepository(context, repoURL, credentials,
+                    repository = getRepository(repoURL, credentials,
                             Collections.<String, Credentials>emptyMap(), null);
                     long rev = repository.getLatestRevision();
                     // now go back the tree and find if there's anything that exists
@@ -822,11 +911,11 @@ public class SubversionSCMSource extends SCMSource {
                 return FormValidation.errorWithMarkup(message);
             }
         }
-        public SVNNodeKind checkRepositoryPath(SCMSourceOwner context, SVNURL repoURL, StandardCredentials credentials) throws SVNException {
+        public SVNNodeKind checkRepositoryPath(SVNURL repoURL, StandardCredentials credentials) throws SVNException {
             SVNRepository repository = null;
 
             try {
-                repository = getRepository(context,repoURL,credentials, Collections.<String, Credentials>emptyMap(), null);
+                repository = getRepository(repoURL,credentials, Collections.<String, Credentials>emptyMap(), null);
                 repository.testConnection();
 
                 long rev = repository.getLatestRevision();
@@ -851,12 +940,12 @@ public class SubversionSCMSource extends SCMSource {
             }
         }
 
-        protected SVNRepository getRepository(SCMSourceOwner context, SVNURL repoURL, StandardCredentials credentials,
+        protected SVNRepository getRepository(SVNURL repoURL, StandardCredentials credentials,
                                               Map<String, Credentials> additionalCredentials, ISVNSession session) throws SVNException {
             SVNRepository repository = SVNRepositoryFactory.create(repoURL, session);
 
             ISVNAuthenticationManager sam = SubversionSCM.createSvnAuthenticationManager(
-                    new CredentialsSVNAuthenticationProviderImpl(credentials, additionalCredentials)
+                    new CredentialsSVNAuthenticationProviderImpl(credentials, additionalCredentials, /* TODO */ TaskListener.NULL)
             );
             sam = new FilterSVNAuthenticationManager(sam) {
                 // If there's no time out, the blocking read operation may hang forever, because TCP itself

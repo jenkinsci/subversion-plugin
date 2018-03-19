@@ -6,8 +6,8 @@ import static java.util.logging.Level.WARNING;
 import static javax.servlet.http.HttpServletResponse.SC_OK;
 
 import hudson.Extension;
+import hudson.ExtensionList;
 import hudson.ExtensionPoint;
-import hudson.model.AbstractModelObject;
 import hudson.model.AbstractProject;
 import hudson.model.Job;
 import hudson.scm.SubversionSCM.ModuleLocation;
@@ -19,7 +19,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.List;
@@ -37,6 +36,7 @@ import org.apache.commons.io.IOUtils;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
+import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.SVNException;
@@ -49,7 +49,7 @@ import org.tmatesoft.svn.core.SVNException;
  * @author Kohsuke Kawaguchi
  * @see SubversionStatus
  */
-public class SubversionRepositoryStatus extends AbstractModelObject {
+public class SubversionRepositoryStatus {
     public final UUID uuid;
 
     public SubversionRepositoryStatus(UUID uuid) {
@@ -60,10 +60,6 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
         return uuid.toString();
     }
 
-    public String getSearchUrl() {
-        return uuid.toString();
-    }
-    
     static interface JobProvider {
         @SuppressWarnings("rawtypes")
         List<Job> getAllJobs();
@@ -92,9 +88,8 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
      * Because this URL is not guarded, we can't really trust the data that's sent to us. But we intentionally
      * don't protect this URL to simplify <tt>post-commit</tt> script set up.
      */
+    @RequirePOST
     public void doNotifyCommit(StaplerRequest req, StaplerResponse rsp) throws ServletException, IOException {
-        requirePOST();
-
         // compute the affected paths
         Set<String> affectedPath = new HashSet<String>();
         String line;
@@ -134,13 +129,7 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
         }
 
         boolean listenerDidSomething = false;
-        Jenkins instance = Jenkins.getInstance();
-        if (instance == null) {
-            LOGGER.warning("Jenkins instance is null.");
-            return;
-        }
-
-        for (Listener listener : instance.getExtensionList(Listener.class)) {
+        for (Listener listener : ExtensionList.lookup(Listener.class)) {
             try {
                 if (listener.onNotify(uuid, rev, affectedPath)) {
                     listenerDidSomething = true;
@@ -173,8 +162,7 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
         private JobProvider jobProvider = new JobProvider() {
             @SuppressWarnings("rawtypes")
             public List<Job> getAllJobs() {
-                Jenkins instance = Jenkins.getInstance();
-                return instance != null ? instance.getAllItems(Job.class) : Collections.<Job>emptyList();
+                return Jenkins.getInstance().getAllItems(Job.class);
             }
         };
 
@@ -256,8 +244,8 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
                 if (p instanceof AbstractProject && ((AbstractProject) p).isDisabled()) {
                     continue;
                 }
-                try {
-                    SCMS: for (SCM scm : scmTriggerItem.getSCMs()) {
+                String jobName = p.getName();
+                SCMS: for (SCM scm : scmTriggerItem.getSCMs()) {
                     if (scm instanceof SubversionSCM) scmFound = true; else continue;
 
                     SCMTrigger trigger = scmTriggerItem.getSCMTrigger();
@@ -267,39 +255,41 @@ public class SubversionRepositoryStatus extends AbstractModelObject {
 
                     List<SvnInfo> infos = new ArrayList<SvnInfo>();
 
-                    boolean projectMatches = false;
-                    for (ModuleLocation loc : sscm.getProjectLocations(p)) {
-                        //LOGGER.fine("Checking uuid for module location + " + loc + " of job "+ p);
-                        String urlFromConfiguration = loc.getURL();
-    
-                        SubversionRepoUUIDAndRootPath uuidAndRootPath = this.remoteUUIDAndRootPathFromCacheOrFromSVN(p, sscm, loc, urlFromConfiguration);
-                        UUID remoteUUID = uuidAndRootPath.uuid;
-                        if (remoteUUID.equals(uuid)) uuidFound = true; else continue;
+                    try {
+                        boolean projectMatches = false;
+                        for (ModuleLocation loc : sscm.getProjectLocations(p)) {
+                            String urlFromConfiguration = loc.getURL();
+                            //LOGGER.log(WARNING, "Checking uuid for module location + " + loc + " of job "+ p + " (urlFromConfiguration : " + urlFromConfiguration + ")");
+                        
+                            try {
+                                SubversionRepoUUIDAndRootPath uuidAndRootPath = this.remoteUUIDAndRootPathFromCacheOrFromSVN(p, sscm, loc, urlFromConfiguration);
+                                UUID remoteUUID = uuidAndRootPath.uuid;
+                                if (remoteUUID.equals(uuid)) uuidFound = true; else continue;
 
-                        String configuredRepoFullPath = loc.getSVNURL().getPath();
-                        String rootRepoPath = uuidAndRootPath.rootPath;
-                        if (this.doModuleLocationHasAPathFromAffectedPath(configuredRepoFullPath, rootRepoPath, affectedPath)) {
-                            projectMatches = true;
-                            pathFound = true;
-                        }
+                                String configuredRepoFullPath = loc.getSVNURL().getPath();
+                                String rootRepoPath = uuidAndRootPath.rootPath;
+                                if (this.doModuleLocationHasAPathFromAffectedPath(configuredRepoFullPath, rootRepoPath, affectedPath)) {
+                                    projectMatches = true;
+                                    pathFound = true;
+                                }
 
-                        if ( rev != -1 ) {
-                            infos.add(new SvnInfo(loc.getURL(), rev));
+                                if ( rev != -1 ) {
+                                    infos.add(new SvnInfo(loc.getURL(), rev));
+                                }
+                            } catch (SVNCancelException e) {
+                                LOGGER.log(WARNING, "Failed to handle Subversion commit notification (was trying to access " + urlFromConfiguration + " of job " + jobName + "). If you are using svn:externals feature ensure that the credentials of the externals are added on the Additional Credentials field", e);
+                            } catch (SVNException e) {
+                                LOGGER.log(WARNING, "Failed to handle Subversion commit notification (was trying to access " + urlFromConfiguration + " of job " + jobName + ")", e);
+                            }
+                            
+                            if (projectMatches) {
+                                this.scheduleImediatePollingOfJob(p, trigger, infos);
+                                break SCMS;
+                            }
                         }
-                        }
-
-                    if (projectMatches) {
-                        this.scheduleImediatePollingOfJob(p, trigger, infos);
-                        break SCMS;
+                    } catch(IOException e) {
+                        LOGGER.log(WARNING, "Failed to handle Subversion commit notification (getting module locations failed for job " + jobName + ")", e);
                     }
-                    }
-
-                } catch (SVNCancelException e) {
-                    LOGGER.log(WARNING, "Failed to handle Subversion commit notification. If you are using svn:externals feature ensure that the credentials of the externals are added on the Additional Credentials field", e);
-                } catch (SVNException e) {
-                    LOGGER.log(WARNING, "Failed to handle Subversion commit notification", e);
-                } catch (IOException e) {
-                    LOGGER.log(WARNING, "Failed to handle Subversion commit notification", e);
                 }
             }
             LOGGER.fine("Ended subversion locations checks for all jobs");

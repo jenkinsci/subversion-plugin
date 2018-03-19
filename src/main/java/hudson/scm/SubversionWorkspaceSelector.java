@@ -24,7 +24,6 @@
 package hudson.scm;
 
 import hudson.model.Hudson;
-import hudson.remoting.Callable;
 import hudson.remoting.Channel;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.internal.wc.admin.ISVNAdminAreaFactorySelector;
@@ -39,6 +38,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import jenkins.model.Jenkins;
+import jenkins.security.SlaveToMasterCallable;
 
 /**
  * {@link ISVNAdminAreaFactorySelector} that uses 1.4 compatible workspace for new check out,
@@ -102,14 +103,14 @@ public class SubversionWorkspaceSelector implements ISVNAdminAreaFactorySelector
     public static volatile int workspaceFormat = SVNAdminArea14.WC_FORMAT;
 
     public static void syncWorkspaceFormatFromMaster() {
-        Hudson h = Hudson.getInstance();
-        if (h!=null)
-            workspaceFormat = h.getDescriptorByType(SubversionSCM.DescriptorImpl.class).getWorkspaceFormat();
+        Jenkins j = Jenkins.getInstanceOrNull();
+        if (j!=null)
+            workspaceFormat = j.getDescriptorByType(SubversionSCM.DescriptorImpl.class).getWorkspaceFormat();
         else {
             Channel c = Channel.current();
             if (c!=null)    // just being defensive. cannot be null.
                 try {
-                    workspaceFormat = c.call(new Callable<Integer, RuntimeException>() {
+                    workspaceFormat = c.call(new SlaveToMasterCallable<Integer, RuntimeException>() { // TODO JENKINS-48543 bad design
                         private static final long serialVersionUID = 6494337549896104453L;
 
                         public Integer call()  {

@@ -22,11 +22,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -->
 
-<!--
-  Displays the Subversion change log.
--->
+<!-- Displays the Subversion changelog -->
+<?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-  <j:set var="browser" value="${it.build.parent.scm.effectiveBrowser}"/>
+  <j:set var="browser" value="${it.browser}"/>
 
   <h2>${%Summary}</h2>
   <ol>
@@ -45,7 +44,7 @@ THE SOFTWARE.
               <a href="${browser.getChangeSetLink(cs)}">${cs.revision}</a>
               by <a href="${rootURL}/${cs.author.url}/">${cs.author}</a>:
             </b><br/>
-            ${cs.msgAnnotated}
+            <j:out value="${cs.msgAnnotated}"/>
           </div>
         </td>
       </tr>

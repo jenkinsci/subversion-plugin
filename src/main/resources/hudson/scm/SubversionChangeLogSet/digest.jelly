@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -->
 
+<?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
   <st:documentation>
     Displays the Subversion change log digest.
@@ -30,7 +31,7 @@ THE SOFTWARE.
     </st:attribute>
   </st:documentation>
 
-  <j:set var="browser" value="${it.build.parent.scm.effectiveBrowser}"/>
+  <j:set var="browser" value="${it.browser}"/>
   <j:set var="rev" value="${it.revisionMap}" />
   <j:choose>
     <j:when test="${empty(rev)}">
@@ -59,7 +60,7 @@ THE SOFTWARE.
       <ol>
         <j:forEach var="cs" items="${it.logs}" varStatus="loop">
           <li>
-            ${cs.msgAnnotated}
+            <j:out value="${cs.msgAnnotated}"/>
             (<a href="${changesBaseUrl}changes#detail${loop.index}">${%detail}</a>
 
             <j:set var="cslink" value="${browser.getChangeSetLink(cs)}"/>
@@ -68,6 +69,8 @@ THE SOFTWARE.
               <a href="${cslink}">${browser.descriptor.displayName}</a>
             </j:if>
             <j:text>)</j:text>
+	    <br/>
+	    by <a href="${rootURL}/${cs.author.url}/">${cs.author}</a>
           </li>
         </j:forEach>
       </ol>

@@ -262,7 +262,16 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
                 }
             ModuleLocation[] locations = ((SubversionSCM)scm).getLocations();
             for (int i = 0; i < locations.length; i++) {
-                String commonPart = findCommonPart(locations[i].remote, path);
+                ModuleLocation expandedLocation = locations[i].getExpandedLocation(job);
+                // If the remote URL features a trailing '@REV' entry, strip it off before looking for common part
+                String expandedRemote = expandedLocation.remote;
+                if (expandedLocation.getRevision(null) != null) {
+                    int idx = expandedRemote.lastIndexOf('@');
+                    if (idx >= 0) {
+                        expandedRemote = expandedRemote.substring(0, idx);
+                    }
+                }
+                String commonPart = findCommonPart(expandedRemote, path);
                 if (commonPart != null) {
                     if (path.startsWith("/")) {
                         path = path.substring(1);

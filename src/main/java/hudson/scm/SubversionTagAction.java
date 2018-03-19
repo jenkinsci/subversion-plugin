@@ -234,7 +234,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
             Item context = req.findAncestorObject(Item.class);
             final List<Authentication> authentications = new ArrayList<Authentication>(2);
             authentications.add(Jenkins.getAuthentication());
-            if (context.hasPermission(Item.CONFIGURE)) {
+            if (context.hasPermission(Item.CONFIGURE)) { // TODO should this check EXTENDED_READ?
                 authentications.add(ACL.SYSTEM);
             }
             for (Authentication a : authentications) {
@@ -340,7 +340,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
         }
 
         public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context, @AncestorInPath Run run) {
-            if (context == null || !context.hasPermission(SCM.TAG)) {
+            if (/* TODO consider making available in global context as well */context == null || !context.hasPermission(SCM.TAG)) {
                 return new ListBoxModel();
             }
             Set<StandardCredentials> c = new LinkedHashSet<StandardCredentials>();
@@ -357,7 +357,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
                     Jenkins.getAuthentication(),
                     domainRequirements)
             );
-            if (context.hasPermission(Item.CONFIGURE)) {
+            if (context.hasPermission(Item.EXTENDED_READ)) {
                 c.addAll(CredentialsProvider.lookupCredentials(StandardCredentials.class,
                                 context,
                                 ACL.SYSTEM,

@@ -25,10 +25,12 @@
 
 package hudson.scm.listtagsparameter;
 
+import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.Extension;
 import hudson.Util;
+import hudson.cli.CLICommand;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import hudson.model.Item;
@@ -36,9 +38,12 @@ import hudson.model.Job;
 import hudson.model.ParameterDefinition;
 import hudson.model.ParameterValue;
 import hudson.model.ParametersDefinitionProperty;
+import hudson.model.TaskListener;
 import hudson.scm.CredentialsSVNAuthenticationProviderImpl;
 import hudson.scm.SubversionSCM;
 import hudson.util.FormValidation;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -57,6 +62,7 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNDirEntry;
 import org.tmatesoft.svn.core.SVNException;
@@ -65,6 +71,7 @@ import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
 import org.tmatesoft.svn.core.io.SVNRepository;
 import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
+import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNLogClient;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 
@@ -143,6 +150,14 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
     return value;
   }
   
+  @Override
+  public ParameterValue createValue(CLICommand command, String value) throws IOException, InterruptedException {
+	if (value == null) {
+	  return this.getDefaultParameterValue();
+    }
+    return new ListSubversionTagsParameterValue(getName(), getTagsDir(), value);
+  }
+  
     @Override
     public ParameterValue getDefaultParameterValue() {
         if (isUseLatestTag()) {
@@ -183,18 +198,20 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
   @Nonnull public List<String> getTags(@Nullable Job context, String subDir, boolean localReverseByDate) {
     List<String> dirs = new ArrayList<String>();
 
+    SVNRepository repo = null;
+    SVNClientManager clientManager = null;
     String tmpTagsDir = StringUtils.isEmpty(subDir) ? getTagsDir() : getTagsDir() + "/" + subDir;
-
     try {
       ISVNAuthenticationProvider authProvider = CredentialsSVNAuthenticationProviderImpl.createAuthenticationProvider(
-              context, tmpTagsDir, getCredentialsId(), null
+              context, tmpTagsDir, getCredentialsId(), null, TaskListener.NULL
       );
       ISVNAuthenticationManager authManager = SubversionSCM.createSvnAuthenticationManager(authProvider);
       SVNURL repoURL = SVNURL.parseURIDecoded(tmpTagsDir);
 
-      SVNRepository repo = SVNRepositoryFactory.create(repoURL);
+      repo = SVNRepositoryFactory.create(repoURL);
       repo.setAuthenticationManager(authManager);
-      SVNLogClient logClient = new SVNLogClient(authManager, null);
+      clientManager = SVNClientManager.newInstance(null,authManager);
+      SVNLogClient logClient = clientManager.getLogClient();
       
       if (isSVNRepositoryProjectRoot(repo)) {
         dirs = this.getSVNRootRepoDirectories(logClient, repoURL, localReverseByDate);
@@ -208,16 +225,17 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
       // logs are not translated (IMO, this is a bad idea to translate logs)
       LOGGER.log(Level.SEVERE, "An SVN exception occurred while listing the directory entries at " + tmpTagsDir, e);
       return Collections.singletonList("!" + ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("SVNException"));
+    } finally {
+       if (repo != null) {
+         repo.closeSession();
+       }
+       if (clientManager != null) {
+         clientManager.dispose();
+       }
     }
 
     // SVNKit's doList() method returns also the parent dir, so we need to remove it
-    if(dirs != null) {
-      removeParentDir(dirs);
-    }
-    else {
-      LOGGER.log(Level.INFO, "No directory entries were found for the following SVN repository: {0}", tmpTagsDir);
-      return Collections.singletonList("!" + ResourceBundleHolder.get(ListSubversionTagsParameterDefinition.class).format("NoDirectoryEntriesFound"));
-    }
+    removeParentDir(dirs);
     
     // Conform list to the maxTags option.
     Integer max = (isInt(this.maxTags) ? Integer.parseInt(this.maxTags) : null);
@@ -389,16 +407,19 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
         return FormValidation.warning("Unable to check tags directory.");
     }
 
+    // used from config.jelly
     public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context, @QueryParameter String tagsDir) {
-      if (context == null || !context.hasPermission(Item.BUILD)) {
+      if (context == null || !context.hasPermission(Item.EXTENDED_READ)) {
         return new StandardListBoxModel();
       }
       return Jenkins.getInstance().getDescriptorByType(
               SubversionSCM.ModuleLocation.DescriptorImpl.class).fillCredentialsIdItems(context, tagsDir);
     }
 
+    // used from config.jelly
+    @RequirePOST
     public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath Item context, @QueryParameter String tagsDir, @QueryParameter String value) {
-      if (context == null || !context.hasPermission(Item.BUILD)) {
+      if (context == null || !context.hasPermission(CredentialsProvider.USE_ITEM)) {
         return FormValidation.ok();
       }
       return Jenkins.getInstance().getDescriptorByType(
@@ -417,9 +438,10 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
       return FormValidation.ok();
     }
 
+    // used from index.jelly
     public ListBoxModel doFillTagItems(@AncestorInPath Job<?,?> context, @QueryParameter String param) {
         ListBoxModel model = new ListBoxModel();
-        if (context != null) {
+        if (context != null && context.hasPermission(Item.BUILD)) {
             ParametersDefinitionProperty prop = context.getProperty(ParametersDefinitionProperty.class);
             if (prop != null) {
                 ParameterDefinition def = prop.getParameterDefinition(param);
