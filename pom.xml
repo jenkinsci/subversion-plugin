@@ -49,9 +49,81 @@ THE SOFTWARE.
 
   <developers>
     <developer>
+      <id>kohsuke</id>
+      <name>Kohsuke Kawaguchi</name>
+      <roles>
+        <role>Maintainer (retired)</role>
+      </roles>
+    </developer>
+    <developer>
+      <id>stephenconnolly</id>
+      <name>Stephen Connolly</name>
+      <roles>
+        <role>Maintainer (retired)</role>
+      </roles>
+    </developer>
+    <developer>
+      <id>oleg_nenashev</id>
+      <name>Oleg Nenashev</name>
+      <roles>
+        <role>Maintainer (retired)</role>
+      </roles>
+    </developer>
+    <developer>
+      <id>abayer</id>
+      <name>Andrew Bayer</name>
+      <roles>
+        <role>Maintainer (retired)</role>
+      </roles>
+    </developer>
+    <developer>
+      <id>dodok1</id>
+      <name>dodok1</name>
+      <roles>
+        <role>Maintainer (retired)</role>
+      </roles>
+    </developer>
+    <developer>
+      <id>dty</id>
+      <name>dty</name>
+      <roles>
+        <role>Maintainer (retired)</role>
+      </roles>
+    </developer>
+    <developer>
+      <id>huybrechts</id>
+      <name>Tom Huybrechts</name>
+      <roles>
+        <role>Maintainer (retired)</role>
+      </roles>
+    </developer>
+    <developer>
+      <id>pgweiss</id>
+      <name>pgweiss</name>
+      <roles>
+        <role>Maintainer (retired)</role>
+      </roles>
+    </developer>
+    <developer>
+      <id>rseguy</id>
+      <name>rseguy</name>
+      <roles>
+        <role>Maintainer (retired)</role>
+      </roles>
+    </developer>
+    <developer>
+      <id>kutzi</id>
+      <name>kutzi</name>
+      <roles>
+        <role>Maintainer (retired)</role>
+      </roles>
+    </developer>
+    <developer>
       <id>ifernandezcalvo</id>
       <name>Ivan Fernandez Calvo</name>
-      <email>kuisathaverat@gmail.com</email>
+      <roles>
+        <role>Maintainer</role>
+      </roles>
     </developer>
   </developers>
   
