@@ -415,7 +415,7 @@ public class SubversionSCM extends SCM implements Serializable {
      * Convenience constructor, especially during testing.
      */
     public SubversionSCM(String[] svnUrls, String[] credentialIds, String[] locals) {
-        this(ModuleLocation.parse(svnUrls, credentialIds, locals, null,null), true, false, null, null, null, null, null);
+        this(ModuleLocation.parse(svnUrls, credentialIds, locals, null,null,null), true, false, null, null, null, null, null);
     }
 
     /**
@@ -2710,6 +2710,12 @@ public class SubversionSCM extends SCM implements Serializable {
         public boolean ignoreExternalsOption;
 
         /**
+         * Flag to cancel the process when checkout/update svn:externals failed.
+         */
+        @Exported
+        public boolean cancelProcessOnExternalsFail;
+
+        /**
          * Cache of the repository UUID.
          */
         private transient volatile UUID repositoryUUID;
@@ -2720,7 +2726,7 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         @Deprecated
         public ModuleLocation(String remote, String local) {
-            this(remote, null, local, null, false);
+            this(remote, null, local, null, false, false);
         }
 
         /**
@@ -2735,36 +2741,50 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         @Deprecated
         public ModuleLocation(String remote, String local, String depthOption, boolean ignoreExternalsOption) {
-            this(remote,null,local,depthOption,ignoreExternalsOption);
+            this(remote,null,local,depthOption,ignoreExternalsOption, false);
+        }
+
+        /**
+         * Constructor to support backwards compatibility.
+         */
+        @Deprecated
+        public ModuleLocation(String remote, String credentialsId, String local, String depthOption, boolean ignoreExternalsOption) {
+          this(remote,credentialsId,local,depthOption,ignoreExternalsOption, false);
         }
 
         @DataBoundConstructor
-        public ModuleLocation(String remote, String credentialsId, String local, String depthOption, boolean ignoreExternalsOption) {
+        public ModuleLocation(String remote, String credentialsId, String local, String depthOption, boolean ignoreExternalsOption,
+                              boolean cancelProcessOnExternalsFail) {
             this.remote = Util.removeTrailingSlash(Util.fixNull(remote).trim());
             this.credentialsId = credentialsId;
             this.local = fixEmptyAndTrim(local);
             this.depthOption = StringUtils.isEmpty(depthOption) ? SVNDepth.INFINITY.getName() : depthOption;
             this.ignoreExternalsOption = ignoreExternalsOption;
+            this.cancelProcessOnExternalsFail = cancelProcessOnExternalsFail;
         }
 
         public ModuleLocation withRemote(String remote) {
-            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption);
+            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption, cancelProcessOnExternalsFail);
         }
 
         public ModuleLocation withCredentialsId(String credentialsId) {
-            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption);
+            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption, cancelProcessOnExternalsFail);
         }
 
         public ModuleLocation withLocal(String local) {
-            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption);
+            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption, cancelProcessOnExternalsFail);
         }
 
         public ModuleLocation withDepthOption(String depthOption) {
-            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption);
+            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption, cancelProcessOnExternalsFail);
         }
 
         public ModuleLocation withIgnoreExternalsOption(boolean ignoreExternalsOption) {
-            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption);
+            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption, cancelProcessOnExternalsFail);
+        }
+
+        public ModuleLocation withCancelProcessOnExternalsFailed(boolean cancelProcessOnExternalsFailed) {
+          return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption, cancelProcessOnExternalsFailed);
         }
 
         /**
@@ -2938,6 +2958,15 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         /**
+         * Determines if the process should be cancelled when checkout/update svn:externals failed.
+         *
+         * @return true if the process should be cancelled when checkout/update svn:externals failed.
+         */
+        public boolean isCancelProcessOnExternalsFail() {
+          return cancelProcessOnExternalsFail;
+        }
+
+        /**
          * Expand location value based on Build parametric execution.
          *
          * @param build Build instance for expanding parameters into their values
@@ -2958,7 +2987,7 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         public ModuleLocation getExpandedLocation(EnvVars env) {
             return new ModuleLocation(env.expand(remote), credentialsId, env.expand(getLocalDir()), getDepthOption(),
-                    isIgnoreExternalsOption());
+                    isIgnoreExternalsOption(), isCancelProcessOnExternalsFail());
         }
 
         @Override
@@ -2970,12 +2999,17 @@ public class SubversionSCM extends SCM implements Serializable {
 
         @Deprecated
         public static List<ModuleLocation> parse(String[] remoteLocations, String[] localLocations, String[] depthOptions, boolean[] isIgnoreExternals) {
-            return parse(remoteLocations, null, localLocations, depthOptions, isIgnoreExternals);
+            return parse(remoteLocations, null, localLocations, depthOptions, isIgnoreExternals, null);
+        }
+
+        @Deprecated
+        public static List<ModuleLocation> parse(String[] remoteLocations, String[] credentialIds, String[] localLocations, String[] depthOptions, boolean[] isIgnoreExternals) {
+          return parse(remoteLocations, credentialIds, localLocations, depthOptions, isIgnoreExternals, null);
         }
 
         public static List<ModuleLocation> parse(String[] remoteLocations, String[] credentialIds,
                                                  String[] localLocations, String[] depthOptions,
-                                                 boolean[] isIgnoreExternals) {
+                                                 boolean[] isIgnoreExternals, boolean[] cancelProcessOnExternalsFails) {
             List<ModuleLocation> modules = new ArrayList<ModuleLocation>();
             if (remoteLocations != null && localLocations != null) {
                 int entries = Math.min(remoteLocations.length, localLocations.length);
@@ -2990,7 +3024,8 @@ public class SubversionSCM extends SCM implements Serializable {
                                 credentialIds != null && credentialIds.length > i ? credentialIds[i] : null,
                                 Util.nullify(localLocations[i]),
                             depthOptions != null ? depthOptions[i] : null,
-                            isIgnoreExternals != null && isIgnoreExternals[i]));
+                            isIgnoreExternals != null && isIgnoreExternals[i],
+                            cancelProcessOnExternalsFails != null && cancelProcessOnExternalsFails[i]));
                     }
                 }
             }
@@ -3024,7 +3059,8 @@ public class SubversionSCM extends SCM implements Serializable {
                 }
             }
 
-            return new ModuleLocation(returnURL, credentialsId, getLocalDir(), getDepthOption(), isIgnoreExternalsOption());
+            return new ModuleLocation(returnURL, credentialsId, getLocalDir(), getDepthOption(), isIgnoreExternalsOption(),
+                isCancelProcessOnExternalsFail());
         }
 
         @Extension
