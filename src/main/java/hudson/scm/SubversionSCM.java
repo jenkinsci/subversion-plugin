@@ -2949,6 +2949,59 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         /**
+         * Returns {@link org.tmatesoft.svn.core.SVNDepth} by string value.
+         *
+         * @return {@link org.tmatesoft.svn.core.SVNDepth} value.
+         */
+        private static SVNDepth getSvnDepth(String name) {
+            return SVNDepth.fromString(name);
+        }
+
+        /**
+         * Returns the SVNDepth to use for updating the module.
+         *
+         * This is just mapping the depthOption to an SVN Depth
+         *
+         * @return {@link org.tmatesoft.svn.core.SVNDepth} value.
+         */
+        public SVNDepth getSvnDepthForUpdate() {
+            return getSvnDepth(getDepthOption());
+        }
+
+        /**
+         * Returns the SVNDepth to use for checking out the module.
+         *
+         * This is normally the requested SVN depth except when the user
+         * has requested as-it-is and then we use files so that we don't check
+         * everything out.
+         *
+         * @return {@link org.tmatesoft.svn.core.SVNDepth} value.
+         */
+        public SVNDepth getSvnDepthForCheckout() {
+            if(getDepthOption().equals("unknown")) {
+                return SVNDepth.FILES;
+            } else {
+                return getSvnDepth(getDepthOption());
+            }
+        }
+
+        /**
+         * Returns the SVNDepth to use for reverting the module if svn up with revert before is selected
+         *
+         * This is normally the requested SVN depth except when the user
+         * has requested as-it-is and then we use infinity to actually revert everything
+         *
+         * @return {@link org.tmatesoft.svn.core.SVNDepth} value.
+         */
+        public SVNDepth getSvnDepthForRevert() {
+            if(getDepthOption().equals("unknown")) {
+                return SVNDepth.INFINITY;
+            } else {
+                return getSvnDepth(getDepthOption());
+            }
+        }
+
+        /**
          * Determines if subversion externals definitions should be ignored.
          *
          * @return true if subversion externals definitions should be ignored.

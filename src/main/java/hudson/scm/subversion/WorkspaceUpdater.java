@@ -200,7 +200,13 @@ public abstract class WorkspaceUpdater extends AbstractDescribableImpl<Workspace
          * Returns {@link org.tmatesoft.svn.core.SVNDepth} by string value.
          *
          * @return {@link org.tmatesoft.svn.core.SVNDepth} value.
+         *
+         * @deprecated as of 2.10
+         *      Use SubversionSCM.ModuleLocation.getSVNDepthFor* functions to correctly interpret
+         *      module location depth options or SVNDepth.fromString directly if you've taken the
+         *      depth from another source.
          */
+        @Deprecated
         protected static SVNDepth getSvnDepth(String name) {
             return SVNDepth.fromString(name);
         }
