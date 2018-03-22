@@ -1,0 +1,5 @@
+# Whitelist for error messaging (JENKINS-50339).
+# SVNErrorMessage supports "Object" fields in API in 'myObjects',
+# so it is not guaranteed to work with JEP-200 in all cases.
+org.tmatesoft.svn.core.SVNErrorMessage
+org.tmatesoft.svn.core.SVNErrorCode
