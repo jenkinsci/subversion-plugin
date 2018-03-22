@@ -15,6 +15,7 @@ import java.io.File;
 import java.util.Iterator;
 import java.util.LinkedList;
 
+import jenkins.scm.impl.subversion.RemotableSVNErrorMessage;
 import org.tmatesoft.svn.core.ISVNLogEntryHandler;
 import org.tmatesoft.svn.core.SVNErrorCode;
 import org.tmatesoft.svn.core.SVNErrorMessage;
@@ -83,7 +84,7 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
               sendToHandler(logEntry);
           }
       } catch (SAXException e) {
-          SVNErrorMessage err = SVNErrorMessage.create(SVNErrorCode.XML_MALFORMED, e.getLocalizedMessage());
+          RemotableSVNErrorMessage err = new RemotableSVNErrorMessage(SVNErrorCode.XML_MALFORMED, e.getLocalizedMessage());
           SVNErrorManager.error(err, e, SVNLogType.DEFAULT);
       }
   }

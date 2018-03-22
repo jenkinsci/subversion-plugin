@@ -20,6 +20,7 @@ import hudson.scm.subversion.Messages;
 import hudson.security.ACL;
 import hudson.util.Scrambler;
 import hudson.util.Secret;
+import jenkins.scm.impl.subversion.RemotableSVNErrorMessage;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang.StringUtils;
 import org.tmatesoft.svn.core.SVNErrorCode;
@@ -470,21 +471,9 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
                 ByteArrayOutputStream bos = new ByteArrayOutputStream();
                 dst.store(bos, passwordChars);
                 certificateFile = bos.toByteArray();
-            } catch (KeyStoreException e) {
+            } catch (KeyStoreException | CertificateException | NoSuchAlgorithmException | IOException e) {
                 throw new RuntimeException(
-                        SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE, "Unable to save certificate").getFullMessage(),
-                                e);
-            } catch (CertificateException e) {
-                throw new RuntimeException(
-                        SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE, "Unable to save certificate").getFullMessage(),
-                                e);
-            } catch (NoSuchAlgorithmException e) {
-                throw new RuntimeException(
-                        SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE, "Unable to save certificate").getFullMessage(),
-                                e);
-            } catch (IOException e) {
-                throw new RuntimeException(
-                        SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE, "Unable to save certificate").getFullMessage(),
+                        new RemotableSVNErrorMessage(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE, "Unable to save certificate").getFullMessage(),
                                 e);
             } finally {
                 try {

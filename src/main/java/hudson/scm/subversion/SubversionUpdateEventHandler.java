@@ -27,6 +27,8 @@ import hudson.scm.SubversionEventHandlerImpl;
 import hudson.scm.SubversionSCM.External;
 import java.util.HashMap;
 import java.util.Map;
+
+import jenkins.scm.impl.subversion.RemotableSVNErrorMessage;
 import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNErrorCode;
 import org.tmatesoft.svn.core.SVNErrorMessage;
@@ -124,7 +126,7 @@ final class SubversionUpdateEventHandler extends SubversionEventHandlerImpl impl
                 try {
                     path = getLocalPath(getRelativePath(file));
                 } catch (IOException e) {
-                    throw new SVNException(SVNErrorMessage.create(SVNErrorCode.FS_GENERAL, e));
+                    throw new SVNException(new RemotableSVNErrorMessage(SVNErrorCode.FS_GENERAL, e));
                 }
 
                 out.println(Messages.SubversionUpdateEventHandler_FetchExternal(details.getUrl(), event.getRevision(), file));
@@ -139,7 +141,7 @@ final class SubversionUpdateEventHandler extends SubversionEventHandlerImpl impl
             }
 
             if (cancelProcessOnExternalsFailed) {
-              throw new SVNException(SVNErrorMessage.create(SVNErrorCode.CL_ERROR_PROCESSING_EXTERNALS,
+              throw new SVNException(new RemotableSVNErrorMessage(SVNErrorCode.CL_ERROR_PROCESSING_EXTERNALS,
                   SVNErrorCode.CL_ERROR_PROCESSING_EXTERNALS.getDescription() + ": <" + file.getName() + ">"));
             }
         }
