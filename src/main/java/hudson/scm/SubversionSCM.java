@@ -134,6 +134,7 @@ import java.util.regex.PatternSyntaxException;
 import javax.servlet.ServletException;
 import javax.xml.transform.stream.StreamResult;
 
+import jenkins.scm.impl.subversion.RemotableSVNErrorMessage;
 import net.sf.json.JSONObject;
 
 import org.acegisecurity.context.SecurityContext;
@@ -1907,8 +1908,8 @@ public class SubversionSCM extends SCM implements Serializable {
                     setFilePermissions(savedKeyFile, "600");
                 } catch (IOException e) {
                     throw new SVNException(
-                            SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,
-                                    "Unable to save private key") ,e);
+                            new RemotableSVNErrorMessage(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,
+                                    "Unable to save private key"), e);
                 }
             }
 
@@ -1967,13 +1968,9 @@ public class SubversionSCM extends SCM implements Serializable {
                             privateKey = FileUtils.readFileToString(getKeyFile(),"iso-8859-1");
                         }
                         return new SVNSSHAuthentication(userName, privateKey.toCharArray(), Scrambler.descramble(Secret.toString(passphrase)),-1,false);
-                    } catch (IOException e) {
+                    } catch (IOException | InterruptedException e) {
                         throw new SVNException(
-                                SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,
-                                        "Unable to load private key"), e);
-                    } catch (InterruptedException e) {
-                        throw new SVNException(
-                                SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,
+                                new RemotableSVNErrorMessage(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,
                                         "Unable to load private key"), e);
                     }
                 } else

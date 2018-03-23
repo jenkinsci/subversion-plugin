@@ -25,6 +25,7 @@ package hudson.scm.subversion;
 
 import hudson.Extension;
 import hudson.scm.SubversionSCM.ModuleLocation;
+import jenkins.scm.impl.subversion.RemotableSVNErrorMessage;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNErrorCode;
@@ -75,7 +76,7 @@ public class UpdateWithCleanUpdater extends WorkspaceUpdater {
                             else
                                 f.delete();
                         } catch (IOException e) {
-                            throw new SVNException(SVNErrorMessage.create(SVNErrorCode.UNKNOWN, e));
+                            throw new SVNException(new RemotableSVNErrorMessage(SVNErrorCode.UNKNOWN, e));
                         }
                     }
                 }

@@ -47,6 +47,7 @@ import hudson.slaves.DumbSlave;
 import hudson.triggers.SCMTrigger;
 import hudson.util.FormValidation;
 import hudson.util.StreamTaskListener;
+import jenkins.scm.impl.subversion.RemotableSVNErrorMessage;
 import org.dom4j.Document;
 import org.dom4j.io.DOMReader;
 import org.junit.Test;
@@ -1242,7 +1243,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         assertNotNull(a);
         attempted.add(a);
         for (int i=0; i<10; i++) {
-            m.acknowledgeAuthentication(false,kind,realm,SVNErrorMessage.create(SVNErrorCode.RA_NOT_AUTHORIZED),a);
+            m.acknowledgeAuthentication(false,kind,realm,new RemotableSVNErrorMessage(SVNErrorCode.RA_NOT_AUTHORIZED),a);
             try {
                 a = m.getNextAuthentication(kind,realm,repo);
                 assertNotNull(a);
