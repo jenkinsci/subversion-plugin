@@ -41,11 +41,7 @@ public class SubversionRepositoryStatusTest {
         final AbstractProject project = mock(AbstractProject.class);
         when(project.isDisabled()).thenReturn(true);
         
-        JobProvider jobProvider = new JobProvider() {
-            public List<Job> getAllJobs() {
-                return Collections.<Job>singletonList(project);
-            }
-        };
+        JobProvider jobProvider = () -> Collections.<Job>singletonList(project);
         
         listener.setJobProvider(jobProvider);
         

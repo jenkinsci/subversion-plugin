@@ -98,9 +98,7 @@ public class SimpleSVNDirEntryHandlerTest {
             handler.handleDirEntry(getEntry("2011-11-01", "trunk/b"));
             handler.handleDirEntry(getEntry("2011-10-01", "trunk/x"));
             handler.handleDirEntry(getEntry("2011-09-01", "trunk/c"));
-        } catch (ParseException e) {
-            Assert.fail(e.toString());
-        } catch (SVNException e) {
+        } catch (ParseException | SVNException e) {
             Assert.fail(e.toString());
         }
     }
