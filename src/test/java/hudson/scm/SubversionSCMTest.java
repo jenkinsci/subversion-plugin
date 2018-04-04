@@ -250,7 +250,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         m = new SubversionSCM.ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant@HEAD", null);
         r = m.getRevision(null);
         assertTrue(r.isValid());
-        assertTrue(r == SVNRevision.HEAD);
+        assertSame(r, SVNRevision.HEAD);
         assertEquals("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant", m.getURL());
 
         m = new SubversionSCM.ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant@FAKE", null);
@@ -500,7 +500,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
             throw new Exception("No revision found!");
         }
 
-        return revisionState.revisions.get(url).longValue();
+        return revisionState.revisions.get(url);
 
     }
     /**
@@ -836,7 +836,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         List<String> logsQuiet = bQuiet.getLog(LOG_LIMIT);
         //  This line in log should end with --quiet
         assertTrue(logsQuiet.get(4).endsWith("--quiet"));
-        assertTrue(logsQuiet.get(5).equals("At revision 1"));
+        assertEquals("At revision 1", logsQuiet.get(5));
 
         local.setQuietOperation(false);
         FreeStyleBuild bVerbose = r.assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserIdCause()).get());
@@ -844,7 +844,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         //  This line in log should NOT end with --quiet
         assertFalse(logsVerbose.get(4).endsWith("--quiet"));
         assertTrue(logsVerbose.get(5).endsWith("readme.txt"));
-        assertTrue(logsVerbose.get(6).equals("At revision 1"));
+        assertEquals("At revision 1", logsVerbose.get(6));
     }
     
     /**
