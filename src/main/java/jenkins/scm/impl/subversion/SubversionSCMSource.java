@@ -243,7 +243,6 @@ public class SubversionSCMSource extends SCMSource {
             List<String> prefix = Collections.emptyList();
             fetch(listener,
                     repository,
-                    -1,
                     repoPath,
                     toPaths(splitCludes(includes)),
                     prefix,
@@ -343,7 +342,6 @@ public class SubversionSCMSource extends SCMSource {
 
     void fetch(@NonNull TaskListener listener,
                @NonNull final SVNRepositoryView repository,
-               long rev,
                @NonNull final String repoPath,
                @NonNull SortedSet<List<String>> paths,
                @NonNull List<String> prefix,
@@ -356,8 +354,8 @@ public class SubversionSCMSource extends SCMSource {
         assert prefix.size() == realPath.size();
         assert wildcardStartsWith(realPath, prefix);
         SortedMap<List<String>, SortedSet<List<String>>> includePaths = groupPaths(paths, prefix);
-        listener.getLogger().println("Checking directory " + svnPath + (rev > -1 ? "@" + rev : "@HEAD"));
-        SVNRepositoryView.NodeEntry node = repository.getNode(svnPath, rev);
+        listener.getLogger().println("Checking directory " + svnPath + "@HEAD");
+        SVNRepositoryView.NodeEntry node = repository.getNode(svnPath, -1);
         if (!SVNNodeKind.DIR.equals(node.getType()) || node.getChildren() == null) {
             return;
         }
@@ -384,7 +382,7 @@ public class SubversionSCMSource extends SCMSource {
                             final long candidateRevision = svnEntry.getRevision();
                             final long lastModified = svnEntry.getLastModified();
                             listener.getLogger().println(
-                                    "Checking candidate branch " + candidateRootPath + "@" + candidateRevision);
+                                    "Checking candidate branch " + candidateRootPath + "@HEAD");
                             if (branchCriteria == null || branchCriteria.isHead(
                                     new SCMSourceCriteria.Probe() {
                                         @Override
@@ -402,15 +400,21 @@ public class SubversionSCMSource extends SCMSource {
                                             try {
                                                 return repository.checkPath(
                                                         SVNPathUtil.append(candidateRootPath, path),
-                                                        candidateRevision) != SVNNodeKind.NONE;
+                                                        -1) != SVNNodeKind.NONE;
                                             } catch (SVNException e) {
                                                 throw new IOException(e);
                                             }
                                         }
                                     }, listener)) {
                                 listener.getLogger().println("Met criteria");
+                                long branchRevision = candidateRevision;
+                                if (repository.checkPath(candidateRootPath, branchRevision) == SVNNodeKind.NONE)
+                                {
+                                    listener.getLogger().println("Branch older than root folder, using HEAD");
+                                    branchRevision = -1;
+                                }
                                 SCMHead head = new SCMHead(childPath);
-                                observer.observe(head, new SCMRevisionImpl(head, svnEntry.getRevision()));
+                                observer.observe(head, new SCMRevisionImpl(head, branchRevision));
                                 if (!observer.isObserving()) {
                                     return;
                                 }
@@ -418,8 +422,7 @@ public class SubversionSCMSource extends SCMSource {
                                 listener.getLogger().println("Does not meet criteria");
                             }
                         } else {
-                            fetch(listener, repository, svnEntry.getRevision(), repoPath, paths,
-                                    childPrefix,
+                            fetch(listener, repository, repoPath, paths, childPrefix,
                                     childRealPath, excludedPaths, branchCriteria, observer);
                         }
                     }
@@ -793,7 +796,7 @@ public class SubversionSCMSource extends SCMSource {
          * @return list box model.
          */
         @SuppressWarnings("unused") // by stapler
-        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath SCMSourceOwner context,
+        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
                                                      @QueryParameter String remoteBase,
                                                      @QueryParameter String credentialsId) {
             if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
@@ -822,7 +825,7 @@ public class SubversionSCMSource extends SCMSource {
          * validate the value for a remote (repository) location.
          */
         @RequirePOST
-        public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath SCMSourceOwner context, @QueryParameter String remoteBase, @QueryParameter String value) {
+        public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath Item context, @QueryParameter String remoteBase, @QueryParameter String value) {
             // TODO suspiciously similar to SubversionSCM.ModuleLocation.DescriptorImpl.checkCredentialsId; refactor into shared method?
             // Test the connection only if we may use the credentials
             if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
@@ -848,7 +851,7 @@ public class SubversionSCMSource extends SCMSource {
                                 .lookupCredentials(StandardCredentials.class, context, ACL.SYSTEM,
                                         URIRequirementBuilder.fromUri(repoURL.toString()).build()),
                                 CredentialsMatchers.withId(value));
-                if (checkRepositoryPath(context, repoURL, credentials)!=SVNNodeKind.NONE) {
+                if (checkRepositoryPath(repoURL, credentials)!=SVNNodeKind.NONE) {
                     // something exists; now check revision if any
 
                     SVNRevision revision = getRevisionFromRemoteUrl(url);
@@ -862,7 +865,7 @@ public class SubversionSCMSource extends SCMSource {
 
                 SVNRepository repository = null;
                 try {
-                    repository = getRepository(context, repoURL, credentials,
+                    repository = getRepository(repoURL, credentials,
                             Collections.<String, Credentials>emptyMap(), null);
                     long rev = repository.getLatestRevision();
                     // now go back the tree and find if there's anything that exists
@@ -908,11 +911,11 @@ public class SubversionSCMSource extends SCMSource {
                 return FormValidation.errorWithMarkup(message);
             }
         }
-        public SVNNodeKind checkRepositoryPath(SCMSourceOwner context, SVNURL repoURL, StandardCredentials credentials) throws SVNException {
+        public SVNNodeKind checkRepositoryPath(SVNURL repoURL, StandardCredentials credentials) throws SVNException {
             SVNRepository repository = null;
 
             try {
-                repository = getRepository(context,repoURL,credentials, Collections.<String, Credentials>emptyMap(), null);
+                repository = getRepository(repoURL,credentials, Collections.<String, Credentials>emptyMap(), null);
                 repository.testConnection();
 
                 long rev = repository.getLatestRevision();
@@ -937,7 +940,7 @@ public class SubversionSCMSource extends SCMSource {
             }
         }
 
-        protected SVNRepository getRepository(SCMSourceOwner context, SVNURL repoURL, StandardCredentials credentials,
+        protected SVNRepository getRepository(SVNURL repoURL, StandardCredentials credentials,
                                               Map<String, Credentials> additionalCredentials, ISVNSession session) throws SVNException {
             SVNRepository repository = SVNRepositoryFactory.create(repoURL, session);
 

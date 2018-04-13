@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2004-2009, Sun Microsystems, Inc.
+ * Copyright 2018 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,40 +21,33 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package hudson.scm;
+package jenkins.scm.impl.subversion;
 
-import hudson.Extension;
-import hudson.model.UnprotectedRootAction;
-
-import java.util.regex.Pattern;
-import java.util.UUID;
+import hudson.remoting.ProxyException;
+import org.tmatesoft.svn.core.SVNErrorCode;
+import org.tmatesoft.svn.core.SVNErrorMessage;
 
 /**
- * Receives the push notification of commits from repository.
- * Opened up for untrusted access.
- *
- * @author Kohsuke Kawaguchi
+ * Version of {@link SVNErrorMessage}, which can be serialized over the channel.
+ * This version does not serialize random {@link Object} instances.
+ * @author Oleg Nenashev
+ * @since TODO
  */
-@Extension
-public class SubversionStatus implements UnprotectedRootAction {
-    public String getDisplayName() {
-        return "Subversion";
+public class RemotableSVNErrorMessage extends SVNErrorMessage {
+
+    public RemotableSVNErrorMessage(SVNErrorCode code) {
+        super(code, null, null, null, 0);
     }
 
-    public String getIconFileName() {
-        // TODO
-        return null;
+    public RemotableSVNErrorMessage(SVNErrorCode code, String message) {
+        super(code, message, null, null, 0);
     }
 
-    public String getUrlName() {
-        return "subversion";
+    public RemotableSVNErrorMessage(SVNErrorCode code, Throwable cause) {
+        super(code, null, null, new ProxyException(cause), 0);
     }
 
-    public SubversionRepositoryStatus getDynamic(String uuid) {
-        if(UUID_PATTERN.matcher(uuid).matches())
-            return new SubversionRepositoryStatus(UUID.fromString(uuid));
-        return null;
+    public RemotableSVNErrorMessage(SVNErrorCode code, String message, Throwable cause) {
+        super(code, message, null, new ProxyException(cause), 0);
     }
-
-    private static final Pattern UUID_PATTERN = Pattern.compile("\\p{XDigit}{8}-\\p{XDigit}{4}-\\p{XDigit}{4}-\\p{XDigit}{4}-\\p{XDigit}{12}");
 }

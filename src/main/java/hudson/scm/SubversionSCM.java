@@ -134,6 +134,7 @@ import java.util.regex.PatternSyntaxException;
 import javax.servlet.ServletException;
 import javax.xml.transform.stream.StreamResult;
 
+import jenkins.scm.impl.subversion.RemotableSVNErrorMessage;
 import net.sf.json.JSONObject;
 
 import org.acegisecurity.context.SecurityContext;
@@ -415,7 +416,7 @@ public class SubversionSCM extends SCM implements Serializable {
      * Convenience constructor, especially during testing.
      */
     public SubversionSCM(String[] svnUrls, String[] credentialIds, String[] locals) {
-        this(ModuleLocation.parse(svnUrls, credentialIds, locals, null,null), true, false, null, null, null, null, null);
+        this(ModuleLocation.parse(svnUrls, credentialIds, locals, null,null,null), true, false, null, null, null, null, null);
     }
 
     /**
@@ -1907,8 +1908,8 @@ public class SubversionSCM extends SCM implements Serializable {
                     setFilePermissions(savedKeyFile, "600");
                 } catch (IOException e) {
                     throw new SVNException(
-                            SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,
-                                    "Unable to save private key") ,e);
+                            new RemotableSVNErrorMessage(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,
+                                    "Unable to save private key"), e);
                 }
             }
 
@@ -1967,13 +1968,9 @@ public class SubversionSCM extends SCM implements Serializable {
                             privateKey = FileUtils.readFileToString(getKeyFile(),"iso-8859-1");
                         }
                         return new SVNSSHAuthentication(userName, privateKey.toCharArray(), Scrambler.descramble(Secret.toString(passphrase)),-1,false);
-                    } catch (IOException e) {
+                    } catch (IOException | InterruptedException e) {
                         throw new SVNException(
-                                SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,
-                                        "Unable to load private key"), e);
-                    } catch (InterruptedException e) {
-                        throw new SVNException(
-                                SVNErrorMessage.create(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,
+                                new RemotableSVNErrorMessage(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,
                                         "Unable to load private key"), e);
                     }
                 } else
@@ -2710,6 +2707,12 @@ public class SubversionSCM extends SCM implements Serializable {
         public boolean ignoreExternalsOption;
 
         /**
+         * Flag to cancel the process when checkout/update svn:externals failed.
+         */
+        @Exported
+        public boolean cancelProcessOnExternalsFail;
+
+        /**
          * Cache of the repository UUID.
          */
         private transient volatile UUID repositoryUUID;
@@ -2720,7 +2723,7 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         @Deprecated
         public ModuleLocation(String remote, String local) {
-            this(remote, null, local, null, false);
+            this(remote, null, local, null, false, false);
         }
 
         /**
@@ -2735,36 +2738,50 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         @Deprecated
         public ModuleLocation(String remote, String local, String depthOption, boolean ignoreExternalsOption) {
-            this(remote,null,local,depthOption,ignoreExternalsOption);
+            this(remote,null,local,depthOption,ignoreExternalsOption, false);
+        }
+
+        /**
+         * Constructor to support backwards compatibility.
+         */
+        @Deprecated
+        public ModuleLocation(String remote, String credentialsId, String local, String depthOption, boolean ignoreExternalsOption) {
+          this(remote,credentialsId,local,depthOption,ignoreExternalsOption, false);
         }
 
         @DataBoundConstructor
-        public ModuleLocation(String remote, String credentialsId, String local, String depthOption, boolean ignoreExternalsOption) {
+        public ModuleLocation(String remote, String credentialsId, String local, String depthOption, boolean ignoreExternalsOption,
+                              boolean cancelProcessOnExternalsFail) {
             this.remote = Util.removeTrailingSlash(Util.fixNull(remote).trim());
             this.credentialsId = credentialsId;
             this.local = fixEmptyAndTrim(local);
             this.depthOption = StringUtils.isEmpty(depthOption) ? SVNDepth.INFINITY.getName() : depthOption;
             this.ignoreExternalsOption = ignoreExternalsOption;
+            this.cancelProcessOnExternalsFail = cancelProcessOnExternalsFail;
         }
 
         public ModuleLocation withRemote(String remote) {
-            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption);
+            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption, cancelProcessOnExternalsFail);
         }
 
         public ModuleLocation withCredentialsId(String credentialsId) {
-            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption);
+            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption, cancelProcessOnExternalsFail);
         }
 
         public ModuleLocation withLocal(String local) {
-            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption);
+            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption, cancelProcessOnExternalsFail);
         }
 
         public ModuleLocation withDepthOption(String depthOption) {
-            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption);
+            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption, cancelProcessOnExternalsFail);
         }
 
         public ModuleLocation withIgnoreExternalsOption(boolean ignoreExternalsOption) {
-            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption);
+            return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption, cancelProcessOnExternalsFail);
+        }
+
+        public ModuleLocation withCancelProcessOnExternalsFailed(boolean cancelProcessOnExternalsFailed) {
+          return new ModuleLocation(remote, credentialsId, local, depthOption, ignoreExternalsOption, cancelProcessOnExternalsFailed);
         }
 
         /**
@@ -2929,12 +2946,74 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         /**
+         * Returns {@link org.tmatesoft.svn.core.SVNDepth} by string value.
+         *
+         * @return {@link org.tmatesoft.svn.core.SVNDepth} value.
+         */
+        private static SVNDepth getSvnDepth(String name) {
+            return SVNDepth.fromString(name);
+        }
+
+        /**
+         * Returns the SVNDepth to use for updating the module.
+         *
+         * This is just mapping the depthOption to an SVN Depth
+         *
+         * @return {@link org.tmatesoft.svn.core.SVNDepth} value.
+         */
+        public SVNDepth getSvnDepthForUpdate() {
+            return getSvnDepth(getDepthOption());
+        }
+
+        /**
+         * Returns the SVNDepth to use for checking out the module.
+         *
+         * This is normally the requested SVN depth except when the user
+         * has requested as-it-is and then we use files so that we don't check
+         * everything out.
+         *
+         * @return {@link org.tmatesoft.svn.core.SVNDepth} value.
+         */
+        public SVNDepth getSvnDepthForCheckout() {
+            if(getDepthOption().equals("unknown")) {
+                return SVNDepth.FILES;
+            } else {
+                return getSvnDepth(getDepthOption());
+            }
+        }
+
+        /**
+         * Returns the SVNDepth to use for reverting the module if svn up with revert before is selected
+         *
+         * This is normally the requested SVN depth except when the user
+         * has requested as-it-is and then we use infinity to actually revert everything
+         *
+         * @return {@link org.tmatesoft.svn.core.SVNDepth} value.
+         */
+        public SVNDepth getSvnDepthForRevert() {
+            if(getDepthOption().equals("unknown")) {
+                return SVNDepth.INFINITY;
+            } else {
+                return getSvnDepth(getDepthOption());
+            }
+        }
+
+        /**
          * Determines if subversion externals definitions should be ignored.
          *
          * @return true if subversion externals definitions should be ignored.
          */
         public boolean isIgnoreExternalsOption() {
             return ignoreExternalsOption;
+        }
+
+        /**
+         * Determines if the process should be cancelled when checkout/update svn:externals failed.
+         *
+         * @return true if the process should be cancelled when checkout/update svn:externals failed.
+         */
+        public boolean isCancelProcessOnExternalsFail() {
+          return cancelProcessOnExternalsFail;
         }
 
         /**
@@ -2958,7 +3037,7 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         public ModuleLocation getExpandedLocation(EnvVars env) {
             return new ModuleLocation(env.expand(remote), credentialsId, env.expand(getLocalDir()), getDepthOption(),
-                    isIgnoreExternalsOption());
+                    isIgnoreExternalsOption(), isCancelProcessOnExternalsFail());
         }
 
         @Override
@@ -2970,12 +3049,17 @@ public class SubversionSCM extends SCM implements Serializable {
 
         @Deprecated
         public static List<ModuleLocation> parse(String[] remoteLocations, String[] localLocations, String[] depthOptions, boolean[] isIgnoreExternals) {
-            return parse(remoteLocations, null, localLocations, depthOptions, isIgnoreExternals);
+            return parse(remoteLocations, null, localLocations, depthOptions, isIgnoreExternals, null);
+        }
+
+        @Deprecated
+        public static List<ModuleLocation> parse(String[] remoteLocations, String[] credentialIds, String[] localLocations, String[] depthOptions, boolean[] isIgnoreExternals) {
+          return parse(remoteLocations, credentialIds, localLocations, depthOptions, isIgnoreExternals, null);
         }
 
         public static List<ModuleLocation> parse(String[] remoteLocations, String[] credentialIds,
                                                  String[] localLocations, String[] depthOptions,
-                                                 boolean[] isIgnoreExternals) {
+                                                 boolean[] isIgnoreExternals, boolean[] cancelProcessOnExternalsFails) {
             List<ModuleLocation> modules = new ArrayList<ModuleLocation>();
             if (remoteLocations != null && localLocations != null) {
                 int entries = Math.min(remoteLocations.length, localLocations.length);
@@ -2990,7 +3074,8 @@ public class SubversionSCM extends SCM implements Serializable {
                                 credentialIds != null && credentialIds.length > i ? credentialIds[i] : null,
                                 Util.nullify(localLocations[i]),
                             depthOptions != null ? depthOptions[i] : null,
-                            isIgnoreExternals != null && isIgnoreExternals[i]));
+                            isIgnoreExternals != null && isIgnoreExternals[i],
+                            cancelProcessOnExternalsFails != null && cancelProcessOnExternalsFails[i]));
                     }
                 }
             }
@@ -3024,7 +3109,8 @@ public class SubversionSCM extends SCM implements Serializable {
                 }
             }
 
-            return new ModuleLocation(returnURL, credentialsId, getLocalDir(), getDepthOption(), isIgnoreExternalsOption());
+            return new ModuleLocation(returnURL, credentialsId, getLocalDir(), getDepthOption(), isIgnoreExternalsOption(),
+                isCancelProcessOnExternalsFail());
         }
 
         @Extension

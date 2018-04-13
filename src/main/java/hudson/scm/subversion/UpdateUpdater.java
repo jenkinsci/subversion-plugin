@@ -140,7 +140,8 @@ public class UpdateUpdater extends WorkspaceUpdater {
             try {
                 File local = new File(ws, location.getLocalDir());
                 SubversionUpdateEventHandler eventHandler = new SubversionUpdateEventHandler(
-                    listener.getLogger(), externals, local, location.getLocalDir(), quietOperation);
+                    listener.getLogger(), externals, local, location.getLocalDir(), quietOperation,
+                    location.isCancelProcessOnExternalsFail());
                 svnuc.setEventHandler(eventHandler);
                 svnuc.setExternalsHandler(eventHandler);
 
@@ -151,7 +152,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
                 
                 svnuc.setIgnoreExternals(location.isIgnoreExternalsOption());
                 preUpdate(location, local);
-                SVNDepth svnDepth = getSvnDepth(location.getDepthOption());
+                SVNDepth svnDepth = location.getSvnDepthForUpdate();
                 
                 switch (svnCommand) {
                     case UPDATE:

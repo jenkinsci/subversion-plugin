@@ -95,11 +95,12 @@ public class CheckoutUpdater extends WorkspaceUpdater {
 
                     File local = new File(ws, location.getLocalDir());
                     SubversionUpdateEventHandler eventHandler = new SubversionUpdateEventHandler(
-                        new PrintStream(pos), externals, local, location.getLocalDir(), quietOperation);
+                        new PrintStream(pos), externals, local, location.getLocalDir(), quietOperation,
+                        location.isCancelProcessOnExternalsFail());
                     svnuc.setEventHandler(eventHandler);
                     svnuc.setExternalsHandler(eventHandler);
                     svnuc.setIgnoreExternals(location.isIgnoreExternalsOption());
-                    SVNDepth svnDepth = getSvnDepth(location.getDepthOption());
+                    SVNDepth svnDepth = location.getSvnDepthForCheckout();
                     SvnCheckout checkout = svnuc.getOperationsFactory().createCheckout();
                     checkout.setSource(SvnTarget.fromURL(location.getSVNURL(), SVNRevision.HEAD));
                     checkout.setSingleTarget(SvnTarget.fromFile(local.getCanonicalFile()));

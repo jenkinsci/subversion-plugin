@@ -27,6 +27,8 @@ import hudson.scm.SubversionEventHandlerImpl;
 import hudson.scm.SubversionSCM.External;
 import java.util.HashMap;
 import java.util.Map;
+
+import jenkins.scm.impl.subversion.RemotableSVNErrorMessage;
 import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNErrorCode;
 import org.tmatesoft.svn.core.SVNErrorMessage;
@@ -64,22 +66,37 @@ final class SubversionUpdateEventHandler extends SubversionEventHandlerImpl impl
     private final String modulePath;
 
     /**
-     * @deprecated Use {@link #SubversionUpdateEventHandler(PrintStream, List, File, String, boolean)}
+     * Flag to cancel the process when checkout/update svn:externals failed.
+     */
+    private final boolean cancelProcessOnExternalsFailed;
+
+    /**
+     * @deprecated Use {@link #SubversionUpdateEventHandler(PrintStream, List, File, String, boolean, boolean)}
      */
     @Deprecated
     public SubversionUpdateEventHandler(PrintStream out, List<External> externals, File moduleDir,
                                         String modulePath) {
-        this(out, externals, moduleDir, modulePath, false);
+        this(out, externals, moduleDir, modulePath, false, false);
+    }
+
+    /**
+     * @deprecated Use {@link #SubversionUpdateEventHandler(PrintStream, List, File, String, boolean, boolean)}
+     */
+    @Deprecated
+    public SubversionUpdateEventHandler(PrintStream out, List<External> externals, File moduleDir,
+                                        String modulePath, boolean quietOperation) {
+      this(out, externals, moduleDir, modulePath, quietOperation, false);
     }
 
     /**
      * @since 2.10
      */
     public SubversionUpdateEventHandler(PrintStream out, List<External> externals, File moduleDir,
-                                        String modulePath, boolean quietOperation) {
+                                        String modulePath, boolean quietOperation, boolean cancelProcessOnExternalsFailed) {
         super(out, moduleDir, quietOperation);
         this.externals = externals;
         this.modulePath = modulePath;
+        this.cancelProcessOnExternalsFailed = cancelProcessOnExternalsFailed;
     }
 
     public SVNRevision[] handleExternal(File externalPath, SVNURL externalURL, SVNRevision externalRevision,
@@ -93,6 +110,7 @@ final class SubversionUpdateEventHandler extends SubversionEventHandlerImpl impl
         }
         SVNExternalDetails details = new SVNExternalDetails(externalURL, revisionNumber);
 
+        out.println("\n<-- Got one external: " + externalPath.getName() + ", svn url: " + details.getUrl() + " -->");
         externalDetails.put(externalPath, details);
         return new SVNRevision[] {externalRevision, externalPegRevision};
     }
@@ -108,11 +126,23 @@ final class SubversionUpdateEventHandler extends SubversionEventHandlerImpl impl
                 try {
                     path = getLocalPath(getRelativePath(file));
                 } catch (IOException e) {
-                    throw new SVNException(SVNErrorMessage.create(SVNErrorCode.FS_GENERAL, e));
+                    throw new SVNException(new RemotableSVNErrorMessage(SVNErrorCode.FS_GENERAL, e));
                 }
 
                 out.println(Messages.SubversionUpdateEventHandler_FetchExternal(details.getUrl(), event.getRevision(), file));
                 externals.add(new External(modulePath + '/' + path, details.getUrl(), details.getRevision()));
+            }
+        } else if (action == SVNEventAction.FAILED_EXTERNAL) {
+            File file = event.getFile();
+            SVNExternalDetails details = externalDetails.get(file);
+            if (details != null) {
+              out.println(Messages.SubversionUpdateEventHandler_FetchExternal(details.getUrl(), event.getRevision(), file)
+                  + " failed!");
+            }
+
+            if (cancelProcessOnExternalsFailed) {
+              throw new SVNException(new RemotableSVNErrorMessage(SVNErrorCode.CL_ERROR_PROCESSING_EXTERNALS,
+                  SVNErrorCode.CL_ERROR_PROCESSING_EXTERNALS.getDescription() + ": <" + file.getName() + ">"));
             }
         }
 
