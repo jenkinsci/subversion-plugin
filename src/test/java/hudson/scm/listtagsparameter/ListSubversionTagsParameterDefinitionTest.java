@@ -86,12 +86,7 @@ public class ListSubversionTagsParameterDefinitionTest {
         System.out.println("Repository contents:");
         SVNURL repoURL = SVNURL.parseURIEncoded( "svn://localhost/");
         SVNLogClient logClient = new SVNLogClient((ISVNAuthenticationManager)null, null);
-        logClient.doList(repoURL, SVNRevision.HEAD, SVNRevision.HEAD, false, true, new ISVNDirEntryHandler() {
-            @Override
-            public void handleDirEntry(SVNDirEntry dirEntry) throws SVNException {
-                System.out.println(dirEntry.getRelativePath());
-            }
-        });
+        logClient.doList(repoURL, SVNRevision.HEAD, SVNRevision.HEAD, false, true, dirEntry -> System.out.println(dirEntry.getRelativePath()));
     }
 
     @Issue("SECURITY-303")

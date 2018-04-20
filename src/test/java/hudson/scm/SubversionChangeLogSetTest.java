@@ -43,7 +43,7 @@ public class SubversionChangeLogSetTest {
     @Test
     public void testRemoveDuplicateEntries() throws Exception{
         //One duplicated entry. 7 unique, 8 total entries.
-        List<SubversionChangeLogSet.LogEntry> items = new ArrayList<SubversionChangeLogSet.LogEntry>();
+        List<SubversionChangeLogSet.LogEntry> items = new ArrayList<>();
         items.add(buildChangeLogEntry(1, "Test msg"));
         items.add(buildChangeLogEntry(2, "Test msg"));
         items.add(buildChangeLogEntry(1, "Test msg"));
@@ -57,7 +57,7 @@ public class SubversionChangeLogSetTest {
         Assert.assertEquals(resultItems.size(), 7);
 
         //No duplicated entries. Total 7
-        items = new ArrayList<SubversionChangeLogSet.LogEntry>();
+        items = new ArrayList<>();
         items.add(buildChangeLogEntry(1, "Test msg"));
         items.add(buildChangeLogEntry(2, "Test msg"));
         items.add(buildChangeLogEntry(3, "Test msg"));

@@ -59,15 +59,15 @@ public class SubversionSCMSourceTest {
     @Test
     public void splitCludes() throws Exception {
         assertThat(SubversionSCMSource.splitCludes("trunk"),
-                is((SortedSet) new TreeSet<String>(Arrays.asList("trunk"))));
+                is((SortedSet) new TreeSet<>(Arrays.asList("trunk"))));
         assertThat(SubversionSCMSource.splitCludes("trunk,branches/*"),
-                is((SortedSet) new TreeSet<String>(Arrays.asList("trunk", "branches/*"))));
+                is((SortedSet) new TreeSet<>(Arrays.asList("trunk", "branches/*"))));
         assertThat(SubversionSCMSource.splitCludes("trunk, branches/*"),
-                is((SortedSet) new TreeSet<String>(Arrays.asList("trunk", "branches/*"))));
+                is((SortedSet) new TreeSet<>(Arrays.asList("trunk", "branches/*"))));
         assertThat(SubversionSCMSource.splitCludes("trunk , , branches/*"),
-                is((SortedSet) new TreeSet<String>(Arrays.asList("trunk", "branches/*"))));
+                is((SortedSet) new TreeSet<>(Arrays.asList("trunk", "branches/*"))));
         assertThat(SubversionSCMSource.splitCludes("trunk , , branches/*   , tags/* "),
-                is((SortedSet) new TreeSet<String>(Arrays.asList("trunk", "branches/*", "tags/*"))));
+                is((SortedSet) new TreeSet<>(Arrays.asList("trunk", "branches/*", "tags/*"))));
     }
 
     private static List<String> list(String... values) {
@@ -75,10 +75,8 @@ public class SubversionSCMSourceTest {
     }
 
     private static SortedSet<List<String>> pathSet(List<String>... paths) {
-        SortedSet<List<String>> result = new TreeSet<List<String>>(new SubversionSCMSource.StringListComparator());
-        for (List<String> path : paths) {
-            result.add(path);
-        }
+        SortedSet<List<String>> result = new TreeSet<>(new SubversionSCMSource.StringListComparator());
+        result.addAll(Arrays.asList(paths));
         return result;
     }
 

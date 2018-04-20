@@ -41,12 +41,10 @@ public class DefaultSVNLogFilterTest extends AbstractSubversionTest {
     }
     
     private List<SVNLogEntry> doFilter(final SVNLogFilter logFilter) throws SVNException {
-        final List<SVNLogEntry> log = new ArrayList<SVNLogEntry>();
-        ISVNLogEntryHandler logGatherer = new ISVNLogEntryHandler() {
-            public void handleLogEntry(SVNLogEntry logEntry) throws SVNException {
-                if (logFilter.isIncluded(logEntry)) {
-                    log.add(logEntry);
-                }
+        final List<SVNLogEntry> log = new ArrayList<>();
+        ISVNLogEntryHandler logGatherer = logEntry -> {
+            if (logFilter.isIncluded(logEntry)) {
+                log.add(logEntry);
             }
         };
         svnRepo.log(empty, 1, 5, true, false, logGatherer);
@@ -54,7 +52,7 @@ public class DefaultSVNLogFilterTest extends AbstractSubversionTest {
     }
     
     private static Pattern [] compile(String ... regexes) {
-        List<Pattern> patterns = new ArrayList<Pattern>();
+        List<Pattern> patterns = new ArrayList<>();
         for (String re : regexes) {
             patterns.add(Pattern.compile(re));
         }
@@ -120,7 +118,7 @@ public class DefaultSVNLogFilterTest extends AbstractSubversionTest {
     
     @Test
     public void excludedUsers() throws Exception {
-        Set<String> users = new HashSet<String>();
+        Set<String> users = new HashSet<>();
         users.add("brent");
         DefaultSVNLogFilter filter = new DefaultSVNLogFilter(noPatterns, noPatterns, users, null, noPatterns, false);
         
@@ -172,7 +170,7 @@ public class DefaultSVNLogFilterTest extends AbstractSubversionTest {
         SVNProperties p = new SVNProperties();
         p.put("ignoreme", "*");
 
-        Map<String, SVNLogEntryPath> paths = new HashMap<String, SVNLogEntryPath>();
+        Map<String, SVNLogEntryPath> paths = new HashMap<>();
         paths.put("/foo", new SVNLogEntryPath("/foo", SVNLogEntryPath.TYPE_MODIFIED, null, -1));
         SVNLogEntry e = new SVNLogEntry(paths, 1234L, p, false);
 
