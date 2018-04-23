@@ -269,10 +269,6 @@ THE SOFTWARE.
           <groupId>org.jenkins-ci.plugins.workflow</groupId>
           <artifactId>workflow-step-api</artifactId>
         </exclusion>
-        <exclusion>
-          <groupId>org.jenkins-ci.plugins</groupId>
-          <artifactId>script-security</artifactId>
-      </exclusion>
       </exclusions>
     </dependency>
     <dependency>
