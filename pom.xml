@@ -135,7 +135,7 @@ THE SOFTWARE.
   </scm>
 
   <properties>
-    <jenkins.version>2.54</jenkins.version>
+    <jenkins.version>2.60.3</jenkins.version>
     <java.level>8</java.level>
     <no-test-jar>false</no-test-jar>
     <workflow.version>1.14.2</workflow.version>
