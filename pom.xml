@@ -135,7 +135,7 @@ THE SOFTWARE.
   </scm>
 
   <properties>
-    <jenkins.version>2.60</jenkins.version>
+    <jenkins.version>2.60.3</jenkins.version>
     <java.level>8</java.level>
     <no-test-jar>false</no-test-jar>
     <workflow-scm-step.version>2.3</workflow-scm-step.version>
@@ -161,12 +161,12 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.tmatesoft.svnkit</groupId>
       <artifactId>svnkit</artifactId>
-      <version>1.9.1</version>
+      <version>1.9.2</version>
     </dependency>
     <dependency>
       <groupId>org.tmatesoft.svnkit</groupId>
       <artifactId>svnkit-cli</artifactId>
-      <version>1.9.1</version>
+      <version>1.9.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
