@@ -116,4 +116,51 @@ public class SubversionStepTest {
         assertFalse(iterator.hasNext());
     }
 
+
+    @Test
+    public void checkoutDepthAsItIsInfiniteTest() throws Exception {
+        checkoutDepthTest("as-it-is-infinity");
+    }
+
+    @Test
+    public void checkoutDepthFilesTest() throws Exception {
+        checkoutDepthTest("files");
+    }
+
+    @Test
+    public void checkoutDepthUnknownTest() throws Exception {
+        checkoutDepthTest("unknown");
+    }
+
+    @Test
+    public void checkoutDepthEmptyTest() throws Exception {
+        checkoutDepthTest("empty");
+    }
+
+    @Test
+    public void checkoutDepthImmediatesTest() throws Exception {
+        checkoutDepthTest("immediates");
+    }
+
+    @Test
+    public void checkoutDepthInfinityTest() throws Exception {
+        checkoutDepthTest("infinity");
+    }
+
+    private void checkoutDepthTest(String depth) throws Exception {
+        sampleRepo.init();
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "checkoutAsItIsInfinite");
+        p.addTrigger(new SCMTrigger(""));
+        p.setQuietPeriod(3); // so it only does one build
+        p.setDefinition(new CpsFlowDefinition(
+                "node(){\n"
+                + "    ws {\n"
+                + "       dir('main'){\n"
+                + "           checkout([$class: 'SubversionSCM', locations: [[ depthOption: '" + depth + "', remote: '"
+                + sampleRepo.trunkUrl() + "']]])\n"
+                + "       } \n"
+                + "    }\n"
+                + "}"));
+        WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+    }
 }
