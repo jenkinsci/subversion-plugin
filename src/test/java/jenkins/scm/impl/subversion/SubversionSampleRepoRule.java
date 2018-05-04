@@ -118,7 +118,7 @@ public final class SubversionSampleRepoRule extends AbstractSampleRepoRule {
     @Deprecated
     public void svn(String... cmds) throws Exception {
         checkForSvnCLI();
-        List<String> args = new ArrayList<String>();
+        List<String> args = new ArrayList<>();
         args.add("svn");
         args.addAll(Arrays.asList(cmds));
         run(false, wc, args.toArray(new String[args.size()]));

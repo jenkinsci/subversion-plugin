@@ -8,7 +8,7 @@ import org.junit.Test;
 
 public class SubversionSCMChangeLogEntryTest {
   
-  private SubversionChangeLogSet.LogEntry entry = SubversionChangeLogUtil.buildChangeLogEntry(99, "Dummy");;
+  private SubversionChangeLogSet.LogEntry entry = SubversionChangeLogUtil.buildChangeLogEntry(99, "Dummy");
 
   @Test
   public void testRemoveIgnoredDirPropChangesNotRemoving() throws Exception {
