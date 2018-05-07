@@ -161,6 +161,7 @@ public class SubversionStepTest {
                 + "       } \n"
                 + "    }\n"
                 + "}"));
+        r.waitUntilNoActivity();
         WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
     }
 }
