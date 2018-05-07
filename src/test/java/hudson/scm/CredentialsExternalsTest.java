@@ -128,7 +128,7 @@ public class CredentialsExternalsTest {
                 b = r.buildAndAssertSuccess(p);
                 assertEquals("mainrev", b.getWorkspace().child("file").readToString());
                 assertEquals("extrev", b.getWorkspace().child("ext/file").readToString());
-                Set<String> messages = new TreeSet<String>();
+                Set<String> messages = new TreeSet<>();
                 for (ChangeLogSet.Entry entry : b.getChangeSet()) {
                     messages.add(entry.getMsg());
                 }

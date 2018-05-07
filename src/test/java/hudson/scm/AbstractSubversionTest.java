@@ -72,11 +72,8 @@ public abstract class AbstractSubversionTest {
 
     public static Proc runSvnServe(TemporaryFolder tmp, URL zip) throws Exception {
         File target = tmp.newFolder();
-        InputStream is = zip.openStream();
-        try {
+        try (InputStream is = zip.openStream()) {
             new FilePath(target).unzipFrom(is);
-        } finally {
-            is.close();
         }
         return runSvnServe(target);
     }
@@ -91,23 +88,17 @@ public abstract class AbstractSubversionTest {
 
         // If there is an already existing svnserve running on the machine
         // We need to fail the build. We could change this to if the port is in use, listen to different port
-        Socket s = null;
         ServerSocket serverSocket = null;
         int port = 3690; // Default svnserve port is 3690.
-        try {
-          s = new Socket("localhost", 3690);
-          // If it gets this far, that means that it is able to send/receive information.
-          // Since the default svnserve port is currently in use, fail the build.
-          System.err.println("Port 3690 is currently in use. Using a random port.");
-          serverSocket = new ServerSocket(0);
-          port = serverSocket.getLocalPort();
-          serverSocket.close();
+        try (Socket s = new Socket("localhost", 3690)) {
+            // If it gets this far, that means that it is able to send/receive information.
+            // Since the default svnserve port is currently in use, fail the build.
+            System.err.println("Port 3690 is currently in use. Using a random port.");
+            serverSocket = new ServerSocket(0);
+            port = serverSocket.getLocalPort();
+            serverSocket.close();
         } catch (IOException e) {
-          // Port is not in use
-        } finally {
-          if (s != null) {
-            s.close();
-          }
+            // Port is not in use
         }
 
         return launcher.launch().cmds(

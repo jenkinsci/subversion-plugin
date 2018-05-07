@@ -114,11 +114,9 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         r.assertBuildStatus(Result.SUCCESS,b);
 
         final SubversionTagAction action = b.getAction(SubversionTagAction.class);
-        r.executeOnServer(new Callable<Object>() {
-            public Object call() throws Exception {
-                assertFalse("Shouldn't be accessible to anonymous user",b.hasPermission(action.getPermission()));
-                return null;
-            }
+        r.executeOnServer(() -> {
+            assertFalse("Shouldn't be accessible to anonymous user",b.hasPermission(action.getPermission()));
+            return null;
         });
 
         JenkinsRule.WebClient wc = r.createWebClient();
@@ -250,7 +248,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         m = new SubversionSCM.ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant@HEAD", null);
         r = m.getRevision(null);
         assertTrue(r.isValid());
-        assertTrue(r == SVNRevision.HEAD);
+        assertSame(r, SVNRevision.HEAD);
         assertEquals("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant", m.getURL());
 
         m = new SubversionSCM.ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/trivial-ant@FAKE", null);
@@ -500,7 +498,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
             throw new Exception("No revision found!");
         }
 
-        return revisionState.revisions.get(url).longValue();
+        return revisionState.revisions.get(url);
 
     }
     /**
@@ -702,7 +700,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     public void checkEmptyRemoteRemoved() throws Exception {
         FreeStyleProject p = r.createFreeStyleProject();
 
-        List<ModuleLocation> locs = new ArrayList<ModuleLocation>();
+        List<ModuleLocation> locs = new ArrayList<>();
         locs.add(new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusion", "c"));
         locs.add(new ModuleLocation("", "d"));
         locs.add(new ModuleLocation("    ", "e"));
@@ -836,7 +834,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         List<String> logsQuiet = bQuiet.getLog(LOG_LIMIT);
         //  This line in log should end with --quiet
         assertTrue(logsQuiet.get(4).endsWith("--quiet"));
-        assertTrue(logsQuiet.get(5).equals("At revision 1"));
+        assertEquals("At revision 1", logsQuiet.get(5));
 
         local.setQuietOperation(false);
         FreeStyleBuild bVerbose = r.assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserIdCause()).get());
@@ -844,7 +842,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         //  This line in log should NOT end with --quiet
         assertFalse(logsVerbose.get(4).endsWith("--quiet"));
         assertTrue(logsVerbose.get(5).endsWith("readme.txt"));
-        assertTrue(logsVerbose.get(6).equals("At revision 1"));
+        assertEquals("At revision 1", logsVerbose.get(6));
     }
     
     /**
@@ -995,7 +993,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
           }
 
           boolean result = ignored && included;
-          assertTrue("Changelog included or excluded entries it shouldn't have.", shouldFilterLog? result : !result);
+        assertEquals("Changelog included or excluded entries it shouldn't have.", shouldFilterLog, result);
     }
     
     /**
@@ -1137,7 +1135,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         FreeStyleBuild b = r.assertBuildStatusSuccess(forCommit.scheduleBuild2(0).get());
         SvnClientManager svnm = SubversionSCM.createClientManager((AbstractProject)null);
 
-        List<File> added = new ArrayList<File>();
+        List<File> added = new ArrayList<>();
         for (String path : paths) {
             FilePath newFile = b.getWorkspace().child(path);
             added.add(new File(newFile.getRemote()));
@@ -1238,7 +1236,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         r.jenkins.getDescriptorByType(SubversionSCM.DescriptorImpl.class).postCredential(null,repo.toDecodedString(),"guest","",null,new PrintWriter(System.out));
 
         // emulate the call flow where the credential fails
-        List<SVNAuthentication> attempted = new ArrayList<SVNAuthentication>();
+        List<SVNAuthentication> attempted = new ArrayList<>();
         SVNAuthentication a = m.getFirstAuthentication(kind, realm, repo);
         assertNotNull(a);
         attempted.add(a);
