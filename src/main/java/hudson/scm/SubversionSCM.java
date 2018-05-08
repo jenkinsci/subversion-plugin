@@ -2975,8 +2975,10 @@ public class SubversionSCM extends SCM implements Serializable {
          * @return {@link org.tmatesoft.svn.core.SVNDepth} value.
          */
         public SVNDepth getSvnDepthForCheckout() {
-            if(getDepthOption().equals("unknown")) {
+            if("unknown".equals(getDepthOption())) {
                 return SVNDepth.FILES;
+            } else if ("as-it-is-infinity".equals(getDepthOption())){
+                return SVNDepth.INFINITY;
             } else {
                 return getSvnDepth(getDepthOption());
             }
@@ -2991,9 +2993,9 @@ public class SubversionSCM extends SCM implements Serializable {
          * @return {@link org.tmatesoft.svn.core.SVNDepth} value.
          */
         public SVNDepth getSvnDepthForRevert() {
-            if(getDepthOption().equals("unknown")) {
+            if("unknown".equals(getDepthOption()) || "as-it-is-infinity".equals(getDepthOption())){
                 return SVNDepth.INFINITY;
-            } else {
+            }else {
                 return getSvnDepth(getDepthOption());
             }
         }
