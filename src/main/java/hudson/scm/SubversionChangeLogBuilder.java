@@ -101,7 +101,7 @@ public final class SubversionChangeLogBuilder {
         this.env = env;
     }
 
-    public boolean run(Map<String, List<SubversionSCM.External>> externalsMap, Result changeLog) throws IOException, InterruptedException {
+    public boolean run(@Nonnull Map<String, List<SubversionSCM.External>> externalsMap, Result changeLog) throws IOException, InterruptedException {
         boolean changelogFileCreated = false;
 
         TransformerHandler th = createTransformerHandler();
