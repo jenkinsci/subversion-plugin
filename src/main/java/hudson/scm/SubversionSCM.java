@@ -709,6 +709,7 @@ public class SubversionSCM extends SCM implements Serializable {
         try {
             Map<String,Long> revisions = parseSvnRevisionFile(build);
             Set<String> knownURLs = revisions.keySet();
+	    Long revHighest = new Long(0);
             if(svnLocations.length==1) {
                 // for backwards compatibility if there's only a single modulelocation, we also set
                 // SVN_REVISION and SVN_URL without '_n'
@@ -717,6 +718,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 if(rev!=null) {
                     env.put("SVN_REVISION",rev.toString());
                     env.put("SVN_URL",url);
+		    revHighest = rev;
                 } else if (!knownURLs.isEmpty()) {
                     LOGGER.log(WARNING, "no revision found corresponding to {0}; known: {1}", new Object[] {url, knownURLs});
                 }
@@ -728,10 +730,14 @@ public class SubversionSCM extends SCM implements Serializable {
                 if(rev!=null) {
                     env.put("SVN_REVISION_"+(i+1),rev.toString());
                     env.put("SVN_URL_"+(i+1),url);
+		    if (rev > revHighest) {
+			revHighest = rev;
+		    }
                 } else if (!knownURLs.isEmpty()) {
                     LOGGER.log(WARNING, "no revision found corresponding to {0}; known: {1}", new Object[] {url, knownURLs});
                 }
             }
+	    env.put("SVN_REVISION_HIGHEST", revHighest.toString());
 
         } catch (IOException e) {
             LOGGER.log(WARNING, "error building environment variables", e);
