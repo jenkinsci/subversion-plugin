@@ -231,7 +231,8 @@ public class SubversionSCMSource extends SCMSource {
     protected void retrieve(@CheckForNull SCMSourceCriteria criteria,
                             @NonNull final SCMHeadObserver observer,
                             @CheckForNull SCMHeadEvent<?> event,
-                            @NonNull TaskListener listener) throws IOException, InterruptedException {
+                            @NonNull TaskListener listener) 
+                            throws IOException, InterruptedException {
         SVNRepositoryView repository = null;
         try {
             listener.getLogger().println("Opening conection to " + remoteBase);
