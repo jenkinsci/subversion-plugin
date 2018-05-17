@@ -231,8 +231,8 @@ public class SubversionSCMSource extends SCMSource {
     protected void retrieve(@CheckForNull SCMSourceCriteria criteria,
                             @NonNull final SCMHeadObserver observer,
                             @CheckForNull SCMHeadEvent<?> event,
-                            @NonNull TaskListener listener)
-            throws IOException {
+                            @NonNull TaskListener listener) 
+                            throws IOException, InterruptedException {
         SVNRepositoryView repository = null;
         try {
             listener.getLogger().println("Opening conection to " + remoteBase);
@@ -348,8 +348,7 @@ public class SubversionSCMSource extends SCMSource {
                @NonNull List<String> realPath,
                @NonNull SortedSet<List<String>> excludedPaths,
                @CheckForNull SCMSourceCriteria branchCriteria,
-               @NonNull SCMHeadObserver observer)
-            throws IOException, SVNException {
+               @NonNull SCMHeadObserver observer) throws IOException, SVNException, InterruptedException {
         String svnPath = SVNPathUtil.append(repoPath, StringUtils.join(realPath, '/'));
         assert prefix.size() == realPath.size();
         assert wildcardStartsWith(realPath, prefix);
