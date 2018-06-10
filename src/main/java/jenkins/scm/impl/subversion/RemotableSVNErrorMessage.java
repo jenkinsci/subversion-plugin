@@ -36,18 +36,18 @@ import org.tmatesoft.svn.core.SVNErrorMessage;
 public class RemotableSVNErrorMessage extends SVNErrorMessage {
 
     public RemotableSVNErrorMessage(SVNErrorCode code) {
-        super(code, null, new Object[]{}, null, 0);
+        super(code, "", new Object[]{}, null, 0);
     }
 
     public RemotableSVNErrorMessage(SVNErrorCode code, String message) {
-        super(code, message, new Object[]{}, null, 0);
+        super(code, message == null ? "" : message, new Object[]{}, null, 0);
     }
 
     public RemotableSVNErrorMessage(SVNErrorCode code, Throwable cause) {
-        super(code, null, new Object[]{}, new ProxyException(cause), 0);
+        super(code, "", new Object[]{}, new ProxyException(cause), 0);
     }
 
     public RemotableSVNErrorMessage(SVNErrorCode code, String message, Throwable cause) {
-        super(code, message, new Object[]{}, new ProxyException(cause), 0);
+        super(code, message == null ? "" : message, new Object[]{}, new ProxyException(cause), 0);
     }
 }
