@@ -110,13 +110,7 @@ public class SubversionWorkspaceSelector implements ISVNAdminAreaFactorySelector
             Channel c = Channel.current();
             if (c!=null)    // just being defensive. cannot be null.
                 try {
-                    workspaceFormat = c.call(new SlaveToMasterCallable<Integer, RuntimeException>() { // TODO JENKINS-48543 bad design
-                        private static final long serialVersionUID = 6494337549896104453L;
-
-                        public Integer call()  {
-                            return Hudson.getInstance().getDescriptorByType(SubversionSCM.DescriptorImpl.class).getWorkspaceFormat();
-                        }
-                    });
+                    workspaceFormat = c.call(new GetWorkspaceFormatSlaveToMasterCallable());
                 } catch (IOException e) {
                     LOGGER.log(Level.WARNING, "Failed to retrieve Subversion workspace format",e);
                 } catch (InterruptedException e) {
@@ -139,4 +133,12 @@ public class SubversionWorkspaceSelector implements ISVNAdminAreaFactorySelector
     public static final int OLD_WC_FORMAT_17 = 100;
 
     private static final Logger LOGGER = Logger.getLogger(SubversionWorkspaceSelector.class.getName());
+
+    private static class GetWorkspaceFormatSlaveToMasterCallable extends SlaveToMasterCallable<Integer, RuntimeException> {  // TODO JENKINS-48543 bad design
+        private static final long serialVersionUID = 6494337549896104453L;
+
+        public Integer call()  {
+            return Hudson.getInstance().getDescriptorByType(SubversionSCM.DescriptorImpl.class).getWorkspaceFormat();
+        }
+    }
 }
