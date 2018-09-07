@@ -85,24 +85,24 @@ public class SubversionSCMFileSystemTest {
 
 	@Test
 	public void lastModified_Smokes() throws Exception {
+		long currentTime = isWindows() ? System.currentTimeMillis() / 1000L * 1000L : System.currentTimeMillis();
 		sampleRepo.init();
 		sampleRepo.svnkit("copy", "--message=branching", sampleRepo.trunkUrl(), sampleRepo.branchesUrl() + "/dev");
 		sampleRepo.svnkit("switch", sampleRepo.branchesUrl() + "/dev", sampleRepo.wc());
 		SCMSource source = new SubversionSCMSource(null, sampleRepo.prjUrl());
 		SCMRevision revision = source.fetch(new SCMHead("branches/dev"), null);
+		long oneMinute = 60*1000;
 		sampleRepo.write("file", "modified");
 		sampleRepo.svnkit("commit", "--message=dev1", sampleRepo.wc());
-		final long fileSystemAllowedOffset = isWindows() ? 4000 : 1500;
-		try (SCMFileSystem fs = SCMFileSystem.of(source, new SCMHead("branches/dev"), revision);) {
-			long currentTime = isWindows() ? System.currentTimeMillis() / 1000L * 1000L : System.currentTimeMillis();
+		try (SCMFileSystem fs = SCMFileSystem.of(source, new SCMHead("branches/dev"), revision);) {			
 			long lastModified = fs.lastModified();
-			assertThat(lastModified, greaterThanOrEqualTo(currentTime - fileSystemAllowedOffset));
-			assertThat(lastModified, lessThanOrEqualTo(currentTime + fileSystemAllowedOffset));
+			//ensure the timestamp is from after we started but not in the distant future
+			assertThat(lastModified, greaterThanOrEqualTo(currentTime));
+			assertThat(lastModified, lessThanOrEqualTo(currentTime + oneMinute));
 			SCMFile file = fs.getRoot().child("file");
-			currentTime = isWindows() ? System.currentTimeMillis() / 1000L * 1000L : System.currentTimeMillis();
 			lastModified = file.lastModified();
-			assertThat(lastModified, greaterThanOrEqualTo(currentTime - fileSystemAllowedOffset));
-			assertThat(lastModified, lessThanOrEqualTo(currentTime + fileSystemAllowedOffset));
+			assertThat(lastModified, greaterThanOrEqualTo(currentTime));
+			assertThat(lastModified, lessThanOrEqualTo(currentTime + oneMinute));
 		}
 	}
 
