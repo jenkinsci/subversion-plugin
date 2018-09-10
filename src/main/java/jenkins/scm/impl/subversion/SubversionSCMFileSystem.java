@@ -73,7 +73,7 @@ public class SubversionSCMFileSystem extends SCMFileSystem {
 	public static class BuilderImpl extends SCMFileSystem.Builder {
 		@Override
 		public boolean supports(SCM source) {
-			return source instanceof SubversionSCM && ((SubversionSCM) source).getLocations().length == 1;
+			return source instanceof SubversionSCM;
 		}
 
 		@Override
