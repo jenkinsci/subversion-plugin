@@ -301,8 +301,6 @@ THE SOFTWARE.
       <plugin>
         <groupId>org.jenkins-ci.tools</groupId>
         <artifactId>maven-hpi-plugin</artifactId>
-        <configuration>
-        </configuration>
       </plugin>
     </plugins>
   </build>
