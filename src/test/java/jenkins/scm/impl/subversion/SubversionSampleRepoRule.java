@@ -209,4 +209,7 @@ public final class SubversionSampleRepoRule extends AbstractSampleRepoRule {
         return SVNClientManager.newInstance().getStatusClient().doStatus(wc, true).getRemoteRevision().getNumber(); // http://stackoverflow.com/a/2295674/12916
     }
 
+    public final boolean mkdirs(String rel) throws IOException {
+        return new File(wc(), rel).mkdirs();
+    }
 }
