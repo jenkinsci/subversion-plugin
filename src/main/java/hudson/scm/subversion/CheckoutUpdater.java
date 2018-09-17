@@ -28,6 +28,7 @@ package hudson.scm.subversion;
 
 import hudson.Extension;
 import hudson.Util;
+import hudson.scm.SubversionSCM;
 import hudson.scm.SubversionSCM.External;
 import hudson.scm.SubversionWorkspaceSelector;
 import hudson.util.IOException2;
@@ -69,82 +70,7 @@ public class CheckoutUpdater extends WorkspaceUpdater {
 
     @Override
     public UpdateTask createTask() {
-        return new UpdateTask() {
-            private static final long serialVersionUID = 8349986526712487762L;
-
-            @Override
-            public List<External> perform() throws IOException, InterruptedException {
-                final SVNUpdateClient svnuc = clientManager.getUpdateClient();
-                final List<External> externals = new ArrayList<External>(); // store discovered externals to here
-
-                listener.getLogger().println("Cleaning local Directory " + location.getLocalDir());
-                Util.deleteContentsRecursive(new File(ws, location.getLocalDir()));
-
-                // buffer the output by a separate thread so that the update operation
-                // won't be blocked by the remoting of the data
-                PipedOutputStream pos = new PipedOutputStream();
-                StreamCopyThread sct = new StreamCopyThread("svn log copier", new PipedInputStream(pos), listener.getLogger());
-                sct.start();
-
-                try {
-                    SVNRevision r = getRevision(location);
-                    String revisionName = r.getDate() != null ? fmt.format(r.getDate()) : r.toString();
-
-                    listener.getLogger().println("Checking out " + location.getSVNURL().toString() + " at revision " +
-                            revisionName + (quietOperation ? " --quiet" : ""));
-
-                    File local = new File(ws, location.getLocalDir());
-                    SubversionUpdateEventHandler eventHandler = new SubversionUpdateEventHandler(
-                        new PrintStream(pos), externals, local, location.getLocalDir(), quietOperation,
-                        location.isCancelProcessOnExternalsFail());
-                    svnuc.setEventHandler(eventHandler);
-                    svnuc.setExternalsHandler(eventHandler);
-                    svnuc.setIgnoreExternals(location.isIgnoreExternalsOption());
-                    SVNDepth svnDepth = location.getSvnDepthForCheckout();
-                    SvnCheckout checkout = svnuc.getOperationsFactory().createCheckout();
-                    checkout.setSource(SvnTarget.fromURL(location.getSVNURL(), SVNRevision.HEAD));
-                    checkout.setSingleTarget(SvnTarget.fromFile(local.getCanonicalFile()));
-                    checkout.setDepth(svnDepth);
-                    checkout.setRevision(r);
-                    checkout.setAllowUnversionedObstructions(true);
-                    checkout.setIgnoreExternals(location.isIgnoreExternalsOption());
-                    checkout.setExternalsHandler(SvnCodec.externalsHandler(svnuc.getExternalsHandler()));
-
-                    // Statement to guard against JENKINS-26458.
-                    if (SubversionWorkspaceSelector.workspaceFormat == SubversionWorkspaceSelector.OLD_WC_FORMAT_17) {
-                        SubversionWorkspaceSelector.workspaceFormat = ISVNWCDb.WC_FORMAT_17;
-                    }
-
-                    // Workaround for SVNKIT-430 is to set the working copy format when
-                    // a checkout is performed.
-                    checkout.setTargetWorkingCopyFormat(SubversionWorkspaceSelector.workspaceFormat);
-                    checkout.run();
-                } catch (SVNCancelException e) {
-                    if (isAuthenticationFailedError(e)) {
-                        e.printStackTrace(listener.error("Failed to check out " + location.remote));
-                        return null;
-                    } else {
-                        listener.error("Subversion checkout has been canceled");
-                        throw (InterruptedException)new InterruptedException().initCause(e);
-                    }
-                } catch (SVNException e) {
-                    e.printStackTrace(listener.error("Failed to check out " + location.remote));
-                    throw new IOException("Failed to check out " + location.remote, e) ;
-                } finally {
-                    try {
-                        pos.close();
-                    } finally {
-                        try {
-                            sct.join(); // wait for all data to be piped.
-                        } catch (InterruptedException e) {
-                            throw new IOException2("interrupted", e);
-                        }
-                    }
-                }
-
-                return externals;
-            }
-        };
+        return new SubversionUpdateTask();
     }
 
     @Extension
@@ -152,6 +78,83 @@ public class CheckoutUpdater extends WorkspaceUpdater {
         @Override
         public String getDisplayName() {
             return Messages.CheckoutUpdater_DisplayName();
+        }
+    }
+
+    private static class SubversionUpdateTask extends UpdateTask {
+        private static final long serialVersionUID = 8349986526712487762L;
+
+        @Override
+        public List<External> perform() throws IOException, InterruptedException {
+            final SVNUpdateClient svnuc = clientManager.getUpdateClient();
+            final List<External> externals = new ArrayList<External>(); // store discovered externals to here
+
+            listener.getLogger().println("Cleaning local Directory " + location.getLocalDir());
+            Util.deleteContentsRecursive(new File(ws, location.getLocalDir()));
+
+            // buffer the output by a separate thread so that the update operation
+            // won't be blocked by the remoting of the data
+            PipedOutputStream pos = new PipedOutputStream();
+            StreamCopyThread sct = new StreamCopyThread("svn log copier", new PipedInputStream(pos), listener.getLogger());
+            sct.start();
+
+            try {
+                SVNRevision r = getRevision(location);
+                String revisionName = r.getDate() != null ? fmt.format(r.getDate()) : r.toString();
+
+                listener.getLogger().println("Checking out " + location.getSVNURL().toString() + " at revision " +
+                        revisionName + (quietOperation ? " --quiet" : ""));
+
+                File local = new File(ws, location.getLocalDir());
+                SubversionUpdateEventHandler eventHandler = new SubversionUpdateEventHandler(
+                    new PrintStream(pos), externals, local, location.getLocalDir(), quietOperation,
+                    location.isCancelProcessOnExternalsFail());
+                svnuc.setEventHandler(eventHandler);
+                svnuc.setExternalsHandler(eventHandler);
+                svnuc.setIgnoreExternals(location.isIgnoreExternalsOption());
+                SVNDepth svnDepth = location.getSvnDepthForCheckout();
+                SvnCheckout checkout = svnuc.getOperationsFactory().createCheckout();
+                checkout.setSource(SvnTarget.fromURL(location.getSVNURL(), SVNRevision.HEAD));
+                checkout.setSingleTarget(SvnTarget.fromFile(local.getCanonicalFile()));
+                checkout.setDepth(svnDepth);
+                checkout.setRevision(r);
+                checkout.setAllowUnversionedObstructions(true);
+                checkout.setIgnoreExternals(location.isIgnoreExternalsOption());
+                checkout.setExternalsHandler(SvnCodec.externalsHandler(svnuc.getExternalsHandler()));
+
+                // Statement to guard against JENKINS-26458.
+                if (SubversionWorkspaceSelector.workspaceFormat == SubversionWorkspaceSelector.OLD_WC_FORMAT_17) {
+                    SubversionWorkspaceSelector.workspaceFormat = ISVNWCDb.WC_FORMAT_17;
+                }
+
+                // Workaround for SVNKIT-430 is to set the working copy format when
+                // a checkout is performed.
+                checkout.setTargetWorkingCopyFormat(SubversionWorkspaceSelector.workspaceFormat);
+                checkout.run();
+            } catch (SVNCancelException e) {
+                if (isAuthenticationFailedError(e)) {
+                    e.printStackTrace(listener.error("Failed to check out " + location.remote));
+                    return null;
+                } else {
+                    listener.error("Subversion checkout has been canceled");
+                    throw (InterruptedException)new InterruptedException().initCause(e);
+                }
+            } catch (SVNException e) {
+                e.printStackTrace(listener.error("Failed to check out " + location.remote));
+                throw new IOException("Failed to check out " + location.remote, e) ;
+            } finally {
+                try {
+                    pos.close();
+                } finally {
+                    try {
+                        sct.join(); // wait for all data to be piped.
+                    } catch (InterruptedException e) {
+                        throw new IOException2("interrupted", e);
+                    }
+                }
+            }
+
+            return externals;
         }
     }
 }
