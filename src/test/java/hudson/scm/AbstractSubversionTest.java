@@ -2,6 +2,7 @@ package hudson.scm;
 
 import hudson.ClassicPluginStrategy;
 import hudson.FilePath;
+import hudson.Launcher;
 import hudson.Launcher.LocalLauncher;
 import hudson.Proc;
 import hudson.util.StreamTaskListener;
@@ -101,8 +102,32 @@ public abstract class AbstractSubversionTest {
             // Port is not in use
         }
 
-        return launcher.launch().cmds(
-                "svnserve","-d","--foreground","-r",repo.getAbsolutePath(), "--listen-port", String.valueOf(port)).pwd(repo).start();
+        Launcher.ProcStarter cmd = launcher.launch().cmds(
+                "svnserve", "-d", "--foreground", "-r", repo.getAbsolutePath(), "--listen-port", String.valueOf(port));
+        Proc process = cmd.pwd(repo).start();
+
+        waitForSvnServer(port);
+        return process;
+    }
+
+    /**
+     *
+     * Wait for the SVN server 30 seconds, to check it try to open a port to the server.
+     */
+    private static void waitForSvnServer(int port) throws InterruptedException {
+        boolean serverReady = false;
+        int retries = 0;
+        while(serverReady == false && retries < 6){
+            try (Socket s = new Socket("localhost", port)) {
+                // Server is up
+                serverReady = true;
+            } catch (IOException e) {
+                // Server is down
+                System.err.println("Waiting for SVN server");
+                Thread.sleep(5000);
+                retries++;
+            }
+        }
     }
 
     static {
