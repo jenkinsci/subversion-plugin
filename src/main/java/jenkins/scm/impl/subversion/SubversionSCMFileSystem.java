@@ -35,6 +35,9 @@ import jenkins.scm.api.SCMSource;
 import jenkins.scm.impl.subversion.SubversionSCMSource.SCMRevisionImpl;
 
 public class SubversionSCMFileSystem extends SCMFileSystem {
+	public static final String DISABLE_PROPERTY = SubversionSCMFileSystem.class.getName() + ".disable";
+	public static final boolean ENABLED = !"true".equalsIgnoreCase(System.getProperty(DISABLE_PROPERTY));
+
 	private SVNRepository repo;
 
 	protected SubversionSCMFileSystem(SVNRepository repo, SCMRevision rev) {
@@ -73,12 +76,12 @@ public class SubversionSCMFileSystem extends SCMFileSystem {
 	public static class BuilderImpl extends SCMFileSystem.Builder {
 		@Override
 		public boolean supports(SCM source) {
-			return source instanceof SubversionSCM;
+			return source instanceof SubversionSCM && ENABLED;
 		}
 
 		@Override
 		public boolean supports(SCMSource source) {
-			return source instanceof SubversionSCMSource;
+			return source instanceof SubversionSCMSource && ENABLED;
 		}
 
 		@Override
