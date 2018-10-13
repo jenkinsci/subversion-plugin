@@ -28,7 +28,6 @@ import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.FilePath;
-import hudson.util.IOException2;
 import hudson.remoting.VirtualChannel;
 import hudson.FilePath.FileCallable;
 import hudson.model.Run;
@@ -148,7 +147,7 @@ public final class SubversionChangeLogBuilder {
         return path.act(new GetContextForPath(authProvider));
     }
 
-    private boolean buildModule(PathContext context, SVNLogClient svnlc, DirAwareSVNXMLLogHandler logHandler) throws IOException2 {
+    private boolean buildModule(PathContext context, SVNLogClient svnlc, DirAwareSVNXMLLogHandler logHandler) throws IOException {
         String url = context.url;
         PrintStream logger = listener.getLogger();
 
@@ -201,7 +200,7 @@ public final class SubversionChangeLogBuilder {
                 listener.getLogger().println("done");
             }
         } catch (SVNException e) {
-            throw new IOException2("revision check failed on " + url, e);
+            throw new IOException("revision check failed on " + url, e);
         }
         return true;
     }

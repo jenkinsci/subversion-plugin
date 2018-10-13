@@ -31,7 +31,6 @@ import hudson.Util;
 import hudson.scm.SubversionSCM;
 import hudson.scm.SubversionSCM.External;
 import hudson.scm.SubversionWorkspaceSelector;
-import hudson.util.IOException2;
 import hudson.util.StreamCopyThread;
 
 import org.apache.commons.lang.time.FastDateFormat;
@@ -149,7 +148,7 @@ public class CheckoutUpdater extends WorkspaceUpdater {
                     try {
                         sct.join(); // wait for all data to be piped.
                     } catch (InterruptedException e) {
-                        throw new IOException2("interrupted", e);
+                        throw new IOException("interrupted", e);
                     }
                 }
             }

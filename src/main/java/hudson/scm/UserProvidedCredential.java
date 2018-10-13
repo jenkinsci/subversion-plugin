@@ -33,7 +33,6 @@ import hudson.scm.SubversionSCM.DescriptorImpl.PasswordCredential;
 import hudson.scm.SubversionSCM.DescriptorImpl.SshPublicKeyCredential;
 import hudson.scm.SubversionSCM.DescriptorImpl.SslClientCertificateCredential;
 import hudson.security.csrf.CrumbIssuer;
-import hudson.util.IOException2;
 import hudson.util.MultipartFormDataParser;
 import org.apache.commons.fileupload.FileItem;
 import org.kohsuke.putty.PuTTYKey;
@@ -119,7 +118,7 @@ public class UserProvidedCredential implements Closeable {
                 try {
                     item.write(keyFile);
                 } catch (Exception e) {
-                    throw new IOException2(e);
+                    throw new IOException(e);
                 }
                 if(PuTTYKey.isPuTTYKeyFile(keyFile)) {
                     // TODO: we need a passphrase support
