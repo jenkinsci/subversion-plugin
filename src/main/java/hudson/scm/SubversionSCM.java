@@ -96,7 +96,6 @@ import hudson.util.LogTaskListener;
 import hudson.util.MultipartFormDataParser;
 import hudson.util.Scrambler;
 import hudson.util.Secret;
-import hudson.util.TimeUnit2;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -124,6 +123,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
@@ -914,7 +914,7 @@ public class SubversionSCM extends SCM implements Serializable {
         if (repositoryLocationsNoLongerExist(build, listener, env)) {
             Run lsb = build.getParent().getLastSuccessfulBuild();
             if (build instanceof AbstractBuild && lsb != null && build.getNumber()-lsb.getNumber()>10
-            && build.getTimestamp().getTimeInMillis()-lsb.getTimestamp().getTimeInMillis() > TimeUnit2.DAYS.toMillis(1)) {
+            && build.getTimestamp().getTimeInMillis()-lsb.getTimestamp().getTimeInMillis() > TimeUnit.DAYS.toMillis(1)) {
                 // Disable this project if the location doesn't exist any more, see issue #763
                 // but only do so if there was at least some successful build,
                 // to make sure that initial configuration error won't disable the build. see issue #1567
