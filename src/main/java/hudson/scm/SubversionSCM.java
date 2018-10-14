@@ -750,12 +750,9 @@ public class SubversionSCM extends SCM implements Serializable {
         // some users reported that the file gets created with size 0. I suspect
         // maybe some XSLT engine doesn't close the stream properly.
         // so let's do it by ourselves to be really sure that the stream gets closed.
-        OutputStream os = new BufferedOutputStream(new FileOutputStream(changelogFile));
         boolean created;
-        try {
+        try (OutputStream os = new BufferedOutputStream(new FileOutputStream(changelogFile))) {
             created = new SubversionChangeLogBuilder(build, workspace, (SVNRevisionState) baseline, env, listener, this).run(externalsMap, new StreamResult(os));
-        } finally {
-            os.close();
         }
         if(!created)
             createEmptyChangeLog(changelogFile, listener, "log");
@@ -800,8 +797,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 // nothing to compare against
                 return revisions;
 
-            BufferedReader br = new BufferedReader(new FileReader(file));
-            try {
+            try (BufferedReader br = new BufferedReader(new FileReader(file))) {
                 String line;
                 while((line=br.readLine())!=null) {
                 	boolean isPinned = false;
@@ -835,8 +831,6 @@ public class SubversionSCM extends SCM implements Serializable {
                 	    LOGGER.log(WARNING, "Error parsing line " + line, e);
                 	}
                 }
-            } finally {
-                br.close();
             }
         }
 
@@ -870,8 +864,7 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         // write out the revision file
-        PrintWriter w = new PrintWriter(new FileOutputStream(getRevisionFile(build)));
-        try {
+        try (PrintWriter w = new PrintWriter(new FileOutputStream(getRevisionFile(build)))) {
             List<SvnInfoP> pList = workspace.act(new BuildRevisionMapTask(build, this, listener, externalsForAll, env));
             List<SvnInfo> revList= new ArrayList<SvnInfo>(pList.size());
             for (SvnInfoP p: pList) {
@@ -882,8 +875,6 @@ public class SubversionSCM extends SCM implements Serializable {
                 revList.add(p.info);
             }
             build.addAction(new SubversionTagAction(build,revList));
-        } finally {
-            w.close();
         }
 
         // write out the externals info
@@ -2256,9 +2247,7 @@ public class SubversionSCM extends SCM implements Serializable {
             StringWriter log = new StringWriter();
             PrintWriter logWriter = new PrintWriter(log);
 
-            UserProvidedCredential upc = UserProvidedCredential.fromForm(req,parser);
-
-            try {
+            try (UserProvidedCredential upc = UserProvidedCredential.fromForm(req, parser)) {
                 postCredential(parser.get("url"), upc, logWriter);
                 rsp.sendRedirect("credentialOK");
             } catch (SVNException e) {
@@ -2267,8 +2256,6 @@ public class SubversionSCM extends SCM implements Serializable {
                 req.setAttribute("pre",true);
                 req.setAttribute("exception",e);
                 rsp.forward(Jenkins.getInstance(),"error",req);
-            } finally {
-                upc.close();
             }
         }
 
