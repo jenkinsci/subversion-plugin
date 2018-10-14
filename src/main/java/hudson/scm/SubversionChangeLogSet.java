@@ -23,7 +23,6 @@
  */
 package hudson.scm;
 
-import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.model.Job;
 import hudson.model.Run;
@@ -32,7 +31,6 @@ import hudson.scm.SubversionChangeLogSet.LogEntry;
 import hudson.scm.SubversionSCM.ModuleLocation;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -107,7 +105,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         if (ignoreDirPropChanges) items = removePropertyOnlyChanges(items);
         
         // we want recent changes first
-        Collections.sort(items, new ReverseByRevisionComparator());
+        items.sort(Comparator.comparingInt(LogEntry::getRevision).reversed());
         for (LogEntry log : items) {
             log.setParent(this);
         }
@@ -358,14 +356,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         }
         
         void finish() {
-            Collections.sort(paths, new Comparator<Path>() {
-                @Override
-                public int compare(Path o1, Path o2) {
-                    String path1 = Util.fixNull(o1.getValue());
-                    String path2 = Util.fixNull(o2.getValue());
-                    return path1.compareTo(path2);
-                }
-            });
+            paths.sort(Comparator.nullsFirst(Comparator.comparing(Path::getValue)));
         }
         
         @Override
@@ -499,14 +490,6 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
             if( action=='D' )
                 return EditType.DELETE;
             return EditType.EDIT;
-        }
-    }
-
-    private static final class ReverseByRevisionComparator implements Comparator<LogEntry>, Serializable {
-        private static final long serialVersionUID = 1L;
-
-        public int compare(LogEntry a, LogEntry b) {
-            return b.getRevision() - a.getRevision();
         }
     }
 }

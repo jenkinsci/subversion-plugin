@@ -359,12 +359,7 @@ public class SubversionSCMSource extends SCMSource {
             for (List<String> path : entry.getValue()) {
                 String name = path.get(prefix.size());
                 SVNRepositoryView.ChildEntry[] children = node.getChildren().clone();
-                Arrays.sort(children, new Comparator<SVNRepositoryView.ChildEntry>() {
-                    public int compare(SVNRepositoryView.ChildEntry o1, SVNRepositoryView.ChildEntry o2) {
-                        long diff = o2.getRevision() - o1.getRevision();
-                        return diff < 0 ? -1 : diff > 0 ? 1 : 0;
-                    }
-                });
+                Arrays.sort(children, Comparator.comparingLong(SVNRepositoryView.ChildEntry::getRevision).reversed());
                 for (final SVNRepositoryView.ChildEntry svnEntry : children) {
                     if (svnEntry.getType() == SVNNodeKind.DIR && isMatch(svnEntry.getName(), name)) {
                         List<String> childPrefix = copyAndAppend(prefix, name);
