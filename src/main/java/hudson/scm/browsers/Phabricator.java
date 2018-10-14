@@ -81,7 +81,7 @@ public class Phabricator extends SubversionRepositoryBrowser {
         }
 
         int r = path.getLogEntry().getRevision();
-        final String spec = String.format("/diffusion/%s/change/master/%s;%i", this.getRepo(), path.getPath(), r);
+        final String spec = String.format("/diffusion/%s/change/master/%s;%d", this.getRepo(), path.getPath(), r);
         return new URL(getUrl(), spec);
     }
 
@@ -96,7 +96,7 @@ public class Phabricator extends SubversionRepositoryBrowser {
     @Override
     public URL getFileLink(Path path) throws IOException {
         int r = path.getLogEntry().getRevision();
-        final String spec = String.format("/diffusion/%s/history/master/%s;%i", this.getRepo(), path.getPath(), r);
+        final String spec = String.format("/diffusion/%s/history/master/%s;%d", this.getRepo(), path.getPath(), r);
         return new URL(getUrl(), spec);
     }
 
