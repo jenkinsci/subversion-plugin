@@ -8,7 +8,8 @@ import org.tmatesoft.svn.core.wc.SVNRevision;
  * @author kutzi
  */
 public class SvnHelper {
-    private static final String REGEX_END_SLASHES = "\\/*$";
+
+    private static final String REGEX_END_SLASHES = "/*$";
 
     /**
      * Cuts off any optional '@revisionnr' and slashes from the end of the url string.
