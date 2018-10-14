@@ -77,8 +77,7 @@ public class Sventon2 extends AbstractSventon {
      * Trims off the root module portion to compute the path within FishEye.
      */
     private String getPath(Path path) {
-        String s = trimHeadSlash(path.getValue());
-        return s;
+        return trimHeadSlash(path.getValue());
     }
 
     private static String encodePath(String path)

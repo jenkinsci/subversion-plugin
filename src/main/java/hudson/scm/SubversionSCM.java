@@ -2035,11 +2035,10 @@ public class SubversionSCM extends SCM implements Serializable {
             public SVNAuthentication createSVNAuthentication(String kind) {
                 if(kind.equals(ISVNAuthenticationManager.SSL))
                     try {
-                        SVNSSLAuthentication authentication = SVNSSLAuthentication.newInstance(
+                        return SVNSSLAuthentication.newInstance(
                                 Base64.decode(certificate.getPlainText().toCharArray()),
                                 Scrambler.descramble(Secret.toString(password)).toCharArray(),
                                 false, null, false);
-                        return authentication;
                     } catch (IOException e) {
                         throw new Error(e); // can't happen
                     }
