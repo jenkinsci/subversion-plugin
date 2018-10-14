@@ -212,7 +212,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
 
                 e.printStackTrace(listener.error("Failed to update " + location.remote));
                 listener.error("Subversion update failed");
-                throw (IOException) new IOException().initCause(new UpdaterException("failed to perform svn update", e));
+                throw new IOException(new UpdaterException("failed to perform svn update", e));
             }
 
             return externals;
