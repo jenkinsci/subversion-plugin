@@ -105,8 +105,7 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
     }
     if (logEntry.getChangedPaths() != null && !logEntry.getChangedPaths().isEmpty()) {
         openTag(PATHS_TAG);
-        for (Iterator<String> paths = logEntry.getChangedPaths().keySet().iterator(); paths.hasNext();) {
-            String key = paths.next();
+        for (String key : logEntry.getChangedPaths().keySet()) {
             SVNLogEntryPath path = (SVNLogEntryPath) logEntry.getChangedPaths().get(key);
             addAttribute(ACTION_ATTR, path.getType() + "");
 
@@ -127,7 +126,7 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
             if (path.getCopyPath() != null) {
                 addAttribute(COPYFROM_PATH_ATTR, path.getCopyPath());
                 addAttribute(COPYFROM_REV_ATTR, path.getCopyRevision() + "");
-            } 
+            }
             if (path.getKind() != null) {
                 addAttribute(KIND_ATTR, path.getKind().toString());
             }

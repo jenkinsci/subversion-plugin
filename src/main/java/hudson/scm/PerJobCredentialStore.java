@@ -118,15 +118,15 @@ final class PerJobCredentialStore implements Saveable, RemotableSVNAuthenticatio
             for (Map.Entry<String, Credential> e : credentials.entrySet()) {
                 StandardCredentials credential =  descriptor.migrateCredentials(store, e.getKey(), e.getValue());
                 ModuleLocation[] locations = ((SubversionSCM) project.getScm()).getLocations();
-                for (int i = 0; i < locations.length; i++) {
+                for (ModuleLocation location : locations) {
                     try {
-                        if (e.getKey().contains(locations[i].getSVNURL().getHost())) {
-                            locations[i].setCredentialsId(credential.getId());
+                        if (e.getKey().contains(location.getSVNURL().getHost())) {
+                            location.setCredentialsId(credential.getId());
                             break;
                         }
                     } catch (SVNException ex) {
                         // Should not happen, but...
-                        LOGGER.log(WARNING, "Repository location with a malformed URL: " + locations[i].remote, ex);
+                        LOGGER.log(WARNING, "Repository location with a malformed URL: " + location.remote, ex);
                     }
                 }
             }

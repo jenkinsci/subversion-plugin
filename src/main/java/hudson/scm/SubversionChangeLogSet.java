@@ -260,29 +260,29 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
                 if (!(scm instanceof SubversionSCM)) {
                     continue;
                 }
-            ModuleLocation[] locations = ((SubversionSCM)scm).getLocations();
-            for (int i = 0; i < locations.length; i++) {
-                ModuleLocation expandedLocation = locations[i].getExpandedLocation(job);
-                // If the remote URL features a trailing '@REV' entry, strip it off before looking for common part
-                String expandedRemote = expandedLocation.remote;
-                if (expandedLocation.getRevision(null) != null) {
-                    int idx = expandedRemote.lastIndexOf('@');
-                    if (idx >= 0) {
-                        expandedRemote = expandedRemote.substring(0, idx);
+                ModuleLocation[] locations = ((SubversionSCM)scm).getLocations();
+                for (ModuleLocation location : locations) {
+                    ModuleLocation expandedLocation = location.getExpandedLocation(job);
+                    // If the remote URL features a trailing '@REV' entry, strip it off before looking for common part
+                    String expandedRemote = expandedLocation.remote;
+                    if (expandedLocation.getRevision(null) != null) {
+                        int idx = expandedRemote.lastIndexOf('@');
+                        if (idx >= 0) {
+                            expandedRemote = expandedRemote.substring(0, idx);
+                        }
+                    }
+                    String commonPart = findCommonPart(expandedRemote, path);
+                    if (commonPart != null) {
+                        if (path.startsWith("/")) {
+                            path = path.substring(1);
+                        }
+                        String newPath = path.substring(commonPart.length());
+                        if (newPath.startsWith("/")) {
+                            newPath = newPath.substring(1);
+                        }
+                        return newPath;
                     }
                 }
-                String commonPart = findCommonPart(expandedRemote, path);
-                if (commonPart != null) {
-                    if (path.startsWith("/")) {
-                        path = path.substring(1);
-                    }
-                    String newPath = path.substring(commonPart.length());
-                    if (newPath.startsWith("/")) {
-                        newPath = newPath.substring(1);
-                    }
-                    return newPath;
-                }
-            }
             }
             return path;
         }
