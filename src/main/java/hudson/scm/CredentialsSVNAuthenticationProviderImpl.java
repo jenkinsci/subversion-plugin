@@ -92,7 +92,7 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
                                             StandardCredentials.class), CredentialsMatchers.instanceOf(
                                             SSHUserPrivateKey.class))));
         }
-        Map<String, Credentials> additional = new HashMap<String, Credentials>();
+        Map<String, Credentials> additional = new HashMap<>();
         if (additionalCredentialIds != null) {
             for (Map.Entry<String,String> c : additionalCredentialIds.entrySet()) {
                 if (c.getValue() != null) {
@@ -130,7 +130,7 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
                             ACL.SYSTEM, URIRequirementBuilder.fromUri(location.remote).build()),
                             CredentialsMatchers.allOf(idMatcher(location.credentialsId),MATCHER));
         }
-        Map<String, Credentials> additional = new HashMap<String, Credentials>();
+        Map<String, Credentials> additional = new HashMap<>();
         if (scm != null) {
             for (SubversionSCM.AdditionalCredentials c : scm.getAdditionalCredentials()) {
                 if (c.getCredentialsId() != null) {
@@ -252,7 +252,7 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
 
     public static class RemotableSVNUnauthenticatedRealmObserver implements SVNUnauthenticatedRealmObserver {
 
-        private final Set<String> realms = new LinkedHashSet<String>();
+        private final Set<String> realms = new LinkedHashSet<>();
 
         /**
          * When sent to the remote node, send a proxy.
@@ -275,7 +275,7 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
 
         public Set<String> get() {
             synchronized (realms) {
-                return new LinkedHashSet<String>(realms);
+                return new LinkedHashSet<>(realms);
             }
         }
     }
@@ -414,11 +414,11 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
             username = c.getUsername();
             Secret secret = c.getPassphrase();
             this.passphrase = secret != null ? Scrambler.scramble(secret.getPlainText()) : null;
-            privateKeys = new ArrayList<String>(c.getPrivateKeys());
+            privateKeys = new ArrayList<>(c.getPrivateKeys());
         }
 
         public List<SVNAuthentication> build(String kind, SVNURL url) {
-            List<SVNAuthentication> result = new ArrayList<SVNAuthentication>();
+            List<SVNAuthentication> result = new ArrayList<>();
             if (ISVNAuthenticationManager.SSH.equals(kind)) {
                 for (String privateKey : privateKeys) {
                     result.add(new SVNSSHAuthentication(username, privateKey.toCharArray(),

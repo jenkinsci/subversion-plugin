@@ -57,11 +57,11 @@ public class RevisionParameterAction extends InvisibleAction implements Serializ
 	
 	public RevisionParameterAction(RevisionParameterAction action) {
 		super();
-		this.revisions = new ArrayList<SvnInfo>(action.revisions);
+		this.revisions = new ArrayList<>(action.revisions);
 	}
 	
 	public RevisionParameterAction(SvnInfo... revisions) {
-		this.revisions = new ArrayList<SvnInfo>(Arrays.asList(revisions));
+		this.revisions = new ArrayList<>(Arrays.asList(revisions));
 	}
 
 	public List<SvnInfo> getRevisions() {

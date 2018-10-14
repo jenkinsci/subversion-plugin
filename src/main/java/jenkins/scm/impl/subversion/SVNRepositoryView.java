@@ -285,7 +285,7 @@ public class SVNRepositoryView {
     }
 
     private static class ChildEntryCollector implements ISVNDirEntryHandler {
-        private final List<ChildEntry> children = new ArrayList<ChildEntry>();
+        private final List<ChildEntry> children = new ArrayList<>();
 
         public void handleDirEntry(SVNDirEntry entry) throws SVNException {
             children.add(

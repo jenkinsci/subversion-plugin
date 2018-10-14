@@ -93,13 +93,13 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
      * If a module is not tagged, the value will be empty list.
      * Never an empty map.
      */
-    private final Map<SvnInfo,List<String>> tags = new CopyOnWriteMap.Tree<SvnInfo, List<String>>();
+    private final Map<SvnInfo,List<String>> tags = new CopyOnWriteMap.Tree<>();
 
     /*package*/ SubversionTagAction(Run build,Collection<SvnInfo> svnInfos) {
         super(build);
-        Map<SvnInfo,List<String>> m = new HashMap<SvnInfo,List<String>>();
+        Map<SvnInfo,List<String>> m = new HashMap<>();
         for (SvnInfo si : svnInfos)
-            m.put(si,new ArrayList<String>());
+            m.put(si, new ArrayList<>());
         tags.putAll(m);
     }
 
@@ -142,7 +142,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
 
     @Exported(name="tags")
     public List<TagInfo> getTagInfo() {
-        List<TagInfo> data = new ArrayList<TagInfo>();
+        List<TagInfo> data = new ArrayList<>();
         for (Entry<SvnInfo,List<String>> e : tags.entrySet()) {
             String module = e.getKey().toString();
             for (String url : e.getValue())
@@ -217,7 +217,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
 
         MultipartFormDataParser parser = new MultipartFormDataParser(req);
 
-        Map<SvnInfo,String> newTags = new HashMap<SvnInfo,String>();
+        Map<SvnInfo,String> newTags = new HashMap<>();
 
         int i=-1;
         for (SvnInfo e : tags.keySet()) {
@@ -231,7 +231,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
         StandardCredentials upc = null;
         if (credentialsId != null) {
             Item context = req.findAncestorObject(Item.class);
-            final List<Authentication> authentications = new ArrayList<Authentication>(2);
+            final List<Authentication> authentications = new ArrayList<>(2);
             authentications.add(Jenkins.getAuthentication());
             if (context.hasPermission(Item.CONFIGURE)) { // TODO should this check EXTENDED_READ?
                 authentications.add(ACL.SYSTEM);
@@ -342,7 +342,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
             if (/* TODO consider making available in global context as well */context == null || !context.hasPermission(SCM.TAG)) {
                 return new ListBoxModel();
             }
-            Set<StandardCredentials> c = new LinkedHashSet<StandardCredentials>();
+            Set<StandardCredentials> c = new LinkedHashSet<>();
             SubversionTagAction action = run != null ? run.getAction(SubversionTagAction.class) : null;
             List<DomainRequirement> domainRequirements = Collections.emptyList();
             if (action != null) {

@@ -37,7 +37,7 @@ final class PerJobCredentialStore implements Saveable, RemotableSVNAuthenticatio
     /**
      * SVN authentication realm to its associated credentials, scoped to this project.
      */
-    private final Map<String,Credential> credentials = new Hashtable<String,Credential>();
+    private final Map<String,Credential> credentials = new Hashtable<>();
     
     PerJobCredentialStore(AbstractProject<?,?> project) {
         this.project = project;
@@ -109,7 +109,7 @@ final class PerJobCredentialStore implements Saveable, RemotableSVNAuthenticatio
      * Used to remember the context. If we are persisting, we don't want to persist a proxy,
      * even if that happens in the context of a remote call.
      */
-    private static final ThreadLocal<Boolean> IS_SAVING = new ThreadLocal<Boolean>();
+    private static final ThreadLocal<Boolean> IS_SAVING = new ThreadLocal<>();
 
     /*package*/ void migrateCredentials(SubversionSCM.DescriptorImpl descriptor) throws IOException {
         Iterable<CredentialsStore> it = CredentialsProvider.lookupStores(project);

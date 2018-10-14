@@ -56,7 +56,7 @@ final class CompareAgainstBaselineCallable extends MasterToSlaveCallable<Polling
      */
     public PollingResult call() throws IOException {
         listener.getLogger().println("Received SCM poll call on " + nodeName + " for " + projectName + " on " + DateFormat.getDateTimeInstance().format(new Date()) );
-        final Map<String,Long> revs = new HashMap<String,Long>();
+        final Map<String,Long> revs = new HashMap<>();
         boolean changes = false;
         boolean significantChanges = false;
 

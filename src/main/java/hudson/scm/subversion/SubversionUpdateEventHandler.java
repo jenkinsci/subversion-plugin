@@ -53,7 +53,7 @@ final class SubversionUpdateEventHandler extends SubversionEventHandlerImpl impl
     /**
      * Staged map of svn:externals details.
      */
-    private final Map<File, SVNExternalDetails> externalDetails = new HashMap<File, SVNExternalDetails>();
+    private final Map<File, SVNExternalDetails> externalDetails = new HashMap<>();
     /**
      * External urls that are fetched through svn:externals.
      * We add to this collection as we find them.

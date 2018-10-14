@@ -130,7 +130,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
      * @return filtered list without duplicated entries
      */
     static List<LogEntry> removeDuplicatedEntries(List<LogEntry> items) {
-        Set<LogEntry> entries = new HashSet<LogEntry>(items);
+        Set<LogEntry> entries = new HashSet<>(items);
         for (LogEntry sourceEntry : items) {
             // LogEntry equality does not consider paths, but some might have localPath attributes
             // that would get lost by HashSet duplicate removal
@@ -149,12 +149,12 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
                 }
             }
         }
-        return new ArrayList<LogEntry>(entries);
+        return new ArrayList<>(entries);
     }
 
     @Exported
     public List<RevisionInfo> getRevisions() throws IOException {
-        List<RevisionInfo> r = new ArrayList<RevisionInfo>();
+        List<RevisionInfo> r = new ArrayList<>();
         for (Map.Entry<String, Long> e : getRevisionMap().entrySet())
             r.add(new RevisionInfo(e.getKey(),e.getValue()));
         return r;
@@ -181,7 +181,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         private User author;
         private String date;
         private String msg;
-        private List<Path> paths = new ArrayList<Path>();
+        private List<Path> paths = new ArrayList<>();
 
         /**
          * Gets the {@link SubversionChangeLogSet} to which this change set belongs.
@@ -347,7 +347,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         
         @Override
         public Collection<Path> getAffectedFiles() {
-            Collection<Path> affectedFiles = new ArrayList<Path>();
+            Collection<Path> affectedFiles = new ArrayList<>();
             for (Path p : paths) {
                 if (p.hasLocalPath()) {
                     affectedFiles.add(p);

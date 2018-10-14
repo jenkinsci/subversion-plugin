@@ -149,7 +149,7 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
     if (logEntry.hasChildren()) {
         MergeFrame frame = new MergeFrame();
         if (myMergeStack == null) {
-            myMergeStack = new LinkedList<MergeFrame>();
+            myMergeStack = new LinkedList<>();
         }
         myMergeStack.addLast(frame);
     } else {

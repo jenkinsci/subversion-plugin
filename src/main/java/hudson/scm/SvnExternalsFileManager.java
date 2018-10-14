@@ -64,7 +64,7 @@ class SvnExternalsFileManager {
     @Nonnull
     private static synchronized Object getFileLockItem(Job project) {
         if (projectExternalsCache == null) {
-            projectExternalsCache = new WeakHashMap<Job, Object>();
+            projectExternalsCache = new WeakHashMap<>();
         }
                 
         Object item = projectExternalsCache.get(project);

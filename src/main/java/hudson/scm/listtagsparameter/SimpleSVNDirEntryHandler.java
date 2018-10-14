@@ -47,7 +47,7 @@ import org.tmatesoft.svn.core.SVNException;
  */
 public class SimpleSVNDirEntryHandler implements ISVNDirEntryHandler {
 
-  private final List<SVNDirEntry> dirs = new ArrayList<SVNDirEntry>();
+  private final List<SVNDirEntry> dirs = new ArrayList<>();
   private final Pattern filterPattern;
 
   public SimpleSVNDirEntryHandler(String filter) {
@@ -83,7 +83,7 @@ public class SimpleSVNDirEntryHandler implements ISVNDirEntryHandler {
       });
     }
 
-    List<String> sortedDirs = new ArrayList<String>();
+    List<String> sortedDirs = new ArrayList<>();
     for (SVNDirEntry dirEntry : dirs) {
       sortedDirs.add(dirEntry.getName());
     }

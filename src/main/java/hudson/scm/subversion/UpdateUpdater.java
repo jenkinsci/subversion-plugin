@@ -133,7 +133,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
             }
 
             final SVNUpdateClient svnuc = clientManager.getUpdateClient();
-            final List<External> externals = new ArrayList<External>(); // store discovered externals to here
+            final List<External> externals = new ArrayList<>(); // store discovered externals to here
 
             try {
                 File local = new File(ws, location.getLocalDir());

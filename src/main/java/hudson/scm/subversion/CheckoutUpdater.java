@@ -84,7 +84,7 @@ public class CheckoutUpdater extends WorkspaceUpdater {
         @Override
         public List<External> perform() throws IOException, InterruptedException {
             final SVNUpdateClient svnuc = clientManager.getUpdateClient();
-            final List<External> externals = new ArrayList<External>(); // store discovered externals to here
+            final List<External> externals = new ArrayList<>(); // store discovered externals to here
 
             listener.getLogger().println("Cleaning local Directory " + location.getLocalDir());
             Util.deleteContentsRecursive(new File(ws, location.getLocalDir()));

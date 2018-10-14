@@ -75,7 +75,7 @@ public class SubversionWorkspaceSelector implements ISVNAdminAreaFactorySelector
             return factories;
 
         // for writing, use the version the user has selected
-        Collection<SVNAdminAreaFactory> enabledFactories = new ArrayList<SVNAdminAreaFactory>();
+        Collection<SVNAdminAreaFactory> enabledFactories = new ArrayList<>();
         for (SVNAdminAreaFactory factory : (Collection<SVNAdminAreaFactory>)factories)
             if (factory.getSupportedVersion() == workspaceFormat)
                 enabledFactories.add(factory);
