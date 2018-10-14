@@ -10,7 +10,6 @@ import com.cloudbees.plugins.credentials.common.CertificateCredentials;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.UsernameCredentials;
 import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
-import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.model.Item;
@@ -71,7 +70,7 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
                                                     Map<String, Credentials> credentialsByRealm,
                                                     TaskListener listener) {
         this.provider = new RemotableSVNAuthenticationBuilderProvider(credentials,
-                credentialsByRealm == null ? Collections.<String, Credentials>emptyMap() : credentialsByRealm, listener);
+                credentialsByRealm == null ? Collections.emptyMap() : credentialsByRealm, listener);
     }
 
     @Deprecated
@@ -99,7 +98,7 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
                 if (c.getValue() != null) {
                     StandardCredentials cred = CredentialsMatchers
                             .firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class, context,
-                                    ACL.SYSTEM, Collections.<DomainRequirement>emptyList()),
+                                    ACL.SYSTEM, Collections.emptyList()),
                                     CredentialsMatchers.allOf(idMatcher(c.getValue()),
                                             CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(
                                                     StandardCredentials.class), CredentialsMatchers.instanceOf(
@@ -137,7 +136,7 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
                 if (c.getCredentialsId() != null) {
                     StandardCredentials cred = CredentialsMatchers
                             .firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class, context,
-                                    ACL.SYSTEM, Collections.<DomainRequirement>emptyList()),
+                                    ACL.SYSTEM, Collections.emptyList()),
                                     CredentialsMatchers.allOf(idMatcher(c.getCredentialsId()),MATCHER));
                     if (cred != null) {
                         additional.put(c.getRealm(), cred);
@@ -376,7 +375,7 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
 
         public List<SVNAuthentication> build(String kind, SVNURL url) {
             if (ISVNAuthenticationManager.USERNAME.equals(kind)) {
-                return Collections.<SVNAuthentication>singletonList(
+                return Collections.singletonList(
                         new SVNUserNameAuthentication(username, true, url, true));
             }
             return Collections.emptyList();
@@ -397,11 +396,11 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
 
         public List<SVNAuthentication> build(String kind, SVNURL url) {
             if (ISVNAuthenticationManager.PASSWORD.equals(kind)) {
-                return Collections.<SVNAuthentication>singletonList(
+                return Collections.singletonList(
                         new SVNPasswordAuthentication(username, Scrambler.descramble(password), false, url, false));
             }
             if (ISVNAuthenticationManager.SSH.equals(kind)) {
-                return Collections.<SVNAuthentication>singletonList(
+                return Collections.singletonList(
                         new SVNSSHAuthentication(username, Scrambler.descramble(password), -1, false, url, false));
             }
             return Collections.emptyList();
@@ -491,7 +490,7 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
                         certificateFile,
                         Scrambler.descramble(password).toCharArray(),
                         false, url, false);
-                return Collections.<SVNAuthentication>singletonList(
+                return Collections.singletonList(
                         authentication);
             }
             return Collections.emptyList();

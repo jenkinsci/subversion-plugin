@@ -89,7 +89,7 @@ public class SubversionSCMSourceTest {
                 list("tags", "*"),
                 list("sandbox", "*")
         );
-        result = SubversionSCMSource.groupPaths(data, Collections.<String>emptyList());
+        result = SubversionSCMSource.groupPaths(data, Collections.emptyList());
         assertThat(result.keySet(),
                 is((Set<List<String>>) pathSet(list("trunk"), list("branches"), list("tags"), list("sandbox"))));
         assertThat(result.get(list("trunk")), is(pathSet(list("trunk"))));
@@ -104,7 +104,7 @@ public class SubversionSCMSourceTest {
                 list("sandbox", "*", "foo", "bas", "*"),
                 list("sandbox", "*", "bar", "bas", "*")
         );
-        result = SubversionSCMSource.groupPaths(data, Collections.<String>emptyList());
+        result = SubversionSCMSource.groupPaths(data, Collections.emptyList());
         assertThat(result.keySet(),
                 is((Set<List<String>>) pathSet(list("trunk"), list("branches", "foo", "bar"), list("tags"),
                         list("sandbox"))));
@@ -121,7 +121,7 @@ public class SubversionSCMSourceTest {
                 list("sandbox", "jim-*", "foo", "bas", "*"),
                 list("sandbox", "*", "bar", "bas", "*")
         );
-        result = SubversionSCMSource.groupPaths(data, Collections.<String>emptyList());
+        result = SubversionSCMSource.groupPaths(data, Collections.emptyList());
         assertThat(result.keySet(),
                 is((Set<List<String>>) pathSet(list("trunk"), list("branches", "foo", "bar"), list("tags"),
                         list("sandbox"))));

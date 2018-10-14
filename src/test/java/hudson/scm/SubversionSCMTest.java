@@ -25,7 +25,6 @@
  */
 package hudson.scm;
 
-import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.Domain;
@@ -1377,7 +1376,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         Proc p = runSvnServe(getClass().getResource("HUDSON-1379.zip"));
         try {
             SystemCredentialsProvider.getInstance().setDomainCredentialsMap(Collections.singletonMap(Domain.global(),
-                    Collections.<Credentials>emptyList()
+                    Collections.emptyList()
             ));
 
             FreeStyleProject b = r.createFreeStyleProject();
@@ -1389,7 +1388,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
             // should fail without a credential
             r.assertBuildStatus(Result.FAILURE, b.scheduleBuild2(0).get());
             SystemCredentialsProvider.getInstance().setDomainCredentialsMap(Collections.singletonMap(Domain.global(),
-                    Arrays.<Credentials>asList(
+                    Arrays.asList(
                     new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "1-bob", null, "bob","bob")
                     )
             ));
@@ -1397,7 +1396,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
             r.assertBuildStatus(Result.FAILURE, c.scheduleBuild2(0).get());
             SystemCredentialsProvider.getInstance().setDomainCredentialsMap(Collections.singletonMap(Domain.global(),
-                    Arrays.<Credentials>asList(
+                    Arrays.asList(
                     new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "1-bob", null, "bob","bob"),
                     new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "2-charlie", null, "charlie","charlie")
                     )
@@ -1444,7 +1443,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         Proc p = runSvnServe(getClass().getResource("HUDSON-1379.zip"));
         try {
             SystemCredentialsProvider.getInstance().setDomainCredentialsMap(Collections.singletonMap(Domain.global(),
-                    Arrays.<Credentials>asList(
+                    Arrays.asList(
                     new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "1-alice", null, "alice","alice")
                     )
             ));

@@ -1,6 +1,5 @@
 package hudson.scm;
 
-import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.Domain;
@@ -27,7 +26,7 @@ public class PerJobCredentialStoreTest extends AbstractSubversionTest {
         Proc p = runSvnServe(SubversionSCMTest.class.getResource("HUDSON-1379.zip"));
         try {
             SystemCredentialsProvider.getInstance().setDomainCredentialsMap(Collections.singletonMap(Domain.global(),
-                    Arrays.<Credentials>asList(
+                    Arrays.asList(
                             new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "1-alice", null, "alice", "alice")
                     )
             ));

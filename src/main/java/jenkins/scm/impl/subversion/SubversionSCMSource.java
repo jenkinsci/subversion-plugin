@@ -865,7 +865,7 @@ public class SubversionSCMSource extends SCMSource {
                 SVNRepository repository = null;
                 try {
                     repository = getRepository(repoURL, credentials,
-                            Collections.<String, Credentials>emptyMap(), null);
+                            Collections.emptyMap(), null);
                     long rev = repository.getLatestRevision();
                     // now go back the tree and find if there's anything that exists
                     String repoPath = getRelativePath(repoURL, repository);
@@ -914,7 +914,7 @@ public class SubversionSCMSource extends SCMSource {
             SVNRepository repository = null;
 
             try {
-                repository = getRepository(repoURL,credentials, Collections.<String, Credentials>emptyMap(), null);
+                repository = getRepository(repoURL,credentials, Collections.emptyMap(), null);
                 repository.testConnection();
 
                 long rev = repository.getLatestRevision();

@@ -1869,7 +1869,7 @@ public class SubversionSCM extends SCM implements Serializable {
                         StandardUsernamePasswordCredentials.class,
                         findItemGroup(context),
                         ACL.SYSTEM,
-                        Collections.<DomainRequirement>emptyList())) {
+                        Collections.emptyList())) {
                     if (userName.equals(c.getUsername()) && getPassword().equals(c.getPassword().getPlainText())) {
                         return c;
                     }
@@ -2006,7 +2006,7 @@ public class SubversionSCM extends SCM implements Serializable {
                         SSHUserPrivateKey.class,
                         findItemGroup(context),
                         ACL.SYSTEM,
-                        Collections.<DomainRequirement>emptyList())) {
+                        Collections.emptyList())) {
                     if (userName.equals(c.getUsername()) && c.getPrivateKeys().contains(key)) {
                         return c;
                     }
@@ -2060,7 +2060,7 @@ public class SubversionSCM extends SCM implements Serializable {
                         StandardCertificateCredentials.class,
                         findItemGroup(context),
                         ACL.SYSTEM,
-                        Collections.<DomainRequirement>emptyList())) {
+                        Collections.emptyList())) {
                     if (c.getPassword().equals(result.getPassword())) {
                         // now for the more complex Keystore comparison
                         KeyStore s1 = c.getKeyStore();
@@ -2346,7 +2346,7 @@ public class SubversionSCM extends SCM implements Serializable {
             SVNRepository repository = null;
 
             try {
-                repository = getRepository(context, repoURL, credentials, Collections.<String, Credentials>emptyMap(),
+                repository = getRepository(context, repoURL, credentials, Collections.emptyMap(),
                         null);
                 repository.testConnection();
 
@@ -2378,7 +2378,7 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         @Deprecated
         protected SVNRepository getRepository(AbstractProject context, SVNURL repoURL) throws SVNException {
-            return getRepository(context, repoURL, null, Collections.<String, Credentials>emptyMap(), null);
+            return getRepository(context, repoURL, null, Collections.emptyMap(), null);
         }
 
         /**
@@ -2386,7 +2386,7 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         @Deprecated
         protected SVNRepository getRepository(AbstractProject context, SVNURL repoURL, ISVNSession session) throws SVNException {
-            return getRepository(context, repoURL, null, Collections.<String, Credentials>emptyMap(), null);
+            return getRepository(context, repoURL, null, Collections.emptyMap(), null);
         }
 
         /**
@@ -2535,7 +2535,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
                 SVNRepository repository = null;
                 try {
-                    repository = getRepository(context,repoURL, credentials, Collections.<String, Credentials>emptyMap(), null);
+                    repository = getRepository(context,repoURL, credentials, Collections.emptyMap(), null);
                     if (repository.hasCapability(SVNCapability.LOG_REVPROPS))
                         return FormValidation.ok();
                 } finally {
@@ -2861,7 +2861,7 @@ public class SubversionSCM extends SCM implements Serializable {
                     if (credentialsId != null) {
                         StandardCredentials cred = CredentialsMatchers
                                 .firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class, context,
-                                        ACL.SYSTEM, Collections.<DomainRequirement>emptyList()),
+                                        ACL.SYSTEM, Collections.emptyList()),
                                         CredentialsMatchers.allOf(CredentialsMatchers.withId(credentialsId),
                                                 CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(
                                                         StandardCredentials.class), CredentialsMatchers.instanceOf(
@@ -3139,7 +3139,7 @@ public class SubversionSCM extends SCM implements Serializable {
             public ListBoxModel fillCredentialsIdItems(@CheckForNull Item context, String remote) {
                 List<DomainRequirement> domainRequirements;
                 if (remote == null) {
-                    domainRequirements = Collections.<DomainRequirement>emptyList();
+                    domainRequirements = Collections.emptyList();
                 } else {
                     domainRequirements = URIRequirementBuilder.fromUri(remote.trim()).build();
                 }
@@ -3219,8 +3219,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 try {
                     SVNURL repoURL = SVNURL.parseURIEncoded(remote);
                     StandardCredentials credentials = lookupCredentials(context, value, repoURL);
-                    SVNRepository repo = descriptor().getRepository(context, repoURL, credentials, Collections
-                            .<String, Credentials>emptyMap(), null);
+                    SVNRepository repo = descriptor().getRepository(context, repoURL, credentials, Collections.emptyMap(), null);
                     String repoRoot = repo.getRepositoryRoot(true).toDecodedString();
                     String repoPath = repo.getLocation().toDecodedString().substring(repoRoot.length());
                     SVNPath path = new SVNPath(repoPath, true, true);
@@ -3422,14 +3421,14 @@ public class SubversionSCM extends SCM implements Serializable {
                 }
                 List<DomainRequirement> domainRequirements;
                 if (realm == null) {
-                    domainRequirements = Collections.<DomainRequirement>emptyList();
+                    domainRequirements = Collections.emptyList();
                 } else {
                     if (realm.startsWith("<") && realm.contains(">")) {
                         int index = realm.indexOf('>');
                         assert index > 1;
                         domainRequirements = URIRequirementBuilder.fromUri(realm.substring(1, index).trim()).build();
                     } else {
-                        domainRequirements = Collections.<DomainRequirement>emptyList();
+                        domainRequirements = Collections.emptyList();
                     }
                 }
                 return new StandardListBoxModel()

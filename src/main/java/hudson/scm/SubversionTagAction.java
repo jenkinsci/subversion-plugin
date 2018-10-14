@@ -240,7 +240,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
                 upc = CredentialsMatchers.firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class,
                         context,
                         a,
-                        Collections.<DomainRequirement>emptyList()),
+                        Collections.emptyList()),
                         CredentialsMatchers.allOf(CredentialsMatchers.withId(credentialsId), CredentialsMatchers.anyOf(
                                 CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
                                 CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
@@ -344,7 +344,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
             }
             Set<StandardCredentials> c = new LinkedHashSet<StandardCredentials>();
             SubversionTagAction action = run != null ? run.getAction(SubversionTagAction.class) : null;
-            List<DomainRequirement> domainRequirements = Collections.<DomainRequirement>emptyList();
+            List<DomainRequirement> domainRequirements = Collections.emptyList();
             if (action != null) {
                 for (SvnInfo info: action.getTags().keySet()) {
                     domainRequirements = URIRequirementBuilder.fromUri(info.url).build();

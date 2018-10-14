@@ -23,7 +23,6 @@
  */
 package hudson.scm;
 
-import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.Domain;
@@ -111,7 +110,7 @@ public class CredentialsExternalsTest {
                 main.svnkit("propset", "svn:externals", "ext svn://localhost:" + extPort + "/prj/trunk\n", main.wc());
                 main.svnkit("commit", "--message=externals", main.wc());
                 FreeStyleProject p = r.createFreeStyleProject("p");
-                SystemCredentialsProvider.getInstance().setDomainCredentialsMap(Collections.singletonMap(Domain.global(), Arrays.<Credentials>asList(
+                SystemCredentialsProvider.getInstance().setDomainCredentialsMap(Collections.singletonMap(Domain.global(), Arrays.asList(
                     new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "main-creds", null, "alice", "alice"),
                     new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "ext-creds", null, "bob", "bob"))));
                 p.setScm(new SubversionSCM(

@@ -1,6 +1,5 @@
 package hudson.scm.listtagsparameter;
 
-import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.Domain;
@@ -94,7 +93,7 @@ public class ListSubversionTagsParameterDefinitionTest {
         r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy().
             grant(Jenkins.READ, Item.READ, Item.BUILD, Item.CONFIGURE).everywhere().to("devlead").
             grant(Jenkins.READ, Item.READ, Item.BUILD).everywhere().to("user"));
-        SystemCredentialsProvider.getInstance().setDomainCredentialsMap(Collections.singletonMap(Domain.global(), Collections.<Credentials>singletonList(
+        SystemCredentialsProvider.getInstance().setDomainCredentialsMap(Collections.singletonMap(Domain.global(), Collections.singletonList(
             new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "svncreds", null, "svn", "s3cr3t"))));
         r.createFreeStyleProject("p");
         assertSniff("devlead", "svn:s3cr3t", /* server response is bad, Jenkins should say so */ false);

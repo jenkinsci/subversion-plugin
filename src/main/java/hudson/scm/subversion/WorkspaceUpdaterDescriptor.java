@@ -35,6 +35,6 @@ import jenkins.model.Jenkins;
 public abstract class WorkspaceUpdaterDescriptor extends Descriptor<WorkspaceUpdater> {
 
     public static DescriptorExtensionList<WorkspaceUpdater,WorkspaceUpdaterDescriptor> all() {
-        return Jenkins.getInstance().<WorkspaceUpdater,WorkspaceUpdaterDescriptor>getDescriptorList(WorkspaceUpdater.class);
+        return Jenkins.getInstance().getDescriptorList(WorkspaceUpdater.class);
     }
 }
