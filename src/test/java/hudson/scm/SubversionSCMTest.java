@@ -1145,7 +1145,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
                 newFile.write("random content","UTF-8");
         }
         SVNCommitClient cc = svnm.getCommitClient();
-        cc.doCommit(added.toArray(new File[added.size()]),false,"added",null,null,false,false,SVNDepth.EMPTY);
+        cc.doCommit(added.toArray(new File[0]),false,"added",null,null,false,false,SVNDepth.EMPTY);
     }
 
 

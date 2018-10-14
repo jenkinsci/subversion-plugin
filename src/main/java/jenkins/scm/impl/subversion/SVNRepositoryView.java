@@ -293,7 +293,7 @@ public class SVNRepositoryView {
         }
 
         public ChildEntry[] getResult() {
-            return children.toArray(new ChildEntry[children.size()]);
+            return children.toArray(new ChildEntry[0]);
         }
     }
 }

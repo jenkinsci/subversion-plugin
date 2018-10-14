@@ -364,7 +364,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 itr.remove();
             }
         }
-        this.locations = locations.toArray(new ModuleLocation[locations.size()]);
+        this.locations = locations.toArray(new ModuleLocation[0]);
         if (additionalCredentials == null) {
             this.additionalCredentials = null;
         } else {
@@ -501,7 +501,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 oldLocations.add(new ModuleLocation(remoteLoc, null));
             }
 
-            locations = oldLocations.toArray(new ModuleLocation[oldLocations.size()]);
+            locations = oldLocations.toArray(new ModuleLocation[0]);
             modules = null;
         }
 
@@ -541,7 +541,7 @@ public class SubversionSCM extends SCM implements Serializable {
             allLocations.add(new ModuleLocation(external.url, external.path));
         }
 
-        return allLocations.toArray(new ModuleLocation[allLocations.size()]);
+        return allLocations.toArray(new ModuleLocation[0]);
     }
 
     private List<External> getExternals(Job context) throws IOException {
