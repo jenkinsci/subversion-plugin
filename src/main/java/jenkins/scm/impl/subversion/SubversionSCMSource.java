@@ -209,10 +209,7 @@ public class SubversionSCMSource extends SCMSource {
                 SVNURL repoURL = SVNURL.parseURIEncoded(remoteBase);
                 repository = openSession(repoURL);
                 uuid = repository.getUuid();
-            } catch (SVNException e) {
-                LOGGER.log(Level.WARNING, "Could not connect to remote repository " + remoteBase + " to determine UUID",
-                        e);
-            } catch (IOException e) {
+            } catch (SVNException | IOException e) {
                 LOGGER.log(Level.WARNING, "Could not connect to remote repository " + remoteBase + " to determine UUID",
                         e);
             } finally {

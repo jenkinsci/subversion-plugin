@@ -110,9 +110,7 @@ public class SubversionWorkspaceSelector implements ISVNAdminAreaFactorySelector
             if (c!=null)    // just being defensive. cannot be null.
                 try {
                     workspaceFormat = c.call(new GetWorkspaceFormatSlaveToMasterCallable());
-                } catch (IOException e) {
-                    LOGGER.log(Level.WARNING, "Failed to retrieve Subversion workspace format",e);
-                } catch (InterruptedException e) {
+                } catch (IOException | InterruptedException e) {
                     LOGGER.log(Level.WARNING, "Failed to retrieve Subversion workspace format",e);
                 }
         }

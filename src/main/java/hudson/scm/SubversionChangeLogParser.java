@@ -73,9 +73,7 @@ public class SubversionChangeLogParser extends ChangeLogParser {
 
         try {
             digester.parse(changelogFile);
-        } catch (IOException e) {
-            throw new IOException("Failed to parse " + changelogFile,e);
-        } catch (SAXException e) {
+        } catch (IOException | SAXException e) {
             throw new IOException("Failed to parse " + changelogFile,e);
         }
 

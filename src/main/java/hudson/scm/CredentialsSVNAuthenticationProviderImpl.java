@@ -215,11 +215,7 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
 
         try {
             return describeBean(a1).equals(describeBean(a2));
-        } catch (IllegalAccessException e) {
-            return false;
-        } catch (InvocationTargetException e) {
-            return false;
-        } catch (NoSuchMethodException e) {
+        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             return false;
         }
     }

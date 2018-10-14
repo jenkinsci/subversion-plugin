@@ -2071,11 +2071,7 @@ public class SubversionSCM extends SCM implements Serializable {
                             if (Arrays.equals(bos1.toByteArray(), bos2.toByteArray())) {
                                 return c;
                             }
-                        } catch (KeyStoreException e) {
-                            continue;
-                        } catch (NoSuchAlgorithmException e) {
-                            continue;
-                        } catch (CertificateException e) {
+                        } catch (KeyStoreException | CertificateException | NoSuchAlgorithmException e) {
                             continue;
                         }
                     }
@@ -3290,11 +3286,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
         try {
             return describeBean(a1).equals(describeBean(a2));
-        } catch (IllegalAccessException e) {
-            return false;
-        } catch (InvocationTargetException e) {
-            return false;
-        } catch (NoSuchMethodException e) {
+        } catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
             return false;
         }
     }
