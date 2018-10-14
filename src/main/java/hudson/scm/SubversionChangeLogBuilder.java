@@ -29,7 +29,6 @@ import hudson.model.BuildListener;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.FilePath;
 import hudson.remoting.VirtualChannel;
-import hudson.FilePath.FileCallable;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import org.kohsuke.accmod.Restricted;

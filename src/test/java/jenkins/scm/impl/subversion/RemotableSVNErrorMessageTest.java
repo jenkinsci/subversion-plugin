@@ -1,6 +1,5 @@
 package jenkins.scm.impl.subversion;
 
-import org.junit.Assert;
 import org.junit.Test;
 import org.tmatesoft.svn.core.SVNErrorCode;
 

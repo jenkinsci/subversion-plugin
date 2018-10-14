@@ -30,7 +30,6 @@ import hudson.AbortException;
 import hudson.Extension;
 import hudson.scm.SubversionSCM.External;
 import hudson.scm.SubversionSCM.ModuleLocation;
-import hudson.scm.SubversionSCM.SvnInfo;
 import hudson.triggers.SCMTrigger;
 import jenkins.model.Jenkins;
 import org.apache.commons.lang.time.FastDateFormat;

@@ -10,7 +10,6 @@ import java.net.URL;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.jvnet.hudson.test.Bug;
 import org.jvnet.hudson.test.Issue;
 import org.xml.sax.SAXException;
 
