@@ -1923,7 +1923,7 @@ public class SubversionSCM extends SCM implements Serializable {
              * Gets the location where the private key will be permanently stored.
              */
             private File getKeyFile() {
-                File dir = new File(Hudson.getInstance().getRootDir(),"subversion-credentials");
+                File dir = new File(Jenkins.getInstance().getRootDir(),"subversion-credentials");
                 if(dir.mkdirs()) {
                     // make sure the directory exists. if we created it, try to set the permission to 600
                     // since this is sensitive information
@@ -2249,7 +2249,7 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         // TODO: stapler should do multipart/form-data handling
         public void doPostCredential(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-            Hudson.getInstance().checkPermission(Item.CONFIGURE);
+            Jenkins.getInstance().checkPermission(Item.CONFIGURE);
 
             MultipartFormDataParser parser = new MultipartFormDataParser(req);
 
@@ -2267,7 +2267,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 req.setAttribute("message",log.toString());
                 req.setAttribute("pre",true);
                 req.setAttribute("exception",e);
-                rsp.forward(Hudson.getInstance(),"error",req);
+                rsp.forward(Jenkins.getInstance(),"error",req);
             } finally {
                 upc.close();
             }
@@ -2514,7 +2514,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 return FormValidation.ok();
 
             // Test the connection only if we have admin permission
-            if (!Hudson.getInstance().hasPermission(Hudson.ADMINISTER))
+            if (!Jenkins.getInstance().hasPermission(Jenkins.ADMINISTER))
                 return FormValidation.ok();
 
             try {
