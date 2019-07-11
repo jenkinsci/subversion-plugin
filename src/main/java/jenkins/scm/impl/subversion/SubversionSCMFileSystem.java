@@ -2,6 +2,7 @@ package jenkins.scm.impl.subversion;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNURL;
@@ -26,7 +27,6 @@ import hudson.scm.SVNAuthenticationManager;
 import hudson.scm.SubversionSCM;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.security.ACL;
-import hudson.util.TimeUnit2;
 import jenkins.scm.api.SCMFile;
 import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMHead;
@@ -133,7 +133,7 @@ public class SubversionSCMFileSystem extends SCMFileSystem {
 				public int getReadTimeout(SVNRepository repository) {
 					int r = super.getReadTimeout(repository);
 					if (r <= 0) {
-						r = (int) TimeUnit2.MINUTES.toMillis(1);
+						r = (int) TimeUnit.MINUTES.toMillis(1);
 					}
 					return r;
 				}

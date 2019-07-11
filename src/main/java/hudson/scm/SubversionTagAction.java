@@ -37,7 +37,6 @@ import hudson.Extension;
 import hudson.model.Action;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
-import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -327,7 +326,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
     }
 
     public Descriptor<SubversionTagAction> getDescriptor() {
-        return Hudson.getInstance().getDescriptorOrDie(getClass());
+        return Jenkins.getInstance().getDescriptorOrDie(getClass());
     }
 
     /**

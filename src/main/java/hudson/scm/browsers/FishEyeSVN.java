@@ -25,7 +25,6 @@ package hudson.scm.browsers;
 
 import hudson.Extension;
 import hudson.model.Descriptor;
-import hudson.model.Hudson;
 import hudson.scm.EditType;
 import hudson.scm.RepositoryBrowser;
 import hudson.scm.SubversionChangeLogSet.LogEntry;
@@ -33,6 +32,7 @@ import hudson.scm.SubversionChangeLogSet.Path;
 import hudson.scm.SubversionRepositoryBrowser;
 import hudson.util.FormValidation;
 import hudson.util.FormValidation.URLCheck;
+import jenkins.model.Jenkins;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
@@ -139,7 +139,7 @@ public class FishEyeSVN extends SubversionRepositoryBrowser {
                 return FormValidation.errorWithMarkup("The URL should end like <tt>.../browse/foobar/</tt>");
 
             // Connect to URL and check content only if we have admin permission
-            if (!Hudson.getInstance().hasPermission(Hudson.ADMINISTER))
+            if (!Jenkins.getInstance().hasPermission(Jenkins.ADMINISTER))
                 return FormValidation.ok();
 
             final String finalValue = value;

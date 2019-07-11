@@ -26,15 +26,14 @@
 package hudson.scm;
 
 import hudson.model.AbstractProject;
-import hudson.model.Hudson;
 import hudson.model.TaskListener;
 import hudson.scm.SubversionSCM.DescriptorImpl.Credential;
 import hudson.scm.SubversionSCM.DescriptorImpl.PasswordCredential;
 import hudson.scm.SubversionSCM.DescriptorImpl.SshPublicKeyCredential;
 import hudson.scm.SubversionSCM.DescriptorImpl.SslClientCertificateCredential;
 import hudson.security.csrf.CrumbIssuer;
-import hudson.util.IOException2;
 import hudson.util.MultipartFormDataParser;
+import jenkins.model.Jenkins;
 import org.apache.commons.fileupload.FileItem;
 import org.kohsuke.putty.PuTTYKey;
 import org.kohsuke.stapler.HttpResponses;
@@ -95,7 +94,7 @@ public class UserProvidedCredential implements Closeable {
      * Parses the credential information from a form submission.
      */
     public static UserProvidedCredential fromForm(StaplerRequest req, MultipartFormDataParser parser) throws IOException {
-        CrumbIssuer crumbIssuer = Hudson.getInstance().getCrumbIssuer();
+        CrumbIssuer crumbIssuer = Jenkins.getInstance().getCrumbIssuer();
         if (crumbIssuer!=null && !crumbIssuer.validateCrumb(req, parser))
             throw HttpResponses.error(SC_FORBIDDEN,new IOException("No crumb found"));
 
@@ -119,7 +118,7 @@ public class UserProvidedCredential implements Closeable {
                 try {
                     item.write(keyFile);
                 } catch (Exception e) {
-                    throw new IOException2(e);
+                    throw new IOException(e);
                 }
                 if(PuTTYKey.isPuTTYKeyFile(keyFile)) {
                     // TODO: we need a passphrase support

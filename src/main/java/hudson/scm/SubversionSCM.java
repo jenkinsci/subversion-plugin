@@ -78,6 +78,7 @@ import java.util.LinkedHashSet;
 import java.util.WeakHashMap;
 
 import hudson.security.ACL;
+import hudson.security.ACLContext;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import hudson.remoting.Channel;
@@ -96,7 +97,6 @@ import hudson.util.LogTaskListener;
 import hudson.util.MultipartFormDataParser;
 import hudson.util.Scrambler;
 import hudson.util.Secret;
-import hudson.util.TimeUnit2;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -124,6 +124,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
@@ -137,8 +138,6 @@ import javax.xml.transform.stream.StreamResult;
 import jenkins.scm.impl.subversion.RemotableSVNErrorMessage;
 import net.sf.json.JSONObject;
 
-import org.acegisecurity.context.SecurityContext;
-import org.acegisecurity.context.SecurityContextHolder;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
@@ -914,7 +913,7 @@ public class SubversionSCM extends SCM implements Serializable {
         if (repositoryLocationsNoLongerExist(build, listener, env)) {
             Run lsb = build.getParent().getLastSuccessfulBuild();
             if (build instanceof AbstractBuild && lsb != null && build.getNumber()-lsb.getNumber()>10
-            && build.getTimestamp().getTimeInMillis()-lsb.getTimestamp().getTimeInMillis() > TimeUnit2.DAYS.toMillis(1)) {
+            && build.getTimestamp().getTimeInMillis()-lsb.getTimestamp().getTimeInMillis() > TimeUnit.DAYS.toMillis(1)) {
                 // Disable this project if the location doesn't exist any more, see issue #763
                 // but only do so if there was at least some successful build,
                 // to make sure that initial configuration error won't disable the build. see issue #1567
@@ -1685,8 +1684,7 @@ public class SubversionSCM extends SCM implements Serializable {
         public void load() {
             super.load();
             if (credentials != null && !credentials.isEmpty()) {
-                SecurityContext oldContext = ACL.impersonate(ACL.SYSTEM);
-                try {
+                try (ACLContext oldContext = ACL.as(ACL.SYSTEM)) {
                     BulkChange bc = new BulkChange(this);
                     try {
                         mayHaveLegacyPerJobCredentials = true;
@@ -1701,8 +1699,6 @@ public class SubversionSCM extends SCM implements Serializable {
                     } finally {
                         bc.abort();
                     }
-                } finally {
-                    SecurityContextHolder.setContext(oldContext);
                 }
             }
         }
@@ -1927,7 +1923,7 @@ public class SubversionSCM extends SCM implements Serializable {
              * Gets the location where the private key will be permanently stored.
              */
             private File getKeyFile() {
-                File dir = new File(Hudson.getInstance().getRootDir(),"subversion-credentials");
+                File dir = new File(Jenkins.getInstance().getRootDir(),"subversion-credentials");
                 if(dir.mkdirs()) {
                     // make sure the directory exists. if we created it, try to set the permission to 600
                     // since this is sensitive information
@@ -2253,7 +2249,7 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         // TODO: stapler should do multipart/form-data handling
         public void doPostCredential(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-            Hudson.getInstance().checkPermission(Item.CONFIGURE);
+            Jenkins.getInstance().checkPermission(Item.CONFIGURE);
 
             MultipartFormDataParser parser = new MultipartFormDataParser(req);
 
@@ -2271,7 +2267,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 req.setAttribute("message",log.toString());
                 req.setAttribute("pre",true);
                 req.setAttribute("exception",e);
-                rsp.forward(Hudson.getInstance(),"error",req);
+                rsp.forward(Jenkins.getInstance(),"error",req);
             } finally {
                 upc.close();
             }
@@ -2518,7 +2514,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 return FormValidation.ok();
 
             // Test the connection only if we have admin permission
-            if (!Hudson.getInstance().hasPermission(Hudson.ADMINISTER))
+            if (!Jenkins.getInstance().hasPermission(Jenkins.ADMINISTER))
                 return FormValidation.ok();
 
             try {
