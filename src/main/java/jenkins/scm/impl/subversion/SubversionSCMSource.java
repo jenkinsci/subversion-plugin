@@ -103,6 +103,7 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMHeadEvent;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -322,7 +323,8 @@ public class SubversionSCMSource extends SCMSource {
     @Override
     protected Set<String> retrieveRevisions(TaskListener listener, Item context) throws IOException, InterruptedException {
         // Default implementation should do what we need: normally includes tags as well as branches.
-        return super.retrieveRevisions(listener, context);
+        // (Cannot call super.retrieveRevisions(listener, context) due to StackOverflowError with compatibility fallbacks.)
+        return retrieve(listener).stream().map(SCMHead::getName).collect(Collectors.toSet());
     }
 
     private static void closeSession(@CheckForNull SVNRepositoryView repository) {
