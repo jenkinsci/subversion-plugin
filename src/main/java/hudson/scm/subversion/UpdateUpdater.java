@@ -28,12 +28,11 @@ package hudson.scm.subversion;
 
 import hudson.AbortException;
 import hudson.Extension;
-import hudson.model.Hudson;
 import hudson.scm.SubversionSCM.External;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.scm.SubversionSCM.SvnInfo;
 import hudson.triggers.SCMTrigger;
-
+import jenkins.model.Jenkins;
 import org.apache.commons.lang.time.FastDateFormat;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.tmatesoft.svn.core.*;
@@ -201,7 +200,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
                     }
                     // trouble-shooting probe for #591
                     if (errorCode == SVNErrorCode.WC_NOT_LOCKED) {
-                        Hudson instance = Hudson.getInstance();
+                        Jenkins instance = Jenkins.getInstance();
                         if (instance != null) {
                             listener.getLogger().println("Polled jobs are " + instance.getDescriptorByType(SCMTrigger.DescriptorImpl.class).getItemsBeingPolled());
                         }

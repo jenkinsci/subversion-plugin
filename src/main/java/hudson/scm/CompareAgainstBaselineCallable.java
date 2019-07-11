@@ -1,6 +1,5 @@
 package hudson.scm;
 
-import hudson.model.Hudson;
 import hudson.model.TaskListener;
 import hudson.remoting.DelegatingCallable;
 import hudson.scm.PollingResult.Change;
@@ -13,6 +12,7 @@ import java.text.DateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import jenkins.model.Jenkins;
 import jenkins.security.MasterToSlaveCallable;
 
 import org.tmatesoft.svn.core.SVNException;
@@ -47,7 +47,7 @@ final class CompareAgainstBaselineCallable extends MasterToSlaveCallable<Polling
     }
 
     public ClassLoader getClassLoader() {
-        return Hudson.getInstance().getPluginManager().uberClassLoader;
+        return Jenkins.getInstance().getPluginManager().uberClassLoader;
     }
 
     /**

@@ -27,7 +27,6 @@ import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.scm.*;
-import hudson.util.TimeUnit2;
 import jenkins.model.Jenkins;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
@@ -48,6 +47,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -81,7 +81,7 @@ public class SVNRepositoryView {
                 public int getReadTimeout(SVNRepository repository) {
                     int r = super.getReadTimeout(repository);
                     if (r <= 0) {
-                        r = (int) TimeUnit2.MINUTES.toMillis(1);
+                        r = (int) TimeUnit.MINUTES.toMillis(1);
                     }
                     return r;
                 }

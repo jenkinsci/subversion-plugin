@@ -25,7 +25,7 @@ package hudson.scm.subversion;
 
 import hudson.DescriptorExtensionList;
 import hudson.model.Descriptor;
-import hudson.model.Hudson;
+import jenkins.model.Jenkins;
 
 /**
  * {@link Descriptor} for {@link WorkspaceUpdater}.
@@ -35,6 +35,6 @@ import hudson.model.Hudson;
 public abstract class WorkspaceUpdaterDescriptor extends Descriptor<WorkspaceUpdater> {
 
     public static DescriptorExtensionList<WorkspaceUpdater,WorkspaceUpdaterDescriptor> all() {
-        return Hudson.getInstance().<WorkspaceUpdater,WorkspaceUpdaterDescriptor>getDescriptorList(WorkspaceUpdater.class);
+        return Jenkins.getInstance().<WorkspaceUpdater,WorkspaceUpdaterDescriptor>getDescriptorList(WorkspaceUpdater.class);
     }
 }

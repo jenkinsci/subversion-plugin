@@ -23,7 +23,6 @@
  */
 package hudson.scm;
 
-import hudson.model.Hudson;
 import hudson.remoting.Channel;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.internal.wc.admin.ISVNAdminAreaFactorySelector;
@@ -138,7 +137,7 @@ public class SubversionWorkspaceSelector implements ISVNAdminAreaFactorySelector
         private static final long serialVersionUID = 6494337549896104453L;
 
         public Integer call()  {
-            return Hudson.getInstance().getDescriptorByType(SubversionSCM.DescriptorImpl.class).getWorkspaceFormat();
+            return Jenkins.getInstance().getDescriptorByType(SubversionSCM.DescriptorImpl.class).getWorkspaceFormat();
         }
     }
 }
