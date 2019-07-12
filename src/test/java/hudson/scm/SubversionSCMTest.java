@@ -724,6 +724,8 @@ public class SubversionSCMTest extends AbstractSubversionTest {
             "us_er",
             "user123",
             "User",
+            "User-Name",
+            "Do-Main\\User-Name",
             "", // this one is ignored
             "DOmain12\\User34"};
 
