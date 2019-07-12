@@ -22,6 +22,7 @@ import hudson.model.Item;
 import hudson.scm.CredentialsSVNAuthenticationProviderImpl;
 import hudson.scm.FilterSVNAuthenticationManager;
 import hudson.scm.SCM;
+import hudson.scm.SCMDescriptor;
 import hudson.scm.SVNAuthStoreHandlerImpl;
 import hudson.scm.SVNAuthenticationManager;
 import hudson.scm.SubversionSCM;
@@ -32,6 +33,7 @@ import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
+import jenkins.scm.api.SCMSourceDescriptor;
 import jenkins.scm.impl.subversion.SubversionSCMSource.SCMRevisionImpl;
 
 public class SubversionSCMFileSystem extends SCMFileSystem {
@@ -79,10 +81,20 @@ public class SubversionSCMFileSystem extends SCMFileSystem {
 			return source instanceof SubversionSCM && ENABLED;
 		}
 
+        @Override
+        protected boolean supportsDescriptor(SCMDescriptor descriptor) {
+            return descriptor instanceof SubversionSCM.DescriptorImpl && ENABLED;
+        }
+
 		@Override
 		public boolean supports(SCMSource source) {
 			return source instanceof SubversionSCMSource && ENABLED;
 		}
+
+        @Override
+        protected boolean supportsDescriptor(SCMSourceDescriptor descriptor) {
+            return descriptor instanceof SubversionSCMSource.DescriptorImpl && ENABLED;
+        }
 
 		@Override
 		public SCMFileSystem build(SCMSource source, SCMHead head, SCMRevision rev)
