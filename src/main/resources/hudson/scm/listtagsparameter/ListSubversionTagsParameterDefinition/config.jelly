@@ -41,6 +41,10 @@
     <f:entry title="${%Default value}" field="defaultValue">
         <f:textbox/>
     </f:entry> 
+    <f:entry field="useLatestTag">
+        <f:checkbox/>
+        <label class="attach-previous">${%Use latest tag}</label>
+    </f:entry>
     <f:entry title="${%Maximum tags to display}" field="maxTags">
         <f:textbox/>
     </f:entry>       
