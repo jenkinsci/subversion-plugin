@@ -751,9 +751,11 @@ public class SubversionSCM extends SCM implements Serializable {
         // maybe some XSLT engine doesn't close the stream properly.
         // so let's do it by ourselves to be really sure that the stream gets closed.
         OutputStream os = new BufferedOutputStream(new FileOutputStream(changelogFile));
-        boolean created;
+        boolean created = false;
         try {
-            created = new SubversionChangeLogBuilder(build, workspace, (SVNRevisionState) baseline, env, listener, this).run(externalsMap, new StreamResult(os));
+            if(baseline instanceof SVNRevisionState){
+                created = new SubversionChangeLogBuilder(build, workspace, (SVNRevisionState) baseline, env, listener, this).run(externalsMap, new StreamResult(os));
+            }
         } finally {
             os.close();
         }
