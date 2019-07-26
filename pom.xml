@@ -162,7 +162,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.tmatesoft.svnkit</groupId>
       <artifactId>svnkit</artifactId>
-      <version>1.9.3</version>
+      <version>1.10.1</version>
       <exclusions>
         <exclusion>
           <groupId>com.trilead</groupId>
@@ -173,7 +173,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.tmatesoft.svnkit</groupId>
       <artifactId>svnkit-cli</artifactId>
-      <version>1.9.3</version>
+      <version>1.10.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
