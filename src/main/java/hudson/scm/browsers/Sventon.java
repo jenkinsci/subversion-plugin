@@ -100,7 +100,7 @@ public class Sventon extends AbstractSventon {
         public FormValidation doCheckUrl(@AncestorInPath Item project,
                                          @QueryParameter(fixEmpty=true) final String value)
                 throws IOException, ServletException {
-            if (project == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
+            if (project == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER) ||
                 project != null && !project.hasPermission(Item.EXTENDED_READ)) {
                 return FormValidation.ok();
             }

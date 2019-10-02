@@ -8,23 +8,16 @@ import hudson.model.AbstractProject;
 import hudson.model.Job;
 import hudson.scm.SubversionRepositoryStatus.JobProvider;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.StringReader;
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import javax.servlet.ServletException;
 
 import org.junit.Test;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
-import org.jvnet.hudson.test.Bug;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.jvnet.hudson.test.Issue;
 
 /**
  * @author kutzi
@@ -33,7 +26,7 @@ public class SubversionRepositoryStatusTest {
     
     @SuppressWarnings("rawtypes")
     @Test
-    @Bug(15794)
+    @Issue("JENKINS-15794")
     public void shouldIgnoreDisabledJobs() throws ServletException, IOException {
         SubversionRepositoryStatus.JobTriggerListenerImpl listener = new SubversionRepositoryStatus.JobTriggerListenerImpl();
 

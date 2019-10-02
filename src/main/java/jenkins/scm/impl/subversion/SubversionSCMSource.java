@@ -800,7 +800,7 @@ public class SubversionSCMSource extends SCMSource {
         public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
                                                      @QueryParameter String remoteBase,
                                                      @QueryParameter String credentialsId) {
-            if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
+            if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER) ||
                 context != null && !context.hasPermission(Item.EXTENDED_READ)) {
                 return new StandardListBoxModel().includeCurrentValue(credentialsId);
             }
@@ -829,7 +829,7 @@ public class SubversionSCMSource extends SCMSource {
         public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath Item context, @QueryParameter String remoteBase, @QueryParameter String value) {
             // TODO suspiciously similar to SubversionSCM.ModuleLocation.DescriptorImpl.checkCredentialsId; refactor into shared method?
             // Test the connection only if we may use the credentials
-            if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
+            if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER) ||
                 context != null && !context.hasPermission(CredentialsProvider.USE_ITEM)) {
                 return FormValidation.ok();
             }

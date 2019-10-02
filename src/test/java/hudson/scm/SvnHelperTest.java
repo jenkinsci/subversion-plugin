@@ -26,7 +26,7 @@ package hudson.scm;
 import hudson.scm.subversion.SvnHelper;
 import org.junit.Assert;
 import org.junit.Test;
-import org.jvnet.hudson.test.Bug;
+import org.jvnet.hudson.test.Issue;
 
 /**
  * Contains tests for {@link SvnHelper}.
@@ -66,7 +66,7 @@ public class SvnHelperTest {
     }
     
     @Test
-    @Bug(20344)
+    @Issue("JENKINS-20344")
     public void testGetUrlWithoutRevision_withSlashAndSuffix() {
         testGetUrlWithoutRevision(URL_PREFIX+"/@HEAD");
         testGetUrlWithoutRevision(URL_PREFIX+"//@HEAD");       
