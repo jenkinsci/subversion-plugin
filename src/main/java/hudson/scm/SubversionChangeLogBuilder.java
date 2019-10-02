@@ -28,7 +28,6 @@ import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.FilePath;
-import hudson.util.IOException2;
 import hudson.remoting.VirtualChannel;
 import hudson.FilePath.FileCallable;
 import hudson.model.Run;
@@ -55,8 +54,8 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.File;
 import java.io.Serializable;
+import java.util.List;
 import java.util.Map;
-import java.util.Collection;
 import javax.annotation.Nonnull;
 import jenkins.MasterToSlaveFileCallable;
 
@@ -101,7 +100,7 @@ public final class SubversionChangeLogBuilder {
         this.env = env;
     }
 
-    public boolean run(Collection<SubversionSCM.External> externals, Result changeLog) throws IOException, InterruptedException {
+    public boolean run(@Nonnull Map<String, List<SubversionSCM.External>> externalsMap, Result changeLog) throws IOException, InterruptedException {
         boolean changelogFileCreated = false;
 
         TransformerHandler th = createTransformerHandler();
@@ -122,23 +121,19 @@ public final class SubversionChangeLogBuilder {
                 PathContext context = getUrlForPath(workspace.child(l.getLocalDir()), authProvider);
                 context.moduleWorkspacePath = l.getLocalDir();
                 changelogFileCreated |= buildModule(context, svnlc, logHandler);
+
+                // externals for this module location
+                List<SubversionSCM.External> externals = externalsMap.get(l.remote);
+                if (externals != null) {
+                  for (SubversionSCM.External ext : externals) {
+                    PathContext extContext = getUrlForPath(workspace.child(ext.path), authProvider);
+                    extContext.moduleWorkspacePath = ext.path;
+                    changelogFileCreated |= buildModule(extContext, svnlc, logHandler);
+                  }
+                }
             } finally {
                 manager.dispose();
             }
-        }
-        ISVNAuthenticationProvider authProvider =
-                CredentialsSVNAuthenticationProviderImpl
-                        .createAuthenticationProvider(build.getParent(), scm, null, listener);
-        final SVNClientManager manager = SubversionSCM.createClientManager(authProvider).getCore();
-        try {
-            SVNLogClient svnlc = manager.getLogClient();
-            for(SubversionSCM.External ext : externals) {
-                PathContext context = getUrlForPath(workspace.child(ext.path), authProvider);
-                context.moduleWorkspacePath = ext.path;
-                changelogFileCreated |= buildModule(context, svnlc, logHandler);
-            }
-        } finally {
-            manager.dispose();
         }
 
         if(changelogFileCreated) {
@@ -152,7 +147,7 @@ public final class SubversionChangeLogBuilder {
         return path.act(new GetContextForPath(authProvider));
     }
 
-    private boolean buildModule(PathContext context, SVNLogClient svnlc, DirAwareSVNXMLLogHandler logHandler) throws IOException2 {
+    private boolean buildModule(PathContext context, SVNLogClient svnlc, DirAwareSVNXMLLogHandler logHandler) throws IOException {
         String url = context.url;
         PrintStream logger = listener.getLogger();
 
@@ -205,7 +200,7 @@ public final class SubversionChangeLogBuilder {
                 listener.getLogger().println("done");
             }
         } catch (SVNException e) {
-            throw new IOException2("revision check failed on " + url, e);
+            throw new IOException("revision check failed on " + url, e);
         }
         return true;
     }

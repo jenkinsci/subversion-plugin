@@ -49,7 +49,8 @@ THE SOFTWARE.
       <f:option value="empty" selected="${instance.depthOption=='empty'}">empty</f:option>
       <f:option value="files" selected="${instance.depthOption=='files'}">files</f:option>
       <f:option value="immediates" selected="${instance.depthOption=='immediates'}">immediates</f:option>
-      <f:option value="unknown" selected="${instance.depthOption=='unknown'}">as-it-is</f:option>
+      <f:option value="unknown" selected="${instance.depthOption=='unknown'}">as-it-is(checkout depth files)</f:option>
+      <f:option value="as-it-is-infinity" selected="${instance.depthOption=='as-it-is-infinity'}">as-it-is(checkout depth infinity)</f:option>
     </select>
   </f:entry>
   <f:entry title="${%Ignore externals}" field="ignoreExternalsOption">

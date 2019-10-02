@@ -32,7 +32,6 @@ import hudson.Extension;
 import hudson.Util;
 import hudson.cli.CLICommand;
 import hudson.model.AbstractProject;
-import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.Job;
 import hudson.model.ParameterDefinition;
@@ -452,7 +451,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
      */
     public SubversionSCM.DescriptorImpl getSubversionSCMDescriptor() {
       if(scmDescriptor == null) {
-        scmDescriptor = (SubversionSCM.DescriptorImpl) Hudson.getInstance().getDescriptor(SubversionSCM.class);
+        scmDescriptor = (SubversionSCM.DescriptorImpl) Jenkins.getInstance().getDescriptor(SubversionSCM.class);
       }
       return scmDescriptor;
     }

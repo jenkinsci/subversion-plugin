@@ -78,6 +78,7 @@ import java.util.LinkedHashSet;
 import java.util.WeakHashMap;
 
 import hudson.security.ACL;
+import hudson.security.ACLContext;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import hudson.remoting.Channel;
@@ -96,7 +97,6 @@ import hudson.util.LogTaskListener;
 import hudson.util.MultipartFormDataParser;
 import hudson.util.Scrambler;
 import hudson.util.Secret;
-import hudson.util.TimeUnit2;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -124,6 +124,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
@@ -137,8 +138,6 @@ import javax.xml.transform.stream.StreamResult;
 import jenkins.scm.impl.subversion.RemotableSVNErrorMessage;
 import net.sf.json.JSONObject;
 
-import org.acegisecurity.context.SecurityContext;
-import org.acegisecurity.context.SecurityContextHolder;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
@@ -741,7 +740,7 @@ public class SubversionSCM extends SCM implements Serializable {
     /**
      * Called after checkout/update has finished to compute the changelog.
      */
-    private void calcChangeLog(Run<?,?> build, FilePath workspace, File changelogFile, SCMRevisionState baseline, TaskListener listener, List<External> externals, EnvVars env) throws IOException, InterruptedException {
+    private void calcChangeLog(Run<?,?> build, FilePath workspace, File changelogFile, SCMRevisionState baseline, TaskListener listener, Map<String, List<SubversionSCM.External>> externalsMap, EnvVars env) throws IOException, InterruptedException {
         if (baseline == null) {
             // nothing to compare against
             createEmptyChangeLog(changelogFile, listener, "log");
@@ -754,7 +753,7 @@ public class SubversionSCM extends SCM implements Serializable {
         OutputStream os = new BufferedOutputStream(new FileOutputStream(changelogFile));
         boolean created;
         try {
-            created = new SubversionChangeLogBuilder(build, workspace, (SVNRevisionState) baseline, env, listener, this).run(externals, new StreamResult(os));
+            created = new SubversionChangeLogBuilder(build, workspace, (SVNRevisionState) baseline, env, listener, this).run(externalsMap, new StreamResult(os));
         } finally {
             os.close();
         }
@@ -861,13 +860,19 @@ public class SubversionSCM extends SCM implements Serializable {
             EnvVarsUtils.overrideAll(env, ((AbstractBuild) build).getBuildVariables());
         }
 
-        List<External> externals = null;
-            externals = checkout(build,workspace,listener,env);
+        Map<String, List<External>> externalsMap = checkout(build,workspace,listener,env);
+
+        List<External> externalsForAll = new ArrayList<>();
+        if (externalsMap != null) {
+          for (String moduleLocationRemote : externalsMap.keySet()) {
+            externalsForAll.addAll(externalsMap.get(moduleLocationRemote));
+          }
+        }
 
         // write out the revision file
         PrintWriter w = new PrintWriter(new FileOutputStream(getRevisionFile(build)));
         try {
-            List<SvnInfoP> pList = workspace.act(new BuildRevisionMapTask(build, this, listener, externals, env));
+            List<SvnInfoP> pList = workspace.act(new BuildRevisionMapTask(build, this, listener, externalsForAll, env));
             List<SvnInfo> revList= new ArrayList<SvnInfo>(pList.size());
             for (SvnInfoP p: pList) {
                 if (p.pinned)
@@ -882,14 +887,14 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         // write out the externals info
-        SvnExternalsFileManager.writeExternalsFile(build.getParent(), externals);
+        SvnExternalsFileManager.writeExternalsFile(build.getParent(), externalsForAll);
         Map<Job, List<External>> projectExternalsCache = getProjectExternalsCache();
         synchronized (projectExternalsCache) {
-            projectExternalsCache.put(build.getParent(), externals);
+            projectExternalsCache.put(build.getParent(), externalsForAll);
         }
 
         if (changelogFile != null) {
-            calcChangeLog(build, workspace, changelogFile, baseline, listener, externals, env);
+            calcChangeLog(build, workspace, changelogFile, baseline, listener, externalsMap, env);
         }
     }
 
@@ -904,11 +909,11 @@ public class SubversionSCM extends SCM implements Serializable {
      *      if the operation failed. Otherwise the set of local workspace paths
      *      (relative to the workspace root) that has loaded due to svn:external.
      */
-    private List<External> checkout(Run build, FilePath workspace, TaskListener listener, EnvVars env) throws IOException, InterruptedException {
+    private Map<String, List<External>> checkout(Run build, FilePath workspace, TaskListener listener, EnvVars env) throws IOException, InterruptedException {
         if (repositoryLocationsNoLongerExist(build, listener, env)) {
             Run lsb = build.getParent().getLastSuccessfulBuild();
             if (build instanceof AbstractBuild && lsb != null && build.getNumber()-lsb.getNumber()>10
-            && build.getTimestamp().getTimeInMillis()-lsb.getTimestamp().getTimeInMillis() > TimeUnit2.DAYS.toMillis(1)) {
+            && build.getTimestamp().getTimeInMillis()-lsb.getTimestamp().getTimeInMillis() > TimeUnit.DAYS.toMillis(1)) {
                 // Disable this project if the location doesn't exist any more, see issue #763
                 // but only do so if there was at least some successful build,
                 // to make sure that initial configuration error won't disable the build. see issue #1567
@@ -921,12 +926,16 @@ public class SubversionSCM extends SCM implements Serializable {
             return null;
         }
 
-        List<External> externals = new ArrayList<External>();
+        Map<String, List<External>> externalsMap = new HashMap<>();
+
         Set<String> unauthenticatedRealms = new LinkedHashSet<String>();
         for (ModuleLocation location : getLocations(env, build)) {
             CheckOutTask checkOutTask =
                     new CheckOutTask(build, this, location, build.getTimestamp().getTime(), listener, env, quietOperation);
+            List<External> externals = new ArrayList<External>();
             externals.addAll(workspace.act(checkOutTask));
+            // save location <---> externals maps
+            externalsMap.put(location.remote, externals);
             unauthenticatedRealms.addAll(checkOutTask.getUnauthenticatedRealms());
             // olamy: remove null check at it cause test failure
             // see https://github.com/jenkinsci/subversion-plugin/commit/de23a2b781b7b86f41319977ce4c11faee75179b#commitcomment-1551273
@@ -963,7 +972,7 @@ public class SubversionSCM extends SCM implements Serializable {
             }
         }
 
-        return externals;
+        return externalsMap;
     }
 
     private synchronized Map<Job, List<External>> getProjectExternalsCache() {
@@ -1675,8 +1684,7 @@ public class SubversionSCM extends SCM implements Serializable {
         public void load() {
             super.load();
             if (credentials != null && !credentials.isEmpty()) {
-                SecurityContext oldContext = ACL.impersonate(ACL.SYSTEM);
-                try {
+                try (ACLContext oldContext = ACL.as(ACL.SYSTEM)) {
                     BulkChange bc = new BulkChange(this);
                     try {
                         mayHaveLegacyPerJobCredentials = true;
@@ -1691,8 +1699,6 @@ public class SubversionSCM extends SCM implements Serializable {
                     } finally {
                         bc.abort();
                     }
-                } finally {
-                    SecurityContextHolder.setContext(oldContext);
                 }
             }
         }
@@ -1917,7 +1923,7 @@ public class SubversionSCM extends SCM implements Serializable {
              * Gets the location where the private key will be permanently stored.
              */
             private File getKeyFile() {
-                File dir = new File(Hudson.getInstance().getRootDir(),"subversion-credentials");
+                File dir = new File(Jenkins.getInstance().getRootDir(),"subversion-credentials");
                 if(dir.mkdirs()) {
                     // make sure the directory exists. if we created it, try to set the permission to 600
                     // since this is sensitive information
@@ -2243,7 +2249,7 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         // TODO: stapler should do multipart/form-data handling
         public void doPostCredential(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-            Hudson.getInstance().checkPermission(Item.CONFIGURE);
+            Jenkins.getInstance().checkPermission(Item.CONFIGURE);
 
             MultipartFormDataParser parser = new MultipartFormDataParser(req);
 
@@ -2261,7 +2267,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 req.setAttribute("message",log.toString());
                 req.setAttribute("pre",true);
                 req.setAttribute("exception",e);
-                rsp.forward(Hudson.getInstance(),"error",req);
+                rsp.forward(Jenkins.getInstance(),"error",req);
             } finally {
                 upc.close();
             }
@@ -2451,9 +2457,9 @@ public class SubversionSCM extends SCM implements Serializable {
 
         /**
          * Regular expression for matching one username. Matches 'windows' names ('DOMAIN&#92;user') and
-         * 'normal' names ('user'). Where user (and DOMAIN) has one or more characters in 'a-zA-Z_0-9')
+         * 'normal' names ('user'). Where user (and DOMAIN) has one or more characters in 'a-zA-Z0-9_-')
          */
-        private static final Pattern USERNAME_PATTERN = Pattern.compile("(\\w+\\\\)?+(\\w+)");
+        private static final Pattern USERNAME_PATTERN = Pattern.compile("([a-zA-Z0-9_-]+\\\\)?+([a-zA-Z0-9_-]+)");
 
         /**
          * Validates the excludeUsers field
@@ -2508,7 +2514,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 return FormValidation.ok();
 
             // Test the connection only if we have admin permission
-            if (!Hudson.getInstance().hasPermission(Hudson.ADMINISTER))
+            if (!Jenkins.getInstance().hasPermission(Jenkins.ADMINISTER))
                 return FormValidation.ok();
 
             try {
@@ -2975,8 +2981,10 @@ public class SubversionSCM extends SCM implements Serializable {
          * @return {@link org.tmatesoft.svn.core.SVNDepth} value.
          */
         public SVNDepth getSvnDepthForCheckout() {
-            if(getDepthOption().equals("unknown")) {
+            if("unknown".equals(getDepthOption())) {
                 return SVNDepth.FILES;
+            } else if ("as-it-is-infinity".equals(getDepthOption())){
+                return SVNDepth.INFINITY;
             } else {
                 return getSvnDepth(getDepthOption());
             }
@@ -2991,9 +2999,9 @@ public class SubversionSCM extends SCM implements Serializable {
          * @return {@link org.tmatesoft.svn.core.SVNDepth} value.
          */
         public SVNDepth getSvnDepthForRevert() {
-            if(getDepthOption().equals("unknown")) {
+            if("unknown".equals(getDepthOption()) || "as-it-is-infinity".equals(getDepthOption())){
                 return SVNDepth.INFINITY;
-            } else {
+            }else {
                 return getSvnDepth(getDepthOption());
             }
         }
