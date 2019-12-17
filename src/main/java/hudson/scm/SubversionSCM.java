@@ -3130,7 +3130,7 @@ public class SubversionSCM extends SCM implements Serializable {
             }
 
             public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context, @QueryParameter String remote) {
-                if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
+                if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER) ||
                     context != null && !context.hasPermission(Item.EXTENDED_READ)) {
                     return new StandardListBoxModel();
                 }
@@ -3194,7 +3194,7 @@ public class SubversionSCM extends SCM implements Serializable {
                     @QueryParameter String remote, @QueryParameter String value) {
 
                 // Test the connection only if we may use the credentials (cf. hudson.plugins.git.UserRemoteConfig.DescriptorImpl.doCheckUrl)
-                if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
+                if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER) ||
                     context != null && !context.hasPermission(CredentialsProvider.USE_ITEM)) {
                     return FormValidation.ok();
                 }
@@ -3417,7 +3417,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
             public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
                                                          @QueryParameter String realm) {
-                if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
+                if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER) ||
                     context != null && !context.hasPermission(Item.EXTENDED_READ)) {
                     return new StandardListBoxModel();
                 }

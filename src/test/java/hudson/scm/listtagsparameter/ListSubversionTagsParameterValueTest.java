@@ -1,7 +1,7 @@
 package hudson.scm.listtagsparameter;
 
 import org.junit.Test;
-import org.jvnet.hudson.test.Bug;
+import org.jvnet.hudson.test.Issue;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -17,7 +17,7 @@ public class ListSubversionTagsParameterValueTest {
      * Since we are overriding the equals method, we should write a test unit.
      */
     @Test
-    @Bug(18534)
+    @Issue("JENKINS-18534")
     public void testEquality() {
         ListSubversionTagsParameterValue parameterValue = new ListSubversionTagsParameterValue(expectedName,
                 expectedTag,
@@ -61,7 +61,7 @@ public class ListSubversionTagsParameterValueTest {
      * Since we are overriding the hashcode method, we should write a test unit.
      */
     @Test
-    @Bug(18534)
+    @Issue("JENKINS-18534")
     public void testHashCode() {
         ListSubversionTagsParameterValue parameterValue = new ListSubversionTagsParameterValue(expectedName,
                 expectedTag,

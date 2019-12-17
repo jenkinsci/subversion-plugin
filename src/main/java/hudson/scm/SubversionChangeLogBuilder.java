@@ -29,7 +29,6 @@ import hudson.model.BuildListener;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.FilePath;
 import hudson.remoting.VirtualChannel;
-import hudson.FilePath.FileCallable;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import org.kohsuke.accmod.Restricted;
@@ -234,7 +233,7 @@ public final class SubversionChangeLogBuilder {
 
     private static final LocatorImpl DUMMY_LOCATOR = new LocatorImpl();
 
-    @edu.umd.cs.findbugs.annotations.SuppressWarnings(value = "MS_SHOULD_BE_FINAL",
+    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL",
     justification = "Debugging environment variable is made editable, so it can be modified through the groovy console.")
     public static boolean debug = false;
 

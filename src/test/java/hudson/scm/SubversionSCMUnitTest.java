@@ -20,7 +20,7 @@ import java.util.Map;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.jvnet.hudson.test.Bug;
+import org.jvnet.hudson.test.Issue;
 
 /**
  * Unit tests for {@link SubversionSCM}.
@@ -32,7 +32,7 @@ import org.jvnet.hudson.test.Bug;
 public class SubversionSCMUnitTest {
     
     @Test
-    @Bug(12113)
+    @Issue("JENKINS-12113")
     public void testLocalDirectoryIsExpandedWithEnvVars() {
         FilePath root = new FilePath((VirtualChannel)null, "root");
         
