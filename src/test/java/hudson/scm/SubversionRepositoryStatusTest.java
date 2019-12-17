@@ -5,7 +5,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import hudson.model.AbstractProject;
-import hudson.model.Job;
 import hudson.scm.SubversionRepositoryStatus.JobProvider;
 
 import java.io.IOException;
@@ -34,7 +33,7 @@ public class SubversionRepositoryStatusTest {
         final AbstractProject project = mock(AbstractProject.class);
         when(project.isDisabled()).thenReturn(true);
         
-        JobProvider jobProvider = () -> Collections.<Job>singletonList(project);
+        JobProvider jobProvider = () -> Collections.singletonList(project);
         
         listener.setJobProvider(jobProvider);
         

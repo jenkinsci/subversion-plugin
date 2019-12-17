@@ -25,7 +25,6 @@
  */
 package hudson.scm;
 
-import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.Domain;
@@ -68,7 +67,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -1148,7 +1146,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
                 newFile.write("random content","UTF-8");
         }
         SVNCommitClient cc = svnm.getCommitClient();
-        cc.doCommit(added.toArray(new File[added.size()]),false,"added",null,null,false,false,SVNDepth.EMPTY);
+        cc.doCommit(added.toArray(new File[0]),false,"added",null,null,false,false,SVNDepth.EMPTY);
     }
 
 
@@ -1380,7 +1378,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         Proc p = runSvnServe(getClass().getResource("HUDSON-1379.zip"));
         try {
             SystemCredentialsProvider.getInstance().setDomainCredentialsMap(Collections.singletonMap(Domain.global(),
-                    Collections.<Credentials>emptyList()
+                    Collections.emptyList()
             ));
 
             FreeStyleProject b = r.createFreeStyleProject();
@@ -1392,7 +1390,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
             // should fail without a credential
             r.assertBuildStatus(Result.FAILURE, b.scheduleBuild2(0).get());
             SystemCredentialsProvider.getInstance().setDomainCredentialsMap(Collections.singletonMap(Domain.global(),
-                    Arrays.<Credentials>asList(
+                    Arrays.asList(
                     new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "1-bob", null, "bob","bob")
                     )
             ));
@@ -1400,7 +1398,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
             r.assertBuildStatus(Result.FAILURE, c.scheduleBuild2(0).get());
             SystemCredentialsProvider.getInstance().setDomainCredentialsMap(Collections.singletonMap(Domain.global(),
-                    Arrays.<Credentials>asList(
+                    Arrays.asList(
                     new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "1-bob", null, "bob","bob"),
                     new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "2-charlie", null, "charlie","charlie")
                     )
@@ -1447,7 +1445,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         Proc p = runSvnServe(getClass().getResource("HUDSON-1379.zip"));
         try {
             SystemCredentialsProvider.getInstance().setDomainCredentialsMap(Collections.singletonMap(Domain.global(),
-                    Arrays.<Credentials>asList(
+                    Arrays.asList(
                     new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "1-alice", null, "alice","alice")
                     )
             ));

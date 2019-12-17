@@ -210,10 +210,7 @@ public class SubversionSCMSource extends SCMSource {
                 SVNURL repoURL = SVNURL.parseURIEncoded(remoteBase);
                 repository = openSession(repoURL, getOwner());
                 uuid = repository.getUuid();
-            } catch (SVNException e) {
-                LOGGER.log(Level.WARNING, "Could not connect to remote repository " + remoteBase + " to determine UUID",
-                        e);
-            } catch (IOException e) {
+            } catch (SVNException | IOException e) {
                 LOGGER.log(Level.WARNING, "Could not connect to remote repository " + remoteBase + " to determine UUID",
                         e);
             } finally {
@@ -364,12 +361,7 @@ public class SubversionSCMSource extends SCMSource {
             for (List<String> path : entry.getValue()) {
                 String name = path.get(prefix.size());
                 SVNRepositoryView.ChildEntry[] children = node.getChildren().clone();
-                Arrays.sort(children, new Comparator<SVNRepositoryView.ChildEntry>() {
-                    public int compare(SVNRepositoryView.ChildEntry o1, SVNRepositoryView.ChildEntry o2) {
-                        long diff = o2.getRevision() - o1.getRevision();
-                        return diff < 0 ? -1 : diff > 0 ? 1 : 0;
-                    }
-                });
+                Arrays.sort(children, Comparator.comparingLong(SVNRepositoryView.ChildEntry::getRevision).reversed());
                 for (final SVNRepositoryView.ChildEntry svnEntry : children) {
                     if (svnEntry.getType() == SVNNodeKind.DIR && isMatch(svnEntry.getName(), name)) {
                         List<String> childPrefix = copyAndAppend(prefix, name);
@@ -442,7 +434,7 @@ public class SubversionSCMSource extends SCMSource {
      */
     @NonNull
     private static <T> List<T> copyAndAppend(@NonNull List<T> list, T... values) {
-        List<T> childPrefix = new ArrayList<T>(list.size() + values.length);
+        List<T> childPrefix = new ArrayList<>(list.size() + values.length);
         childPrefix.addAll(list);
         childPrefix.addAll(Arrays.asList(values));
         return childPrefix;
@@ -464,7 +456,7 @@ public class SubversionSCMSource extends SCMSource {
         pathSegments = filterPaths(pathSegments, prefix);
 
         SortedMap<List<String>, SortedSet<List<String>>> result =
-                new TreeMap<List<String>, SortedSet<List<String>>>(COMPARATOR);
+                new TreeMap<>(COMPARATOR);
         while (!pathSegments.isEmpty()) {
             List<String> longestPrefix = null;
             int longestIndex = -1;
@@ -482,7 +474,7 @@ public class SubversionSCMSource extends SCMSource {
                 }
             }
             assert longestPrefix != null;
-            longestPrefix = new ArrayList<String>(longestPrefix.subList(0, longestIndex));
+            longestPrefix = new ArrayList<>(longestPrefix.subList(0, longestIndex));
             SortedSet<List<String>> group = filterPaths(pathSegments, longestPrefix);
             result.put(longestPrefix, group);
             pathSegments.removeAll(group);
@@ -490,7 +482,7 @@ public class SubversionSCMSource extends SCMSource {
         String optimization;
         while (null != (optimization = getOptimizationPoint(result.keySet(), prefix.size()))) {
             List<String> optimizedPrefix = copyAndAppend(prefix, optimization);
-            SortedSet<List<String>> optimizedGroup = new TreeSet<List<String>>(COMPARATOR);
+            SortedSet<List<String>> optimizedGroup = new TreeSet<>(COMPARATOR);
             for (Iterator<Map.Entry<List<String>, SortedSet<List<String>>>> iterator = result.entrySet().iterator();
                  iterator.hasNext(); ) {
                 Map.Entry<List<String>, SortedSet<List<String>>> entry = iterator.next();
@@ -514,7 +506,7 @@ public class SubversionSCMSource extends SCMSource {
      */
     @CheckForNull
     static String getOptimizationPoint(@NonNull Set<List<String>> newPrefixes, int oldPrefixSize) {
-        Set<String> set = new HashSet<String>();
+        Set<String> set = new HashSet<>();
         for (List<String> p : newPrefixes) {
             if (p.size() <= oldPrefixSize) {
                 continue;
@@ -616,7 +608,7 @@ public class SubversionSCMSource extends SCMSource {
     @NonNull
     static SortedSet<List<String>> filterPaths(@NonNull SortedSet<List<String>> pathSegments,
                                                @NonNull List<String> prefix) {
-        SortedSet<List<String>> result = new TreeSet<List<String>>(COMPARATOR);
+        SortedSet<List<String>> result = new TreeSet<>(COMPARATOR);
         for (List<String> pathSegment : pathSegments) {
             if (startsWith(pathSegment, prefix)) {
                 result.add(pathSegment);
@@ -633,7 +625,7 @@ public class SubversionSCMSource extends SCMSource {
      */
     @NonNull
     static SortedSet<List<String>> toPaths(@NonNull SortedSet<String> pathStrings) {
-        SortedSet<List<String>> result = new TreeSet<List<String>>(COMPARATOR);
+        SortedSet<List<String>> result = new TreeSet<>(COMPARATOR);
         for (String clude : pathStrings) {
             result.add(Arrays.asList(clude.split("/")));
         }
@@ -648,7 +640,7 @@ public class SubversionSCMSource extends SCMSource {
      */
     @NonNull
     static SortedSet<String> splitCludes(@CheckForNull String cludes) {
-        TreeSet<String> result = new TreeSet<String>();
+        TreeSet<String> result = new TreeSet<>();
         StringTokenizer tokenizer = new StringTokenizer(StringUtils.defaultString(cludes), ",");
         while (tokenizer.hasMoreTokens()) {
             String clude = tokenizer.nextToken().trim();
@@ -867,7 +859,7 @@ public class SubversionSCMSource extends SCMSource {
                 SVNRepository repository = null;
                 try {
                     repository = getRepository(repoURL, credentials,
-                            Collections.<String, Credentials>emptyMap(), null);
+                            Collections.emptyMap(), null);
                     long rev = repository.getLatestRevision();
                     // now go back the tree and find if there's anything that exists
                     String repoPath = getRelativePath(repoURL, repository);
@@ -876,11 +868,11 @@ public class SubversionSCMSource extends SCMSource {
                         p = SVNPathUtil.removeTail(p);
                         if(repository.checkPath(p,rev)==SVNNodeKind.DIR) {
                             // found a matching path
-                            List<SVNDirEntry> entries = new ArrayList<SVNDirEntry>();
+                            List<SVNDirEntry> entries = new ArrayList<>();
                             repository.getDir(p,rev,false,entries);
 
                             // build up the name list
-                            List<String> paths = new ArrayList<String>();
+                            List<String> paths = new ArrayList<>();
                             for (SVNDirEntry e : entries)
                                 if(e.getKind()==SVNNodeKind.DIR)
                                     paths.add(e.getName());
@@ -916,7 +908,7 @@ public class SubversionSCMSource extends SCMSource {
             SVNRepository repository = null;
 
             try {
-                repository = getRepository(repoURL,credentials, Collections.<String, Credentials>emptyMap(), null);
+                repository = getRepository(repoURL,credentials, Collections.emptyMap(), null);
                 repository.testConnection();
 
                 long rev = repository.getLatestRevision();

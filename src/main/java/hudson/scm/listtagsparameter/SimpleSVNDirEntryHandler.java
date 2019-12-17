@@ -28,7 +28,6 @@ package hudson.scm.listtagsparameter;
 import hudson.Util;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -47,7 +46,7 @@ import org.tmatesoft.svn.core.SVNException;
  */
 public class SimpleSVNDirEntryHandler implements ISVNDirEntryHandler {
 
-  private final List<SVNDirEntry> dirs = new ArrayList<SVNDirEntry>();
+  private final List<SVNDirEntry> dirs = new ArrayList<>();
   private final Pattern filterPattern;
 
   public SimpleSVNDirEntryHandler(String filter) {
@@ -63,27 +62,15 @@ public class SimpleSVNDirEntryHandler implements ISVNDirEntryHandler {
   }
 
   public @Nonnull List<String> getDirs(boolean reverseByDate, boolean reverseByName) {
-    if(reverseByDate) {
-      Collections.sort(dirs, new Comparator<SVNDirEntry>() {
-        public int compare(SVNDirEntry dir1, SVNDirEntry dir2){
-          return dir2.getDate().compareTo(dir1.getDate());
-        }  
-      });
+    if (reverseByDate) {
+      dirs.sort(Comparator.comparing(SVNDirEntry::getDate).reversed());
     } else if(reverseByName) {
-      Collections.sort(dirs, new Comparator<SVNDirEntry>() {
-        public int compare(SVNDirEntry dir1, SVNDirEntry dir2){
-          return dir2.getName().compareTo(dir1.getName());
-        }  
-      });
+      dirs.sort(Comparator.comparing(SVNDirEntry::getName).reversed());
     } else {
-      Collections.sort(dirs, new Comparator<SVNDirEntry>() {
-        public int compare(SVNDirEntry dir1, SVNDirEntry dir2){
-          return dir1.getName().compareTo(dir2.getName());
-        }  
-      });
+      dirs.sort(Comparator.comparing(SVNDirEntry::getName));
     }
 
-    List<String> sortedDirs = new ArrayList<String>();
+    List<String> sortedDirs = new ArrayList<>();
     for (SVNDirEntry dirEntry : dirs) {
       sortedDirs.add(dirEntry.getName());
     }

@@ -183,7 +183,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
    * returned list contains an error message prefixed by {@code !}.</p>
    */
   @Nonnull public List<String> getTags(@Nullable Job context) {
-    List<String> dirs = new ArrayList<String>();
+    List<String> dirs = new ArrayList<>();
 
     SVNRepository repo = null;
     SVNClientManager clientManager = null;
@@ -331,7 +331,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
     appendTargetDir(SVN_TAGS, tags);
 
     // Merge trunk with the contents of branches and tags.
-    List<String> dirs = new ArrayList<String>();
+    List<String> dirs = new ArrayList<>();
     dirs.add(SVN_TRUNK);
     dirs.addAll(branches);
     dirs.addAll(tags);
@@ -340,7 +340,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
     if (StringUtils.isNotBlank(tagsFilter) && dirs.size() > 0) {
       Pattern filterPattern = Pattern.compile(tagsFilter);
 
-        List<String> temp = new ArrayList<String>();
+        List<String> temp = new ArrayList<>();
         for (String dir : dirs) {
           if (filterPattern.matcher(dir).matches()) {
             temp.add(dir);
@@ -357,7 +357,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
    * directories.
    */
   protected void removeParentDir(List<String> dirs) {
-    List<String> dirsToRemove = new ArrayList<String>();
+    List<String> dirsToRemove = new ArrayList<>();
     for(String dir : dirs) {
       if(getTagsDir().endsWith(dir)) {
         dirsToRemove.add(dir);

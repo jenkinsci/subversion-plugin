@@ -7,12 +7,9 @@ import hudson.scm.SubversionChangeLogSet.Path;
 import hudson.scm.SubversionRepositoryBrowser;
 import hudson.scm.EditType;
 import hudson.scm.RepositoryBrowser;
-import net.sf.json.JSONObject;
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.StaplerRequest;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 
 /**
@@ -84,7 +81,7 @@ public class Phabricator extends SubversionRepositoryBrowser {
         }
 
         int r = path.getLogEntry().getRevision();
-        final String spec = String.format("/diffusion/%s/change/master/%s;%i", this.getRepo(), path.getPath(), r);
+        final String spec = String.format("/diffusion/%s/change/master/%s;%d", this.getRepo(), path.getPath(), r);
         return new URL(getUrl(), spec);
     }
 
@@ -99,7 +96,7 @@ public class Phabricator extends SubversionRepositoryBrowser {
     @Override
     public URL getFileLink(Path path) throws IOException {
         int r = path.getLogEntry().getRevision();
-        final String spec = String.format("/diffusion/%s/history/master/%s;%i", this.getRepo(), path.getPath(), r);
+        final String spec = String.format("/diffusion/%s/history/master/%s;%d", this.getRepo(), path.getPath(), r);
         return new URL(getUrl(), spec);
     }
 

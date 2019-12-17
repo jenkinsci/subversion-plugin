@@ -56,7 +56,7 @@ public class NoopUpdater extends WorkspaceUpdater {
 
         @Override
         public List<External> perform() throws IOException, InterruptedException {
-            return new ArrayList<External>();
+            return new ArrayList<>();
         }
 
 

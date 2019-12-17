@@ -23,10 +23,8 @@
  */
 package jenkins.scm.impl.subversion;
 
-import hudson.remoting.Callable;
 import hudson.slaves.DumbSlave;
 import jenkins.security.MasterToSlaveCallable;
-import org.jenkinsci.remoting.RoleChecker;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.For;

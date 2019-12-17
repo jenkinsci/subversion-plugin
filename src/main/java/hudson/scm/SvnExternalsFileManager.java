@@ -43,7 +43,7 @@ import javax.annotation.Nonnull;
  * Implements local file storage of externals information.
  * Most of functionality has been copied from {@link SubversionSCM}. 
  * The class also prevents conflicts between read/write operations using
- * {@link SVN_EXTERNALS_FILE}.
+ * {@link SvnExternalsFileManager#SVN_EXTERNALS_FILE}.
  * @author Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
  * @since TODO
  */
@@ -64,7 +64,7 @@ class SvnExternalsFileManager {
     @Nonnull
     private static synchronized Object getFileLockItem(Job project) {
         if (projectExternalsCache == null) {
-            projectExternalsCache = new WeakHashMap<Job, Object>();
+            projectExternalsCache = new WeakHashMap<>();
         }
                 
         Object item = projectExternalsCache.get(project);

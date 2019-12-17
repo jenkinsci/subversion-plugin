@@ -12,7 +12,6 @@ import java.util.regex.Pattern;
 import org.junit.Test;
 
 import com.google.common.io.NullOutputStream;
-import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
 
 public class CompareAgainstBaselineCallableTest {
     
@@ -38,7 +37,7 @@ public class CompareAgainstBaselineCallableTest {
         this.callable = new CompareAgainstBaselineCallable(
                 new SVNRevisionState(null),
                 new SVNLogHandler( filter, taskListener),
-                        "projectName", taskListener, null, Collections.<String,ISVNAuthenticationProvider>emptyMap(), "nodeName");
+                        "projectName", taskListener, null, Collections.emptyMap(), "nodeName");
     }
 
 }

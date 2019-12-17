@@ -23,7 +23,6 @@
  */
 package hudson.scm;
 
-import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.model.Job;
 import hudson.model.Run;
@@ -32,7 +31,6 @@ import hudson.scm.SubversionChangeLogSet.LogEntry;
 import hudson.scm.SubversionSCM.ModuleLocation;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -107,7 +105,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         if (ignoreDirPropChanges) items = removePropertyOnlyChanges(items);
         
         // we want recent changes first
-        Collections.sort(items, new ReverseByRevisionComparator());
+        items.sort(Comparator.comparingInt(LogEntry::getRevision).reversed());
         for (LogEntry log : items) {
             log.setParent(this);
         }
@@ -130,7 +128,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
      * @return filtered list without duplicated entries
      */
     static List<LogEntry> removeDuplicatedEntries(List<LogEntry> items) {
-        Set<LogEntry> entries = new HashSet<LogEntry>(items);
+        Set<LogEntry> entries = new HashSet<>(items);
         for (LogEntry sourceEntry : items) {
             // LogEntry equality does not consider paths, but some might have localPath attributes
             // that would get lost by HashSet duplicate removal
@@ -149,12 +147,12 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
                 }
             }
         }
-        return new ArrayList<LogEntry>(entries);
+        return new ArrayList<>(entries);
     }
 
     @Exported
     public List<RevisionInfo> getRevisions() throws IOException {
-        List<RevisionInfo> r = new ArrayList<RevisionInfo>();
+        List<RevisionInfo> r = new ArrayList<>();
         for (Map.Entry<String, Long> e : getRevisionMap().entrySet())
             r.add(new RevisionInfo(e.getKey(),e.getValue()));
         return r;
@@ -181,7 +179,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         private User author;
         private String date;
         private String msg;
-        private List<Path> paths = new ArrayList<Path>();
+        private List<Path> paths = new ArrayList<>();
 
         /**
          * Gets the {@link SubversionChangeLogSet} to which this change set belongs.
@@ -260,29 +258,29 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
                 if (!(scm instanceof SubversionSCM)) {
                     continue;
                 }
-            ModuleLocation[] locations = ((SubversionSCM)scm).getLocations();
-            for (int i = 0; i < locations.length; i++) {
-                ModuleLocation expandedLocation = locations[i].getExpandedLocation(job);
-                // If the remote URL features a trailing '@REV' entry, strip it off before looking for common part
-                String expandedRemote = expandedLocation.remote;
-                if (expandedLocation.getRevision(null) != null) {
-                    int idx = expandedRemote.lastIndexOf('@');
-                    if (idx >= 0) {
-                        expandedRemote = expandedRemote.substring(0, idx);
+                ModuleLocation[] locations = ((SubversionSCM)scm).getLocations();
+                for (ModuleLocation location : locations) {
+                    ModuleLocation expandedLocation = location.getExpandedLocation(job);
+                    // If the remote URL features a trailing '@REV' entry, strip it off before looking for common part
+                    String expandedRemote = expandedLocation.remote;
+                    if (expandedLocation.getRevision(null) != null) {
+                        int idx = expandedRemote.lastIndexOf('@');
+                        if (idx >= 0) {
+                            expandedRemote = expandedRemote.substring(0, idx);
+                        }
+                    }
+                    String commonPart = findCommonPart(expandedRemote, path);
+                    if (commonPart != null) {
+                        if (path.startsWith("/")) {
+                            path = path.substring(1);
+                        }
+                        String newPath = path.substring(commonPart.length());
+                        if (newPath.startsWith("/")) {
+                            newPath = newPath.substring(1);
+                        }
+                        return newPath;
                     }
                 }
-                String commonPart = findCommonPart(expandedRemote, path);
-                if (commonPart != null) {
-                    if (path.startsWith("/")) {
-                        path = path.substring(1);
-                    }
-                    String newPath = path.substring(commonPart.length());
-                    if (newPath.startsWith("/")) {
-                        newPath = newPath.substring(1);
-                    }
-                    return newPath;
-                }
-            }
             }
             return path;
         }
@@ -347,7 +345,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         
         @Override
         public Collection<Path> getAffectedFiles() {
-            Collection<Path> affectedFiles = new ArrayList<Path>();
+            Collection<Path> affectedFiles = new ArrayList<>();
             for (Path p : paths) {
                 if (p.hasLocalPath()) {
                     affectedFiles.add(p);
@@ -358,14 +356,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         }
         
         void finish() {
-            Collections.sort(paths, new Comparator<Path>() {
-                @Override
-                public int compare(Path o1, Path o2) {
-                    String path1 = Util.fixNull(o1.getValue());
-                    String path2 = Util.fixNull(o2.getValue());
-                    return path1.compareTo(path2);
-                }
-            });
+            paths.sort(Comparator.nullsFirst(Comparator.comparing(Path::getValue)));
         }
         
         @Override
@@ -499,14 +490,6 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
             if( action=='D' )
                 return EditType.DELETE;
             return EditType.EDIT;
-        }
-    }
-
-    private static final class ReverseByRevisionComparator implements Comparator<LogEntry>, Serializable {
-        private static final long serialVersionUID = 1L;
-
-        public int compare(LogEntry a, LogEntry b) {
-            return b.getRevision() - a.getRevision();
         }
     }
 }

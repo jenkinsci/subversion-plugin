@@ -75,7 +75,7 @@ public class SubversionWorkspaceSelector implements ISVNAdminAreaFactorySelector
             return factories;
 
         // for writing, use the version the user has selected
-        Collection<SVNAdminAreaFactory> enabledFactories = new ArrayList<SVNAdminAreaFactory>();
+        Collection<SVNAdminAreaFactory> enabledFactories = new ArrayList<>();
         for (SVNAdminAreaFactory factory : (Collection<SVNAdminAreaFactory>)factories)
             if (factory.getSupportedVersion() == workspaceFormat)
                 enabledFactories.add(factory);
@@ -110,9 +110,7 @@ public class SubversionWorkspaceSelector implements ISVNAdminAreaFactorySelector
             if (c!=null)    // just being defensive. cannot be null.
                 try {
                     workspaceFormat = c.call(new GetWorkspaceFormatSlaveToMasterCallable());
-                } catch (IOException e) {
-                    LOGGER.log(Level.WARNING, "Failed to retrieve Subversion workspace format",e);
-                } catch (InterruptedException e) {
+                } catch (IOException | InterruptedException e) {
                     LOGGER.log(Level.WARNING, "Failed to retrieve Subversion workspace format",e);
                 }
         }

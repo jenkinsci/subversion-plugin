@@ -91,7 +91,7 @@ public class SubversionRepositoryStatus {
     @RequirePOST
     public void doNotifyCommit(StaplerRequest req, StaplerResponse rsp) throws ServletException, IOException {
         // compute the affected paths
-        Set<String> affectedPath = new HashSet<String>();
+        Set<String> affectedPath = new HashSet<>();
         String line;
         BufferedReader r = new BufferedReader(req.getReader());
         
@@ -157,7 +157,7 @@ public class SubversionRepositoryStatus {
     @Extension
     public static class JobTriggerListenerImpl extends Listener {
 
-        private Map<String, UUID> remoteUUIDCache = new HashMap<String, UUID>();
+        private Map<String, UUID> remoteUUIDCache = new HashMap<>();
 
         private JobProvider jobProvider = new JobProvider() {
             @SuppressWarnings("rawtypes")
@@ -253,7 +253,7 @@ public class SubversionRepositoryStatus {
 
                     SubversionSCM sscm = (SubversionSCM) scm;
 
-                    List<SvnInfo> infos = new ArrayList<SvnInfo>();
+                    List<SvnInfo> infos = new ArrayList<>();
 
                     try {
                         boolean projectMatches = false;

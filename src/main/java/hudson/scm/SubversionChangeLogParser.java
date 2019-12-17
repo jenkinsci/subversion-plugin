@@ -56,7 +56,7 @@ public class SubversionChangeLogParser extends ChangeLogParser {
         // http://svn.apache.org/repos/asf/subversion/trunk/subversion/svn/schema/log.rnc
 
         Digester digester = new Digester2();
-        ArrayList<LogEntry> r = new ArrayList<LogEntry>();
+        ArrayList<LogEntry> r = new ArrayList<>();
         digester.push(r);
 
         digester.addObjectCreate("*/logentry", LogEntry.class);
@@ -73,9 +73,7 @@ public class SubversionChangeLogParser extends ChangeLogParser {
 
         try {
             digester.parse(changelogFile);
-        } catch (IOException e) {
-            throw new IOException("Failed to parse " + changelogFile,e);
-        } catch (SAXException e) {
+        } catch (IOException | SAXException e) {
             throw new IOException("Failed to parse " + changelogFile,e);
         }
 

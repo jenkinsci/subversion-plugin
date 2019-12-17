@@ -121,7 +121,7 @@ public final class SubversionSampleRepoRule extends AbstractSampleRepoRule {
         List<String> args = new ArrayList<>();
         args.add("svn");
         args.addAll(Arrays.asList(cmds));
-        run(false, wc, args.toArray(new String[args.size()]));
+        run(false, wc, args.toArray(new String[0]));
     }
     
     public String wc() {

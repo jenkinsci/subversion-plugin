@@ -28,7 +28,6 @@ package hudson.scm.subversion;
 
 import hudson.Extension;
 import hudson.Util;
-import hudson.scm.SubversionSCM;
 import hudson.scm.SubversionSCM.External;
 import hudson.scm.SubversionWorkspaceSelector;
 import hudson.util.StreamCopyThread;
@@ -38,7 +37,6 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNException;
-import org.tmatesoft.svn.core.internal.util.DefaultSVNDebugLogger;
 import org.tmatesoft.svn.core.internal.wc17.db.ISVNWCDb;
 import org.tmatesoft.svn.core.internal.wc2.compat.SvnCodec;
 import org.tmatesoft.svn.core.wc.SVNRevision;
@@ -86,7 +84,7 @@ public class CheckoutUpdater extends WorkspaceUpdater {
         @Override
         public List<External> perform() throws IOException, InterruptedException {
             final SVNUpdateClient svnuc = clientManager.getUpdateClient();
-            final List<External> externals = new ArrayList<External>(); // store discovered externals to here
+            final List<External> externals = new ArrayList<>(); // store discovered externals to here
 
             listener.getLogger().println("Cleaning local Directory " + location.getLocalDir());
             Util.deleteContentsRecursive(new File(ws, location.getLocalDir()));

@@ -31,7 +31,6 @@ import java.util.Map;
 import jenkins.scm.impl.subversion.RemotableSVNErrorMessage;
 import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNErrorCode;
-import org.tmatesoft.svn.core.SVNErrorMessage;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.wc.ISVNExternalsHandler;
@@ -54,7 +53,7 @@ final class SubversionUpdateEventHandler extends SubversionEventHandlerImpl impl
     /**
      * Staged map of svn:externals details.
      */
-    private final Map<File, SVNExternalDetails> externalDetails = new HashMap<File, SVNExternalDetails>();
+    private final Map<File, SVNExternalDetails> externalDetails = new HashMap<>();
     /**
      * External urls that are fetched through svn:externals.
      * We add to this collection as we find them.

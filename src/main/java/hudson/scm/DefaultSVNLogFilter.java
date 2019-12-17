@@ -118,7 +118,7 @@ public class DefaultSVNLogFilter implements SVNLogFilter {
         }
 
         // If there are included patterns, see which paths are included
-        List<String> includedPaths = new ArrayList<String>();
+        List<String> includedPaths = new ArrayList<>();
         if (includedPatterns.length > 0) {
             for (String path : changedPaths.keySet()) {
                 for (Pattern pattern : includedPatterns) {
@@ -129,7 +129,7 @@ public class DefaultSVNLogFilter implements SVNLogFilter {
                 }
             }
         } else {
-            includedPaths = new ArrayList<String>(changedPaths.keySet());
+            includedPaths = new ArrayList<>(changedPaths.keySet());
         }
 
         // If no paths are included don't count this entry as a change
@@ -143,7 +143,7 @@ public class DefaultSVNLogFilter implements SVNLogFilter {
         }
 
         // Else, check each changed path
-        List<String> excludedPaths = new ArrayList<String>();
+        List<String> excludedPaths = new ArrayList<>();
         if (excludedPatterns.length > 0) {
             for (String path : includedPaths) {
                 for (Pattern pattern : excludedPatterns) {

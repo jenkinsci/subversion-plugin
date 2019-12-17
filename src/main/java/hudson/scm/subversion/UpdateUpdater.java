@@ -133,7 +133,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
             }
 
             final SVNUpdateClient svnuc = clientManager.getUpdateClient();
-            final List<External> externals = new ArrayList<External>(); // store discovered externals to here
+            final List<External> externals = new ArrayList<>(); // store discovered externals to here
 
             try {
                 File local = new File(ws, location.getLocalDir());
@@ -211,7 +211,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
 
                 e.printStackTrace(listener.error("Failed to update " + location.remote));
                 listener.error("Subversion update failed");
-                throw (IOException) new IOException().initCause(new UpdaterException("failed to perform svn update", e));
+                throw new IOException(new UpdaterException("failed to perform svn update", e));
             }
 
             return externals;
