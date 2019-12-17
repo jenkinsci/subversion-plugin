@@ -1,6 +1,5 @@
 package jenkins.scm.impl.subversion;
 
-import jenkins.scm.impl.subversion.SubversionSCMSource;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -20,7 +19,7 @@ import static org.junit.Assert.assertThat;
 public class SubversionSCMSourceTest {
 
     @Test
-    public void isMatch() throws Exception {
+    public void isMatch() {
         assertThat(SubversionSCMSource.isMatch("trunk", "trunk"), is(true));
         assertThat(SubversionSCMSource.isMatch("trunk", "trunk*"), is(true));
         assertThat(SubversionSCMSource.isMatch("trunk", "*trunk"), is(true));
@@ -32,17 +31,17 @@ public class SubversionSCMSourceTest {
     }
 
     @Test
-    public void splitCludes() throws Exception {
+    public void splitCludes() {
         assertThat(SubversionSCMSource.splitCludes("trunk"),
-                is((SortedSet) new TreeSet<>(Arrays.asList("trunk"))));
+                is(new TreeSet<>(Collections.singletonList("trunk"))));
         assertThat(SubversionSCMSource.splitCludes("trunk,branches/*"),
-                is((SortedSet) new TreeSet<>(Arrays.asList("trunk", "branches/*"))));
+                is(new TreeSet<>(Arrays.asList("trunk", "branches/*"))));
         assertThat(SubversionSCMSource.splitCludes("trunk, branches/*"),
-                is((SortedSet) new TreeSet<>(Arrays.asList("trunk", "branches/*"))));
+                is(new TreeSet<>(Arrays.asList("trunk", "branches/*"))));
         assertThat(SubversionSCMSource.splitCludes("trunk , , branches/*"),
-                is((SortedSet) new TreeSet<>(Arrays.asList("trunk", "branches/*"))));
+                is(new TreeSet<>(Arrays.asList("trunk", "branches/*"))));
         assertThat(SubversionSCMSource.splitCludes("trunk , , branches/*   , tags/* "),
-                is((SortedSet) new TreeSet<>(Arrays.asList("trunk", "branches/*", "tags/*"))));
+                is(new TreeSet<>(Arrays.asList("trunk", "branches/*", "tags/*"))));
     }
 
     private static List<String> list(String... values) {
@@ -56,7 +55,7 @@ public class SubversionSCMSourceTest {
     }
 
     @Test
-    public void toPaths() throws Exception {
+    public void toPaths() {
         assertThat(SubversionSCMSource.toPaths(SubversionSCMSource.splitCludes("trunk")), is(pathSet(list("trunk"))));
         assertThat(SubversionSCMSource.toPaths(SubversionSCMSource.splitCludes("trunk,branches/*")), is(pathSet(
                 list("trunk"), list("branches", "*")
@@ -69,7 +68,7 @@ public class SubversionSCMSourceTest {
     }
 
     @Test
-    public void filterPaths() throws Exception {
+    public void filterPaths() {
         assertThat(SubversionSCMSource
                 .filterPaths(pathSet(list("trunk"), list("branches", "foo"), list("branches", "bar")),
                         list("trunk")),
@@ -81,7 +80,7 @@ public class SubversionSCMSourceTest {
     }
 
     @Test
-    public void groupPaths() throws Exception {
+    public void groupPaths() {
         SortedMap<List<String>, SortedSet<List<String>>> result;
         SortedSet<List<String>> data = pathSet(
                 list("trunk"),
@@ -135,7 +134,7 @@ public class SubversionSCMSourceTest {
     }
 
     @Test
-    public void startsWith() throws Exception {
+    public void startsWith() {
         assertThat(SubversionSCMSource.startsWith(list(), list()), is(true));
         assertThat(SubversionSCMSource.startsWith(list("a", "b", "c"), list()), is(true));
         assertThat(SubversionSCMSource.startsWith(list("a", "b", "c"), list("a")), is(true));
@@ -148,7 +147,7 @@ public class SubversionSCMSourceTest {
     }
 
     @Test
-    public void wildcardStartsWith() throws Exception {
+    public void wildcardStartsWith() {
         assertThat(SubversionSCMSource.wildcardStartsWith(list(), list()), is(true));
         assertThat(SubversionSCMSource.wildcardStartsWith(list("a", "b", "c"), list()), is(true));
         assertThat(SubversionSCMSource.wildcardStartsWith(list("a", "b", "c"), list("a")), is(true));
