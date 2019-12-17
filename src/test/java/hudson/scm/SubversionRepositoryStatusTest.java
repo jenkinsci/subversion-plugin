@@ -16,7 +16,7 @@ import javax.servlet.ServletException;
 
 import org.junit.Test;
 import org.junit.Assert;
-import org.jvnet.hudson.test.Bug;
+import org.jvnet.hudson.test.Issue;
 
 /**
  * @author kutzi
@@ -25,7 +25,7 @@ public class SubversionRepositoryStatusTest {
     
     @SuppressWarnings("rawtypes")
     @Test
-    @Bug(15794)
+    @Issue("JENKINS-15794")
     public void shouldIgnoreDisabledJobs() throws ServletException, IOException {
         SubversionRepositoryStatus.JobTriggerListenerImpl listener = new SubversionRepositoryStatus.JobTriggerListenerImpl();
 

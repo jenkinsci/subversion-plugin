@@ -1,0 +1,3 @@
+_extends: .github
+tag-template: subversion-$NEXT_PATCH_VERSION
+version-template: $MAJOR.$MINOR.$PATCH

@@ -199,7 +199,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
                     }
                     // trouble-shooting probe for #591
                     if (errorCode == SVNErrorCode.WC_NOT_LOCKED) {
-                        Jenkins instance = Jenkins.getInstance();
+                        Jenkins instance = Jenkins.getInstanceOrNull();
                         if (instance != null) {
                             listener.getLogger().println("Polled jobs are " + instance.getDescriptorByType(SCMTrigger.DescriptorImpl.class).getItemsBeingPolled());
                         }

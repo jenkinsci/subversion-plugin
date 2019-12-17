@@ -103,6 +103,7 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMHeadEvent;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -207,7 +208,7 @@ public class SubversionSCMSource extends SCMSource {
             SVNRepositoryView repository = null;
             try {
                 SVNURL repoURL = SVNURL.parseURIEncoded(remoteBase);
-                repository = openSession(repoURL);
+                repository = openSession(repoURL, getOwner());
                 uuid = repository.getUuid();
             } catch (SVNException | IOException e) {
                 LOGGER.log(Level.WARNING, "Could not connect to remote repository " + remoteBase + " to determine UUID",
@@ -234,7 +235,7 @@ public class SubversionSCMSource extends SCMSource {
         try {
             listener.getLogger().println("Opening conection to " + remoteBase);
             SVNURL repoURL = SVNURL.parseURIEncoded(remoteBase);
-            repository = openSession(repoURL);
+            repository = openSession(repoURL, getOwner());
 
             String repoPath = SubversionSCM.DescriptorImpl.getRelativePath(repoURL, repository.getRepository());
             List<String> prefix = Collections.emptyList();
@@ -266,7 +267,7 @@ public class SubversionSCMSource extends SCMSource {
         try {
             listener.getLogger().println("Opening connection to " + remoteBase);
             SVNURL repoURL = SVNURL.parseURIEncoded(remoteBase);
-            repository = openSession(repoURL);
+            repository = openSession(repoURL, getOwner());
             String repoPath = SubversionSCM.DescriptorImpl.getRelativePath(repoURL, repository.getRepository());
             String path = SVNPathUtil.append(repoPath, head.getName());
             SVNRepositoryView.NodeEntry svnEntry = repository.getNode(path, -1);
@@ -282,12 +283,12 @@ public class SubversionSCMSource extends SCMSource {
      * {@inheritDoc}
      */
     @Override
-    protected SCMRevision retrieve(String unparsedRevision, TaskListener listener) throws IOException, InterruptedException {
+    protected SCMRevision retrieve(String unparsedRevision, TaskListener listener, Item context) throws IOException, InterruptedException {
         SVNRepositoryView repository = null;
         try {
             listener.getLogger().println("Opening connection to " + remoteBase);
             SVNURL repoURL = SVNURL.parseURIEncoded(remoteBase);
-            repository = openSession(repoURL);
+            repository = openSession(repoURL, context);
             String repoPath = SubversionSCM.DescriptorImpl.getRelativePath(repoURL, repository.getRepository());
             String base;
             long revision;
@@ -317,9 +318,10 @@ public class SubversionSCMSource extends SCMSource {
      * {@inheritDoc}
      */
     @Override
-    protected Set<String> retrieveRevisions(TaskListener listener) throws IOException, InterruptedException {
+    protected Set<String> retrieveRevisions(TaskListener listener, Item context) throws IOException, InterruptedException {
         // Default implementation should do what we need: normally includes tags as well as branches.
-        return super.retrieveRevisions(listener);
+        // (Cannot call super.retrieveRevisions(listener, context) due to StackOverflowError with compatibility fallbacks.)
+        return retrieve(listener).stream().map(SCMHead::getName).collect(Collectors.toSet());
     }
 
     private static void closeSession(@CheckForNull SVNRepositoryView repository) {
@@ -328,9 +330,9 @@ public class SubversionSCMSource extends SCMSource {
         }
     }
 
-    private SVNRepositoryView openSession(SVNURL repoURL) throws SVNException, IOException {
+    private SVNRepositoryView openSession(SVNURL repoURL, Item context) throws SVNException, IOException {
         return new SVNRepositoryView(repoURL, credentialsId == null ? null : CredentialsMatchers
-                .firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class, getOwner(),
+                .firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class, context,
                         ACL.SYSTEM, URIRequirementBuilder.fromUri(repoURL.toString()).build()),
                         CredentialsMatchers.allOf(CredentialsMatchers.withId(credentialsId),
                                 CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(StandardCredentials.class),
@@ -790,7 +792,7 @@ public class SubversionSCMSource extends SCMSource {
         public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
                                                      @QueryParameter String remoteBase,
                                                      @QueryParameter String credentialsId) {
-            if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
+            if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER) ||
                 context != null && !context.hasPermission(Item.EXTENDED_READ)) {
                 return new StandardListBoxModel().includeCurrentValue(credentialsId);
             }
@@ -819,7 +821,7 @@ public class SubversionSCMSource extends SCMSource {
         public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath Item context, @QueryParameter String remoteBase, @QueryParameter String value) {
             // TODO suspiciously similar to SubversionSCM.ModuleLocation.DescriptorImpl.checkCredentialsId; refactor into shared method?
             // Test the connection only if we may use the credentials
-            if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
+            if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER) ||
                 context != null && !context.hasPermission(CredentialsProvider.USE_ITEM)) {
                 return FormValidation.ok();
             }
