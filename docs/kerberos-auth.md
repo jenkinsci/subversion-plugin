@@ -13,11 +13,11 @@ For Windows two different setups are explained: an agent server which is member 
 - For Java 8 the JCE must be enabled - details below. For newer releases this is not necessary.
 - For tests a native Subversion client is recommended.
 
-# Configure the JRE with Java Cryptography Extension (JCE)
+# Enable Java Cryptography Extension (JCE)
 
 Oracles Java 8 and older runtimes does not include encryption algorithms required by Kerberos due to U.S. export regulations. You must [download](https://www.oracle.com/technetwork/java/javase/downloads/jce-all-download-5170447.html) the JCE extension and install it. Follow the instructions in the package which are the same for Linux and Windows.
 
-The same limitation applies to the JRE/JDK from IBM and the Open JDK, downloads are available.
+The same limitation applies to the Java distributions from IBM and the Open JDK, downloads are available.
 
 # Server certificates
 
@@ -80,6 +80,7 @@ machine. Run a svn info to check the access to the repository and that
 the certificate is accepted.
 
 **TGT accessibility**
+
 By default Windows does not allow the session key of a TGT to be
 accessed. Please add the following registry key on the client side, so
 that the session key for TGT is accessible and Java can use it to
@@ -140,24 +141,18 @@ You must replace the path for the `keyTab` file and the name for the `principal`
 
 # Configure the master/agent
 
-The following parameters must be added to the JRE configuration:
+The following parameters must be added to the Java configuration:
 
     -Djava.security.krb5.conf=/where-ever/krb5.conf
     -Dsun.security.krb5.debug=false
     -Djavax.security.auth.useSubjectCredsOnly=false
     -Djava.security.auth.login.config=/home/jenkins/etc/JenkinsAccount.conf
 
-On Linux the first parameter is only required when the file is in
-another location than the default of your system. For Windows it must be
-specified all the time.
+On Linux the first parameter is only required when the file is in another location than the default of your system. For Windows it must be specified. Do not use back slashes on Windows.
 
-The debug parameter is optional, set to true for troubleshooting.
+The `debug` parameter is optional, set to `true` for troubleshooting.
 
-Replace the path of the last parameter by your file name.
-
-For the Jenkins master these parameters must be added to the Jenkins
-configuration. For an agent add them to the JVM Options under Advanced in
-the node configuration page.
+For the Jenkins master these parameters must be added to the Jenkins configuration. For an agent add them to the JVM Options under Advanced in the node configuration page.
 
 Restart the master/agent.
 
@@ -165,33 +160,19 @@ Restart the master/agent.
 
 Under Source Code Management / Subversion add just the URL of your repository and leave the credential empty.
 
-**Note for master:** when you move the text pointer out of the text field, you will
-immediately see a red error message, in case your configuration does not work.
+**Note for master:** when you move the text pointer out of the text field, you will immediately see a red error message, in case your configuration does not work.
 
-**Note for agent:** the authentication test every time will return an error.
-It looks like that this test is initiated on the master and not on the agent.
+**Note for agent:** the authentication test every time will return an error. It looks like that this test is initiated on the master and not on the agent.
 
 # Troubleshooting
 
--   First make sure that the Kerberos authentication is woking with a
-    native Subversion client. The client needs no special configuration.
-    On Linux use only a client which is part of the distribution. Third
-    party clients normally do not support Kerberos, e.g. CollabNet Linux
-    packages.
--   You may try turning on debugging - use the debug parameter in the
-    Java configuration file and sun.security.krb5.debug. Disable both
-    after the issue is solved - the log files will grow rapidly.
--   For a job running on the master check the Jenkins log file.
--   For jobs running on an agent check the log of the agent and of the
-    job.
+- First make sure that the Kerberos authentication is woking with a native Subversion client. The client needs no special configuration. On Linux use only a client which is part of the distribution. Third party clients normally do not support  Kerberos, e.g. CollabNet Linux packages.
+- You may try turning on debugging - use the debug parameter in the Java configuration file and sun.security.krb5.debug. Disable both after the issue is solved - the log files will grow rapidly.
+- For a job running on the master check the Jenkins log file.
+- For jobs running on an agent check the log of the agent and of the job.
 
 # Some hints
 
--   This setup works only when all jobs on the master or on an agent are
-    using the same domain account for Subversion access. When different
-    accounts are required it should be applicable to configure an agent
-    for each domain account, even on the same computer. On a master this
-    is not possible.
--   This setup has not been tested on a Jenkins master running on
-    Windows.
--   This setup has not been tested with VisualSVN.
+- This setup works only when all jobs on the master or on an agent are using the same domain account for Subversion access. When different accounts are required it should be applicable to configure an agent for each domain account, even on the same computer. For a master this is not possible.
+- This setup has not been tested with a Jenkins master running on Windows.
+- This setup has not been tested with VisualSVN.
