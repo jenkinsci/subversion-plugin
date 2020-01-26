@@ -1,18 +1,10 @@
 # Introduction
 
-If the Subversion SCM of your build needs access to a repository on a
-Web server which is configured to accept only a Kerberos authentication.
-Typically servers in a company network using the domain accounts to
-grant the access to the hosted resources.
+This setup enables a Kerberos authentication with an Apache based Subversion server for your Jenkins Subversion SCM.
 
-This setup was tested with a MS Active Directory 2008 R2 but should also
-work with other Directory servers. As Web front-end an Apache 2.4 with
-mod\_auth\_kerb 5.4 on Linux was used. The Jenkins agents were running
-on Windows 10 and Linux - the required configuration you’ll find below.
+The setup was tested with a MS Active Directory 2012 R2 and 2008 R2 but should also work with other Directory servers. The Apache 2.4 on RHEL is configured with [mod_auth_gssapi](https://github.com/modauthgssapi/mod_auth_gssapi). It is part off the Linux distribution. In an older deployment mod_auth_kerb 5.4 was used. The Jenkins agents were running on Windows 2016/2008/10/7 and Linux.
 
-For Windows two different setups are explained: an agent which is member
-of a domain and a standalone agent without domain membership. The second
-configuration is about the same as for Linux.
+For Windows two different setups are explained: an agent server which is member of a domain and a standalone agent without domain membership.
 
 # Prerequisites
 
