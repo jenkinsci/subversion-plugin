@@ -2,9 +2,9 @@
 
 This setup enables a Kerberos authentication for an Apache based Subversion server for your Jenkins Subversion SCM.
 
-The setup was tested with a MS Active Directory 2012 R2 and 2008 R2 but should also work with other Directory servers. The Apache 2.4 on RHEL is configured with [mod_auth_gssapi](https://github.com/modauthgssapi/mod_auth_gssapi). It is part off the Linux distribution. In an older deployment mod_auth_kerb 5.4 was used. The Jenkins agents were running on Windows 2016/2008/10/7 and Linux.
+The setup was tested with a MS Active Directory 2012 R2 and 2008 R2 but should also work with other Directory servers. The Apache 2.4 on RHEL was configured with [mod_auth_gssapi](https://github.com/modauthgssapi/mod_auth_gssapi), part of the Linux distribution. In an older deployment mod_auth_kerb 5.4 was used successfully. The Jenkins agents were running on Windows 2016/2008/10/7 and different Linux distributions.
 
-For Windows two different setups are explained: an agent server which is member of a domain and a standalone agent without domain membership.
+For Windows two different setups are explained: an agent server which is member of a domain and a standalone agent server without a domain membership.
 
 # Prerequisites
 
@@ -15,33 +15,21 @@ For Windows two different setups are explained: an agent server which is member 
 
 # Configure the JRE with Java Cryptography Extension (JCE)
 
-Oracles Java 8 and older runtimes does not include encryption algorithms required by
-Kerberos due to U.S. export regulations. You must
-[download](https://www.oracle.com/technetwork/java/javase/downloads/jce-all-download-5170447.html)
-the JCE extension and install it manually. Follow the instructions in
-the package which are the same for Linux and Windows.
+Oracles Java 8 and older runtimes does not include encryption algorithms required by Kerberos due to U.S. export regulations. You must [download](https://www.oracle.com/technetwork/java/javase/downloads/jce-all-download-5170447.html) the JCE extension and install it. Follow the instructions in the package which are the same for Linux and Windows.
 
 The same limitation applies to the JRE/JDK from IBM and the Open JDK, downloads are available.
 
 # Server certificates
 
-For HTTPS communication the Apache server is using a certificate. Make
-sure that the Certificate Authority (CA) of the server certificates is
-trusted by Java. As an alternative add the CA in the Subversion servers,
-parameter: ssl-authority-files.
+For HTTPS communication the Apache server is using a certificate. Make sure that the Certificate Authority (CA) of the server certificates is trusted by Java. As an alternative add the CA in the Subversion servers, parameter: ssl-authority-files.
 
 # Prepare and test the domain account
 
-**Important:** When the password for the service account is changed the keytab file must be re-created! It is possible configuring a policy that the password never exipres but this depends on the security policies of your organization.
+**Important:** When the password for the service account was changed the keytab file must be re-created! It is possible configuring a policy that the password never exipres but this depends on the security policies of your organization.
 
 ### Linux
 
-That the domain account is not compromised because the credentials are
-saved in clear text somewhere in the file system Kerberos is using a
-keytab file. In this file the domain credentials are stored encrypted.
-The keytab can be created by your domain administrator. When you have
-the password for the account you also can create the keytab by yourself.
-Here is the procedure:
+That the domain account is not compromised because the credentials are saved in clear text somewhere in the file system Kerberos is using a keytab file. In this file the domain credentials are stored encrypted. The keytab can be created by your domain administrator. When you have the password for the account you also can create the keytab by yourself. Here is the procedure:
 
     $ ktutil
     ktutil: addent -password -p JenkinsAccount@DOMAIN.ORG -e RC4-HMAC -k 1
@@ -71,13 +59,7 @@ When the run was successful (no output) let’s have a look to the created TGT:
     03/19/2017 15:59:30  03/20/2017 01:59:30  krbtgt/DOMAIN.ORG@DOMAIN.ORG
             renew until 03/20/2017 15:59:30
 
-Test the access to the Subversion repository with a native Subversion client.
-
-If no TGT is available run:
-
-    $ kinit -kt JenkinsAccount.keytab JenkinsAccount@DOMAIN.ORG
-
-Try to get the repository info:
+Test the access to the Subversion repository with a native Subversion client. Try to get the repository info:
 
     $ svn info https://svn.organization.org/repos/HelloWorld/trunk
     Path: trunk
