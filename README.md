@@ -279,10 +279,9 @@ info?](http://stackoverflow.com/questions/9354877/what-are-these-two-revision-nu
 
 ## Kerberos authentication
 
-To connect to a Kerberos authenticated SVN repository see the
-[Subversion Plugin HTTPS Kerberos
-authentication](https://wiki.jenkins.io/display/JENKINS/Subversion+Plugin+HTTPS+Kerberos+authentication)
-page.
+To connect to a Kerberos authenticated SVN repository see
+[Subversion Plugin HTTPS Kerberos authentication](docs/kerberos-auth.md).
+
 
 # TroubleShooting
 
