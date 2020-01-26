@@ -9,7 +9,7 @@ For Windows two different setups are explained: an agent server which is member 
 # Prerequisites
 
 - A domain account that has access to your Subversion server/repository.
-- On Linux a Kerberos V5 installation and configuration - only MIT  Kerberos has been tested on Linux. 
+- On Linux a Kerberos V5 installation and configuration. Only the MIT Kerberos has been tested.
 - For a Java 8 JRE the JCE must be enabled - details below.
 - For tests a native Subversion client is recommended.
 
