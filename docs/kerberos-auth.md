@@ -16,27 +16,22 @@ configuration is about the same as for Linux.
 
 # Prerequisites
 
--   A working Jenkins instance - has been tested on Linux RHEL 7 and
-    Open SUSE 42 with Jenkins 2.32.3
--   Subversion plugin 2.7.2 has been tested
--   Oracle JRE 1.8 with JCE installed - details below
--   Kerberos V5 installation and configuration on the master or agent
-    were the jobs with Subversion will run - only MIT Kerberos has been
-    tested on Linux, for Windows no dedicated setup is required
--   A domain account that has access to your Subversion
-    server/repository
--   For testing a native Subversion 1.8 client is recommended
+- A working Jenkins instance - has been tested on Linux RHEL 7 and Open SUSE 42 with Jenkins 2.32.3
+- Subversion plugin 2.7.2 has been tested
+- Oracle JRE 1.8 with JCE installed - details below
+- Kerberos V5 installation and configuration on the master or agent were the jobs with Subversion will run - only MIT  Kerberos has been tested on Linux, for Windows no dedicated setup is required
+- A domain account that has access to your Subversion server/repository
+- For testing a native Subversion 1.8 client is recommended
 
 # Configure the Oracle JRE with Java Cryptography Extension (JCE)
 
-Oracles Java runtime does not include encryption algorithms required by
+Oracles Java 8 and older runtimes does not include encryption algorithms required by
 Kerberos due to U.S. export regulations. You must
-[download](http://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html)
+[download](https://www.oracle.com/technetwork/java/javase/downloads/jce-all-download-5170447.html)
 the JCE extension and install it manually. Follow the instructions in
 the package which are the same for Linux and Windows.
 
-The same applies to the JRE/JDK from IBM and the Open JDK, downloads are
-available.
+The same limitation applies to the JRE/JDK from IBM and the Open JDK, downloads are available.
 
 # Server certificates
 
