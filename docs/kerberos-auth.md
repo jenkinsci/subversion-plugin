@@ -1,6 +1,6 @@
 # Introduction
 
-This setup enables a Kerberos authentication with an Apache based Subversion server for your Jenkins Subversion SCM.
+This setup enables a Kerberos authentication for an Apache based Subversion server for your Jenkins Subversion SCM.
 
 The setup was tested with a MS Active Directory 2012 R2 and 2008 R2 but should also work with other Directory servers. The Apache 2.4 on RHEL is configured with [mod_auth_gssapi](https://github.com/modauthgssapi/mod_auth_gssapi). It is part off the Linux distribution. In an older deployment mod_auth_kerb 5.4 was used. The Jenkins agents were running on Windows 2016/2008/10/7 and Linux.
 
