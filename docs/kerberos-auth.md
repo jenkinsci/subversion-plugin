@@ -108,7 +108,7 @@ The keytab should be created by the domain admin. Run the following commands to 
     > kinit -t C:\Jenkins\etc\JenkinsAccount.keytab JenkinsAccount@DOMAIN.ORG
     New ticket is stored in cache file C:\Users\Jenkins\krb5cc_Jenkins
 
-A test with a native client is not possible!
+A test with a native Subversion client is not possible because it is not using the Java ticket cache!
 
 # Setup of the Java Kerberos configuration file
 
