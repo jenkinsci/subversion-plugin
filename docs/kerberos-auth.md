@@ -97,9 +97,7 @@ configure the build client in the same way like the standalone client.
 
 ### Windows - standalone
 
-The keytab should be created by the domain admin. Run the following
-commands to test the validity of the file. Both programs are part of the
-Java Runtime, do not use the klist program of Windows.
+The keytab should be created by the domain admin. Run the following commands to test the validity of the file. Both programs are part of the Java Runtime, do not use the klist program of Windows.
 
     > klist -kt C:\Jenkins\etc\JenkinsAccount.keytab
     Key tab: C:\Jenkins\etc\JenkinsAccount.keytab, 1 entry found.
@@ -112,8 +110,7 @@ Java Runtime, do not use the klist program of Windows.
 
 # Setup of the Java Kerberos configuration file
 
-Java needs some settings that Kerberos authentication works and they are
-placed in a file, e.g. JenkinsAccount.conf and this is the content.
+Java needs some settings that Kerberos authentication works and they are placed in a file, e.g. JenkinsAccount.conf and this is the content.
 
 ### Linux and Windows standalone client:
 
@@ -126,8 +123,8 @@ placed in a file, e.g. JenkinsAccount.conf and this is the content.
          ;
     };
 
-You must replace the path for the keyTab file and the name for the principal. On Windows use a path like this:
-“C:/Jenkins/etc/JenkinsAccount.keytab”. Additional parameters should be not required.
+You must replace the path for the `keyTab` file and the name for the `principal`. On Windows use `/` instead of `\`:
+`C:/Jenkins/etc/JenkinsAccount.keytab`. Additional parameters should be not required.
 
 ### Windows domain client:
 
