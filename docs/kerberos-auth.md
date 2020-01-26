@@ -211,13 +211,11 @@ Restart the master/agent.
 Under Source Code Management -\> Subversion add just the URL of your
 repository and leave the credential empty.
 
-Note for master: when you move the text pointer out of the text field,
-you will immediately see a red error message, in case your configuration
-does not work.
+**Note for master:** when you move the text pointer out of the text field, you will
+immediately see a red error message, in case your configuration does not work.
 
-Note for agent: the authentication test every time will return an error.
-It looks like that this test is initiated on the master and not on the
-agent. Just run a job on the agent and check the log.
+**Note for agent:** the authentication test every time will return an error.
+It looks like that this test is initiated on the master and not on the agent.
 
 # Troubleshooting
 
