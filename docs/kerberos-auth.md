@@ -96,7 +96,7 @@ The registry key and value should be:
 When this is not compliant with the security regulation of your company
 configure the build client in the same way like the standalone client.
 
-### Windows - standalone
+### Windows - standalone client
 
 The keytab should be created by the domain admin. Run the following commands to test the validity of the file. Both programs are part of the Java Runtime, do not use the klist program of Windows.
 
@@ -164,14 +164,14 @@ Under Source Code Management / Subversion add just the URL of your repository an
 
 **Note for agent:** the authentication test every time will return an error. It looks like that this test is initiated on the master and not on the agent.
 
-# TroubleShooting
+# Troubleshooting
 
 - First make sure that the Kerberos authentication is woking with a native Subversion client. The client needs no special configuration. On Linux use only a client which is part of the distribution. Third party clients normally do not support  Kerberos, e.g. CollabNet Linux packages.
 - You may try turning on debugging - use the debug parameter in the Java configuration file and sun.security.krb5.debug. Disable both after the issue is solved - the log files will grow rapidly.
 - For a job running on the master check the Jenkins log file.
 - For jobs running on an agent check the log of the agent and of the job.
 
-# Some Hints
+# Some hints
 
 - This setup works only when all jobs on the master or on an agent are using the same domain account for Subversion access. When different accounts are required it should be applicable to configure an agent for each domain account, even on the same computer. For a master this is not possible.
 - This setup has not been tested with a Jenkins master running on Windows.
