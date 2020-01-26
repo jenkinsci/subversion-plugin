@@ -23,7 +23,7 @@ configuration is about the same as for Linux.
 - A domain account that has access to your Subversion server/repository
 - For testing a native Subversion 1.8 client is recommended
 
-# Configure the Oracle JRE with Java Cryptography Extension (JCE)
+# Configure the JRE with Java Cryptography Extension (JCE)
 
 Oracles Java 8 and older runtimes does not include encryption algorithms required by
 Kerberos due to U.S. export regulations. You must
