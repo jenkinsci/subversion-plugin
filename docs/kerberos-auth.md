@@ -10,7 +10,7 @@ For Windows two different setups are explained: an agent server which is member 
 
 - A domain account that has access to your Subversion server/repository.
 - On Linux a Kerberos V5 installation and configuration. Only the MIT Kerberos has been tested.
-- For a Java 8 JRE the JCE must be enabled - details below.
+- For Java 8 the JCE must be enabled - details below. For newer releases this is not necessary.
 - For tests a native Subversion client is recommended.
 
 # Configure the JRE with Java Cryptography Extension (JCE)
