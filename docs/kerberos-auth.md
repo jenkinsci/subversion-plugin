@@ -32,8 +32,7 @@ parameter: ssl-authority-files.
 
 # Prepare and test the domain account
 
-**Important:** The password for the domain account should never
-expire/changed, otherwise a keytab must be re-created.
+**Important:** When the password for the service account is changed the keytab file must be re-created! It is possible configuring a policy that the password never exipres but this depends on the security policies of your organization.
 
 ### Linux
 
@@ -58,13 +57,11 @@ Let’s have a look to the content of the keytab:
     ---- ------------------- ------------------------------------------------------
        1 03/18/2017 18:38:28 JenkinsAccount@DOMAIN.ORG (arcfour-hmac)
 
-Use the keytab file to test the authentication, run the following
-command:
+Use the keytab file to test the authentication, run the following command:
 
     $ kinit -kt JenkinsAccount.keytab JenkinsAccount@DOMAIN.ORG
 
-When the run was successful (no output) let’s have a look to the created
-TGT:
+When the run was successful (no output) let’s have a look to the created TGT:
 
     $ klist
     Ticket cache: DIR::/run/user/1000/krb5cc/tkt
@@ -74,8 +71,7 @@ TGT:
     03/19/2017 15:59:30  03/20/2017 01:59:30  krbtgt/DOMAIN.ORG@DOMAIN.ORG
             renew until 03/20/2017 15:59:30
 
-Test the access to the Subversion repository with a native Subversion
-client.
+Test the access to the Subversion repository with a native Subversion client.
 
 If no TGT is available run:
 
@@ -101,29 +97,21 @@ For the agent on a domain computer just try to login to the build
 machine. Run a svn info to check the access to the repository and that
 the certificate is accepted.
 
-TGT accessibility  
-By default, Windows does not allow the session key of a TGT to be
+**TGT accessibility**
+By default Windows does not allow the session key of a TGT to be
 accessed. Please add the following registry key on the client side, so
 that the session key for TGT is accessible and Java can use it to
 acquire additional service tickets.
 
-When this is not compliant with the security regulation of your company
-configure the build client in the same way like the standalone client.
-
-For Windows XP and Windows 2000, the registry key and value should be:
+The registry key and value should be:
 
     HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Lsa\Kerberos
     Value Name: allowtgtsessionkey
     Value Type: REG_DWORD
     Value: 0x01
 
-For Windows 2003 and Windows Vista, the registry key and value should
-be:
-
-    HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Lsa\Kerberos\Parameters
-    Value Name: allowtgtsessionkey
-    Value Type: REG_DWORD
-    Value: 0x01
+When this is not compliant with the security regulation of your company
+configure the build client in the same way like the standalone client.
 
 ### Windows - standalone
 
@@ -156,10 +144,8 @@ placed in a file, e.g. JenkinsAccount.conf and this is the content.
          ;
     };
 
-You must replace the path for the keyTab file and the name for the
-principal. On Windows use a path like this:
-“C:/Jenkins/etc/JenkinsAccount.keytab”. Additional parameters should be
-not required.
+You must replace the path for the keyTab file and the name for the principal. On Windows use a path like this:
+“C:/Jenkins/etc/JenkinsAccount.keytab”. Additional parameters should be not required.
 
 ### Windows domain client:
 
@@ -198,8 +184,7 @@ Restart the master/agent.
 
 # Configure your Jenkins job
 
-Under Source Code Management -\> Subversion add just the URL of your
-repository and leave the credential empty.
+Under Source Code Management / Subversion add just the URL of your repository and leave the credential empty.
 
 **Note for master:** when you move the text pointer out of the text field, you will
 immediately see a red error message, in case your configuration does not work.
