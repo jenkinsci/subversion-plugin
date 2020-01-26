@@ -7,11 +7,11 @@ grant the access to the hosted resources.
 
 This setup was tested with a MS Active Directory 2008 R2 but should also
 work with other Directory servers. As Web front-end an Apache 2.4 with
-mod\_auth\_kerb 5.4 on Linux was used. The Jenkins slaves were running
+mod\_auth\_kerb 5.4 on Linux was used. The Jenkins agents were running
 on Windows 10 and Linux - the required configuration you’ll find below.
 
-For Windows two different setups are explained: a slave which is member
-of a domain and a standalone slave without domain membership. The second
+For Windows two different setups are explained: an agent which is member
+of a domain and a standalone agent without domain membership. The second
 configuration is about the same as for Linux.
 
 # Prerequisites
@@ -20,7 +20,7 @@ configuration is about the same as for Linux.
     Open SUSE 42 with Jenkins 2.32.3
 -   Subversion plugin 2.7.2 has been tested
 -   Oracle JRE 1.8 with JCE installed - details below
--   Kerberos V5 installation and configuration on the master or slave
+-   Kerberos V5 installation and configuration on the master or agent
     were the jobs with Subversion will run - only MIT Kerberos has been
     tested on Linux, for Windows no dedicated setup is required
 -   A domain account that has access to your Subversion
@@ -112,7 +112,7 @@ Try to get the repository info:
 
 ### Windows - domain member
 
-For the slave on a domain computer just try to login to the build
+For the agent on a domain computer just try to login to the build
 machine. Run a svn info to check the access to the repository and that
 the certificate is accepted.
 
@@ -188,7 +188,7 @@ not required.
          ;
     };
 
-# Configure the master/slave
+# Configure the master/agent
 
 The following parameters must be added to the JRE configuration:
 
@@ -206,10 +206,10 @@ The debug parameter is optional, set to true for troubleshooting.
 Replace the path of the last parameter by your file name.
 
 For the Jenkins master these parameters must be added to the Jenkins
-configuration. For a slave add them to the JVM Options under Advanced in
+configuration. For an agent add them to the JVM Options under Advanced in
 the node configuration page.
 
-Restart the master/slave.
+Restart the master/agent.
 
 # Configure your Jenkins job
 
@@ -220,9 +220,9 @@ Note for master: when you move the text pointer out of the text field,
 you will immediately see a red error message, in case your configuration
 does not work.
 
-Note for slave: the authentication test every time will return an error.
+Note for agent: the authentication test every time will return an error.
 It looks like that this test is initiated on the master and not on the
-slave. Just run a job on the slave and check the log.
+agent. Just run a job on the agent and check the log.
 
 # Troubleshooting
 
@@ -235,14 +235,14 @@ slave. Just run a job on the slave and check the log.
     Java configuration file and sun.security.krb5.debug. Disable both
     after the issue is solved - the log files will grow rapidly.
 -   For a job running on the master check the Jenkins log file.
--   For jobs running on a slave check the log of the slave and of the
+-   For jobs running on an agent check the log of the agent and of the
     job.
 
 # Some hints
 
--   This setup works only when all jobs on the master or on a slave are
+-   This setup works only when all jobs on the master or on an agent are
     using the same domain account for Subversion access. When different
-    accounts are required it should be applicable to configure a slave
+    accounts are required it should be applicable to configure an agent
     for each domain account, even on the same computer. On a master this
     is not possible.
 -   This setup has not been tested on a Jenkins master running on
