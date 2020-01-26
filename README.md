@@ -279,7 +279,7 @@ info?](http://stackoverflow.com/questions/9354877/what-are-these-two-revision-nu
 
 ## Kerberos authentication
 
-To enable Kerberos authentication for an Apache Subversion server read [this](docs/kerberos-auth.md).
+To enable a master or agent for Kerberos authentication for an Apache Subversion server read [this](docs/kerberos-auth.md).
 
 
 # TroubleShooting
