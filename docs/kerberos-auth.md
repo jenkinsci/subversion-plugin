@@ -29,10 +29,21 @@ For HTTPS communication the Apache server is using a certificate. Make sure that
 
 ### Linux
 
-That the domain account is not compromised because the credentials are saved in clear text somewhere in the file system Kerberos is using a keytab file. In this file the domain credentials are stored encrypted. The keytab can be created by your domain administrator. When you have the password for the account you also can create the keytab by yourself. Here is the procedure:
+That the domain account is not compromised because the credentials are saved in clear text somewhere in the file system Kerberos is using a keytab file. In this file the domain credentials are stored encrypted. The keytab can be created by your domain administrator. When you have the password for the account and a Linux box you can create the keytab by yourself. Newer versions of directory servers are relying on strong encryption algorithms. The example below demonstrates the usage of arcfour-hmac for older releases and aes256-cts for newer releases. For the strong encryption the SALT value is required which can be determined like this:
+
+    # get the SALT value
+    $ KRB5_TRACE=/dev/tty kinit JenkinsAccount@DOMAIN.ORG
+    ...
+    Selected etype info: etype aes256-cts, salt "DOMAIN.ORGJenkinsAccount", params ""
+
+**Advice:** The SALT value is supported since MIT Kerberso 1.17.
+
+It is possible using both encryptions for a transition phase in one keytab, the Kerberos libraries will select the right on.
 
     $ ktutil
-    ktutil: addent -password -p JenkinsAccount@DOMAIN.ORG -e RC4-HMAC -k 1
+    ktutil: addent -password -p JenkinsAccount@DOMAIN.ORG -k 1 -e rc4-hmac
+    Password for JenkinsAccount@DOMAIN.ORG: xxxxxx
+    ktutil: addent -password -p JenkinsAccount@DOMAIN.ORG -k 1 -e aes256-cts -s DOMAIN.ORGJenkinsAccount
     Password for JenkinsAccount@DOMAIN.ORG: xxxxxx
     ktutil: wkt JenkinsAccount.keytab
     ktutil: q
@@ -43,7 +54,8 @@ Let’s have a look to the content of the keytab:
     Keytab name: FILE: JenkinsAccount.keytab
     KVNO Timestamp           Principal
     ---- ------------------- ------------------------------------------------------
-       1 03/18/2017 18:38:28 JenkinsAccount@DOMAIN.ORG (arcfour-hmac)
+       1 10/08/2019 14:35:15 JenkinsAccount@DOMAIN.ORG (arcfour-hmac)
+       1 10/08/2019 14:35:15 JenkinsAccount@DOMAIN.ORG (aes256-cts-hmac-sha1-96)
 
 Use the keytab file to test the authentication, run the following command:
 
@@ -56,8 +68,8 @@ When the run was successful (no output) let’s have a look to the created TGT:
     Default principal: JenkinsAccount@DOMAIN.ORG
 
     Valid starting       Expires              Service principal
-    03/19/2017 15:59:30  03/20/2017 01:59:30  krbtgt/DOMAIN.ORG@DOMAIN.ORG
-            renew until 03/20/2017 15:59:30
+    10/08/2019 15:59:30  10/08/2019 01:59:30  krbtgt/DOMAIN.ORG@DOMAIN.ORG
+            renew until 10/08/2019 15:59:30
 
 Test the access to the Subversion repository with a native Subversion client. Try to get the repository info:
 
@@ -75,16 +87,15 @@ Test the access to the Subversion repository with a native Subversion client. Tr
 
 ### Windows - domain member
 
-For the agent on a domain computer just try to login to the build
-machine. Run a `svn info ...` to check the access to the repository and that
-the certificate is accepted.
+For an agent on Windows a domain computer login to the machine with the service account. Alternatively start a cmd for this service account:
+
+    > runas /user:DOMAIN.ORG\JenkinsAccount cmd
+
+Run a `svn info ...` to check the access to the repository and that the certificate is accepted.
 
 **TGT accessibility**
 
-By default Windows does not allow the session key of a TGT to be
-accessed. Please add the following registry key on the client side, so
-that the session key for TGT is accessible and Java can use it to
-acquire additional service tickets.
+By default Windows does not allow the session key of a TGT to be accessed, add the following registry key.
 
 The registry key and value should be:
 
