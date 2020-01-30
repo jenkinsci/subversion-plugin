@@ -91,34 +91,21 @@ You can test the account and the access to the server/repository like this:
 
     > runas /user:DOMAIN.ORG\JenkinsAccount cmd
 
-In the new opened cmd window run the test (the output is truncated):
+In the new opened cmd window run the tests (the output is truncated):
+
+    > klist
+        Client: JenkinsAccount @ DOMAIN.ORG
+        Server: krbtgt/JenkinsAccount @ DOMAIN.ORG
+        KerbTicket Encryption Type: AES-256-CTS-HMAC…
+        ...
 
     > svn info https://svn.organization.org/repos/HelloWorld/trunk
     Path: trunk
+    URL: https://svn.organization.org/repos/HelloWorld/trunk
+    Relative URL: ^/trunk
+    Repository Root: https://svn.organization.org/repos/HelloWorld
+    Repository UUID: bd8deff7-301f-404f-b90d-11f05c129706
     ...
-
-When you're interested in the available Kerberos tokens:
-
-    > klist
-    Current LogonId is 0:0xc4961
-    Cached Tickets: (24)
-    #0>     Client: JenkinsAccount @ DOMAIN.ORG
-        Server: krbtgt/JenkinsAccount @ DOMAIN.ORG
-        KerbTicket Encryption Type: AES-256-CTS-HMAC…
-        Ticket Flags 0x40a50000 -> forwardable renewable initial pre_authent name_canonicalize
-        Start Time: 1/30/2020 14:21:38 (lokal)
-        End Time:   1/31/2020 0:21:38 (lokal)
-        Renew Time: 2/6/2020 14:21:38 (lokal)
-        Session Key Type: AES-256-CTS-HMAC…
-
-    #1>     Client: JenkinsAccount @ DOMAIN.ORG
-        Server: HTTP/<SVN.ORGANIZATION.ORG> @ DOMAIN.ORG
-        KerbTicket Encryption Type: AES-256-CTS-HMAC…
-        Ticket Flags 0x40a50000 -> forwardable renewable pre_authent name_canonicalize
-        Start Time: 1/30/2020 14:21:38 (lokal)
-        End Time:   1/31/2020 0:21:38 (lokal)
-        Renew Time: 2/6/2020 14:21:38 (lokal)
-        Session Key Type: AES-256-CTS-HMAC…
 
 **TGT accessibility**
 
