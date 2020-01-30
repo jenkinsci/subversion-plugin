@@ -94,10 +94,10 @@ You can test the account and the access to the server/repository like this:
 In the new opened cmd window run the tests (the output is truncated):
 
     > klist
-        Client: JenkinsAccount @ DOMAIN.ORG
-        Server: krbtgt/JenkinsAccount @ DOMAIN.ORG
-        KerbTicket Encryption Type: AES-256-CTS-HMAC…
-        ...
+    Client: JenkinsAccount @ DOMAIN.ORG
+    Server: krbtgt/JenkinsAccount @ DOMAIN.ORG
+    KerbTicket Encryption Type: AES-256-CTS-HMAC…
+    ...
 
     > svn info https://svn.organization.org/repos/HelloWorld/trunk
     Path: trunk
