@@ -54,8 +54,8 @@ Let’s have a look to the content of the keytab:
     Keytab name: FILE: JenkinsAccount.keytab
     KVNO Timestamp           Principal
     ---- ------------------- ------------------------------------------------------
-       1 10/08/2019 14:35:15 JenkinsAccount@DOMAIN.ORG (arcfour-hmac)
-       1 10/08/2019 14:35:15 JenkinsAccount@DOMAIN.ORG (aes256-cts-hmac-sha1-96)
+       1 30/01/2020 14:35:15 JenkinsAccount@DOMAIN.ORG (arcfour-hmac)
+       1 30/01/2020 14:35:15 JenkinsAccount@DOMAIN.ORG (aes256-cts-hmac-sha1-96)
 
 Use the keytab file to test the authentication, run the following command:
 
@@ -68,8 +68,8 @@ When the run was successful (no output) let’s have a look to the created TGT:
     Default principal: JenkinsAccount@DOMAIN.ORG
 
     Valid starting       Expires              Service principal
-    10/08/2019 15:59:30  10/08/2019 01:59:30  krbtgt/DOMAIN.ORG@DOMAIN.ORG
-            renew until 10/08/2019 15:59:30
+    30/01/2020 15:59:30  30/01/2020 01:59:30  krbtgt/JenkinsAccount@DOMAIN.ORG
+             renew until 30/01/2020 15:59:30
 
 Test the access to the Subversion repository with a native Subversion client. Try to get the repository info:
 
@@ -83,15 +83,42 @@ Test the access to the Subversion repository with a native Subversion client. Tr
     Node Kind: directory
     Last Changed Author: JenkinsAccount@DOMAIN.ORG
     Last Changed Rev: 309
-    Last Changed Date: 2016-11-13 18:52:10 +0100 (Sun, 13 Nov 2016)
+    Last Changed Date: 2020-01-20 18:52:10 +0100 (Sun, 13 Nov 2020)
 
 ### Windows - domain member
 
-For an agent on Windows a domain computer login to the machine with the service account. Alternatively start a cmd for this service account:
+You can test the account and the access to the server/repository like this:
 
     > runas /user:DOMAIN.ORG\JenkinsAccount cmd
 
-Run a `svn info ...` to check the access to the repository and that the certificate is accepted.
+In the new opened cmd window run the test (the output is truncated):
+
+    > svn info https://svn.organization.org/repos/HelloWorld/trunk
+    Path: trunk
+    ...
+
+When you're interested in the available Kerberos tokens:
+
+    > klist
+    Current LogonId is 0:0xc4961
+    Cached Tickets: (24)
+    #0>     Client: JenkinsAccount @ DOMAIN.ORG
+        Server: krbtgt/JenkinsAccount @ DOMAIN.ORG
+        KerbTicket Encryption Type: AES-256-CTS-HMAC…
+        Ticket Flags 0x40a50000 -> forwardable renewable initial pre_authent name_canonicalize
+        Start Time: 1/30/2020 14:21:38 (lokal)
+        End Time:   1/31/2020 0:21:38 (lokal)
+        Renew Time: 2/6/2020 14:21:38 (lokal)
+        Session Key Type: AES-256-CTS-HMAC…
+
+    #1>     Client: JenkinsAccount @ DOMAIN.ORG
+        Server: HTTP/<SVN.ORGANIZATION.ORG> @ DOMAIN.ORG
+        KerbTicket Encryption Type: AES-256-CTS-HMAC…
+        Ticket Flags 0x40a50000 -> forwardable renewable pre_authent name_canonicalize
+        Start Time: 1/30/2020 14:21:38 (lokal)
+        End Time:   1/31/2020 0:21:38 (lokal)
+        Renew Time: 2/6/2020 14:21:38 (lokal)
+        Session Key Type: AES-256-CTS-HMAC…
 
 **TGT accessibility**
 
