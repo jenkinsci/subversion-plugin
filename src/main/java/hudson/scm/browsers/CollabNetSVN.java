@@ -36,7 +36,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
  * {@link RepositoryBrowser} implementation for CollabNet hosted Subversion repositories.
- * This enables Hudson to integrate with the repository browsers built-in to CollabNet-powered
+ * This enables Jenkins to integrate with the repository browsers built-in to CollabNet-powered
  * sites such as Java.net and Tigris.org.
  * @author Daniel Dyer
  */

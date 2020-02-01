@@ -42,7 +42,7 @@ import org.tmatesoft.svn.core.SVNURL;
  */
 public abstract class SubversionCredentialProvider implements ExtensionPoint {
     /**
-     * Called whenever Hudson needs to connect to an authenticated subversion repository,
+     * Called whenever Jenkins needs to connect to an authenticated subversion repository,
      * to obtain a credential.
      *
      * @param realm
@@ -51,7 +51,7 @@ public abstract class SubversionCredentialProvider implements ExtensionPoint {
      *      URL that is being accessed. Never null.
      * @return
      *      null if the implementation doesn't understand the given realm. When null is returned,
-     *      Hudson searches other sources of credentials to come up with one.
+     *      Jenkins searches other sources of credentials to come up with one.
      */
     public abstract Credential getCredential(SVNURL url, String realm);
 
