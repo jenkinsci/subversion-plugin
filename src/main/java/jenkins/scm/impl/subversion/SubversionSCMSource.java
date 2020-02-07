@@ -900,7 +900,7 @@ public class SubversionSCMSource extends SCMSource {
                                 + "document.getElementById('svnerrorlink').style.display='none';"
                                 + "return false;")
                   + "<br/><pre id=\"svnerror\" style=\"display:none\">"
-                  + Functions.printThrowable(e) + "</pre>";
+                  + Util.xmlEscape(Functions.printThrowable(e)) + "</pre>";
                 return FormValidation.errorWithMarkup(message);
             }
         }
