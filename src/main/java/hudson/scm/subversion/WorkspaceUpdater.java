@@ -108,7 +108,7 @@ public abstract class WorkspaceUpdater extends AbstractDescribableImpl<Workspace
         public SvnClientManager clientManager;
 
         /**
-         * Encapusulates the authentication. Connected back to Hudson master. Never null.
+         * Encapusulates the authentication. Connected back to Jenkins master. Never null.
          */
         public ISVNAuthenticationProvider authProvider;
 

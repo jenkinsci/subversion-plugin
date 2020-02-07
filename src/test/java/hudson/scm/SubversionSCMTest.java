@@ -1255,14 +1255,14 @@ public class SubversionSCMTest extends AbstractSubversionTest {
                             return; // yep
                     }
                 }
-                fail("Hudson didn't try authentication");
+                fail("Jenkins didn't try authentication");
             }
         }
         fail("Looks like we went into an infinite loop");
     }
 
     /**
-     * Even if the default providers remember bogus passwords, Hudson should still attempt what it knows.
+     * Even if the default providers remember bogus passwords, Jenkins should still attempt what it knows.
      */
     @Issue("JENKINS-3936")
     @Ignore("TODO verify that this test case is invalid for new credentials based world order")
@@ -1290,10 +1290,10 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         }
 
         // make sure the failure didn't clean up the cache,
-        // since what we want to test here is Hudson trying to supply its credential, despite the failed cache
+        // since what we want to test here is Jenkins trying to supply its credential, despite the failed cache
         assertTrue(SubversionSCM.compareSVNAuthentications(m.getFirstAuthentication(kind, realm, repo),bogus));
 
-        // now let Hudson have the real credential
+        // now let Jenkins have the real credential
         // can we now access the repo?
         r.jenkins.getDescriptorByType(SubversionSCM.DescriptorImpl.class).postCredential(null,repo.toDecodedString(),"guest","",null,new PrintWriter(System.out));
         attemptAccess(m);

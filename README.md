@@ -144,7 +144,7 @@ example.
     CRUMB_ISSUER_URL='crumbIssuer/api/xml?xpath=concat(//crumbRequestField,":",//crumb)'
 
     function notifyCI {
-        # URL to Hudson/Jenkins server application (with protocol, hostname, port and deployment descriptor if needed)
+        # URL to Jenkins server application (with protocol, hostname, port and deployment descriptor if needed)
         CISERVER=$1
 
         # Check if "[X] Prevent Cross Site Request Forgery exploits" is activated
@@ -162,7 +162,7 @@ example.
             ${CISERVER}/${NOTIFY_URL}
     }
 
-    # The code above was placed in a function so you can easily notify multiple Jenkins/Hudson servers:
+    # The code above was placed in a function so you can easily notify multiple Jenkins servers:
     notifyCI "http://myPC.company.local:8080"
     notifyCI "http://jenkins.company.com:8080/jenkins"
 

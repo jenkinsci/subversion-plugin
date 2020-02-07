@@ -71,7 +71,7 @@ public class UserProvidedCredential implements Closeable {
     private final File keyFile;
     /**
      * If non-null, this credential is submitted primarily to be used with this project.
-     * This actually doesn't prevent Hudson from trying it with other projects.
+     * This actually doesn't prevent Jenkins from trying it with other projects.
      */
     public final AbstractProject inContextOf;
 

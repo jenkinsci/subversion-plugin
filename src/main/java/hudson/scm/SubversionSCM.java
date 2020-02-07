@@ -188,7 +188,7 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
  * <h2>Plugin Developer Notes</h2>
  * <p>
  * Plugins that interact with Subversion can use {@link DescriptorImpl#createAuthenticationProvider(AbstractProject)}
- * so that it can use the credentials (username, password, etc.) that the user entered for Hudson.
+ * so that it can use the credentials (username, password, etc.) that the user entered for Jenkins.
  * See the javadoc of this method for the precautions you need to take if you run Subversion operations
  * remotely on slaves.
  *
@@ -2220,7 +2220,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
         /**
          * @deprecated as of 1.18
-         *      Now that Hudson allows different credentials to be given in different jobs,
+         *      Now that Jenkins allows different credentials to be given in different jobs,
          *      The caller should use {@link #createAuthenticationProvider(AbstractProject)} to indicate
          *      the project in which the subversion operation is performed.
          */
