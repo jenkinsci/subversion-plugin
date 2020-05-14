@@ -140,7 +140,7 @@ THE SOFTWARE.
     <no-test-jar>false</no-test-jar>
     <workflow-scm-step.version>2.6</workflow-scm-step.version>
     <workflow-aggregator.version>2.5</workflow-aggregator.version>
-    <findbugs.failOnError>false</findbugs.failOnError> <!-- TODO still have 27 left -->
+    <spotbugs.failOnError>false</spotbugs.failOnError> <!-- TODO still have 27 left -->
     <scm-api-plugin.version>2.6.3</scm-api-plugin.version>
     <!-- To be removed once Jenkins.MANAGE gets out of beta -->
     <useBeta>true</useBeta>
