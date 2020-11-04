@@ -27,12 +27,16 @@ import hudson.model.Run;
 import hudson.scm.SubversionChangeLogSet.LogEntry;
 import hudson.scm.SubversionChangeLogSet.Path;
 import hudson.util.Digester2;
+import jenkins.util.SystemProperties;
 import org.apache.commons.digester.Digester;
 import org.xml.sax.SAXException;
 
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * {@link ChangeLogParser} for Subversion.
@@ -40,6 +44,7 @@ import java.util.ArrayList;
  * @author Kohsuke Kawaguchi
  */
 public class SubversionChangeLogParser extends ChangeLogParser {
+    private static Logger LOGGER = Logger.getLogger(SubversionChangeLogParser.class.getName());
   
     private boolean ignoreDirPropChanges;
 
@@ -56,6 +61,18 @@ public class SubversionChangeLogParser extends ChangeLogParser {
         // http://svn.apache.org/repos/asf/subversion/trunk/subversion/svn/schema/log.rnc
 
         Digester digester = new Digester2();
+        if (!Boolean.getBoolean(SubversionChangeLogParser.class.getName() + ".UNSAFE")) {
+            try {
+                digester.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+                digester.setFeature("http://xml.org/sax/features/external-general-entities", false);
+                digester.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+                digester.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+            } catch (ParserConfigurationException ex) {
+                LOGGER.log(Level.WARNING, "Failed to securely configure Subversion changelog parser", ex);
+                throw new SAXException("Failed to securely configure Subversion changelog parser", ex);
+            }
+            digester.setXIncludeAware(false);
+        }
         ArrayList<LogEntry> r = new ArrayList<>();
         digester.push(r);
 
