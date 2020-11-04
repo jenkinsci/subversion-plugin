@@ -66,6 +66,9 @@ import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -1806,5 +1809,81 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
         // should detect change
         assertTrue(p.poll(StreamTaskListener.fromStdout()).hasChanges());
+    }
+
+    void lockWorkspace(String dbFile, String pathToLock) throws Exception {
+        Class.forName("org.sqlite.SQLiteJDBCLoader");
+        Connection conn = DriverManager.getConnection("jdbc:sqlite:" + dbFile);
+        PreparedStatement stmt = conn.prepareStatement("INSERT INTO WC_LOCK VALUES(1, ?, 1)");
+        stmt.setString(1, pathToLock);
+        stmt.executeUpdate();
+        conn.close();
+    }
+
+    @Issue("JENKINS-47803")
+    @Test
+    public void lockedExternal() throws Exception {
+        Proc p = runSvnServe(getClass().getResource("JENKINS-777.zip"));
+
+        try {
+            configureSvnWorkspaceFormat(SubversionWorkspaceSelector.WC_FORMAT_17);
+
+            FreeStyleProject b = r.createFreeStyleProject();
+
+            ModuleLocation[] locations = {
+                new ModuleLocation("svn://localhost/jenkins-777/proja", "proja", "infinity", false)
+            };
+
+            // do initial checkout
+            b.setScm(new SubversionSCM(Arrays.asList(locations), new UpdateUpdater(), null, null, null, null, null, null));
+            FreeStyleBuild build = r.assertBuildStatusSuccess(b.scheduleBuild2(0));
+
+            // Check that the external exists
+            FilePath ws = build.getWorkspace();
+            assertTrue(ws.child("proja").child("externals").child("projb").exists());
+
+            // mark external as locked
+            String db = ws.child("proja").child("externals").child("projb").child(".svn").child("wc.db").getRemote();
+            lockWorkspace(db, "externals");
+
+            // start second build and check if workspace is being reset (just check for the log)
+            build = r.assertBuildStatusSuccess(b.scheduleBuild2(0));
+            r.assertLogContains("Workspace appear to be locked, so getting a fresh workspace", build);
+        } finally {
+            p.kill();
+        }
+    }
+
+    @Test
+    public void ensureCancelOnExternalsFail() throws Exception {
+        Proc p = runSvnServe(getClass().getResource("JENKINS-777.zip"));
+
+        try {
+            configureSvnWorkspaceFormat(SubversionWorkspaceSelector.WC_FORMAT_17);
+
+            FreeStyleProject b = r.createFreeStyleProject();
+
+            ModuleLocation[] locations = {
+                new ModuleLocation("svn://localhost/jenkins-777/proja", null, "proja", "infinity", false, true)
+            };
+
+            // do initial checkout
+            b.setScm(new SubversionSCM(Arrays.asList(locations), new UpdateUpdater(), null, null, null, null, null, null));
+            FreeStyleBuild build = r.assertBuildStatusSuccess(b.scheduleBuild2(0));
+
+            // Check that the external exists
+            FilePath ws = build.getWorkspace();
+            assertTrue(ws.child("proja").child("externals").child("projb").exists());
+
+            // mark external as locked
+            String db = ws.child("proja").child("externals").child("projb").child(".svn").child("wc.db").getRemote();
+            lockWorkspace(db, "externals");
+
+            // start second build and check if build is canceled, caused by external failure
+            build = r.assertBuildStatus(Result.FAILURE, b.scheduleBuild2(0));
+            r.assertLogContains("Failed processing one or more externals definitions", build);
+        } finally {
+            p.kill();
+        }
     }
 }    
