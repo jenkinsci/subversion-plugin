@@ -117,7 +117,15 @@ final class CompareAgainstBaselineCallable extends MasterToSlaveCallable<Polling
         changes.changes |= (nowRev>baseRev);
 
         listener.getLogger().println(Messages.SubversionSCM_pollChanges_remoteRevisionAt(url, nowRev));
-        revs.put(url, nowRev);
+        if(revs.containsKey(url)){
+            long containingRevision = revs.get(url);
+            // take maximum revision
+            if(nowRev > containingRevision){
+                revs.put(url, nowRev);
+            }
+        }else {
+            revs.put(url, nowRev);
+        }
         // make sure there's a change and it isn't excluded
         if (logHandler.findNonExcludedChanges(svnurl, baseRev+1, nowRev, authProvider)) {
             listener.getLogger().println(Messages.SubversionSCM_pollChanges_changedFrom(baseRev));
