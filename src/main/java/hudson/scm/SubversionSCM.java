@@ -2151,19 +2151,22 @@ public class SubversionSCM extends SCM implements Serializable {
             return "Subversion";
         }
 
-        @Restricted(NoExternalUse.class)
-        void setGlobalExcludedRevprop(String revprop) {
-            globalExcludedRevprop = revprop;
+        public void setGlobalExcludedRevprop(String globalExcludedRevprop) {
+            this.globalExcludedRevprop = globalExcludedRevprop;
         }
 
         public String getGlobalExcludedRevprop() {
-            return globalExcludedRevprop;
+            return this.globalExcludedRevprop;
         }
 
         public int getWorkspaceFormat() {
-            if (workspaceFormat==0)
+            if (workspaceFormat == 0)
                 return SVNAdminAreaFactory.WC_FORMAT_14; // default
             return workspaceFormat;
+        }
+
+        public void setWorkspaceFormat(int workspaceFormat) {
+            this.workspaceFormat = workspaceFormat;
         }
 
         public boolean isValidateRemoteUpToVar() {
