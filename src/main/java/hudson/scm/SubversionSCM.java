@@ -2170,7 +2170,6 @@ public class SubversionSCM extends SCM implements Serializable {
             return "Subversion";
         }
 
-        @Restricted(NoExternalUse.class)
         public void setGlobalExcludedRevprop(String globalExcludedRevprop) {
             this.globalExcludedRevprop = globalExcludedRevprop;
         }
