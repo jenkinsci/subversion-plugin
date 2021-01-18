@@ -833,16 +833,16 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         FreeStyleBuild bQuiet = r.assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserIdCause()).get());
         List<String> logsQuiet = bQuiet.getLog(LOG_LIMIT);
         //  This line in log should end with --quiet
-        assertTrue(logsQuiet.get(4).endsWith("--quiet"));
-        assertEquals("At revision 1", logsQuiet.get(5));
+        assertTrue(logsQuiet.get(5).endsWith("--quiet"));
+        assertEquals("At revision 1", logsQuiet.get(6));
 
         local.setQuietOperation(false);
         FreeStyleBuild bVerbose = r.assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserIdCause()).get());
         List<String> logsVerbose = bVerbose.getLog(LOG_LIMIT);
         //  This line in log should NOT end with --quiet
         assertFalse(logsVerbose.get(4).endsWith("--quiet"));
-        assertTrue(logsVerbose.get(5).endsWith("readme.txt"));
-        assertEquals("At revision 1", logsVerbose.get(6));
+        assertTrue(logsVerbose.get(6).endsWith("readme.txt"));
+        assertEquals("At revision 1", logsVerbose.get(7));
     }
     
     /**
