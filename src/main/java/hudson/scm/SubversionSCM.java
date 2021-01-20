@@ -64,7 +64,6 @@ import hudson.FilePath.FileCallable;
 import hudson.Launcher;
 import hudson.Util;
 import hudson.init.InitMilestone;
-import hudson.model.*;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.UnsupportedCharsetException;
@@ -72,11 +71,23 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.WeakHashMap;
 
+import hudson.model.AbstractBuild;
+import hudson.model.AbstractDescribableImpl;
+import hudson.model.AbstractProject;
+import hudson.model.Descriptor;
+import hudson.model.Item;
+import hudson.model.ItemGroup;
+import hudson.model.Job;
+import hudson.model.JobProperty;
+import hudson.model.ModelObject;
+import hudson.model.Node;
+import hudson.model.ParameterDefinition;
+import hudson.model.ParameterValue;
+import hudson.model.ParametersAction;
+import hudson.model.ParametersDefinitionProperty;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import hudson.util.ListBoxModel;
@@ -112,18 +123,23 @@ import java.io.Serializable;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.UUID;
+import java.util.WeakHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -917,8 +933,7 @@ public class SubversionSCM extends SCM implements Serializable {
         for (ModuleLocation location : getLocations(env, build)) {
             CheckOutTask checkOutTask =
                     new CheckOutTask(build, this, location, build.getTimestamp().getTime(), listener, env, quietOperation);
-            List<External> externals = new ArrayList<>();
-            externals.addAll(workspace.act(checkOutTask));
+            List<External> externals = new ArrayList<>(workspace.act(checkOutTask));
             // save location <---> externals maps
             externalsMap.put(location.remote, externals);
             unauthenticatedRealms.addAll(checkOutTask.getUnauthenticatedRealms());
@@ -1475,7 +1490,7 @@ public class SubversionSCM extends SCM implements Serializable {
         private SVNLogFilter filter;
 
         SVNLogHandler(SVNLogFilter svnLogFilter, TaskListener listener) {
-            this.filter = svnLogFilter;;
+            this.filter = svnLogFilter;
             this.filter.setTaskListener(listener);
         }
 
@@ -3368,7 +3383,7 @@ public class SubversionSCM extends SCM implements Serializable {
             if (!realm.equals(that.realm)) {
                 return false;
             }
-            if (credentialsId != null ? !credentialsId.equals(that.credentialsId) : that.credentialsId != null) {
+            if (!Objects.equals(credentialsId, that.credentialsId)) {
                 return false;
             }
 

@@ -40,7 +40,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+
 import jenkins.triggers.SCMTriggerItem;
 
 import org.kohsuke.accmod.Restricted;
@@ -373,13 +375,13 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
             if (revision != that.revision) {
                 return false;
             }
-            if (author != null ? !author.equals(that.author) : that.author != null) {
+            if (!Objects.equals(author, that.author)) {
                 return false;
             }
-            if (date != null ? !date.equals(that.date) : that.date != null) {
+            if (!Objects.equals(date, that.date)) {
                 return false;
             }
-            if (msg != null ? !msg.equals(that.msg) : that.msg != null) {
+            if (!Objects.equals(msg, that.msg)) {
                 return false;
             }
 

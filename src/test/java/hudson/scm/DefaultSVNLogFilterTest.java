@@ -76,7 +76,7 @@ public class DefaultSVNLogFilterTest extends AbstractSubversionTest {
     public void noExcludes() throws Exception {
         
         DefaultSVNLogFilter filter = new DefaultSVNLogFilter(noPatterns, noPatterns, noUsers, null, noPatterns, false);
-        assertTrue(!filter.hasExclusionRule());
+        assertFalse(filter.hasExclusionRule());
         
         List<SVNLogEntry> entries = doFilter(filter);
         assertTrue(containsRevs(entries, 1, 2, 3, 4, 5));

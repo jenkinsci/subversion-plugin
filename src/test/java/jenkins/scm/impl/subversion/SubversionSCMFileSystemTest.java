@@ -94,7 +94,7 @@ public class SubversionSCMFileSystemTest {
 		long oneMinute = 60*1000;
 		sampleRepo.write("file", "modified");
 		sampleRepo.svnkit("commit", "--message=dev1", sampleRepo.wc());
-		try (SCMFileSystem fs = SCMFileSystem.of(source, new SCMHead("branches/dev"), revision);) {			
+		try (SCMFileSystem fs = SCMFileSystem.of(source, new SCMHead("branches/dev"), revision)) {			
 			long lastModified = fs.lastModified();
 			//ensure the timestamp is from after we started but not in the distant future
 			assertThat(lastModified, greaterThanOrEqualTo(currentTime));
@@ -156,7 +156,7 @@ public class SubversionSCMFileSystemTest {
 		sampleRepo.svnkit("add", sampleRepo.wc() + "/dir");
 		sampleRepo.svnkit("commit", "--message=dev1", sampleRepo.wc());
 		SCMSource source = new SubversionSCMSource(null, sampleRepo.prjUrl());
-		try (SCMFileSystem fs = SCMFileSystem.of(source, new SCMHead("branches/dev"));) {
+		try (SCMFileSystem fs = SCMFileSystem.of(source, new SCMHead("branches/dev"))) {
 			assertThat(fs, notNullValue());
 			assertThat(fs.getRoot(), notNullValue());
 			Iterable<SCMFile> children = fs.getRoot().children();

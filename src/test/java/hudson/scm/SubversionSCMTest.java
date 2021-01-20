@@ -1618,7 +1618,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
             assertTrue(ws.child("with_externals").child("externals").child("projb").exists());
 
             // Check that the external doesn't exist
-            assertTrue(!(ws.child("no_externals").child("externals").child("projb").exists()));
+            assertFalse(ws.child("no_externals").child("externals").child("projb").exists());
         } finally {
             p.kill();
         }
