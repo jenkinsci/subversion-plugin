@@ -86,7 +86,7 @@ public class SubversionRepositoryStatus {
      *
      * <p>
      * Because this URL is not guarded, we can't really trust the data that's sent to us. But we intentionally
-     * don't protect this URL to simplify <tt>post-commit</tt> script set up.
+     * don't protect this URL to simplify <code>post-commit</code> script set up.
      */
     @RequirePOST
     public void doNotifyCommit(StaplerRequest req, StaplerResponse rsp) throws ServletException, IOException {

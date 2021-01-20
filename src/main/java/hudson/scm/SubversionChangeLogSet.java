@@ -437,7 +437,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         }
 
         /**
-         * Path in the repository. Such as <tt>/test/trunk/foo.c</tt>
+         * Path in the repository. Such as <code>/test/trunk/foo.c</code>
          */
         @Exported(name="file")
         public String getValue() {
