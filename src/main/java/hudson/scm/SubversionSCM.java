@@ -1218,7 +1218,7 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     public static final class External implements Serializable {
         /**
-         * Relative path within the workspace where this <tt>svn:exteranls</tt> exist.
+         * Relative path within the workspace where this <code>svn:exteranls</code> exist.
          */
         public final String path;
 

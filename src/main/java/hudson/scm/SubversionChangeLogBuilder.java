@@ -59,7 +59,7 @@ import javax.annotation.Nonnull;
 import jenkins.MasterToSlaveFileCallable;
 
 /**
- * Builds <tt>changelog.xml</tt> for {@link SubversionSCM}.
+ * Builds <code>changelog.xml</code> for {@link SubversionSCM}.
  *
  * @author Kohsuke Kawaguchi
  */

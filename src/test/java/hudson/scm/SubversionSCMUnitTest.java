@@ -50,7 +50,7 @@ public class SubversionSCMUnitTest {
 
         Assert.assertEquals(expected, resolvedRoot.getRemote());
     }
-    
+
     @Test
     @Ignore("weird mockito issue, only occurs when running whole test suite, test class or method both pass")
     public void shouldSetEnvironmentVariablesWithSingleSvnModule() throws IOException {

@@ -29,8 +29,8 @@ public class Phabricator extends SubversionRepositoryBrowser {
     /**
      * The URL of the top of the site.
      *
-     * <p>Normalized to ends with '/', like <tt>http://svn.apache.org/wsvn/</tt>
-     * It may contain a query parameter like <tt>?root=foobar</tt>, so relative
+     * <p>Normalized to ends with '/', like <code>http://svn.apache.org/wsvn/</code>
+     * It may contain a query parameter like <code>?root=foobar</code>, so relative
      * URL construction needs to be done with care.</p>
      */
     public final URL url;

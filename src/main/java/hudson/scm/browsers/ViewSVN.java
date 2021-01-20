@@ -47,8 +47,8 @@ public class ViewSVN extends SubversionRepositoryBrowser {
     /**
      * The URL of the top of the site.
      *
-     * Normalized to ends with '/', like <tt>http://svn.apache.org/viewvc/</tt>
-     * It may contain a query parameter like <tt>?root=foobar</tt>, so relative URL
+     * Normalized to ends with '/', like <code>http://svn.apache.org/viewvc/</code>
+     * It may contain a query parameter like <code>?root=foobar</code>, so relative URL
      * construction needs to be done with care.
      */
     public final URL url;

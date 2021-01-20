@@ -51,7 +51,7 @@ public class FishEyeSVN extends SubversionRepositoryBrowser {
     /**
      * The URL of the FishEye repository.
      *
-     * This is normally like <tt>http://fisheye5.cenqua.com/browse/glassfish/</tt>
+     * This is normally like <code>http://fisheye5.cenqua.com/browse/glassfish/</code>
      * Normalized to have '/' at the tail.
      */
     public final URL url;
@@ -136,7 +136,7 @@ public class FishEyeSVN extends SubversionRepositoryBrowser {
 
             if(!value.endsWith("/")) value+='/';
             if(!URL_PATTERN.matcher(value).matches())
-                return FormValidation.errorWithMarkup("The URL should end like <tt>.../browse/foobar/</tt>");
+                return FormValidation.errorWithMarkup("The URL should end like <code>.../browse/foobar/</code>");
 
             // Connect to URL and check content only if we have admin permission
             if (!Jenkins.getInstance().hasPermission(Jenkins.ADMINISTER))
