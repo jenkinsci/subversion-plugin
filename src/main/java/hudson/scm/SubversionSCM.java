@@ -791,7 +791,7 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     /*package*/ static Map<String,Long> parseRevisionFile(Run<?,?> build, boolean findClosest, boolean prunePinnedExternals) throws IOException {
         Map<String,Long> revisions = new HashMap<>(); // module -> revision
-
+        Map<String,Long> pinnedRevisions = new HashMap<>(); // module -> revision
         if (findClosest) {
             for (Run<?,?> b=build; b!=null; b=b.getPreviousBuild()) {
                 if(getRevisionFile(b).exists()) {
@@ -823,23 +823,31 @@ public class SubversionSCM extends SCM implements Serializable {
                     try {
                     	String url = line.substring(0, index);
                     	long revision = Long.parseLong(line.substring(index+1,indexLast));
-                    	Long oldRevision = revisions.get(url);
                     	if (isPinned) {
                     		if (!prunePinnedExternals) {
+                                Long oldRevision = pinnedRevisions.get(url);
                     			if (oldRevision == null)
-                    				// If we're writing pinned, only write if there are no unpinned
-                    				revisions.put(url, revision);
+                                    // take minimum
+                                    pinnedRevisions.put(url, revision);
                     		}
                     	} else {
+                            Long oldRevision = revisions.get(url);
                     		// unpinned
-                        	if (oldRevision == null || oldRevision > revision)
-                        		// For unpinned, take minimum
-                        		revisions.put(url, revision);
+                        	if (oldRevision == null || oldRevision > revision) {
+                                // take minimum
+                                revisions.put(url, revision);
+                            }
                     	}
                 	} catch (NumberFormatException e) {
                 	    // perhaps a corrupted line.
                 	    LOGGER.log(WARNING, "Error parsing line " + line, e);
                 	}
+                }
+                // now add pinned revision if there are no unpinned ones
+                for( Map.Entry<String,Long> rev : pinnedRevisions.entrySet() ){
+                    if(!revisions.containsKey(rev.getKey())){
+                        revisions.put(rev.getKey(),rev.getValue());
+                    }
                 }
             }
         }
@@ -1335,6 +1343,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 final SVNWCClient svnWc = manager.getWCClient();
                 for (External ext : externals) {
                     try {
+                        // for external files we get the current head revision here which is not the last changed revision
                         SvnInfo info = new SvnInfo(svnWc.doInfo(new File(ws, ext.path), SVNRevision.WORKING));
                         revisions.add(new SvnInfoP(info, ext.isRevisionFixed()));
                     } catch (SVNException e) {
