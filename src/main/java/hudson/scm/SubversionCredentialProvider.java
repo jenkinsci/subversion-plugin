@@ -59,6 +59,6 @@ public abstract class SubversionCredentialProvider implements ExtensionPoint {
      * All regsitered instances.
      */
     public static ExtensionList<SubversionCredentialProvider> all() {
-        return Jenkins.getInstance().getExtensionList(SubversionCredentialProvider.class);
+        return Jenkins.get().getExtensionList(SubversionCredentialProvider.class);
     }
 }

@@ -160,8 +160,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.taskdefs.Chmod;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -884,7 +882,7 @@ public class SubversionSCM extends SCM implements Serializable {
         // write out the revision file
         try (PrintWriter w = new PrintWriter(new FileOutputStream(getRevisionFile(build)))) {
             List<SvnInfoP> pList = workspace.act(new BuildRevisionMapTask(build, this, listener, externalsForAll, env));
-            List<SvnInfo> revList= new ArrayList<SvnInfo>(pList.size());
+            List<SvnInfo> revList= new ArrayList<>(pList.size());
             for (SvnInfoP p: pList) {
                 if (p.pinned)
                     w.println( p.info.url +'/'+ p.info.revision + "::p");
@@ -1188,9 +1186,7 @@ public class SubversionSCM extends SCM implements Serializable {
             int r = this.url.compareTo(that.url);
             if(r!=0)    return r;
 
-            if(this.revision<that.revision) return -1;
-            if(this.revision>that.revision) return +1;
-            return 0;
+            return Long.compare(this.revision, that.revision);
         }
 
         @Override
@@ -1427,9 +1423,9 @@ public class SubversionSCM extends SCM implements Serializable {
 
         Node node;
         if (nodeName.equals("master")) {
-            node = Jenkins.getInstance();
+            node = Jenkins.get();
         } else {
-            node = Jenkins.getInstance().getNode(nodeName);
+            node = Jenkins.get().getNode(nodeName);
         }
 
         // Reference: https://github.com/jenkinsci/subversion-plugin/pull/131
@@ -1696,7 +1692,7 @@ public class SubversionSCM extends SCM implements Serializable {
                     BulkChange bc = new BulkChange(this);
                     try {
                         mayHaveLegacyPerJobCredentials = true;
-                        CredentialsStore store = CredentialsProvider.lookupStores(Jenkins.getInstance()).iterator().next();
+                        CredentialsStore store = CredentialsProvider.lookupStores(Jenkins.get()).iterator().next();
                         for (Map.Entry<String, Credential> e : credentials.entrySet()) {
                             migrateCredentials(store, e.getKey(), e.getValue());
                         }
@@ -1718,7 +1714,7 @@ public class SubversionSCM extends SCM implements Serializable {
             }
             boolean allOk = true;
 
-            for (AbstractProject<?, ?> job : Jenkins.getInstance().getAllItems(AbstractProject.class)) {
+            for (AbstractProject<?, ?> job : Jenkins.get().getAllItems(AbstractProject.class)) {
                 File jobCredentials = new File(job.getRootDir(), "subversion.credentials");
                 if (jobCredentials.isFile()) {
                     try {
@@ -1837,7 +1833,7 @@ public class SubversionSCM extends SCM implements Serializable {
             protected ItemGroup findItemGroup(ModelObject context) {
                 if (context instanceof ItemGroup) return (ItemGroup) context;
                 if (context instanceof Item) return ((Item) context).getParent();
-                return Jenkins.getInstance();
+                return Jenkins.get();
             }
         }
 
@@ -1931,7 +1927,7 @@ public class SubversionSCM extends SCM implements Serializable {
              * Gets the location where the private key will be permanently stored.
              */
             private File getKeyFile() {
-                File dir = new File(Jenkins.getInstance().getRootDir(),"subversion-credentials");
+                File dir = new File(Jenkins.get().getRootDir(),"subversion-credentials");
                 if(dir.mkdirs()) {
                     // make sure the directory exists. if we created it, try to set the permission to 600
                     // since this is sensitive information
@@ -2255,7 +2251,7 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         // TODO: stapler should do multipart/form-data handling
         public void doPostCredential(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-            Jenkins.getInstance().checkPermission(Item.CONFIGURE);
+            Jenkins.get().checkPermission(Item.CONFIGURE);
 
             MultipartFormDataParser parser = new MultipartFormDataParser(req);
 
@@ -2271,7 +2267,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 req.setAttribute("message",log.toString());
                 req.setAttribute("pre",true);
                 req.setAttribute("exception",e);
-                rsp.forward(Jenkins.getInstance(),"error",req);
+                rsp.forward(Jenkins.get(),"error",req);
             }
         }
 
@@ -2516,7 +2512,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 return FormValidation.ok();
 
             // Test the connection only if we have admin permission
-            if (!Jenkins.getInstance().hasPermission(Jenkins.ADMINISTER))
+            if (!Jenkins.get().hasPermission(Jenkins.ADMINISTER))
                 return FormValidation.ok();
 
             try {

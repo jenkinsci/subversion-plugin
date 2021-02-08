@@ -139,7 +139,7 @@ public class FishEyeSVN extends SubversionRepositoryBrowser {
                 return FormValidation.errorWithMarkup("The URL should end like <code>.../browse/foobar/</code>");
 
             // Connect to URL and check content only if we have admin permission
-            if (!Jenkins.getInstance().hasPermission(Jenkins.ADMINISTER))
+            if (!Jenkins.get().hasPermission(Jenkins.ADMINISTER))
                 return FormValidation.ok();
 
             final String finalValue = value;

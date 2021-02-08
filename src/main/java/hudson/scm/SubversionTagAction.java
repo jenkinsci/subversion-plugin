@@ -326,7 +326,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
     }
 
     public Descriptor<SubversionTagAction> getDescriptor() {
-        return Jenkins.getInstance().getDescriptorOrDie(getClass());
+        return Jenkins.get().getDescriptorOrDie(getClass());
     }
 
     /**

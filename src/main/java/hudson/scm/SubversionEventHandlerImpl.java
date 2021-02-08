@@ -227,7 +227,7 @@ public class SubversionEventHandlerImpl extends SVNEventAdapter {
 
     private static boolean equals(String p1, String p2) {
         if (SVNFileUtil.isWindows || SVNFileUtil.isOpenVMS) {
-            return p1.toLowerCase().equals(p2.toLowerCase());
+            return p1.equalsIgnoreCase(p2);
         }
         return p1.equals(p2);
     }
