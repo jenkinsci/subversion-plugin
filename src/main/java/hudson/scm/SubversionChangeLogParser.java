@@ -26,9 +26,7 @@ package hudson.scm;
 import hudson.model.Run;
 import hudson.scm.SubversionChangeLogSet.LogEntry;
 import hudson.scm.SubversionChangeLogSet.Path;
-import hudson.util.Digester2;
-import jenkins.util.SystemProperties;
-import org.apache.commons.digester.Digester;
+import org.apache.commons.digester3.Digester;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -60,7 +58,7 @@ public class SubversionChangeLogParser extends ChangeLogParser {
     @Override public SubversionChangeLogSet parse(@SuppressWarnings("rawtypes") Run build, RepositoryBrowser<?> browser, File changelogFile) throws IOException, SAXException {
         // http://svn.apache.org/repos/asf/subversion/trunk/subversion/svn/schema/log.rnc
 
-        Digester digester = new Digester2();
+        Digester digester = new Digester();
         if (!Boolean.getBoolean(SubversionChangeLogParser.class.getName() + ".UNSAFE")) {
             try {
                 digester.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
