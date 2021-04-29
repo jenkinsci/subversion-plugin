@@ -180,7 +180,7 @@ THE SOFTWARE.
         <groupId>commons-beanutils</groupId>
         <artifactId>commons-beanutils</artifactId>
         <!-- 1.9.4 when this merged https://github.com/stapler/stapler/pull/211 -->
-        <version>1.9.3</version>
+        <version>1.9.4</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
