@@ -27,7 +27,6 @@ import hudson.model.Run;
 import hudson.scm.SubversionChangeLogSet.LogEntry;
 import hudson.scm.SubversionChangeLogSet.Path;
 import hudson.util.Digester2;
-import jenkins.util.SystemProperties;
 import org.apache.commons.digester.Digester;
 import org.xml.sax.SAXException;
 

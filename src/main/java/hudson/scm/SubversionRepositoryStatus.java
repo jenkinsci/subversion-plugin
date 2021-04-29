@@ -162,7 +162,7 @@ public class SubversionRepositoryStatus {
         private JobProvider jobProvider = new JobProvider() {
             @SuppressWarnings("rawtypes")
             public List<Job> getAllJobs() {
-                return Jenkins.getInstance().getAllItems(Job.class);
+                return Jenkins.get().getAllItems(Job.class);
             }
         };
 

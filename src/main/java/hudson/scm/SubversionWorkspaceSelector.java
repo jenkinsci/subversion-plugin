@@ -135,7 +135,7 @@ public class SubversionWorkspaceSelector implements ISVNAdminAreaFactorySelector
         private static final long serialVersionUID = 6494337549896104453L;
 
         public Integer call()  {
-            return Jenkins.getInstance().getDescriptorByType(SubversionSCM.DescriptorImpl.class).getWorkspaceFormat();
+            return Jenkins.get().getDescriptorByType(SubversionSCM.DescriptorImpl.class).getWorkspaceFormat();
         }
     }
 }

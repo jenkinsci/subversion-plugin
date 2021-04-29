@@ -94,7 +94,7 @@ public class UserProvidedCredential implements Closeable {
      * Parses the credential information from a form submission.
      */
     public static UserProvidedCredential fromForm(StaplerRequest req, MultipartFormDataParser parser) throws IOException {
-        CrumbIssuer crumbIssuer = Jenkins.getInstance().getCrumbIssuer();
+        CrumbIssuer crumbIssuer = Jenkins.get().getCrumbIssuer();
         if (crumbIssuer!=null && !crumbIssuer.validateCrumb(req, parser))
             throw HttpResponses.error(SC_FORBIDDEN,new IOException("No crumb found"));
 
