@@ -37,6 +37,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNException;
+import org.tmatesoft.svn.core.SVNErrorCode;
 import org.tmatesoft.svn.core.internal.wc17.db.ISVNWCDb;
 import org.tmatesoft.svn.core.internal.wc2.compat.SvnCodec;
 import org.tmatesoft.svn.core.wc.SVNRevision;
@@ -137,8 +138,13 @@ public class CheckoutUpdater extends WorkspaceUpdater {
                     throw (InterruptedException)new InterruptedException().initCause(e);
                 }
             } catch (SVNException e) {
-                e.printStackTrace(listener.error("Failed to check out " + location.remote));
-                throw new IOException("Failed to check out " + location.remote, e) ;
+                if (e.getErrorMessage().getErrorCode() == SVNErrorCode.CL_ERROR_PROCESSING_EXTERNALS &&
+                    !location.isCancelProcessOnExternalsFail()) {
+                    // we should not fail if external failed
+                } else {
+                    e.printStackTrace(listener.error("Failed to check out " + location.remote));
+                    throw new IOException("Failed to check out " + location.remote, e);
+                }
             } finally {
                 try {
                     pos.close();

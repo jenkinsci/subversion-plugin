@@ -178,6 +178,11 @@ public class UpdateUpdater extends WorkspaceUpdater {
             } catch (final SVNException e) {
                 SVNException cause = e;
                 do {
+                    if (location.isCancelProcessOnExternalsFail() &&
+                        cause.getErrorMessage().getErrorCode() == SVNErrorCode.CL_ERROR_PROCESSING_EXTERNALS) {
+                        break;
+                    }
+
                     SVNErrorCode errorCode = cause.getErrorMessage().getErrorCode();
                     if (errorCode == SVNErrorCode.WC_LOCKED) {
                         // work space locked. try fresh check out
