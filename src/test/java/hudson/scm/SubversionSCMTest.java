@@ -844,7 +844,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         FreeStyleBuild bVerbose = r.assertBuildStatusSuccess(p.scheduleBuild2(0, new Cause.UserIdCause()).get());
         List<String> logsVerbose = bVerbose.getLog(LOG_LIMIT);
         //  This line in log should NOT end with --quiet
-        assertFalse(logsVerbose.get(5).endsWith("--quiet"));
+        assertFalse(logsVerbose.get(4).endsWith("--quiet"));
         assertTrue(logsVerbose.get(6).endsWith("readme.txt"));
         assertEquals("At revision 1", logsVerbose.get(7));
     }
@@ -1622,7 +1622,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
             assertTrue(ws.child("with_externals").child("externals").child("projb").exists());
 
             // Check that the external doesn't exist
-            assertTrue(!(ws.child("no_externals").child("externals").child("projb").exists()));
+            assertFalse(ws.child("no_externals").child("externals").child("projb").exists());
         } finally {
             p.kill();
         }

@@ -64,7 +64,6 @@ import hudson.FilePath.FileCallable;
 import hudson.Launcher;
 import hudson.Util;
 import hudson.init.InitMilestone;
-import hudson.model.*;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.UnsupportedCharsetException;
@@ -72,11 +71,23 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.WeakHashMap;
 
+import hudson.model.AbstractBuild;
+import hudson.model.AbstractDescribableImpl;
+import hudson.model.AbstractProject;
+import hudson.model.Descriptor;
+import hudson.model.Item;
+import hudson.model.ItemGroup;
+import hudson.model.Job;
+import hudson.model.JobProperty;
+import hudson.model.ModelObject;
+import hudson.model.Node;
+import hudson.model.ParameterDefinition;
+import hudson.model.ParameterValue;
+import hudson.model.ParametersAction;
+import hudson.model.ParametersDefinitionProperty;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import hudson.security.Permission;
@@ -113,18 +124,23 @@ import java.io.Serializable;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.UUID;
+import java.util.WeakHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -693,16 +709,10 @@ public class SubversionSCM extends SCM implements Serializable {
         this.quietOperation = quietOperation;
     }
 
-    // TODO: 2.60+ Delete this override.
-    @Override
-    public void buildEnvVars(AbstractBuild<?,?> build, Map<String,String> env) {
-        buildEnvironment(build, env);
-    }
-
     /**
-     * TODO: 2.60+ - add @Override.
-     * Sets the <tt>SVN_REVISION_n</tt> and <tt>SVN_URL_n</tt> environment variables during the build.
+     * Sets the <code>SVN_REVISION_n</code> and <code>SVN_URL_n</code> environment variables during the build.
      */
+    @Override
     public void buildEnvironment(Run<?, ?> build, Map<String, String> env) {
         ModuleLocation[] svnLocations = getLocations(new EnvVars(env), build);
 
@@ -782,7 +792,7 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     /*package*/ static Map<String,Long> parseRevisionFile(Run<?,?> build, boolean findClosest, boolean prunePinnedExternals) throws IOException {
         Map<String,Long> revisions = new HashMap<>(); // module -> revision
-
+        Map<String,Long> pinnedRevisions = new HashMap<>(); // module -> revision
         if (findClosest) {
             for (Run<?,?> b=build; b!=null; b=b.getPreviousBuild()) {
                 if(getRevisionFile(b).exists()) {
@@ -814,23 +824,31 @@ public class SubversionSCM extends SCM implements Serializable {
                     try {
                     	String url = line.substring(0, index);
                     	long revision = Long.parseLong(line.substring(index+1,indexLast));
-                    	Long oldRevision = revisions.get(url);
                     	if (isPinned) {
                     		if (!prunePinnedExternals) {
+                                Long oldRevision = pinnedRevisions.get(url);
                     			if (oldRevision == null)
-                    				// If we're writing pinned, only write if there are no unpinned
-                    				revisions.put(url, revision);
+                                    // take minimum
+                                    pinnedRevisions.put(url, revision);
                     		}
                     	} else {
+                            Long oldRevision = revisions.get(url);
                     		// unpinned
-                        	if (oldRevision == null || oldRevision > revision)
-                        		// For unpinned, take minimum
-                        		revisions.put(url, revision);
+                        	if (oldRevision == null || oldRevision > revision) {
+                                // take minimum
+                                revisions.put(url, revision);
+                            }
                     	}
                 	} catch (NumberFormatException e) {
                 	    // perhaps a corrupted line.
                 	    LOGGER.log(WARNING, "Error parsing line " + line, e);
                 	}
+                }
+                // now add pinned revision if there are no unpinned ones
+                for( Map.Entry<String,Long> rev : pinnedRevisions.entrySet() ){
+                    if(!revisions.containsKey(rev.getKey())){
+                        revisions.put(rev.getKey(),rev.getValue());
+                    }
                 }
             }
         }
@@ -924,8 +942,7 @@ public class SubversionSCM extends SCM implements Serializable {
         for (ModuleLocation location : getLocations(env, build)) {
             CheckOutTask checkOutTask =
                     new CheckOutTask(build, this, location, build.getTimestamp().getTime(), listener, env, quietOperation);
-            List<External> externals = new ArrayList<>();
-            externals.addAll(workspace.act(checkOutTask));
+            List<External> externals = new ArrayList<>(workspace.act(checkOutTask));
             // save location <---> externals maps
             externalsMap.put(location.remote, externals);
             unauthenticatedRealms.addAll(checkOutTask.getUnauthenticatedRealms());
@@ -1225,7 +1242,7 @@ public class SubversionSCM extends SCM implements Serializable {
      */
     public static final class External implements Serializable {
         /**
-         * Relative path within the workspace where this <tt>svn:exteranls</tt> exist.
+         * Relative path within the workspace where this <code>svn:exteranls</code> exist.
          */
         public final String path;
 
@@ -1327,6 +1344,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 final SVNWCClient svnWc = manager.getWCClient();
                 for (External ext : externals) {
                     try {
+                        // for external files we get the current head revision here which is not the last changed revision
                         SvnInfo info = new SvnInfo(svnWc.doInfo(new File(ws, ext.path), SVNRevision.WORKING));
                         revisions.add(new SvnInfoP(info, ext.isRevisionFixed()));
                     } catch (SVNException e) {
@@ -1482,7 +1500,7 @@ public class SubversionSCM extends SCM implements Serializable {
         private SVNLogFilter filter;
 
         SVNLogHandler(SVNLogFilter svnLogFilter, TaskListener listener) {
-            this.filter = svnLogFilter;;
+            this.filter = svnLogFilter;
             this.filter.setTaskListener(listener);
         }
 
@@ -2152,19 +2170,22 @@ public class SubversionSCM extends SCM implements Serializable {
             return "Subversion";
         }
 
-        @Restricted(NoExternalUse.class)
-        void setGlobalExcludedRevprop(String revprop) {
-            globalExcludedRevprop = revprop;
+        public void setGlobalExcludedRevprop(String globalExcludedRevprop) {
+            this.globalExcludedRevprop = globalExcludedRevprop;
         }
 
         public String getGlobalExcludedRevprop() {
-            return globalExcludedRevprop;
+            return this.globalExcludedRevprop;
         }
 
         public int getWorkspaceFormat() {
-            if (workspaceFormat==0)
+            if (workspaceFormat == 0)
                 return SVNAdminAreaFactory.WC_FORMAT_14; // default
             return workspaceFormat;
+        }
+
+        public void setWorkspaceFormat(int workspaceFormat) {
+            this.workspaceFormat = workspaceFormat;
         }
 
         public boolean isValidateRemoteUpToVar() {
@@ -3092,14 +3113,16 @@ public class SubversionSCM extends SCM implements Serializable {
                     for (String propertyName : pdp.getParameterDefinitionNames()) {
                         if (url.contains(propertyName)) {
                             ParameterDefinition pd = pdp.getParameterDefinition(propertyName);
-                            ParameterValue pv = pd.getDefaultParameterValue();
-                            String replacement = "";
-                            if (pv != null) {
-                                replacement = String.valueOf(pv.createVariableResolver(null).resolve(propertyName));
-                            }
+                            if (pd != null) {
+                                ParameterValue pv = pd.getDefaultParameterValue();
+                                String replacement = "";
+                                if (pv != null) {
+                                    replacement = String.valueOf(pv.createVariableResolver(null).resolve(propertyName));
+                                }
 
-                            returnURL = returnURL.replace("${" + propertyName + "}", replacement);
-                            returnURL = returnURL.replace("$" + propertyName, replacement);
+                                returnURL = returnURL.replace("${" + propertyName + "}", replacement);
+                                returnURL = returnURL.replace("$" + propertyName, replacement);
+                            }
                         }
                     }
                 }
@@ -3376,7 +3399,7 @@ public class SubversionSCM extends SCM implements Serializable {
             if (!realm.equals(that.realm)) {
                 return false;
             }
-            if (credentialsId != null ? !credentialsId.equals(that.credentialsId) : that.credentialsId != null) {
+            if (!Objects.equals(credentialsId, that.credentialsId)) {
                 return false;
             }
 

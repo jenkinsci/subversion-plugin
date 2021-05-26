@@ -33,6 +33,8 @@ import hudson.util.VariableResolver;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.export.Exported;
 
+import java.util.Objects;
+
 /**
  * This class represents the actual {@link ParameterValue} for the
  * {@link ListSubversionTagsParameterDefinition} parameter.
@@ -73,10 +75,8 @@ public class ListSubversionTagsParameterValue extends ParameterValue {
 
     ListSubversionTagsParameterValue that = (ListSubversionTagsParameterValue) o;
 
-    if (tag != null ? !tag.equals(that.tag) : that.tag != null) return false;
-    if (tagsDir != null ? !tagsDir.equals(that.tagsDir) : that.tagsDir != null) return false;
-
-    return true;
+    if (!Objects.equals(tag, that.tag)) return false;
+    return Objects.equals(tagsDir, that.tagsDir);
   }
 
   @Override

@@ -54,7 +54,7 @@ final class CompareAgainstBaselineCallable extends MasterToSlaveCallable<Polling
      * Computes {@link PollingResult}. Note that we allow changes that match the certain paths to be excluded,
      * so
      */
-    public PollingResult call() throws IOException {
+    public PollingResult call() {
         listener.getLogger().println("Received SCM poll call on " + nodeName + " for " + projectName + " on " + DateFormat.getDateTimeInstance().format(new Date()) );
         final Map<String,Long> revs = new HashMap<>();
         boolean changes = false;
@@ -75,24 +75,63 @@ final class CompareAgainstBaselineCallable extends MasterToSlaveCallable<Polling
                 if (authProvider == null) {
                     authProvider = defaultAuthProvider;
                 }
-                final SVNURL svnurl = SVNURL.parseURIDecoded(url);
-                long nowRev = new SvnInfo(SubversionSCM.parseSvnInfo(svnurl, authProvider)).revision;
+                ChangeState revChanges = checkInternal(url,authProvider,baseRev,revs);
+                changes |= revChanges.changes;
+                significantChanges |= revChanges.significantChanges;
 
-                changes |= (nowRev>baseRev);
-
-                listener.getLogger().println(Messages.SubversionSCM_pollChanges_remoteRevisionAt(url, nowRev));
-                revs.put(url, nowRev);
-                // make sure there's a change and it isn't excluded
-                if (logHandler.findNonExcludedChanges(svnurl, baseRev+1, nowRev, authProvider)) {
-                    listener.getLogger().println(Messages.SubversionSCM_pollChanges_changedFrom(baseRev));
-                    significantChanges = true;
-                }
             } catch (SVNException e) {
-                e.printStackTrace(listener.error(Messages.SubversionSCM_pollChanges_exception(url)));
+                boolean success = false;
+
+                // normal auth provider handling is not working
+                // we don't know which external revision belongs to which module -> we try all authproviders provided
+                for(ISVNAuthenticationProvider authProvider : authProviders.values()){
+                    try{
+                        ChangeState revChanges = checkInternal(url,authProvider,baseRev,revs);
+                        changes |= revChanges.changes;
+                        significantChanges |= revChanges.significantChanges;
+                        success = true;
+                        break;
+                    }catch(SVNException ignored){}
+                }
+                if(!success){
+                    e.printStackTrace(listener.error(Messages.SubversionSCM_pollChanges_exception(url)));
+                }
             }
         }
+
         assert revs.size()== baseline.revisions.size();
         return new PollingResult(baseline,new SVNRevisionState(revs),
                 significantChanges ? Change.SIGNIFICANT : changes ? Change.INSIGNIFICANT : Change.NONE);
     }
+
+    static class ChangeState{
+        boolean changes = false;
+        boolean significantChanges = false;
+    }
+
+    private ChangeState checkInternal(String url,ISVNAuthenticationProvider authProvider, long baseRev, Map<String,Long> revs) throws SVNException {
+        ChangeState changes = new ChangeState();
+        final SVNURL svnurl = SVNURL.parseURIDecoded(url);
+        long nowRev = new SvnInfo(SubversionSCM.parseSvnInfo(svnurl, authProvider)).revision;
+
+        changes.changes |= (nowRev>baseRev);
+
+        listener.getLogger().println(Messages.SubversionSCM_pollChanges_remoteRevisionAt(url, nowRev));
+        if(revs.containsKey(url)){
+            long containingRevision = revs.get(url);
+            // take maximum revision
+            if(nowRev > containingRevision){
+                revs.put(url, nowRev);
+            }
+        }else {
+            revs.put(url, nowRev);
+        }
+        // make sure there's a change and it isn't excluded
+        if (logHandler.findNonExcludedChanges(svnurl, baseRev+1, nowRev, authProvider)) {
+            listener.getLogger().println(Messages.SubversionSCM_pollChanges_changedFrom(baseRev));
+            changes.significantChanges = true;
+        }
+        return changes;
+    }
+
 }

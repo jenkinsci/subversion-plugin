@@ -67,8 +67,8 @@ public class VisualSVN extends SubversionRepositoryBrowser {
     /**
      * The URL of the top of the site.
      *
-     * <p>Normalized to ends with '/', like <tt>https://demo-server.visualsvn.com/!/#tortoisesvn</tt>
-     * It may contain a query parameter like <tt>?root=foobar</tt>, so relative
+     * <p>Normalized to ends with '/', like <code>https://demo-server.visualsvn.com/!/#tortoisesvn</code>
+     * It may contain a query parameter like <code>?root=foobar</code>, so relative
      * URL construction needs to be done with care.</p>
      */
     private final String url;

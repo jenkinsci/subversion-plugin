@@ -38,7 +38,7 @@ public abstract class AbstractSventon extends SubversionRepositoryBrowser {
     /**
      * The URL of the Sventon 2.x repository.
      *
-     * This is normally like <tt>http://somehost.com/svn/</tt>
+     * This is normally like <code>http://somehost.com/svn/</code>
      * Normalized to have '/' at the tail.
      */
     public final URL url;
