@@ -90,6 +90,7 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
+import hudson.security.Permission;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import hudson.remoting.Channel;
@@ -2216,6 +2217,12 @@ public class SubversionSCM extends SCM implements Serializable {
             for (int i = 0; i < xl.length; i++)
                 if (!xl[i].getURL().equals(yl[i].getURL())) return false;
             return true;
+        }
+
+        @Nonnull
+        @Override
+        public Permission getRequiredGlobalConfigPagePermission() {
+            return Jenkins.MANAGE;
         }
 
         /**

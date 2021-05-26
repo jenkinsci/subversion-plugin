@@ -35,6 +35,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import hudson.EnvVars;
 import hudson.FilePath;
+import hudson.Functions;
 import hudson.Launcher;
 import hudson.Proc;
 import hudson.model.*;
@@ -42,10 +43,13 @@ import hudson.scm.ChangeLogSet.Entry;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.scm.browsers.Sventon;
 import hudson.scm.subversion.*;
+import hudson.security.ACL;
+import hudson.security.ACLContext;
 import hudson.slaves.DumbSlave;
 import hudson.triggers.SCMTrigger;
 import hudson.util.FormValidation;
 import hudson.util.StreamTaskListener;
+import jenkins.model.Jenkins;
 import jenkins.scm.impl.subversion.RemotableSVNErrorMessage;
 import org.dom4j.Document;
 import org.dom4j.io.DOMReader;
@@ -1807,4 +1811,29 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         // should detect change
         assertTrue(p.poll(StreamTaskListener.fromStdout()).hasChanges());
     }
-}    
+
+    @Test
+    public void manageShouldAccessGlobalConfig() {
+        final String USER = "user";
+        final String MANAGER = "manager";
+        r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
+        r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy()
+                // Read access
+                .grant(Jenkins.READ).everywhere().to(USER)
+
+                // Read and Manage
+                .grant(Jenkins.READ).everywhere().to(MANAGER)
+                .grant(Jenkins.MANAGE).everywhere().to(MANAGER)
+        );
+
+        try (ACLContext c = ACL.as(User.getById(USER, true))) {
+            Collection<Descriptor> descriptors = Functions.getSortedDescriptorsForGlobalConfigUnclassified();
+            assertTrue("Global configuration should not be accessible to READ users", descriptors.size() == 0);
+        }
+        try (ACLContext c = ACL.as(User.getById(MANAGER, true))) {
+            Collection<Descriptor> descriptors = Functions.getSortedDescriptorsForGlobalConfigUnclassified();
+            Optional<Descriptor> found = descriptors.stream().filter(descriptor -> descriptor instanceof SubversionSCM.DescriptorImpl).findFirst();
+            assertTrue("Global configuration should be accessible to MANAGE users", found.isPresent());
+        }
+    }
+}

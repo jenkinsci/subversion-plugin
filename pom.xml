@@ -135,6 +135,8 @@ THE SOFTWARE.
   </scm>
 
   <properties>
+    <!-- To be removed once Jenkins.MANAGE gets out of beta -->
+    <useBeta>true</useBeta>
     <revision>2.14.2</revision>
     <changelist>-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/subversion-plugin</gitHubRepo>
