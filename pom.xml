@@ -178,12 +178,6 @@ THE SOFTWARE.
         <artifactId>json</artifactId>
         <version>20190722</version>
       </dependency>
-      <dependency>
-        <groupId>commons-beanutils</groupId>
-        <artifactId>commons-beanutils</artifactId>
-        <!-- 1.9.4 when this merged https://github.com/stapler/stapler/pull/211 -->
-        <version>1.9.3</version>
-      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -209,21 +203,6 @@ THE SOFTWARE.
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>mapdb-api</artifactId>
       <version>1.0.9.0</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-digester3</artifactId>
-      <version>3.2</version>
-      <exclusions>
-        <exclusion>
-          <groupId>asm</groupId>
-          <artifactId>asm</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>commons-beanutils</groupId>
-          <artifactId>commons-beanutils</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>

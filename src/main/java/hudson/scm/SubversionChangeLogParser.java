@@ -23,23 +23,22 @@
  */
 package hudson.scm;
 
+import hudson.Util;
 import hudson.model.Run;
 import hudson.scm.SubversionChangeLogSet.LogEntry;
 import hudson.scm.SubversionChangeLogSet.Path;
-import org.apache.commons.digester3.Digester;
-import org.xml.sax.SAXException;
-
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.logging.Level;
 import java.util.logging.Logger;
+import jenkins.util.xml.XMLUtils;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 /**
  * {@link ChangeLogParser} for Subversion.
- *
- * @author Kohsuke Kawaguchi
  */
 public class SubversionChangeLogParser extends ChangeLogParser {
     private static Logger LOGGER = Logger.getLogger(SubversionChangeLogParser.class.getName());
@@ -58,38 +57,62 @@ public class SubversionChangeLogParser extends ChangeLogParser {
     @Override public SubversionChangeLogSet parse(@SuppressWarnings("rawtypes") Run build, RepositoryBrowser<?> browser, File changelogFile) throws IOException, SAXException {
         // http://svn.apache.org/repos/asf/subversion/trunk/subversion/svn/schema/log.rnc
 
-        Digester digester = new Digester();
-        if (!Boolean.getBoolean(SubversionChangeLogParser.class.getName() + ".UNSAFE")) {
-            try {
-                digester.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-                digester.setFeature("http://xml.org/sax/features/external-general-entities", false);
-                digester.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
-                digester.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
-            } catch (ParserConfigurationException ex) {
-                LOGGER.log(Level.WARNING, "Failed to securely configure Subversion changelog parser", ex);
-                throw new SAXException("Failed to securely configure Subversion changelog parser", ex);
-            }
-            digester.setXIncludeAware(false);
-        }
         ArrayList<LogEntry> r = new ArrayList<>();
-        digester.push(r);
 
-        digester.addObjectCreate("*/logentry", LogEntry.class);
-        digester.addSetProperties("*/logentry");
-        digester.addBeanPropertySetter("*/logentry/author","user");
-        digester.addBeanPropertySetter("*/logentry/date");
-        digester.addBeanPropertySetter("*/logentry/msg");
-        digester.addSetNext("*/logentry","add");
-
-        digester.addObjectCreate("*/logentry/paths/path", Path.class);
-        digester.addSetProperties("*/logentry/paths/path");
-        digester.addBeanPropertySetter("*/logentry/paths/path","value");
-        digester.addSetNext("*/logentry/paths/path","addPath");
-
+        Element logE;
         try {
-            digester.parse(changelogFile);
+            logE = XMLUtils.parse(changelogFile, "UTF-8").getDocumentElement();
         } catch (IOException | SAXException e) {
             throw new IOException("Failed to parse " + changelogFile,e);
+        }
+
+        NodeList logNL = logE.getChildNodes();
+        for (int i = 0; i < logNL.getLength(); i++) {
+            if (logNL.item(i).getNodeType() != Node.ELEMENT_NODE) {
+                continue;
+            }
+            Element logentryE = (Element) logNL.item(i);
+            LogEntry e = new LogEntry();
+            e.setRevision(Integer.parseInt(logentryE.getAttribute("revision")));
+            NodeList logentryNL = logentryE.getChildNodes();
+            for (int j = 0; j < logentryNL.getLength(); j++) {
+                if (logentryNL.item(j).getNodeType() != Node.ELEMENT_NODE) {
+                    continue;
+                }
+                Element otherE = (Element) logentryNL.item(j);
+                String text = otherE.getTextContent();
+                switch (otherE.getTagName()) {
+                case "msg":
+                    e.setMsg(text);
+                    break;
+                case "date":
+                    e.setDate(text);
+                    break;
+                case "author":
+                    e.setUser(text);
+                    break;
+                case "paths":
+                    NodeList pathsNL = otherE.getChildNodes();
+                    for (int k = 0; k < pathsNL.getLength(); k++) {
+                        if (pathsNL.item(k).getNodeType() != Node.ELEMENT_NODE) {
+                            continue;
+                        }
+                        Element pathE = (Element) pathsNL.item(k);
+                        Path path = new Path();
+                        path.setValue(pathE.getTextContent());
+                        path.setAction(pathE.getAttribute("action"));
+                        path.setLocalPath(Util.fixEmpty(pathE.getAttribute("localPath")));
+                        path.setKind(Util.fixEmpty(pathE.getAttribute("kind")));
+                        e.addPath(path);
+                    }
+                    break;
+                /* If known to be exhaustive (above schema suggests not):
+                default:
+                    throw new IOException(otherE.getTagName());
+                */
+                }
+            }
+            r.add(e);
         }
 
         for (LogEntry e : r) {
