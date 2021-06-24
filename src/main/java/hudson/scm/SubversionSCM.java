@@ -239,29 +239,27 @@ public class SubversionSCM extends SCM implements Serializable {
     private List<AdditionalCredentials> additionalCredentials;
 
     private final SubversionRepositoryBrowser browser;
-    private String excludedRegions;
-    private String includedRegions;
-    private String excludedUsers;
+    private final String excludedRegions;
+    private final String includedRegions;
+    private final String excludedUsers;
     /**
      * Revision property names that are ignored for the sake of polling. Whitespace separated, possibly null.
      */
-    private String excludedRevprop;
-    private String excludedCommitMessages;
+    private final String excludedRevprop;
+    private final String excludedCommitMessages;
 
     private WorkspaceUpdater workspaceUpdater;
 
     // No longer in use but left for serialization compatibility.
     @Deprecated
     private String modules;
-
-    // No longer used but left for serialization compatibility
     @Deprecated
     private Boolean useUpdate;
     @Deprecated
     private Boolean doRevert;
 
-    private boolean ignoreDirPropChanges;
-    private boolean filterChangelog;
+    private final boolean ignoreDirPropChanges;
+    private final boolean filterChangelog;
     private boolean quietOperation;
 
     /**
@@ -883,7 +881,7 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         // write out the revision file
-        try (PrintWriter w = new PrintWriter(new FileOutputStream(getRevisionFile(build)))) {
+        try (PrintWriter w = new PrintWriter(new FileOutputStream(getRevisionFile(build)))) {  // FIXME: pass encoding and synchronize for all getRevisionFile calls
             List<SvnInfoP> pList = workspace.act(new BuildRevisionMapTask(build, this, listener, externalsForAll, env));
             List<SvnInfo> revList= new ArrayList<SvnInfo>(pList.size());
             for (SvnInfoP p: pList) {
@@ -1138,7 +1136,7 @@ public class SubversionSCM extends SCM implements Serializable {
      * from the master via remoting.
      */
     public static SvnClientManager createClientManager(AbstractProject context) {
-        return new SvnClientManager(createSvnClientManager(descriptor().createAuthenticationProvider(context)));
+        return new SvnClientManager(createSvnClientManager(Objects.requireNonNull(descriptor()).createAuthenticationProvider(context)));
     }
 
     /**
@@ -3362,7 +3360,7 @@ public class SubversionSCM extends SCM implements Serializable {
                         CredentialsMatchers.withId(credentialsId));
     }
 
-    public static class AdditionalCredentials extends AbstractDescribableImpl<AdditionalCredentials> {
+    public static class AdditionalCredentials extends AbstractDescribableImpl<AdditionalCredentials> implements Serializable {
         @NonNull
         private final String realm;
         @CheckForNull

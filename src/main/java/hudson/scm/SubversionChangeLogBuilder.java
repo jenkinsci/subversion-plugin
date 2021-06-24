@@ -55,6 +55,7 @@ import java.io.File;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import javax.annotation.Nonnull;
 import jenkins.MasterToSlaveFileCallable;
 
@@ -83,7 +84,7 @@ public final class SubversionChangeLogBuilder {
      * @deprecated 1.34
      */
     public SubversionChangeLogBuilder(AbstractBuild<?,?> build, BuildListener listener, SubversionSCM scm) throws IOException {
-        this(build, build.getWorkspace(), build.getPreviousBuild().getAction(SVNRevisionState.class), null, listener, scm);
+        this(build, build.getWorkspace(), Objects.requireNonNull(build.getPreviousBuild()).getAction(SVNRevisionState.class), null, listener, scm);
     }
 
     /**
@@ -249,7 +250,7 @@ public final class SubversionChangeLogBuilder {
             this.authProvider = authProvider;
         }
 
-        public PathContext invoke(File p, VirtualChannel channel) throws IOException {
+        public PathContext invoke(File p, VirtualChannel channel) {
             final SvnClientManager manager = SubversionSCM.createClientManager(authProvider);
             try {
                 final SVNWCClient svnwc = manager.getWCClient();

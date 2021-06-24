@@ -2,8 +2,10 @@ package jenkins.scm.impl.subversion;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
@@ -38,7 +40,7 @@ import jenkins.scm.impl.subversion.SubversionSCMSource.SCMRevisionImpl;
 
 public class SubversionSCMFileSystem extends SCMFileSystem {
 	public static final String DISABLE_PROPERTY = SubversionSCMFileSystem.class.getName() + ".disable";
-	private SVNRepository repo;
+	private final SVNRepository repo;
 
 	protected SubversionSCMFileSystem(SVNRepository repo, SCMRevision rev) {
 		super(rev);
@@ -50,6 +52,7 @@ public class SubversionSCMFileSystem extends SCMFileSystem {
 		return getRoot().lastModified();
 	}
 
+	@NonNull
 	@Override
 	public SCMFile getRoot() {
 		return new SubversionSCMFile(this);
@@ -65,7 +68,7 @@ public class SubversionSCMFileSystem extends SCMFileSystem {
 	}
 	
 	long getLatestRevision() throws SVNException {
-		if (isFixedRevision()) {
+		if (isFixedRevision() && getRevision() != null) {
 			return getRevision().getRevision();
 		} else {
 			return repo.getLatestRevision();
@@ -97,13 +100,13 @@ public class SubversionSCMFileSystem extends SCMFileSystem {
         }
 
 		@Override
-		public SCMFileSystem build(SCMSource source, SCMHead head, SCMRevision rev)
+		public SCMFileSystem build(SCMSource source, @NonNull SCMHead head, SCMRevision rev)
 				throws IOException, InterruptedException {
-            return build(source.getOwner(), source.build(head, rev), rev);
+            return build(Objects.requireNonNull(source.getOwner()), source.build(head, rev), rev);
 		}
 		
 		@Override
-		public SCMFileSystem build(Item owner, SCM scm, SCMRevision rev) throws IOException, InterruptedException {
+		public SCMFileSystem build(@NonNull Item owner, @NonNull SCM scm, SCMRevision rev) throws IOException, InterruptedException {
 			if (rev != null && !(rev instanceof SubversionSCMSource.SCMRevisionImpl)) {
 				return null;
 			}
@@ -129,8 +132,7 @@ public class SubversionSCMFileSystem extends SCMFileSystem {
 
 		// Copied from SVNRepositoryView
 		private SVNRepository createRepository(SVNURL repoURL, StandardCredentials credentials) throws SVNException {
-			SVNRepository repository = null;
-			repository = SVNRepositoryFactory.create(repoURL);
+			SVNRepository repository = SVNRepositoryFactory.create(repoURL);
 			File configDir = SVNWCUtil.getDefaultConfigurationDirectory();
 
 			ISVNAuthenticationManager sam = new SVNAuthenticationManager(configDir, null, null);

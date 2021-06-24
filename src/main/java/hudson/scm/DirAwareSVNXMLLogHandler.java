@@ -73,8 +73,7 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
   /**
    * Handles a next log entry producing corresponding xml.
    * 
-   * @param  logEntry       log entry 
-   * @throws SVNException 
+   * @param  logEntry       log entry
    */
   public void handleLogEntry(SVNLogEntry logEntry) throws SVNException {
       try {
@@ -105,7 +104,7 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
     if (logEntry.getChangedPaths() != null && !logEntry.getChangedPaths().isEmpty()) {
         openTag(PATHS_TAG);
         for (String key : logEntry.getChangedPaths().keySet()) {
-            SVNLogEntryPath path = (SVNLogEntryPath) logEntry.getChangedPaths().get(key);
+            SVNLogEntryPath path = logEntry.getChangedPaths().get(key);
             addAttribute(ACTION_ATTR, path.getType() + "");
 
             // the path within the repo to the location checked out
@@ -141,7 +140,7 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
     }
     
     if (myMergeStack != null && !myMergeStack.isEmpty()) {
-        MergeFrame frame = (MergeFrame) myMergeStack.getLast();
+        MergeFrame frame = myMergeStack.getLast();
         frame.myNumberOfChildrenRemaining--;
     }
     
@@ -153,7 +152,7 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
         myMergeStack.addLast(frame);
     } else {
         while(myMergeStack != null && !myMergeStack.isEmpty()) {
-            MergeFrame frame = (MergeFrame) myMergeStack.getLast();
+            MergeFrame frame = myMergeStack.getLast();
             if (frame.myNumberOfChildrenRemaining == 0) {
                 closeTag(LOGENTRY_TAG);
                 myMergeStack.removeLast();
@@ -169,7 +168,7 @@ public class DirAwareSVNXMLLogHandler extends SVNXMLLogHandler implements ISVNLo
     this.context = context;
   }
 
-  private class MergeFrame {
+  private static class MergeFrame {
     private long myNumberOfChildrenRemaining;
   }
 
