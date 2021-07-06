@@ -151,11 +151,12 @@ example.
         # so we can present a valid crumb or a proper header
         HEADER="Content-Type:text/plain;charset=UTF-8"
         CRUMB=`$WGET --auth-no-challenge --output-document - ${CISERVER}/${CRUMB_ISSUER_URL}`
-        if [ "$CRUMB" != "" ]; then HEADER=$CRUMB; fi
+        if [ "$CRUMB" != "" ]; then CRUMB="--header $CRUMB"; fi
 
         $WGET \
             --auth-no-challenge \
             --header $HEADER \
+            $CRUMB
             --post-data "`$SVNLOOK changed --revision $REV $REPOS`" \
             --output-document "-"\
             --timeout=2 \
