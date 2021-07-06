@@ -1,6 +1,5 @@
 package hudson.scm;
 
-import hudson.ClassicPluginStrategy;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Launcher.LocalLauncher;
@@ -128,9 +127,5 @@ public abstract class AbstractSubversionTest {
                 retries++;
             }
         }
-    }
-
-    static {
-        ClassicPluginStrategy.useAntClassLoader = true;
     }
 }
