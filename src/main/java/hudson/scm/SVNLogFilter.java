@@ -8,13 +8,13 @@ import org.tmatesoft.svn.core.SVNLogEntry;
 
 public interface SVNLogFilter extends Serializable {
 
-    public abstract void setTaskListener(TaskListener listener);
+    void setTaskListener(TaskListener listener);
 
     /**
      * Is there any exclusion rule?
      * @return true if the filter could possibly filter anything.
      */
-    public abstract boolean hasExclusionRule();
+    boolean hasExclusionRule();
 
     /**
      * Checks if the given log entry should be considered for the purposes
@@ -22,6 +22,6 @@ public interface SVNLogFilter extends Serializable {
      *
      * @return <code>true</code> if the should trigger polling, <code>false</code> otherwise
      */
-    public abstract boolean isIncluded(SVNLogEntry logEntry);
+    boolean isIncluded(SVNLogEntry logEntry);
 
 }

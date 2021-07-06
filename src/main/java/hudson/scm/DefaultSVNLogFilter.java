@@ -22,19 +22,19 @@ public class DefaultSVNLogFilter implements SVNLogFilter {
 
     private TaskListener listener;
 
-    private Pattern[] excludedPatterns;
-    private Pattern[] includedPatterns;
-    private Set<String> excludedUsers;
-    private String excludedRevprop;
-    private Pattern[] excludedCommitMessages;
-    private boolean ignoreDirPropChanges;
+    private final Pattern[] excludedPatterns;
+    private final Pattern[] includedPatterns;
+    private final Set<String> excludedUsers;
+    private final String excludedRevprop;
+    private final Pattern[] excludedCommitMessages;
+    private final boolean ignoreDirPropChanges;
 
     public DefaultSVNLogFilter(Pattern[] excludedPatterns, Pattern[] includedPatterns, Set<String> excludedUsers, String excludedRevProp, Pattern[] excludedCommitMessages, boolean ignoreDirPropChanges) {
-        this.excludedPatterns = excludedPatterns;
-        this.includedPatterns = includedPatterns;
+        this.excludedPatterns = excludedPatterns.clone();
+        this.includedPatterns = includedPatterns.clone();
         this.excludedUsers = excludedUsers;
         this.excludedRevprop = excludedRevProp;
-        this.excludedCommitMessages = excludedCommitMessages;
+        this.excludedCommitMessages = excludedCommitMessages.clone();
         this.ignoreDirPropChanges = ignoreDirPropChanges;
     }
 
