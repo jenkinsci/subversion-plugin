@@ -36,4 +36,7 @@
   <f:entry title="${%Exclude branches}" field="excludes">
     <f:textbox default="${descriptor.DEFAULT_EXCLUDES}"/>
   </f:entry>
+  <f:entry title="${%Additional Credentials}" field="additionalCredentials" help="/descriptor/hudson.scm.SubversionSCM/help/additionalCredentials">
+    <f:repeatableProperty field="additionalCredentials" add="${%Add additional credentials...}"/>
+  </f:entry>
 </j:jelly>

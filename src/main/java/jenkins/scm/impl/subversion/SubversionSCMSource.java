@@ -45,7 +45,9 @@ import hudson.scm.CredentialsSVNAuthenticationProviderImpl;
 import hudson.scm.FilterSVNAuthenticationManager;
 import hudson.scm.SubversionRepositoryStatus;
 import hudson.scm.SubversionSCM;
+import hudson.scm.SubversionSCM.AdditionalCredentials;
 import hudson.scm.subversion.SvnHelper;
+import hudson.scm.subversion.UpdateUpdater;
 import hudson.security.ACL;
 import hudson.util.EditDistance;
 import hudson.util.FormValidation;
@@ -68,6 +70,8 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.tmatesoft.svn.core.SVNDirEntry;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNNodeKind;
@@ -123,6 +127,8 @@ public class SubversionSCMSource extends SCMSource {
     private final String remoteBase;
 
     private String credentialsId = ""; // TODO null would be a better default, but need to check null safety on usages
+    
+    private List<AdditionalCredentials> additionalCredentials;
 
     private String includes = DescriptorImpl.DEFAULT_INCLUDES;
 
@@ -160,6 +166,18 @@ public class SubversionSCMSource extends SCMSource {
     @DataBoundSetter
     public void setCredentialsId(String credentialsId) {
         this.credentialsId = credentialsId;
+    }
+    @DataBoundSetter
+    public void setAdditionalCredentials(List<AdditionalCredentials> additionalCredentials) {
+        this.additionalCredentials = additionalCredentials;
+    }
+    //without getter jelly will crash
+    @Restricted(NoExternalUse.class)
+    public List<AdditionalCredentials> getAdditionalCredentials() {
+        if(additionalCredentials==null) {
+            return Collections.emptyList();
+        }
+        return Collections.unmodifiableList(additionalCredentials);
     }
 
     /**
@@ -686,7 +704,7 @@ public class SubversionSCMSource extends SCMSource {
             // name contains an @ so need to ensure there is an @ at the end of the name
             remote.append('@');
         }
-        return new SubversionSCM(remote.toString(), credentialsId, ".");
+        return new SubversionSCM(SubversionSCM.ModuleLocation.parse(new String[]{remote.toString()}, new String[]{credentialsId}, new String[]{"."}, null,null), new UpdateUpdater(), null, null, null, null, null, null, false, false, additionalCredentials);
     }
 
     /**
