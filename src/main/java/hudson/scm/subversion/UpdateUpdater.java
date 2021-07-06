@@ -44,6 +44,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * {@link WorkspaceUpdater} that uses "svn update" as much as possible.
@@ -85,10 +86,10 @@ public class UpdateUpdater extends WorkspaceUpdater {
             try {
                 SVNInfo svnInfo = parseSvnInfo(module);
 
-                String url = location.getSVNURL().toString();
-                String wcUrl = svnInfo.getURL().toString();
+                SVNURL url = location.getSVNURL();
+                SVNURL wcUrl = svnInfo.getURL();
                 
-                if (!wcUrl.equals(url)) {
+                if (!isEqualsRepository(url, wcUrl)) {
                     if (isSameRepository(location, svnInfo)) {
                         listener.getLogger().println("Switching from " + wcUrl + " to " + url);
                         return SvnCommandToUse.SWITCH;
@@ -107,6 +108,14 @@ public class UpdateUpdater extends WorkspaceUpdater {
                 return SvnCommandToUse.CHECKOUT;
             }
             return SvnCommandToUse.UPDATE;
+        }
+
+        private boolean isEqualsRepository(SVNURL url1, SVNURL url2) {
+            return Objects.equals(url1.getProtocol(), url2.getProtocol())
+                && url1.getPort() == url2.getPort()
+                && Objects.equals(url1.getHost(), url2.getHost())
+                && Objects.equals(url1.getPath(), url2.getPath())
+                && Objects.equals(url1.getUserInfo(), url2.getUserInfo());
         }
 
         private boolean isSameRepository(ModuleLocation location, SVNInfo svnkitInfo) throws SVNException {
