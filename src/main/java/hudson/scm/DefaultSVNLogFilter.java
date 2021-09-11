@@ -1,6 +1,5 @@
 package hudson.scm;
 
-import hudson.Util;
 import hudson.model.TaskListener;
 
 import java.io.PrintStream;
@@ -160,7 +159,7 @@ public class DefaultSVNLogFilter implements SVNLogFilter {
             if (getLog() != null) {
             	getLog().println(hudson.scm.subversion.Messages.SubversionSCM_pollChanges_ignoredRevision(
                     logEntry.getRevision(),
-                    hudson.scm.subversion.Messages.SubversionSCM_pollChanges_ignoredRevision_path(Util.join(excludedPaths, ", "))));
+                    hudson.scm.subversion.Messages.SubversionSCM_pollChanges_ignoredRevision_path(String.join(", ", excludedPaths))));
             }
             return false;
         }
