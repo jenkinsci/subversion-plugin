@@ -196,6 +196,7 @@ import javax.annotation.Nonnull;
 import jenkins.MasterToSlaveFileCallable;
 import jenkins.security.Roles;
 import jenkins.security.SlaveToMasterCallable;
+import org.apache.commons.collections.CollectionUtils;
 import org.jenkinsci.remoting.RoleChecker;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
@@ -893,7 +894,17 @@ public class SubversionSCM extends SCM implements Serializable {
                     w.println( p.info.url +'/'+ p.info.revision);
                 revList.add(p.info);
             }
-            build.addAction(new SubversionTagAction(build,revList));
+            
+            // check if the very same SubversionTagAction has been already added in a previous checkout/update in the build
+            boolean sameTagActionFound = build.getActions(SubversionTagAction.class).stream()
+                    .anyMatch(existingTagAction -> CollectionUtils.isEqualCollection(existingTagAction.getTags().keySet(), revList));
+            
+            // add the action ONLY if:
+            //  - Exists a changelogFile. Used to ignore changes in global pipeline libraries configured for the job with changelog=false
+            //  - And does not exist another action added by a previous update/checkout in the same build
+            if(changelogFile != null && !sameTagActionFound) {
+                build.addAction(new SubversionTagAction(build,revList));
+            }
         }
 
         // write out the externals info
