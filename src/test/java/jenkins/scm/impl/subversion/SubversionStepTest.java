@@ -26,6 +26,7 @@ package jenkins.scm.impl.subversion;
 import hudson.scm.ChangeLogSet;
 import hudson.scm.SCM;
 import hudson.scm.SubversionSCM;
+import hudson.scm.SubversionTagAction;
 import hudson.triggers.SCMTrigger;
 import java.util.Iterator;
 import java.util.List;
@@ -38,6 +39,7 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.BuildWatcher;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 
 public class SubversionStepTest {
@@ -116,6 +118,44 @@ public class SubversionStepTest {
         assertFalse(iterator.hasNext());
     }
 
+    @Issue("JENKINS-38204") 
+    @Test
+    public void identicalSCMs() throws Exception {
+        sampleRepo.init();
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "demo");
+        p.setDefinition(new CpsFlowDefinition(
+            "node {\n" +
+            "    dir('main') {\n" +
+            "        svn(url: '" + sampleRepo.trunkUrl() + "')\n" +
+            "    }\n" +
+            "    dir('other') {\n" +
+            "        svn(url: '" + sampleRepo.trunkUrl() + "')\n" +
+            "    }\n" +
+            "}", true));
+        
+        WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+        assertEquals(1, b.getActions(SubversionTagAction.class).size());
+        assertEquals(0, b.getChangeSets().size());
+        assertEquals(1, p.getSCMs().size());
+
+        // add a file and commit
+        sampleRepo.write("otherfile", "");
+        sampleRepo.svnkit("add", sampleRepo.wc() + "/" + "otherfile");
+        sampleRepo.svnkit("commit", "--message=+otherfile", sampleRepo.wc());
+        
+        WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+        
+        // there should by only one tag action and changeset
+        assertEquals(1, b2.getActions(SubversionTagAction.class).size());
+        assertEquals(1, b2.getChangeSets().size());
+        
+        // check items of the only changeset
+        ChangeLogSet changeSet = b2.getChangeSets().get(0);
+        assertFalse(changeSet.isEmptySet());
+        assertEquals(1, changeSet.getItems().length);
+        
+        assertEquals(1, p.getSCMs().size());
+    }
 
     @Test
     public void checkoutDepthAsItIsInfiniteTest() throws Exception {

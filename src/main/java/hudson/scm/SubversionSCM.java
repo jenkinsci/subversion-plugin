@@ -161,8 +161,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.taskdefs.Chmod;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -192,10 +190,12 @@ import org.tmatesoft.svn.core.wc.SVNWCUtil;
 import com.trilead.ssh2.DebugLogger;
 import com.trilead.ssh2.SCPClient;
 import com.trilead.ssh2.crypto.Base64;
+import static java.util.stream.Collectors.toList;
 import javax.annotation.Nonnull;
 import jenkins.MasterToSlaveFileCallable;
 import jenkins.security.Roles;
 import jenkins.security.SlaveToMasterCallable;
+import org.apache.commons.collections.CollectionUtils;
 import org.jenkinsci.remoting.RoleChecker;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
@@ -882,18 +882,18 @@ public class SubversionSCM extends SCM implements Serializable {
           }
         }
 
+        List<SvnInfoP> pList = workspace.act(new BuildRevisionMapTask(build, this, listener, externalsForAll, env));
+        List<SvnInfo> revList = pList.stream().map(svnInfoP -> svnInfoP.info).collect(toList());
+
         // write out the revision file
         try (PrintWriter w = new PrintWriter(new FileOutputStream(getRevisionFile(build)))) {
-            List<SvnInfoP> pList = workspace.act(new BuildRevisionMapTask(build, this, listener, externalsForAll, env));
-            List<SvnInfo> revList= new ArrayList<SvnInfo>(pList.size());
             for (SvnInfoP p: pList) {
-                if (p.pinned)
+                if (p.pinned) {
                     w.println( p.info.url +'/'+ p.info.revision + "::p");
-                else
+                } else {
                     w.println( p.info.url +'/'+ p.info.revision);
-                revList.add(p.info);
+                }                        
             }
-            build.addAction(new SubversionTagAction(build,revList));
         }
 
         // write out the externals info
@@ -903,8 +903,16 @@ public class SubversionSCM extends SCM implements Serializable {
             projectExternalsCache.put(build.getParent(), externalsForAll);
         }
 
-        if (changelogFile != null) {
-            calcChangeLog(build, workspace, changelogFile, baseline, listener, externalsMap, env);
+        // check if a SubversionTagAction with the same scm changes has been already added in a previous checkout/update in the build 
+        boolean scmChangesAlreadyProcessed = build.getActions(SubversionTagAction.class).stream()
+                .anyMatch(existingTagAction -> CollectionUtils.isEqualCollection(existingTagAction.getTags().keySet(), revList));
+
+        // Don't add the tag and changelog if no changelog was requested or we've already processed this scm changes before
+        if(changelogFile != null && !scmChangesAlreadyProcessed) {    
+            // add the tag action
+            build.addAction(new SubversionTagAction(build,revList));            
+            // write out the changelog file
+            calcChangeLog(build, workspace, changelogFile, baseline, listener, externalsMap, env);         
         }
     }
 
