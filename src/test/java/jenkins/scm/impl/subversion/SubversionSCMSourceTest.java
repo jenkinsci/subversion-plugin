@@ -201,8 +201,8 @@ public class SubversionSCMSourceTest {
         SCM scm = source.build(new SCMHead("trunk"));
         RepositoryBrowser browser = scm.getBrowser();
         assertNotNull(browser);
-        assertEquals(WebSVN.class, scm.getBrowser().getClass());
-        assertEquals(browserUrl, ((WebSVN)scm.getBrowser()).url.toString());
+        assertEquals(WebSVN.class, browser.getClass());
+        assertEquals(browserUrl, ((WebSVN)browser).url.toString());
     }
     
 }

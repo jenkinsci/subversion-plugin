@@ -148,6 +148,7 @@ public class SubversionSCMSourceIntegrationTest {
         assertEquals(browser.getDescriptor().getDisplayName(), browserSelect.getSelectedOptions().get(0).getVisibleText());
         
         HtmlTextInput browserUrlInput = sourcesDiv.getOneHtmlElementByAttribute("input", "name", "_.url");
+        assertNotNull(browserUrlInput);
         assertEquals(browserUrl, browserUrlInput.getValueAttribute());
     }
     
