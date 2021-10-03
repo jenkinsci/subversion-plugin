@@ -149,13 +149,14 @@ example.
 
         # Check if "[X] Prevent Cross Site Request Forgery exploits" is activated
         # so we can present a valid crumb or a proper header
-        HEADER="Content-Type:text/plain;charset=UTF-8"
+        CONTENT_TYPE_HEADER="--header Content-Type:text/plain;charset=UTF-8"
         CRUMB=`$WGET --auth-no-challenge --output-document - ${CISERVER}/${CRUMB_ISSUER_URL}`
-        if [ "$CRUMB" != "" ]; then HEADER=$CRUMB; fi
+        if [ "$CRUMB" != "" ]; then CRUMB_HEADER="--header $CRUMB"; fi
 
         $WGET \
             --auth-no-challenge \
-            --header $HEADER \
+            $CONTENT_TYPE_HEADER \
+            $CRUMB_HEADER \
             --post-data "`$SVNLOOK changed --revision $REV $REPOS`" \
             --output-document "-"\
             --timeout=2 \
