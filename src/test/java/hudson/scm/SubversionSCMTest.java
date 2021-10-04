@@ -671,7 +671,8 @@ public class SubversionSCMTest extends AbstractSubversionTest {
                 		new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusion", "d")),
                 new UpdateUpdater(),new Sventon(new URL("http://www.sun.com/"),"test"),"exclude","user","revprop","excludeMessage",null);
         p.setScm(scm);
-        r.submit(r.createWebClient().getPage(p,"configure").getFormByName("config"));
+
+        r.configRoundtrip(p);
         verify(scm,(SubversionSCM)p.getScm());
 
         scm = new SubversionSCM(
@@ -679,7 +680,8 @@ public class SubversionSCMTest extends AbstractSubversionTest {
                 		new ModuleLocation("https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusion", "c")),
         		new CheckoutUpdater(),null,"","","","",null);
         p.setScm(scm);
-        r.submit(r.createWebClient().getPage(p,"configure").getFormByName("config"));
+
+        r.configRoundtrip(p);
         verify(scm,(SubversionSCM)p.getScm());
     }
 
@@ -711,7 +713,8 @@ public class SubversionSCMTest extends AbstractSubversionTest {
                 locs,
                 new UpdateUpdater(), new Sventon(new URL("http://www.sun.com/"), "test"), "exclude", "user", "revprop", "excludeMessage",null);
         p.setScm(scm);
-        r.submit(r.createWebClient().getPage(p, "configure").getFormByName("config"));
+
+        r.configRoundtrip(p);
         ModuleLocation[] ml = ((SubversionSCM) p.getScm()).getLocations();
         assertEquals(1, ml.length);
         assertEquals("https://svn.jenkins-ci.org/trunk/hudson/test-projects/testSubversionExclusion", ml[0].remote);
@@ -753,6 +756,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
 
     }
 
+    // could not be simplified with r.assertEqualDataBoundBeans(lhs, rhs) due to locations type mismatch between constructor arg and field.
     private void verify(SubversionSCM lhs, SubversionSCM rhs) {
         ModuleLocation[] ll = lhs.getLocations();
         ModuleLocation[] rl = rhs.getLocations();
