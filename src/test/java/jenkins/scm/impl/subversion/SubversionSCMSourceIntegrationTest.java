@@ -38,6 +38,8 @@ import hudson.scm.SubversionRepositoryBrowser;
 import hudson.scm.browsers.WebSVN;
 import hudson.util.StreamTaskListener;
 import java.net.URL;
+import java.util.Collections;
+import java.util.List;
 import jenkins.branch.BranchSource;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
@@ -135,7 +137,7 @@ public class SubversionSCMSourceIntegrationTest {
         SubversionSCMSource source = new SubversionSCMSource(null, sampleRepo.prjUrl());
         source.setBrowser(new WebSVN(new URL("http://websvn.local/")));
         
-        List<BranchSource> sourcesList = List.of(new BranchSource(source));
+        List<BranchSource> sourcesList = Collections.singletonList(new BranchSource(source));
         p.setSourcesList(sourcesList);
         
         r.configRoundtrip(p);
