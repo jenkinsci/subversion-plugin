@@ -35,5 +35,7 @@
   </f:entry>
   <f:entry title="${%Exclude branches}" field="excludes">
     <f:textbox default="${descriptor.DEFAULT_EXCLUDES}"/>
-  </f:entry>
+  </f:entry>  
+  <j:set var="scm" value="${instance}"/>
+  <t:listScmBrowsers name="svn.browser"/>
 </j:jelly>

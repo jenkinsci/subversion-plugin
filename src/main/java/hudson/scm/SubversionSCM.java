@@ -420,7 +420,14 @@ public class SubversionSCM extends SCM implements Serializable {
     public SubversionSCM(String svnUrl, String credentialId, String local) {
         this(new String[]{svnUrl}, new String[]{credentialId}, new String[]{local});
     }
-
+    
+    /**
+     * Convenience constructor,  especially during testing.
+     */
+    public SubversionSCM(String svnUrl, String credentialId, String local, SubversionRepositoryBrowser browser) {
+        this(ModuleLocation.parse(new String[]{svnUrl}, new String[]{credentialId}, new String[]{local}, null,null,null), null, browser, null, null, null, null, null, false, false, null, false);
+    }
+    
     /**
      * Convenience constructor, especially during testing.
      */

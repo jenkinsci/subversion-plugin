@@ -1,5 +1,9 @@
 package jenkins.scm.impl.subversion;
 
+import hudson.scm.RepositoryBrowser;
+import hudson.scm.SCM;
+import hudson.scm.browsers.WebSVN;
+import java.net.URL;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -9,9 +13,13 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import jenkins.scm.api.SCMHead;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import org.jvnet.hudson.test.Issue;
 
 /**
  * @author Stephen Connolly
@@ -181,5 +189,20 @@ public class SubversionSCMSourceTest {
         assertThat(SubversionSCMSource.wildcardStartsWith(list("a", "b", "c"), list("a", "d")), is(false));
         assertThat(SubversionSCMSource.wildcardStartsWith(list("a", "b", "c"), list("d")), is(false));
     }
-
+    
+    @Issue("JENKINS-66777")
+    @Test
+    public void scmFromSCMSourceConfiguredWithBrowser() throws Exception {
+        final String browserUrl = "http://websvn.local/";
+        
+        SubversionSCMSource source = new SubversionSCMSource(null, "svn://svn.example.com");
+        source.setBrowser(new WebSVN(new URL(browserUrl)));
+        
+        SCM scm = source.build(new SCMHead("trunk"));
+        RepositoryBrowser browser = scm.getBrowser();
+        assertNotNull(browser);
+        assertEquals(WebSVN.class, browser.getClass());
+        assertEquals(browserUrl, ((WebSVN)browser).url.toString());
+    }
+    
 }

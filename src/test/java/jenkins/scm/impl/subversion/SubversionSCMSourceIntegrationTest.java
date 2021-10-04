@@ -23,6 +23,10 @@
  */
 package jenkins.scm.impl.subversion;
 
+import com.gargoylesoftware.htmlunit.html.HtmlDivision;
+import com.gargoylesoftware.htmlunit.html.HtmlForm;
+import com.gargoylesoftware.htmlunit.html.HtmlSelect;
+import com.gargoylesoftware.htmlunit.html.HtmlTextInput;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.FilePath;
@@ -30,14 +34,20 @@ import hudson.Launcher;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.scm.SCMRevisionState;
+import hudson.scm.SubversionRepositoryBrowser;
+import hudson.scm.browsers.WebSVN;
 import hudson.util.StreamTaskListener;
+import java.net.URL;
+import jenkins.branch.BranchSource;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
 import static org.hamcrest.Matchers.*;
+import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 import static org.junit.Assert.*;
 import org.junit.Rule;
 import org.junit.Test;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 
 public class SubversionSCMSourceIntegrationTest {
@@ -118,4 +128,28 @@ public class SubversionSCMSourceIntegrationTest {
         assertEquals(expectedFile, file.exists() ? file.readToString() : null);
     }
 
+    @Issue("JENKINS-66777")
+    @Test
+    public void repositoryBrowserShouldBePresentInConfigForm() throws Exception {
+        final String browserUrl = "http://websvn.local/";
+        
+        WorkflowMultiBranchProject p = r.createProject(WorkflowMultiBranchProject.class);        
+        SubversionSCMSource source = new SubversionSCMSource(null, sampleRepo.prjUrl());
+        SubversionRepositoryBrowser browser = new WebSVN(new URL(browserUrl));
+        source.setBrowser(browser);
+        p.getSourcesList().add(new BranchSource(source));
+        
+        HtmlForm configForm = r.createWebClient().getPage(p,"configure").getFormByName("config");
+        HtmlDivision sourcesDiv = configForm.getOneHtmlElementByAttribute("div", "descriptorid", "jenkins.scm.impl.subversion.SubversionSCMSource");
+        
+        HtmlSelect browserSelect = sourcesDiv.querySelector(".setting-main select.setting-input.dropdownList");        
+        assertNotNull(browserSelect);
+        assertEquals(1, browserSelect.getSelectedOptions().size());
+        assertEquals(browser.getDescriptor().getDisplayName(), browserSelect.getSelectedOptions().get(0).getVisibleText());
+        
+        HtmlTextInput browserUrlInput = sourcesDiv.getOneHtmlElementByAttribute("input", "name", "_.url");
+        assertNotNull(browserUrlInput);
+        assertEquals(browserUrl, browserUrlInput.getValueAttribute());
+    }
+    
 }
