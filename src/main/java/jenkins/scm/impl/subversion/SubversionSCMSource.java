@@ -49,6 +49,9 @@ import hudson.scm.SubversionRepositoryBrowser;
 import hudson.scm.SubversionRepositoryStatus;
 import hudson.scm.SubversionSCM;
 import hudson.scm.subversion.SvnHelper;
+import hudson.scm.subversion.UpdateUpdater;
+import hudson.scm.subversion.WorkspaceUpdater;
+import hudson.scm.subversion.WorkspaceUpdaterDescriptor;
 import hudson.security.ACL;
 import hudson.util.EditDistance;
 import hudson.util.FormValidation;
@@ -134,6 +137,8 @@ public class SubversionSCMSource extends SCMSource {
     private String excludes = DescriptorImpl.DEFAULT_EXCLUDES;
     
     private SubversionRepositoryBrowser browser;
+    
+    private WorkspaceUpdater workspaceUpdater = new UpdateUpdater();
 
     @GuardedBy("this")
     private transient String uuid;
@@ -212,6 +217,21 @@ public class SubversionSCMSource extends SCMSource {
     @DataBoundSetter
     public void setBrowser(SubversionRepositoryBrowser browser) {
         this.browser = browser;
+    }
+    
+    /**
+     * Gets the workspace updater strategy.
+     *
+     * @return the workspace updater to use.
+     */
+    @SuppressWarnings("unused") // by stapler
+    public WorkspaceUpdater getWorkspaceUpdater() {
+        return workspaceUpdater;
+    }
+
+    @DataBoundSetter
+    public void setWorkspaceUpdater(WorkspaceUpdater workspaceUpdater) {
+        this.workspaceUpdater = workspaceUpdater;
     }
 
     /**
@@ -708,7 +728,7 @@ public class SubversionSCMSource extends SCMSource {
             // name contains an @ so need to ensure there is an @ at the end of the name
             remote.append('@');
         }
-        return new SubversionSCM(remote.toString(), credentialsId, ".", browser);
+        return new SubversionSCM(remote.toString(), credentialsId, ".", workspaceUpdater, browser);
     }
 
     /**
@@ -1000,6 +1020,15 @@ public class SubversionSCMSource extends SCMSource {
             }
 
             return null;
+        }
+        
+        /**
+         * Expose the {@link WorkspaceUpdater} instances to stapler.
+         *
+         * @return the {@link WorkspaceUpdater} instances
+         */
+        public List<WorkspaceUpdaterDescriptor> getWorkspaceUpdaterDescriptors() {
+            return WorkspaceUpdaterDescriptor.all();
         }
         
         /**

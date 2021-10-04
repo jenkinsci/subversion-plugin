@@ -36,6 +36,7 @@ import hudson.model.TaskListener;
 import hudson.scm.SCMRevisionState;
 import hudson.scm.SubversionRepositoryBrowser;
 import hudson.scm.browsers.WebSVN;
+import hudson.scm.subversion.CheckoutUpdater;
 import hudson.util.StreamTaskListener;
 import java.net.URL;
 import java.util.Collections;
@@ -137,6 +138,19 @@ public class SubversionSCMSourceIntegrationTest {
         SubversionSCMSource source = new SubversionSCMSource(null, sampleRepo.prjUrl());
         source.setBrowser(new WebSVN(new URL("http://websvn.local/")));
         
+        List<BranchSource> sourcesList = Collections.singletonList(new BranchSource(source));
+        p.setSourcesList(sourcesList);
+        
+        r.configRoundtrip(p);
+        r.assertEqualDataBoundBeans(sourcesList,p.getSources());
+    }
+    
+    @Issue("JENKINS-41850")
+    @Test
+    public void testConfigWorkspaceUpdaterPreserved() throws Exception {
+        WorkflowMultiBranchProject p = r.createProject(WorkflowMultiBranchProject.class);        
+        SubversionSCMSource source = new SubversionSCMSource(null, sampleRepo.prjUrl());
+        source.setWorkspaceUpdater(new CheckoutUpdater());
         List<BranchSource> sourcesList = Collections.singletonList(new BranchSource(source));
         p.setSourcesList(sourcesList);
         
