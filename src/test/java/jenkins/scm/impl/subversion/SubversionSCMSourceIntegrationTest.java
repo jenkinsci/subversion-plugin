@@ -39,6 +39,7 @@ import hudson.scm.browsers.WebSVN;
 import hudson.scm.subversion.CheckoutUpdater;
 import hudson.util.StreamTaskListener;
 import java.net.URL;
+import java.util.Collections;
 import java.util.List;
 import jenkins.branch.BranchSource;
 import jenkins.scm.api.SCMHead;
@@ -160,7 +161,7 @@ public class SubversionSCMSourceIntegrationTest {
         WorkflowMultiBranchProject p = r.createProject(WorkflowMultiBranchProject.class);        
         SubversionSCMSource source = new SubversionSCMSource(null, sampleRepo.prjUrl());
         source.setWorkspaceUpdater(new CheckoutUpdater());
-        List<BranchSource> sourcesList = List.of(new BranchSource(source));
+        List<BranchSource> sourcesList = Collections.singletonList(new BranchSource(source));
         p.setSourcesList(sourcesList);
         
         r.configRoundtrip(p);
