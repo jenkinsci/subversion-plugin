@@ -2,7 +2,10 @@ package jenkins.scm.impl.subversion;
 
 import hudson.scm.RepositoryBrowser;
 import hudson.scm.SCM;
+import hudson.scm.SubversionSCM;
 import hudson.scm.browsers.WebSVN;
+import hudson.scm.subversion.CheckoutUpdater;
+import hudson.scm.subversion.WorkspaceUpdater;
 import java.net.URL;
 import org.junit.Test;
 
@@ -203,6 +206,19 @@ public class SubversionSCMSourceTest {
         assertNotNull(browser);
         assertEquals(WebSVN.class, browser.getClass());
         assertEquals(browserUrl, ((WebSVN)browser).url.toString());
+    }
+    
+    @Issue("JENKINS-41850")
+    @Test
+    public void scmFromSCMSourceConfiguredWithWorkspaceUpdate() throws Exception {
+        final WorkspaceUpdater workspaceUpdater = new CheckoutUpdater();
+        
+        SubversionSCMSource source = new SubversionSCMSource(null, "svn://svn.example.com");
+        source.setWorkspaceUpdater(workspaceUpdater);
+        
+        SubversionSCM scm = (SubversionSCM) source.build(new SCMHead("trunk"));
+        assertNotNull(scm.getWorkspaceUpdater());
+        assertEquals(workspaceUpdater.getClass(), scm.getWorkspaceUpdater().getClass());
     }
     
 }
