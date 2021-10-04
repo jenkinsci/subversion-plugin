@@ -130,26 +130,16 @@ public class SubversionSCMSourceIntegrationTest {
 
     @Issue("JENKINS-66777")
     @Test
-    public void repositoryBrowserShouldBePresentInConfigForm() throws Exception {
-        final String browserUrl = "http://websvn.local/";
-        
+    public void testConfigRoundtripBrowserPreserved() throws Exception {
         WorkflowMultiBranchProject p = r.createProject(WorkflowMultiBranchProject.class);        
         SubversionSCMSource source = new SubversionSCMSource(null, sampleRepo.prjUrl());
-        SubversionRepositoryBrowser browser = new WebSVN(new URL(browserUrl));
-        source.setBrowser(browser);
-        p.getSourcesList().add(new BranchSource(source));
+        source.setBrowser(new WebSVN(new URL("http://websvn.local/")));
         
-        HtmlForm configForm = r.createWebClient().getPage(p,"configure").getFormByName("config");
-        HtmlDivision sourcesDiv = configForm.getOneHtmlElementByAttribute("div", "descriptorid", "jenkins.scm.impl.subversion.SubversionSCMSource");
+        List<BranchSource> sourcesList = List.of(new BranchSource(source));
+        p.setSourcesList(sourcesList);
         
-        HtmlSelect browserSelect = sourcesDiv.querySelector(".setting-main select.setting-input.dropdownList");        
-        assertNotNull(browserSelect);
-        assertEquals(1, browserSelect.getSelectedOptions().size());
-        assertEquals(browser.getDescriptor().getDisplayName(), browserSelect.getSelectedOptions().get(0).getVisibleText());
-        
-        HtmlTextInput browserUrlInput = sourcesDiv.getOneHtmlElementByAttribute("input", "name", "_.url");
-        assertNotNull(browserUrlInput);
-        assertEquals(browserUrl, browserUrlInput.getValueAttribute());
+        r.configRoundtrip(p);
+        r.assertEqualDataBoundBeans(sourcesList,p.getSources());
     }
     
 }
