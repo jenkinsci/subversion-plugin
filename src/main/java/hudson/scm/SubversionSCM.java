@@ -1947,6 +1947,9 @@ public class SubversionSCM extends SCM implements Serializable {
              * Gets the location where the private key will be permanently stored.
              */
             private File getKeyFile() {
+                if (id.contains("/") || id.contains("\\")) {
+                    throw new SecurityException();
+                }
                 File dir = new File(Jenkins.getInstance().getRootDir(),"subversion-credentials");
                 if(dir.mkdirs()) {
                     // make sure the directory exists. if we created it, try to set the permission to 600
