@@ -12,8 +12,13 @@ import java.util.regex.Pattern;
 import org.junit.Test;
 
 import com.google.common.io.NullOutputStream;
+import org.junit.Rule;
+import org.jvnet.hudson.test.JenkinsRule;
 
 public class CompareAgainstBaselineCallableTest {
+
+    @Rule
+    public JenkinsRule r = new JenkinsRule();
     
     private CompareAgainstBaselineCallable callable;
 

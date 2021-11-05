@@ -114,7 +114,7 @@ public final class SubversionChangeLogBuilder {
             ISVNAuthenticationProvider authProvider =
                     CredentialsSVNAuthenticationProviderImpl
                             .createAuthenticationProvider(build.getParent(), scm, l, listener);
-            final SVNClientManager manager = SubversionSCM.createClientManager(authProvider).getCore();
+            final SVNClientManager manager = SubversionSCM.createClientManager(authProvider, SubversionSCM.descriptor().isStoreAuthToDisk(), SubversionSCM.descriptor().getWorkspaceFormat()).getCore();
             try {
                 SVNLogClient svnlc = manager.getLogClient();
                 PathContext context = getUrlForPath(workspace.child(l.getLocalDir()), authProvider);
@@ -244,13 +244,17 @@ public final class SubversionChangeLogBuilder {
 
     private static class GetContextForPath extends MasterToSlaveFileCallable<PathContext> {
         private final ISVNAuthenticationProvider authProvider;
+        private final boolean storeAuthToDisk;
+        private final int workspaceFormat;
 
         public GetContextForPath(ISVNAuthenticationProvider authProvider) {
             this.authProvider = authProvider;
+            storeAuthToDisk = SubversionSCM.descriptor().isStoreAuthToDisk();
+            workspaceFormat = SubversionSCM.descriptor().getWorkspaceFormat();
         }
 
         public PathContext invoke(File p, VirtualChannel channel) throws IOException {
-            final SvnClientManager manager = SubversionSCM.createClientManager(authProvider);
+            final SvnClientManager manager = SubversionSCM.createClientManager(authProvider, storeAuthToDisk, workspaceFormat);
             try {
                 final SVNWCClient svnwc = manager.getWCClient();
 

@@ -23,7 +23,6 @@
  */
 package hudson.scm;
 
-import hudson.remoting.Channel;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.internal.wc.admin.ISVNAdminAreaFactorySelector;
 import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminArea14;
@@ -32,13 +31,8 @@ import org.tmatesoft.svn.core.internal.wc17.db.ISVNWCDb;
 import org.tmatesoft.svn.core.internal.wc2.SvnWcGeneration;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import jenkins.model.Jenkins;
-import jenkins.security.SlaveToMasterCallable;
 
 /**
  * {@link ISVNAdminAreaFactorySelector} that uses 1.4 compatible workspace for new check out,
@@ -64,7 +58,11 @@ import jenkins.security.SlaveToMasterCallable;
  * @see SvnClientManager
  */
 public class SubversionWorkspaceSelector implements ISVNAdminAreaFactorySelector {
-    public SubversionWorkspaceSelector() {
+
+    private int workspaceFormat;
+
+    public SubversionWorkspaceSelector(int workspaceFormat) {
+        this.workspaceFormat = workspaceFormat;
         // don't upgrade the workspace.
         SVNAdminAreaFactory.setUpgradeEnabled(false);
     }
@@ -90,34 +88,11 @@ public class SubversionWorkspaceSelector implements ISVNAdminAreaFactorySelector
     }
 
     /**
-     * {@link #getEnabledFactories(File, Collection, boolean)} method is called quite a few times
-     * during a Subversion operation, so consulting this value back with master each time is not practical
-     * performance wise. Therefore, we have {@link SubversionSCM} set this value, even though it's error prone.
+     * Constant for {@link #workspaceFormat} that indicates we opt for 1.7 working copy.
      *
-     * <p>
-     * Internally in SVNKit, these constants go up only to 1.6. We use {@link #WC_FORMAT_17} to indicate
+     * <p>Internally in SVNKit, these constants go up only to 1.6. We use {@link #WC_FORMAT_17} to indicate
      * 1.7 (but when that value is chosen, it is really {@link SvnClientManager} that does the work, not
      * {@link ISVNAdminAreaFactorySelector}).
-     */
-    public static volatile int workspaceFormat = SVNAdminArea14.WC_FORMAT;
-
-    public static void syncWorkspaceFormatFromMaster() {
-        Jenkins j = Jenkins.getInstanceOrNull();
-        if (j!=null)
-            workspaceFormat = j.getDescriptorByType(SubversionSCM.DescriptorImpl.class).getWorkspaceFormat();
-        else {
-            Channel c = Channel.current();
-            if (c!=null)    // just being defensive. cannot be null.
-                try {
-                    workspaceFormat = c.call(new GetWorkspaceFormatSlaveToMasterCallable());
-                } catch (IOException | InterruptedException e) {
-                    LOGGER.log(Level.WARNING, "Failed to retrieve Subversion workspace format",e);
-                }
-        }
-    }
-
-    /**
-     * Constant for {@link #workspaceFormat} that indicates we opt for 1.7 working copy.
      *
      * @deprecated Use {@link org.tmatesoft.svn.core.internal.wc17.db.ISVNWCDb#WC_FORMAT_17}
      */
@@ -129,13 +104,4 @@ public class SubversionWorkspaceSelector implements ISVNAdminAreaFactorySelector
      */
     public static final int OLD_WC_FORMAT_17 = 100;
 
-    private static final Logger LOGGER = Logger.getLogger(SubversionWorkspaceSelector.class.getName());
-
-    private static class GetWorkspaceFormatSlaveToMasterCallable extends SlaveToMasterCallable<Integer, RuntimeException> {  // TODO JENKINS-48543 bad design
-        private static final long serialVersionUID = 6494337549896104453L;
-
-        public Integer call()  {
-            return Jenkins.getInstance().getDescriptorByType(SubversionSCM.DescriptorImpl.class).getWorkspaceFormat();
-        }
-    }
 }

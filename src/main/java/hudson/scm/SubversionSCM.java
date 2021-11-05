@@ -59,6 +59,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.BulkChange;
 import hudson.EnvVars;
 import hudson.Extension;
+import hudson.ExtensionList;
 import hudson.FilePath;
 import hudson.FilePath.FileCallable;
 import hudson.Launcher;
@@ -156,6 +157,7 @@ import jenkins.scm.impl.subversion.RemotableSVNErrorMessage;
 import net.sf.json.JSONObject;
 
 import org.apache.commons.beanutils.PropertyUtils;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.tools.ant.BuildException;
@@ -177,6 +179,7 @@ import org.tmatesoft.svn.core.internal.io.svn.SVNRepositoryFactoryImpl;
 import org.tmatesoft.svn.core.internal.wc.DefaultSVNOptions;
 import org.tmatesoft.svn.core.internal.wc.SVNPath;
 import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminAreaFactory;
+import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminArea14;
 import org.tmatesoft.svn.core.io.SVNCapability;
 import org.tmatesoft.svn.core.io.SVNRepository;
 import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
@@ -193,10 +196,7 @@ import com.trilead.ssh2.crypto.Base64;
 import static java.util.stream.Collectors.toList;
 import javax.annotation.Nonnull;
 import jenkins.MasterToSlaveFileCallable;
-import jenkins.security.Roles;
-import jenkins.security.SlaveToMasterCallable;
-import org.apache.commons.collections.CollectionUtils;
-import org.jenkinsci.remoting.RoleChecker;
+import jenkins.util.JenkinsJVM;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
@@ -218,7 +218,7 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
  * @author Kohsuke Kawaguchi
  */
 @SuppressWarnings("rawtypes")
-public class SubversionSCM extends SCM implements Serializable {
+public class SubversionSCM extends SCM {
     /**
      * the locations field is used to store all configured SVN locations (with
      * their local and remote part). Direct access to this field should be
@@ -956,7 +956,7 @@ public class SubversionSCM extends SCM implements Serializable {
         Set<String> unauthenticatedRealms = new LinkedHashSet<>();
         for (ModuleLocation location : getLocations(env, build)) {
             CheckOutTask checkOutTask =
-                    new CheckOutTask(build, this, location, build.getTimestamp().getTime(), listener, env, quietOperation);
+                    new CheckOutTask(new CheckOutUpdateTask(build, this, location, build.getTimestamp().getTime(), listener, env, quietOperation));
             List<External> externals = new ArrayList<>(workspace.act(checkOutTask));
             // save location <---> externals maps
             externalsMap.put(location.remote, externals);
@@ -1007,33 +1007,50 @@ public class SubversionSCM extends SCM implements Serializable {
         return projectExternalsCache;
     }
 
-    /**
-     * Either run "svn co" or "svn up" equivalent.
-     */
-    private static class CheckOutTask extends UpdateTask implements FileCallable<List<External>> {
-        private final UpdateTask task;
+    private static final class CheckOutTask extends MasterToSlaveFileCallable<List<External>> {
 
-        CheckOutTask(Run<?, ?> build, SubversionSCM parent, ModuleLocation location, Date timestamp,
-                            TaskListener listener, EnvVars env, boolean quietOperation) {
-            this.authProvider = parent.createAuthenticationProvider(build.getParent(), location, listener);
-            this.timestamp = timestamp;
-            this.listener = listener;
-            this.location = location;
-            this.revisions = build.getAction(RevisionParameterAction.class);
-            this.task = parent.getWorkspaceUpdater().createTask();
-            this.quietOperation = quietOperation;
+        private final CheckOutUpdateTask delegate;
+
+        CheckOutTask(CheckOutUpdateTask delegate) {
+            this.delegate = delegate;
         }
 
         Set<String> getUnauthenticatedRealms() {
-            if (authProvider instanceof CredentialsSVNAuthenticationProviderImpl) {
-                return ((CredentialsSVNAuthenticationProviderImpl) authProvider).getUnauthenticatedRealms();
+            if (delegate.authProvider instanceof CredentialsSVNAuthenticationProviderImpl) {
+                return ((CredentialsSVNAuthenticationProviderImpl) delegate.authProvider).getUnauthenticatedRealms();
             }
             return Collections.emptySet();
         }
 
         @Override
         public List<External> invoke(File ws, VirtualChannel channel) throws IOException {
-            clientManager = createClientManager(authProvider);
+            return delegate.run(ws);
+        }
+
+    }
+
+    /**
+     * Either run "svn co" or "svn up" equivalent.
+     */
+    private static class CheckOutUpdateTask extends UpdateTask {
+        private final UpdateTask task;
+        private final boolean storeAuthToDisk = descriptor().isStoreAuthToDisk();
+        private final int workspaceFormat = descriptor().getWorkspaceFormat();
+
+        CheckOutUpdateTask(Run<?, ?> build, SubversionSCM parent, ModuleLocation location, Date timestamp,
+                            TaskListener listener, EnvVars env, boolean quietOperation) {
+            this.authProvider = parent.createAuthenticationProvider(build.getParent(), location, listener);
+            this.timestamp = timestamp;
+            this.listener = listener;
+            this.location = location;
+            this.revisions = build.getAction(RevisionParameterAction.class);
+            this.task = parent.getWorkspaceUpdater().createTask(workspaceFormat);
+            this.quietOperation = quietOperation;
+        }
+
+        List<External> run(File ws) throws IOException {
+            init(workspaceFormat);
+            clientManager = createClientManager(authProvider, storeAuthToDisk, workspaceFormat);
             manager = clientManager.getCore();
             this.ws = ws;
             try {
@@ -1048,11 +1065,6 @@ public class SubversionSCM extends SCM implements Serializable {
             } finally {
                 clientManager.dispose();
             }
-        }
-
-        @Override
-        public void checkRoles(RoleChecker checker) throws SecurityException {
-            checker.check(this, Roles.SLAVE);
         }
 
         /**
@@ -1087,10 +1099,10 @@ public class SubversionSCM extends SCM implements Serializable {
     /**
      *
      * @deprecated as of 1.40
-     *      Use {@link #createClientManager(ISVNAuthenticationProvider)}
+     *      Use {@link #createClientManager(ISVNAuthenticationProvider, boolean, int)}
      */
     public static SVNClientManager createSvnClientManager(ISVNAuthenticationProvider authProvider) {
-        return createClientManager(authProvider).getCore();
+        return createClientManager(authProvider, descriptor().isStoreAuthToDisk(), descriptor().getWorkspaceFormat()).getCore();
     }
 
     /**
@@ -1104,9 +1116,23 @@ public class SubversionSCM extends SCM implements Serializable {
      *      If the operation runs on slaves,
      *      (and properly remoted, if the svn operations run on slaves.)
      */
-    public static SvnClientManager createClientManager(ISVNAuthenticationProvider authProvider) {
+    public static SvnClientManager createClientManager(ISVNAuthenticationProvider authProvider, boolean storeAuthToDisk, int workspaceFormat) {
         ISVNAuthenticationManager sam = createSvnAuthenticationManager(authProvider);
-        return new SvnClientManager(SVNClientManager.newInstance(createDefaultSVNOptions(), sam));
+        return new SvnClientManager(SVNClientManager.newInstance(createDefaultSVNOptions(storeAuthToDisk), sam), workspaceFormat);
+    }
+
+    /**
+     * @deprecated use {@link #createClientManager(ISVNAuthenticationProvider, boolean, int)}
+     */
+    @Deprecated
+    public static SvnClientManager createClientManager(ISVNAuthenticationProvider authProvider) {
+        if (JenkinsJVM.isJenkinsJVM()) {
+            return createClientManager(authProvider, descriptor().isStoreAuthToDisk(), descriptor().getWorkspaceFormat());
+        } else {
+            // E.g. https://github.com/jenkinsci/svnmerge-plugin/blob/fc97c3da525099c97b4d7dc2672377711640472b/src/main/java/jenkins/plugins/svnmerge/FeatureBranchProperty.java#L188
+            // No way to know for sure what values to use, so fall back to descriptor defaults.
+            return createClientManager(authProvider, true, SVNAdminAreaFactory.WC_FORMAT_14);
+        }
     }
 
     /**
@@ -1114,11 +1140,10 @@ public class SubversionSCM extends SCM implements Serializable {
      *
      * @return the {@link DefaultSVNOptions}.
      */
-    public static DefaultSVNOptions createDefaultSVNOptions() {
+    public static DefaultSVNOptions createDefaultSVNOptions(boolean storeAuthToDisk) {
         DefaultSVNOptions defaultOptions = SVNWCUtil.createDefaultOptions(true);
-        DescriptorImpl descriptor = descriptor();
-        if (defaultOptions != null && descriptor != null) { // TODO JENKINS-48543 bad design
-            defaultOptions.setAuthStorageEnabled(descriptor.isStoreAuthToDisk());
+        if (defaultOptions != null) {
+            defaultOptions.setAuthStorageEnabled(storeAuthToDisk);
         }
         return defaultOptions;
     }
@@ -1153,7 +1178,7 @@ public class SubversionSCM extends SCM implements Serializable {
      * from the master via remoting.
      */
     public static SvnClientManager createClientManager(AbstractProject context) {
-        return new SvnClientManager(createSvnClientManager(descriptor().createAuthenticationProvider(context)));
+        return new SvnClientManager(createSvnClientManager(descriptor().createAuthenticationProvider(context)), descriptor().getWorkspaceFormat());
     }
 
     /**
@@ -1295,8 +1320,8 @@ public class SubversionSCM extends SCM implements Serializable {
      * @param remoteUrl
      *      The target to run "svn info".
      */
-    static SVNInfo parseSvnInfo(SVNURL remoteUrl, ISVNAuthenticationProvider authProvider) throws SVNException {
-        final SvnClientManager manager = createClientManager(authProvider);
+    static SVNInfo parseSvnInfo(SVNURL remoteUrl, ISVNAuthenticationProvider authProvider, boolean storeAuthToDisk, int workspaceFormat) throws SVNException {
+        final SvnClientManager manager = createClientManager(authProvider, storeAuthToDisk, workspaceFormat);
         try {
             final SVNWCClient svnWc = manager.getWCClient();
             return svnWc.doInfo(remoteUrl, SVNRevision.HEAD, SVNRevision.HEAD);
@@ -1315,6 +1340,8 @@ public class SubversionSCM extends SCM implements Serializable {
         private final TaskListener listener;
         private final List<External> externals;
         private final ModuleLocation[] locations;
+        private final boolean storeAuthToDisk = SubversionSCM.descriptor().isStoreAuthToDisk();
+        private final int workspaceFormat = SubversionSCM.descriptor().getWorkspaceFormat();
 
         public BuildRevisionMapTask(Run<?, ?> build, SubversionSCM parent, TaskListener listener, List<External> externals, EnvVars env) {
             this.listener = listener;
@@ -1339,7 +1366,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 if (authProvider == null) {
                     authProvider = defaultAuthProvider;
                 }
-                final SvnClientManager manager = createClientManager(authProvider);
+                final SvnClientManager manager = createClientManager(authProvider, storeAuthToDisk, workspaceFormat);
                 try {
                     final SVNWCClient svnWc = manager.getWCClient();
                     // invoke the "svn info"
@@ -1354,7 +1381,7 @@ public class SubversionSCM extends SCM implements Serializable {
                     manager.dispose();
                 }
             }
-            final SvnClientManager manager = createClientManager(defaultAuthProvider);
+            final SvnClientManager manager = createClientManager(defaultAuthProvider, storeAuthToDisk, workspaceFormat);
             try {
                 final SVNWCClient svnWc = manager.getWCClient();
                 for (External ext : externals) {
@@ -1513,8 +1540,11 @@ public class SubversionSCM extends SCM implements Serializable {
 
         private boolean changesFound = false;
         private SVNLogFilter filter;
+        private final boolean storeAuthToDisk = SubversionSCM.descriptor().isStoreAuthToDisk();
+        private final int workspaceFormat = SubversionSCM.descriptor().getWorkspaceFormat();
 
         SVNLogHandler(SVNLogFilter svnLogFilter, TaskListener listener) {
+            JenkinsJVM.checkJenkinsJVM();
             this.filter = svnLogFilter;
             this.filter.setTaskListener(listener);
         }
@@ -1532,7 +1562,7 @@ public class SubversionSCM extends SCM implements Serializable {
             // if no exclusion rules are defined, don't waste time going through "svn log".
             if (!filter.hasExclusionRule())    return true;
 
-            final SvnClientManager manager = createClientManager(authProvider);
+            final SvnClientManager manager = createClientManager(authProvider, storeAuthToDisk, workspaceFormat);
             try {
                 manager.getLogClient().doLog(url, null, SVNRevision.UNDEFINED,
                         SVNRevision.create(from), // get log entries from the local revision + 1
@@ -1669,10 +1699,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
     @hudson.init.Initializer(after = InitMilestone.JOB_LOADED, before = InitMilestone.COMPLETED)
     public static void perJobCredentialsMigration() {
-        DescriptorImpl descriptor = descriptor();
-        if (descriptor != null) {
-            descriptor.migratePerJobCredentials();
-        }
+        descriptor().migratePerJobCredentials();
     }
 
     @Extension
@@ -1917,12 +1944,14 @@ public class SubversionSCM extends SCM implements Serializable {
             private final String userName;
             private final Secret passphrase; // for historical reasons, scrambled by base64 in addition to using 'Secret'
             private final String id;
+            private final String privateKey;
 
             /**
              * @param keyFile
              *      stores SSH private key. The file will be copied.
              */
             public SshPublicKeyCredential(String userName, String passphrase, File keyFile) throws SVNException {
+                JenkinsJVM.checkJenkinsJVM();
                 this.userName = userName;
                 this.passphrase = Secret.fromString(Scrambler.scramble(passphrase));
 
@@ -1936,6 +1965,7 @@ public class SubversionSCM extends SCM implements Serializable {
                     File savedKeyFile = getKeyFile();
                     FileUtils.copyFile(keyFile,savedKeyFile);
                     setFilePermissions(savedKeyFile, "600");
+                    privateKey = FileUtils.readFileToString(savedKeyFile, "iso-8859-1");
                 } catch (IOException e) {
                     throw new SVNException(
                             new RemotableSVNErrorMessage(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,
@@ -1981,31 +2011,7 @@ public class SubversionSCM extends SCM implements Serializable {
             @Override
             public SVNSSHAuthentication createSVNAuthentication(String kind) throws SVNException {
                 if(kind.equals(ISVNAuthenticationManager.SSH)) {
-                    try {
-                        Channel channel = Channel.current();
-                        String privateKey;
-                        if(channel!=null) {
-                            // remote
-                            // Unsafe in general, but we should have already converted $JENKINS_HOME/subversion-credentials anyway.
-                            privateKey = channel.call(new SlaveToMasterCallable<String,IOException>() {
-                                /**
-                                 *
-                                 */
-                                private static final long serialVersionUID = -3088632649290496373L;
-
-                                public String call() throws IOException {
-                                    return FileUtils.readFileToString(getKeyFile(),"iso-8859-1");
-                                }
-                            });
-                        } else {
-                            privateKey = FileUtils.readFileToString(getKeyFile(),"iso-8859-1");
-                        }
-                        return new SVNSSHAuthentication(userName, privateKey.toCharArray(), Scrambler.descramble(Secret.toString(passphrase)),-1,false);
-                    } catch (IOException | InterruptedException e) {
-                        throw new SVNException(
-                                new RemotableSVNErrorMessage(SVNErrorCode.AUTHN_CREDS_UNAVAILABLE,
-                                        "Unable to load private key"), e);
-                    }
+                    return new SVNSSHAuthentication(userName, privateKey.toCharArray(), Scrambler.descramble(Secret.toString(passphrase)),-1,false);
                 } else
                     return null; // unknown
             }
@@ -2318,6 +2324,7 @@ public class SubversionSCM extends SCM implements Serializable {
          * This code is fairly ugly because of the way SVNKit handles credentials.
          */
         public void postCredential(String url, final UserProvidedCredential upc, PrintWriter logWriter) throws SVNException, IOException {
+            JenkinsJVM.checkJenkinsJVM();
             SVNRepository repository = null;
 
             try {
@@ -2328,7 +2335,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 // 3) if the authentication is successful, svnkit calls back acknowledgeAuthentication
                 //    (so we store the password info here)
                 repository = SVNRepositoryFactory.create(SVNURL.parseURIDecoded(url));
-                repository.setTunnelProvider( createDefaultSVNOptions() );
+                repository.setTunnelProvider(createDefaultSVNOptions(descriptor().isStoreAuthToDisk()));
                 AuthenticationManagerImpl authManager = upc.new AuthenticationManagerImpl(logWriter);
                 authManager.setAuthenticationForced(true);
                 repository.setAuthenticationManager(authManager);
@@ -2434,6 +2441,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
         protected SVNRepository getRepository(Item context, SVNURL repoURL, StandardCredentials credentials,
                                               Map<String, Credentials> additionalCredentials, ISVNSession session) throws SVNException {
+            JenkinsJVM.checkJenkinsJVM();
             SVNRepository repository = SVNRepositoryFactory.create(repoURL, session);
         
             ISVNAuthenticationManager sam = createSvnAuthenticationManager(
@@ -2450,7 +2458,7 @@ public class SubversionSCM extends SCM implements Serializable {
                     return r;
                 }
             };
-            repository.setTunnelProvider(createDefaultSVNOptions());
+            repository.setTunnelProvider(createDefaultSVNOptions(descriptor().isStoreAuthToDisk()));
             repository.setAuthenticationManager(sam);
 
             return repository;
@@ -2581,7 +2589,7 @@ public class SubversionSCM extends SCM implements Serializable {
         }
 
         static {
-            new Initializer();
+            init(SVNAdminArea14.WC_FORMAT);
         }
 
     }
@@ -2602,10 +2610,10 @@ public class SubversionSCM extends SCM implements Serializable {
       }
     }
 
-    @CheckForNull
-    private static DescriptorImpl descriptor() {
-        Jenkins instance = Jenkins.getInstanceOrNull();
-        return instance == null ? null : instance.getDescriptorByType(DescriptorImpl.class);
+    @NonNull
+    public static DescriptorImpl descriptor() {
+        JenkinsJVM.checkJenkinsJVM();
+        return ExtensionList.lookupSingleton(DescriptorImpl.class);
     }
 
     /**
@@ -2665,15 +2673,7 @@ public class SubversionSCM extends SCM implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    // noop, but this forces the initializer to run.
-    public static void init() {}
-
-    static {
-        new Initializer();
-    }
-
-    private static final class Initializer {
-        static {
+    public static void init(int workspaceFormat) {
             if(Boolean.getBoolean("hudson.spool-svn"))
                 DAVRepositoryFactory.setup(new DefaultHTTPConnectionFactory(null,true,null));
             else
@@ -2692,8 +2692,7 @@ public class SubversionSCM extends SCM implements Serializable {
                 System.setProperty("svnkit.http.methods","Digest,Basic,NTLM,Negotiate");
 
             // use SVN1.4 compatible workspace by default.
-            SVNAdminAreaFactory.setSelector(new SubversionWorkspaceSelector());
-        }
+            SVNAdminAreaFactory.setSelector(new SubversionWorkspaceSelector(workspaceFormat));
     }
 
     /**
