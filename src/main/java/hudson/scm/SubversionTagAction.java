@@ -113,7 +113,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
     public String getIconFileName() {
         if(!isTagged() && !getACL().hasPermission(getPermission()))
             return null;
-        return "save.gif";
+        return "save.png";
     }
 
     public String getDisplayName() {
