@@ -191,7 +191,7 @@ import com.trilead.ssh2.DebugLogger;
 import com.trilead.ssh2.SCPClient;
 import com.trilead.ssh2.crypto.Base64;
 import static java.util.stream.Collectors.toList;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.MasterToSlaveFileCallable;
 import jenkins.security.Roles;
 import jenkins.security.SlaveToMasterCallable;
@@ -2237,7 +2237,7 @@ public class SubversionSCM extends SCM implements Serializable {
             return true;
         }
 
-        @Nonnull
+        @NonNull
         @Override
         public Permission getRequiredGlobalConfigPagePermission() {
             return Jenkins.MANAGE;
@@ -2924,7 +2924,7 @@ public class SubversionSCM extends SCM implements Serializable {
             return getRepositoryRoot(context, context.getScm());
         }
 
-        public @Nonnull SVNURL getRepositoryRoot(Job context, SCM scm) throws SVNException {
+        public @NonNull SVNURL getRepositoryRoot(Job context, SCM scm) throws SVNException {
             getUUID(context, scm);
             return repositoryRoot;
         }
@@ -3233,7 +3233,7 @@ public class SubversionSCM extends SCM implements Serializable {
             /**
              * Validate the value for a remote (repository) location.
              */
-            public FormValidation checkCredentialsId(/* TODO unused, delete */StaplerRequest req, @Nonnull Item context, String remote, String value) {
+            public FormValidation checkCredentialsId(/* TODO unused, delete */StaplerRequest req, @NonNull Item context, String remote, String value) {
 
                 // Ignore validation if repository URL is empty
                 String url = Util.fixEmptyAndTrim(remote);

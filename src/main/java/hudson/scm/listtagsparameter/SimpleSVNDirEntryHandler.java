@@ -32,7 +32,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 import org.tmatesoft.svn.core.ISVNDirEntryHandler;
 import org.tmatesoft.svn.core.SVNDirEntry;
@@ -61,7 +61,7 @@ public class SimpleSVNDirEntryHandler implements ISVNDirEntryHandler {
     return getDirs(false, false);
   }
 
-  public @Nonnull List<String> getDirs(boolean reverseByDate, boolean reverseByName) {
+  public @NonNull List<String> getDirs(boolean reverseByDate, boolean reverseByName) {
     if (reverseByDate) {
       dirs.sort(Comparator.comparing(SVNDirEntry::getDate).reversed());
     } else if(reverseByName) {
