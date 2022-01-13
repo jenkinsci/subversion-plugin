@@ -37,7 +37,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * Implements local file storage of externals information.
@@ -61,7 +61,7 @@ class SvnExternalsFileManager {
      * @param project Project to be used
      * @return A lock object (will be created on-demand)
      */
-    @Nonnull
+    @NonNull
     private static synchronized Object getFileLockItem(Job project) {
         if (projectExternalsCache == null) {
             projectExternalsCache = new WeakHashMap<>();
@@ -78,7 +78,7 @@ class SvnExternalsFileManager {
     /**
      * Gets the file that stores the externals.
      */
-    @Nonnull
+    @NonNull
     private static File getExternalsFile(Job project) {
         return new File(project.getRootDir(), SVN_EXTERNALS_FILE);
     }
@@ -93,7 +93,7 @@ class SvnExternalsFileManager {
      *
      * @return immutable list. Can be empty but never null.
      */
-    @Nonnull
+    @NonNull
     @SuppressWarnings("unchecked")
     public static List<SubversionSCM.External> parseExternalsFile(Job project) throws IOException {
         File file = getExternalsFile(project);
