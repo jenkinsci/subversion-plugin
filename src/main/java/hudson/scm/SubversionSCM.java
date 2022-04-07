@@ -168,6 +168,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
+import org.kohsuke.stapler.verb.POST;
 import org.tmatesoft.svn.core.*;
 import org.tmatesoft.svn.core.auth.*;
 import org.tmatesoft.svn.core.internal.io.dav.DAVRepositoryFactory;
@@ -2279,6 +2280,7 @@ public class SubversionSCM extends SCM implements Serializable {
          * Submits the authentication info.
          */
         // TODO: stapler should do multipart/form-data handling
+        @POST
         public void doPostCredential(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
             Jenkins.getInstance().checkPermission(Item.CONFIGURE);
 
@@ -2345,6 +2347,7 @@ public class SubversionSCM extends SCM implements Serializable {
          */
         @CheckForNull
         @Deprecated
+        @RequirePOST
         public FormValidation doCheckRemote(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value, @QueryParameter String credentialsId) {
             Jenkins instance = Jenkins.getInstance();
             if (instance != null) {
@@ -2528,6 +2531,7 @@ public class SubversionSCM extends SCM implements Serializable {
         /**
          * Validates the remote server supports custom revision properties
          */
+        @RequirePOST
         public FormValidation doCheckRevisionPropertiesSupported(@AncestorInPath Item context,
                                                                  @QueryParameter String value,
                                                                  @QueryParameter String credentialsId,
@@ -3191,6 +3195,7 @@ public class SubversionSCM extends SCM implements Serializable {
             /**
              * Validate the value for a remote (repository) location.
              */
+            @RequirePOST
             public FormValidation doCheckRemote(/* TODO unused, delete */StaplerRequest req, @AncestorInPath Item context,
                     @QueryParameter String remote) {
 

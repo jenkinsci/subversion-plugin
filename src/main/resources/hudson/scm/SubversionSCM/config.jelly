@@ -57,7 +57,7 @@ THE SOFTWARE.
         <f:textarea />
     </f:entry>
     <f:entry title="${%Exclusion revprop name}" field="excludedRevprop">
-        <f:textbox checkUrl="'descriptorByName/hudson.scm.SubversionSCM/checkRevisionPropertiesSupported?value='+toValue(document.getElementById('svn.remote.loc'))+'&amp;credentialsId='+toValue(document.getElementById('svn.remote.cred'))+'&amp;excludedRevprop='+toValue(this)"/>
+        <f:textbox checkMethod="post" checkUrl="'descriptorByName/hudson.scm.SubversionSCM/checkRevisionPropertiesSupported?value='+toValue(document.getElementById('svn.remote.loc'))+'&amp;credentialsId='+toValue(document.getElementById('svn.remote.cred'))+'&amp;excludedRevprop='+toValue(this)"/>
     </f:entry>
     <f:entry title="${%Filter changelog}" field="filterChangelog">
         <f:checkbox />

@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.regex.Pattern;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
  * {@link RepositoryBrowser} for FishEye SVN.
@@ -130,6 +131,7 @@ public class FishEyeSVN extends SubversionRepositoryBrowser {
         /**
          * Performs on-the-fly validation of the URL.
          */
+        @RequirePOST
         public FormValidation doCheckUrl(@QueryParameter(fixEmpty=true) String value) throws IOException, ServletException {
             if(value==null) // nothing entered yet
                 return FormValidation.ok();

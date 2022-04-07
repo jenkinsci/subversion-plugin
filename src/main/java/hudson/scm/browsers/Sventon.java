@@ -42,6 +42,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import jenkins.model.Jenkins;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
  * {@link RepositoryBrowser} for Sventon 1.x.
@@ -97,6 +98,7 @@ public class Sventon extends AbstractSventon {
         /**
          * Performs on-the-fly validation of the URL.
          */
+        @RequirePOST
         public FormValidation doCheckUrl(@AncestorInPath Item project,
                                          @QueryParameter(fixEmpty=true) final String value)
                 throws IOException, ServletException {

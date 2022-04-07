@@ -138,18 +138,37 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         } catch (ElementNotFoundException e) {
         }
 
-        // and that tagging would fail
+        // and that tagging would fail due to CSRF protection
         try {
             wc.getPage(b,"tagBuild/submit?name0=test&Submit=Tag");
-            fail("should have been denied");
+            fail("should have failed");
+        } catch (FailingHttpStatusCodeException e) {
+            // not found, wrong HTTP verb
+            assertEquals(e.getResponse().getStatusCode(),404);
+        }
+
+        // Now try with POST and crumb
+        try {
+            wc.getPage(new WebRequest(wc.createCrumbedUrl(b.getUrl() + "tagBuild/submit?name0=test&Submit=Tag"), HttpMethod.POST));
         } catch (FailingHttpStatusCodeException e) {
             // make sure the request is denied
             assertEquals(e.getResponse().getStatusCode(),403);
         }
 
-        // now login as alice and make sure that the tagging would succeed
+        // now login as alice
         wc = r.createWebClient();
         wc.login("alice","alice");
+
+        // a quick detour to confirm CSRF protection is effective
+        try {
+            wc.getPage(b,"tagBuild/submit?name0=test&Submit=Tag");
+            fail("should have failed");
+        } catch (FailingHttpStatusCodeException e) {
+            // not found, wrong HTTP verb
+            assertEquals(e.getResponse().getStatusCode(),404);
+        }
+
+        // make sure that the tagging would succeed
         html = wc.getPage(b,"tagBuild/");
         HtmlForm form = html.getFormByName("tag");
         r.submit(form);

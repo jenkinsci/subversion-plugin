@@ -378,6 +378,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
     }
 
     @CheckForNull
+    @RequirePOST
     public FormValidation doCheckTagsDir(StaplerRequest req, @AncestorInPath Item context, @QueryParameter String value) {
         Jenkins instance = Jenkins.getInstance();
         if (instance != null) {
