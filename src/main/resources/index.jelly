@@ -1,0 +1,4 @@
+<?jelly escape-by-default='true'?>
+<div>
+  This plugin integrates <a href="https://subversion.apache.org/">Apache Subversion</a> with Jenkins.
+</div>
