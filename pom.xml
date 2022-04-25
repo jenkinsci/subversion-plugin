@@ -142,7 +142,7 @@ THE SOFTWARE.
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <jenkins.version>2.289.1</jenkins.version>
     <no-test-jar>false</no-test-jar>
-    <spotbugs.failOnError>false</spotbugs.failOnError> <!-- TODO still have 27 left -->
+    <spotbugs.threshold>High</spotbugs.threshold> <!-- TODO some violations remaining -->
     <powermock.version>2.0.9</powermock.version>
   </properties>
 
