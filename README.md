@@ -35,8 +35,8 @@ in C:/Users/\<user\>/AppData/Roaming/Subversion/servers (Windows)  or
 
 > There's a tension between doing this in Jenkins vs following the
 > existing Subversion convention — the former has a benefit of being
-> available on all the slaves. In this case, the proxy is a system
-> dependent setting, which might be different between different slaves,
+> available on all the agents. In this case, the proxy is a system
+> dependent setting, which might be different between different agents,
 > so I think it makes sense to keep it in \~/.subversion/servers.
 > (See <https://issues.jenkins-ci.org/browse/JENKINS-4041>)
 
@@ -255,12 +255,12 @@ file designated by the `VBSCRIPT` variable above:
       Wscript.Echo "Error. HTTP Status: " & http.status & ". Body: " & http.responseText
     end if
 
-## Perform Polling from the Master
+## Perform Polling from the Controller
 
 JIRA [JENKINS-5413](https://issues.jenkins-ci.org/browse/JENKINS-5413)
-documents problems with running the SCM polling trigger on slaves.
+documents problems with running the SCM polling trigger on agents.
 Version 1.21 of the Subversion plugin can perform the polling on the
-Jenkins master if the hudson.scm.SubversionSCM.pollFromMaster system
+Jenkins controller if the hudson.scm.SubversionSCM.pollFromMaster system
 property is set to true.
 
 ## Subversion Revision and URL information as Environment Variables
