@@ -91,7 +91,7 @@ public class SubversionWorkspaceSelector implements ISVNAdminAreaFactorySelector
 
     /**
      * {@link #getEnabledFactories(File, Collection, boolean)} method is called quite a few times
-     * during a Subversion operation, so consulting this value back with master each time is not practical
+     * during a Subversion operation, so consulting this value back with the controller each time is not practical
      * performance wise. Therefore, we have {@link SubversionSCM} set this value, even though it's error prone.
      *
      * <p>
