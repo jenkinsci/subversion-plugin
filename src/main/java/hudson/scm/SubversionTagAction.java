@@ -33,6 +33,7 @@ import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.model.Action;
 import hudson.model.Describable;
@@ -336,6 +337,9 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
      */
     @Extension
     public static class DescriptorImpl extends Descriptor<SubversionTagAction> {
+
+        @Override
+        @SuppressFBWarnings(value = "NP_NONNULL_RETURN_VIOLATION", justification = "TODO needs triage")
         public String getDisplayName() {
             return null;
         }

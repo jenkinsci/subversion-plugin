@@ -91,7 +91,7 @@ public class VisualSVN extends SubversionRepositoryBrowser {
             throw new MalformedURLException(Messages.SubversionSCM_doCheckRemote_invalidUrl());
         }
 
-        URL test = new URL(url);
+        new URL(url);
 
         if(ret.endsWith("/")) {
             ret = ret.substring(0, ret.length() - 1);

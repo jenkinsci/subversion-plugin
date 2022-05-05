@@ -11,7 +11,7 @@ import java.util.regex.Pattern;
 
 import org.junit.Test;
 
-import com.google.common.io.NullOutputStream;
+import org.apache.commons.io.output.NullOutputStream;
 
 public class CompareAgainstBaselineCallableTest {
     
