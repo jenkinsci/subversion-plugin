@@ -86,7 +86,7 @@ public abstract class WorkspaceUpdater extends AbstractDescribableImpl<Workspace
     }
 
     /**
-     * This object gets instantiated on the master and then sent to the slave via remoting,
+     * This object gets instantiated on the controller and then sent to the agent via remoting,
      * then used to {@linkplain #perform() perform the actual checkout activity}.
      *
      * <p>
@@ -108,7 +108,7 @@ public abstract class WorkspaceUpdater extends AbstractDescribableImpl<Workspace
         public SvnClientManager clientManager;
 
         /**
-         * Encapusulates the authentication. Connected back to Jenkins master. Never null.
+         * Encapusulates the authentication. Connected back to Jenkins controller. Never null.
          */
         public ISVNAuthenticationProvider authProvider;
 
