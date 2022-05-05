@@ -56,6 +56,7 @@ import com.cloudbees.plugins.credentials.impl.CertificateCredentialsImpl;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.BulkChange;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -123,6 +124,7 @@ import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -218,6 +220,7 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
  *
  * @author Kohsuke Kawaguchi
  */
+@SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "TODO needs triage")
 @SuppressWarnings("rawtypes")
 public class SubversionSCM extends SCM implements Serializable {
     /**
@@ -271,6 +274,8 @@ public class SubversionSCM extends SCM implements Serializable {
     private transient Map<Job, List<External>> projectExternalsCache;
 
     private transient boolean pollFromMaster = POLL_FROM_MASTER;
+
+    private static final transient SecureRandom RANDOM = new SecureRandom();
 
     /**
      * @deprecated as of 1.286
@@ -798,7 +803,8 @@ public class SubversionSCM extends SCM implements Serializable {
      *      map from {@link SvnInfo#url Subversion URL} to its revision.  If there is more than one, choose
      *      the one with the smallest revision number
      */
-    /*package*/ static Map<String,Long> parseRevisionFile(Run<?,?> build, boolean findClosest, boolean prunePinnedExternals) throws IOException {
+    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "TODO needs triage")
+    static Map<String,Long> parseRevisionFile(Run<?,?> build, boolean findClosest, boolean prunePinnedExternals) throws IOException {
         Map<String,Long> revisions = new HashMap<>(); // module -> revision
         Map<String,Long> pinnedRevisions = new HashMap<>(); // module -> revision
         if (findClosest) {
@@ -874,8 +880,10 @@ public class SubversionSCM extends SCM implements Serializable {
         return false;
     }
 
+    @Override
+    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "TODO needs triage")
     @SuppressWarnings("unchecked")
-    @Override public void checkout(Run build, Launcher launcher, FilePath workspace, final TaskListener listener, File changelogFile, SCMRevisionState baseline) throws IOException, InterruptedException {
+    public void checkout(Run build, Launcher launcher, FilePath workspace, final TaskListener listener, File changelogFile, SCMRevisionState baseline) throws IOException, InterruptedException {
         EnvVars env = build.getEnvironment(listener);
         if (build instanceof AbstractBuild) {
             EnvVarsUtils.overrideAll(env, ((AbstractBuild) build).getBuildVariables());
@@ -1927,10 +1935,9 @@ public class SubversionSCM extends SCM implements Serializable {
                 this.userName = userName;
                 this.passphrase = Secret.fromString(Scrambler.scramble(passphrase));
 
-                Random r = new Random();
                 StringBuilder buf = new StringBuilder();
                 for(int i=0;i<16;i++)
-                    buf.append(Integer.toHexString(r.nextInt(16)));
+                    buf.append(Integer.toHexString(RANDOM.nextInt(16)));
                 this.id = buf.toString();
 
                 try {
@@ -3158,6 +3165,7 @@ public class SubversionSCM extends SCM implements Serializable {
         public static class DescriptorImpl extends Descriptor<ModuleLocation> {
 
             @Override
+            @SuppressFBWarnings(value = "NP_NONNULL_RETURN_VIOLATION", justification = "TODO needs triage")
             public String getDisplayName() {
                 return null;
             }
@@ -3440,6 +3448,7 @@ public class SubversionSCM extends SCM implements Serializable {
         public static class DescriptorImpl extends Descriptor<AdditionalCredentials> {
 
             @Override
+            @SuppressFBWarnings(value = "NP_NONNULL_RETURN_VIOLATION", justification = "TODO needs triage")
             public String getDisplayName() {
                 return null;
             }
