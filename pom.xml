@@ -33,7 +33,7 @@ THE SOFTWARE.
   </parent>
 
   <artifactId>subversion</artifactId>
-  <version>2.15.5</version>
+  <version>${revision}${changelist}</version>
   <packaging>hpi</packaging>
 
   <name>Jenkins Subversion Plug-in</name>
@@ -131,13 +131,13 @@ THE SOFTWARE.
     <connection>scm:git:git://github.com/${gitHubRepo}.git</connection>
     <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
     <url>https://github.com/${gitHubRepo}</url>
-    <tag>subversion-2.15.5</tag>
+    <tag>${scmTag}</tag>
   </scm>
 
   <properties>
     <!-- To be removed once Jenkins.MANAGE gets out of beta -->
     <useBeta>true</useBeta>
-    <revision>2.15.5</revision>
+    <revision>2.15.6</revision>
     <changelist>-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <jenkins.version>2.289.1</jenkins.version>
