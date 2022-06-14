@@ -26,6 +26,8 @@
  */
 package hudson.scm.subversion;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import hudson.Extension;
 import hudson.Util;
 import hudson.scm.SubversionSCM.External;
@@ -88,6 +90,7 @@ public class CheckoutUpdater extends WorkspaceUpdater {
         }
 
         @Override
+        @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "TODO needs triage")
         public List<External> perform() throws IOException, InterruptedException {
             final SVNUpdateClient svnuc = clientManager.getUpdateClient();
             final List<External> externals = new ArrayList<>(); // store discovered externals to here

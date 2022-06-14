@@ -50,8 +50,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
@@ -182,7 +182,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
    * <p>This method never returns {@code null}. In case an error happens, the
    * returned list contains an error message prefixed by {@code !}.</p>
    */
-  @Nonnull public List<String> getTags(@Nullable Job context) {
+  @NonNull public List<String> getTags(@Nullable Job context) {
     List<String> dirs = new ArrayList<>();
 
     SVNRepository repo = null;
@@ -378,6 +378,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
     }
 
     @CheckForNull
+    @RequirePOST
     public FormValidation doCheckTagsDir(StaplerRequest req, @AncestorInPath Item context, @QueryParameter String value) {
         Jenkins instance = Jenkins.getInstance();
         if (instance != null) {

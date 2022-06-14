@@ -55,7 +55,7 @@ import java.io.File;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.MasterToSlaveFileCallable;
 
 /**
@@ -89,7 +89,7 @@ public final class SubversionChangeLogBuilder {
     /**
      * @since  1.34
      */
-    public SubversionChangeLogBuilder(Run<?,?> build, FilePath workspace, @Nonnull SVNRevisionState baseline, EnvVars env, TaskListener listener, SubversionSCM scm) throws IOException {
+    public SubversionChangeLogBuilder(Run<?,?> build, FilePath workspace, @NonNull SVNRevisionState baseline, EnvVars env, TaskListener listener, SubversionSCM scm) throws IOException {
         previousRevisions = baseline.revisions;
         thisRevisions     = scm.parseSvnRevisionFile(build);
         this.listener = listener;
@@ -99,7 +99,7 @@ public final class SubversionChangeLogBuilder {
         this.env = env;
     }
 
-    public boolean run(@Nonnull Map<String, List<SubversionSCM.External>> externalsMap, Result changeLog) throws IOException, InterruptedException {
+    public boolean run(@NonNull Map<String, List<SubversionSCM.External>> externalsMap, Result changeLog) throws IOException, InterruptedException {
         boolean changelogFileCreated = false;
 
         TransformerHandler th = createTransformerHandler();

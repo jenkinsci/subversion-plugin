@@ -20,10 +20,10 @@ import java.net.Socket;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import jenkins.model.Jenkins;
-import org.apache.commons.codec.binary.Base64;
 import static org.junit.Assert.*;
 import org.junit.Rule;
 import org.junit.Test;
@@ -141,7 +141,7 @@ public class ListSubversionTagsParameterDefinitionTest {
                                 System.err.println("Received: " + line);
                                 String magic = "Authorization: Basic ";
                                 if (line.startsWith(magic)) {
-                                    sniffed = new String(Base64.decodeBase64(line.substring(magic.length())));
+                                    sniffed = new String(Base64.getDecoder().decode(line.substring(magic.length())));
                                     System.err.println("decoded to: " + sniffed);
                                 }
                             }

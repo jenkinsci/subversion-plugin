@@ -33,6 +33,7 @@ import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.model.Action;
 import hudson.model.Describable;
@@ -55,6 +56,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
+import org.kohsuke.stapler.verb.POST;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
@@ -113,7 +115,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
     public String getIconFileName() {
         if(!isTagged() && !getACL().hasPermission(getPermission()))
             return null;
-        return "save.gif";
+        return "save.png";
     }
 
     public String getDisplayName() {
@@ -212,6 +214,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
     /**
      * Invoked to actually tag the workspace.
      */
+    @POST
     public synchronized void doSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
         getACL().checkPermission(getPermission());
 
@@ -334,6 +337,9 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
      */
     @Extension
     public static class DescriptorImpl extends Descriptor<SubversionTagAction> {
+
+        @Override
+        @SuppressFBWarnings(value = "NP_NONNULL_RETURN_VIOLATION", justification = "TODO needs triage")
         public String getDisplayName() {
             return null;
         }

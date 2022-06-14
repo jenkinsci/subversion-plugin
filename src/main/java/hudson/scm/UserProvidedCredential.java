@@ -25,6 +25,8 @@
  */
 package hudson.scm;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import hudson.model.AbstractProject;
 import hudson.model.TaskListener;
 import hudson.scm.SubversionSCM.DescriptorImpl.Credential;
@@ -172,6 +174,7 @@ public class UserProvidedCredential implements Closeable {
             this(new PrintWriter(w));
         }
 
+        @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "TODO needs triage")
         public AuthenticationManagerImpl(TaskListener listener) {
             this(new PrintWriter(listener.getLogger(),true));
         }

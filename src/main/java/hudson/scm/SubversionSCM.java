@@ -56,6 +56,7 @@ import com.cloudbees.plugins.credentials.impl.CertificateCredentialsImpl;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.BulkChange;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -124,6 +125,7 @@ import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -170,6 +172,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
+import org.kohsuke.stapler.verb.POST;
 import org.tmatesoft.svn.core.*;
 import org.tmatesoft.svn.core.auth.*;
 import org.tmatesoft.svn.core.internal.io.dav.DAVRepositoryFactory;
@@ -194,7 +197,7 @@ import com.trilead.ssh2.DebugLogger;
 import com.trilead.ssh2.SCPClient;
 import com.trilead.ssh2.crypto.Base64;
 import static java.util.stream.Collectors.toList;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.MasterToSlaveFileCallable;
 import jenkins.util.JenkinsJVM;
 import org.kohsuke.stapler.interceptor.RequirePOST;
@@ -217,6 +220,7 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
  *
  * @author Kohsuke Kawaguchi
  */
+@SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "TODO needs triage")
 @SuppressWarnings("rawtypes")
 public class SubversionSCM extends SCM {
     /**
@@ -270,6 +274,8 @@ public class SubversionSCM extends SCM {
     private transient Map<Job, List<External>> projectExternalsCache;
 
     private transient boolean pollFromMaster = POLL_FROM_MASTER;
+
+    private static final transient SecureRandom RANDOM = new SecureRandom();
 
     /**
      * @deprecated as of 1.286
@@ -797,7 +803,8 @@ public class SubversionSCM extends SCM {
      *      map from {@link SvnInfo#url Subversion URL} to its revision.  If there is more than one, choose
      *      the one with the smallest revision number
      */
-    /*package*/ static Map<String,Long> parseRevisionFile(Run<?,?> build, boolean findClosest, boolean prunePinnedExternals) throws IOException {
+    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "TODO needs triage")
+    static Map<String,Long> parseRevisionFile(Run<?,?> build, boolean findClosest, boolean prunePinnedExternals) throws IOException {
         Map<String,Long> revisions = new HashMap<>(); // module -> revision
         Map<String,Long> pinnedRevisions = new HashMap<>(); // module -> revision
         if (findClosest) {
@@ -873,8 +880,10 @@ public class SubversionSCM extends SCM {
         return false;
     }
 
+    @Override
+    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "TODO needs triage")
     @SuppressWarnings("unchecked")
-    @Override public void checkout(Run build, Launcher launcher, FilePath workspace, final TaskListener listener, File changelogFile, SCMRevisionState baseline) throws IOException, InterruptedException {
+    public void checkout(Run build, Launcher launcher, FilePath workspace, final TaskListener listener, File changelogFile, SCMRevisionState baseline) throws IOException, InterruptedException {
         EnvVars env = build.getEnvironment(listener);
         if (build instanceof AbstractBuild) {
             EnvVarsUtils.overrideAll(env, ((AbstractBuild) build).getBuildVariables());
@@ -1955,10 +1964,9 @@ public class SubversionSCM extends SCM {
                 this.userName = userName;
                 this.passphrase = Secret.fromString(Scrambler.scramble(passphrase));
 
-                Random r = new Random();
                 StringBuilder buf = new StringBuilder();
                 for(int i=0;i<16;i++)
-                    buf.append(Integer.toHexString(r.nextInt(16)));
+                    buf.append(Integer.toHexString(RANDOM.nextInt(16)));
                 this.id = buf.toString();
 
                 try {
@@ -2243,7 +2251,7 @@ public class SubversionSCM extends SCM {
             return true;
         }
 
-        @Nonnull
+        @NonNull
         @Override
         public Permission getRequiredGlobalConfigPagePermission() {
             return Jenkins.MANAGE;
@@ -2285,6 +2293,7 @@ public class SubversionSCM extends SCM {
          * Submits the authentication info.
          */
         // TODO: stapler should do multipart/form-data handling
+        @POST
         public void doPostCredential(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
             Jenkins.getInstance().checkPermission(Item.CONFIGURE);
 
@@ -2352,6 +2361,7 @@ public class SubversionSCM extends SCM {
          */
         @CheckForNull
         @Deprecated
+        @RequirePOST
         public FormValidation doCheckRemote(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value, @QueryParameter String credentialsId) {
             Jenkins instance = Jenkins.getInstance();
             if (instance != null) {
@@ -2536,6 +2546,7 @@ public class SubversionSCM extends SCM {
         /**
          * Validates the remote server supports custom revision properties
          */
+        @RequirePOST
         public FormValidation doCheckRevisionPropertiesSupported(@AncestorInPath Item context,
                                                                  @QueryParameter String value,
                                                                  @QueryParameter String credentialsId,
@@ -2923,7 +2934,7 @@ public class SubversionSCM extends SCM {
             return getRepositoryRoot(context, context.getScm());
         }
 
-        public @Nonnull SVNURL getRepositoryRoot(Job context, SCM scm) throws SVNException {
+        public @NonNull SVNURL getRepositoryRoot(Job context, SCM scm) throws SVNException {
             getUUID(context, scm);
             return repositoryRoot;
         }
@@ -3153,6 +3164,7 @@ public class SubversionSCM extends SCM {
         public static class DescriptorImpl extends Descriptor<ModuleLocation> {
 
             @Override
+            @SuppressFBWarnings(value = "NP_NONNULL_RETURN_VIOLATION", justification = "TODO needs triage")
             public String getDisplayName() {
                 return null;
             }
@@ -3190,6 +3202,7 @@ public class SubversionSCM extends SCM {
             /**
              * Validate the value for a remote (repository) location.
              */
+            @RequirePOST
             public FormValidation doCheckRemote(/* TODO unused, delete */StaplerRequest req, @AncestorInPath Item context,
                     @QueryParameter String remote) {
 
@@ -3232,7 +3245,7 @@ public class SubversionSCM extends SCM {
             /**
              * Validate the value for a remote (repository) location.
              */
-            public FormValidation checkCredentialsId(/* TODO unused, delete */StaplerRequest req, @Nonnull Item context, String remote, String value) {
+            public FormValidation checkCredentialsId(/* TODO unused, delete */StaplerRequest req, @NonNull Item context, String remote, String value) {
 
                 // Ignore validation if repository URL is empty
                 String url = Util.fixEmptyAndTrim(remote);
@@ -3434,6 +3447,7 @@ public class SubversionSCM extends SCM {
         public static class DescriptorImpl extends Descriptor<AdditionalCredentials> {
 
             @Override
+            @SuppressFBWarnings(value = "NP_NONNULL_RETURN_VIOLATION", justification = "TODO needs triage")
             public String getDisplayName() {
                 return null;
             }

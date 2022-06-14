@@ -9,11 +9,11 @@ import java.io.ObjectOutputStream;
 import java.util.Collections;
 import java.util.regex.Pattern;
 
-import org.junit.Test;
-
-import com.google.common.io.NullOutputStream;
 import org.junit.Rule;
+import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+
+import org.apache.commons.io.output.NullOutputStream;
 
 public class CompareAgainstBaselineCallableTest {
 
