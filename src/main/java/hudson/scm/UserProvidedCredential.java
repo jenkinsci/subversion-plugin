@@ -60,6 +60,7 @@ import java.util.Arrays;
 import java.util.logging.Logger;
 
 import static javax.servlet.http.HttpServletResponse.SC_FORBIDDEN;
+import jenkins.util.JenkinsJVM;
 
 /**
  * Represents the SVN authentication credential given by the user via the {@code <enterCredential>} form fragment.
@@ -86,6 +87,7 @@ public class UserProvidedCredential implements Closeable {
     }
 
     public UserProvidedCredential(String username, String password, File keyFile, AbstractProject inContextOf) {
+        JenkinsJVM.checkJenkinsJVM();
         this.username = username;
         this.password = password;
         this.keyFile = keyFile;
@@ -163,6 +165,7 @@ public class UserProvidedCredential implements Closeable {
 
         public AuthenticationManagerImpl(PrintWriter logWriter) {
             super(SVNWCUtil.getDefaultConfigurationDirectory(), true, username, password, keyFile, password);
+            JenkinsJVM.checkJenkinsJVM();
             this.logWriter = logWriter;
             SVNAuthStoreHandlerImpl.install(this);
         }

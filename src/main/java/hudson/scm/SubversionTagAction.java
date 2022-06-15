@@ -291,7 +291,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
                 ISVNAuthenticationManager sam = new SVNAuthenticationManager(configDir, null, null);
                 sam.setAuthenticationProvider(new CredentialsSVNAuthenticationProviderImpl(upc));
                 final SvnClientManager cm = new SvnClientManager(
-                        SVNClientManager.newInstance(SubversionSCM.createDefaultSVNOptions(), sam)
+                        SVNClientManager.newInstance(SubversionSCM.createDefaultSVNOptions(SubversionSCM.descriptor().isStoreAuthToDisk()), sam), SubversionSCM.descriptor().getWorkspaceFormat()
                 );
                 try {
                     for (Entry<SvnInfo, String> e : tagSet.entrySet()) {

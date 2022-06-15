@@ -25,10 +25,9 @@ public class SvnClientManager {
     private final SVNClientManager core;
     private final SvnWcGeneration wcgen;
 
-    public SvnClientManager(SVNClientManager core) {
+    public SvnClientManager(SVNClientManager core, int workspaceFormat) {
         this.core = core;
-        SubversionWorkspaceSelector.syncWorkspaceFormatFromMaster();
-        wcgen = SubversionWorkspaceSelector.workspaceFormat>= ISVNWCDb.WC_FORMAT_18 ? SvnWcGeneration.V17 : SvnWcGeneration.V16;
+        wcgen = workspaceFormat >= ISVNWCDb.WC_FORMAT_18 ? SvnWcGeneration.V17 : SvnWcGeneration.V16;
     }
 
     public SVNClientManager getCore() {

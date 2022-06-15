@@ -112,6 +112,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMHeadEvent;
+import jenkins.util.JenkinsJVM;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -977,6 +978,7 @@ public class SubversionSCMSource extends SCMSource {
 
         protected SVNRepository getRepository(SVNURL repoURL, StandardCredentials credentials,
                                               Map<String, Credentials> additionalCredentials, ISVNSession session) throws SVNException {
+            JenkinsJVM.checkJenkinsJVM();
             SVNRepository repository = SVNRepositoryFactory.create(repoURL, session);
 
             ISVNAuthenticationManager sam = SubversionSCM.createSvnAuthenticationManager(
@@ -993,7 +995,7 @@ public class SubversionSCMSource extends SCMSource {
                     return r;
                 }
             };
-            repository.setTunnelProvider(SubversionSCM.createDefaultSVNOptions());
+            repository.setTunnelProvider(SubversionSCM.createDefaultSVNOptions(SubversionSCM.descriptor().isStoreAuthToDisk()));
             repository.setAuthenticationManager(sam);
 
             return repository;

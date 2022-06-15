@@ -44,8 +44,8 @@ public class UpdateWithRevertUpdater extends WorkspaceUpdater {
     public UpdateWithRevertUpdater() {}
 
     @Override
-    public UpdateTask createTask() {
-        return new TaskImpl();
+    public UpdateTask createTask(int workspaceFormat) {
+        return new TaskImpl(workspaceFormat);
     }
 
     // mostly "svn update" plus extra
@@ -54,6 +54,10 @@ public class UpdateWithRevertUpdater extends WorkspaceUpdater {
          * 
          */
         private static final long serialVersionUID = -8562813147341259328L;
+
+        public TaskImpl(int workspaceFormat) {
+            super(workspaceFormat);
+        }
 
         @Override
         protected void preUpdate(ModuleLocation module, File local) throws SVNException, IOException {

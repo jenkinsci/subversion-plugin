@@ -68,8 +68,8 @@ public class CheckoutUpdater extends WorkspaceUpdater {
     public CheckoutUpdater() {}
 
     @Override
-    public UpdateTask createTask() {
-        return new SubversionUpdateTask();
+    public UpdateTask createTask(int workspaceFormat) {
+        return new SubversionUpdateTask(workspaceFormat);
     }
 
     @Extension
@@ -82,6 +82,12 @@ public class CheckoutUpdater extends WorkspaceUpdater {
 
     private static class SubversionUpdateTask extends UpdateTask {
         private static final long serialVersionUID = 8349986526712487762L;
+
+        private int workspaceFormat;
+
+        SubversionUpdateTask(int workspaceFormat) {
+            this.workspaceFormat = workspaceFormat;
+        }
 
         @Override
         @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "TODO needs triage")
@@ -123,13 +129,13 @@ public class CheckoutUpdater extends WorkspaceUpdater {
                 checkout.setExternalsHandler(SvnCodec.externalsHandler(svnuc.getExternalsHandler()));
 
                 // Statement to guard against JENKINS-26458.
-                if (SubversionWorkspaceSelector.workspaceFormat == SubversionWorkspaceSelector.OLD_WC_FORMAT_17) {
-                    SubversionWorkspaceSelector.workspaceFormat = ISVNWCDb.WC_FORMAT_17;
+                if (workspaceFormat == SubversionWorkspaceSelector.OLD_WC_FORMAT_17) {
+                    workspaceFormat = ISVNWCDb.WC_FORMAT_17;
                 }
 
                 // Workaround for SVNKIT-430 is to set the working copy format when
                 // a checkout is performed.
-                checkout.setTargetWorkingCopyFormat(SubversionWorkspaceSelector.workspaceFormat);
+                checkout.setTargetWorkingCopyFormat(workspaceFormat);
                 checkout.run();
             } catch (SVNCancelException e) {
                 if (isAuthenticationFailedError(e)) {
