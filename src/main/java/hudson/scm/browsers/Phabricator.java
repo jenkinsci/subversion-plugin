@@ -8,6 +8,7 @@ import hudson.scm.SubversionRepositoryBrowser;
 import hudson.scm.EditType;
 import hudson.scm.RepositoryBrowser;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.jenkinsci.Symbol;
 
 import java.io.IOException;
 import java.net.URL;
@@ -101,6 +102,7 @@ public class Phabricator extends SubversionRepositoryBrowser {
     }
 
     @Extension
+    @Symbol("svnPhabricator")
     public static class PhabricatorDescriptor extends Descriptor<RepositoryBrowser<?>> {
         public String getDisplayName() {
             return "Phabricator";
