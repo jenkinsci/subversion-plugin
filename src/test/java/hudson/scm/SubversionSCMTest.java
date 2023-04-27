@@ -116,6 +116,8 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         r.assertBuildStatus(Result.SUCCESS,b);
 
         final SubversionTagAction action = b.getAction(SubversionTagAction.class);
+        // Avoid https://github.com/jenkinsci/plugin-pom/pull/693
+        r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
         r.executeOnServer(() -> {
             assertFalse("Shouldn't be accessible to anonymous user",b.hasPermission(action.getPermission()));
             return null;
