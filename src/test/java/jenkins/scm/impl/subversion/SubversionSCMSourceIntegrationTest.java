@@ -23,10 +23,10 @@
  */
 package jenkins.scm.impl.subversion;
 
-import com.gargoylesoftware.htmlunit.html.HtmlDivision;
-import com.gargoylesoftware.htmlunit.html.HtmlForm;
-import com.gargoylesoftware.htmlunit.html.HtmlSelect;
-import com.gargoylesoftware.htmlunit.html.HtmlTextInput;
+import org.htmlunit.html.HtmlDivision;
+import org.htmlunit.html.HtmlForm;
+import org.htmlunit.html.HtmlSelect;
+import org.htmlunit.html.HtmlTextInput;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.FilePath;
