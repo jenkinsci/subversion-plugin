@@ -1,0 +1,22 @@
+<div>
+  If set, and Jenkins is set to poll for changes, Jenkins will ignore any files and/or
+  folders that are <b><i>not</i></b> in this list when determining if a build needs to be triggered.
+  <p/>
+  Each inclusion uses regular expression pattern matching, and must be separated by a new line.
+  <p/>
+  This is useful when you need to check out an entire resource for building, but only want to do
+  the build when a subset has changed.
+  <p/>
+  <pre>
+	/trunk/myapp/c/library1/.*
+	/trunk/myapp/c/library2/.*
+  </pre>
+  If /trunk/myapp is checked out, the build will only occur when there are changes to
+  either the c/library1 and c/library2 subtrees.
+  <p/>
+  If there are also excluded regions specified, then a file is not ignored when it is in
+  the included list and <b><i>not</i></b> in the excluded list.
+  <p/>
+  More information on regular expressions can be found
+  <a href="http://www.regular-expressions.info/" target="_blank">here</a>.
+</div>

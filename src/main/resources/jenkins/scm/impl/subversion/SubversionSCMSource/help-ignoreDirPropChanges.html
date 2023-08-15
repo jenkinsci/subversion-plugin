@@ -1,0 +1,7 @@
+<div>
+  If set, Jenkins ignores svn-property only changes of directories.
+  These changes are ignored when determining whether a build should be triggered and are removed from a
+  build's changeset.
+  Main usage of this property is to ignore svn:mergeinfo changes (which would otherwise e.g. lead to a complete rebuild
+  of a maven project, in spite of incremental build option).
+</div>
