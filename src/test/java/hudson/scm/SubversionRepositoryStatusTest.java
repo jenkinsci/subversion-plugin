@@ -31,8 +31,6 @@ public class SubversionRepositoryStatusTest {
 
         // GIVEN: a disabled project
         final AbstractProject project = mock(AbstractProject.class);
-        when(project.isDisabled()).thenReturn(true);
-        
         JobProvider jobProvider = () -> Collections.singletonList(project);
         
         listener.setJobProvider(jobProvider);
