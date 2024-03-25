@@ -68,6 +68,7 @@ import hudson.Util;
 import hudson.init.InitMilestone;
 
 import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -128,6 +129,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -139,7 +141,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Random;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.UUID;
@@ -195,9 +196,7 @@ import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
 import com.trilead.ssh2.DebugLogger;
 import com.trilead.ssh2.SCPClient;
-import com.trilead.ssh2.crypto.Base64;
 import static java.util.stream.Collectors.toList;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.MasterToSlaveFileCallable;
 import jenkins.util.JenkinsJVM;
 import org.kohsuke.stapler.interceptor.RequirePOST;
@@ -2070,20 +2069,16 @@ public class SubversionSCM extends SCM {
 
             public SslClientCertificateCredential(File certificate, String password) throws IOException {
                 this.password = Secret.fromString(Scrambler.scramble(password));
-                this.certificate = Secret.fromString(new String(Base64.encode(FileUtils.readFileToByteArray(certificate))));
+                this.certificate = Secret.fromString(new String(Base64.getEncoder().encode(FileUtils.readFileToByteArray(certificate)), StandardCharsets.UTF_8));
             }
 
             @Override
             public SVNAuthentication createSVNAuthentication(String kind) {
                 if(kind.equals(ISVNAuthenticationManager.SSL))
-                    try {
-                        return SVNSSLAuthentication.newInstance(
-                                Base64.decode(certificate.getPlainText().toCharArray()),
-                                Scrambler.descramble(Secret.toString(password)).toCharArray(),
-                                false, null, false);
-                    } catch (IOException e) {
-                        throw new Error(e); // can't happen
-                    }
+                    return SVNSSLAuthentication.newInstance(
+                            Base64.getDecoder().decode(certificate.getPlainText()),
+                            Scrambler.descramble(Secret.toString(password)).toCharArray(),
+                            false, null, false);
                 else
                     return null; // unexpected authentication type
             }
@@ -3324,6 +3319,8 @@ public class SubversionSCM extends SCM {
      * Enables trace logging of Ganymed SSH library.
      * <p>
      * Intended to be invoked from Groovy console.
+     * @deprecated
+     *      Logging all goes to JDK java.util.logging
      */
     public static void enableSshDebug(Level level) {
         if(level==null)     level= Level.FINEST; // default
