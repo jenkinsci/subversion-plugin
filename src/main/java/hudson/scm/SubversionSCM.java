@@ -68,6 +68,7 @@ import hudson.Util;
 import hudson.init.InitMilestone;
 
 import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -2068,7 +2069,7 @@ public class SubversionSCM extends SCM {
 
             public SslClientCertificateCredential(File certificate, String password) throws IOException {
                 this.password = Secret.fromString(Scrambler.scramble(password));
-                this.certificate = Secret.fromString(new String(Base64.getEncoder().encode(FileUtils.readFileToByteArray(certificate))));
+                this.certificate = Secret.fromString(new String(Base64.getEncoder().encode(FileUtils.readFileToByteArray(certificate)), StandardCharsets.UTF_8));
             }
 
             @Override
