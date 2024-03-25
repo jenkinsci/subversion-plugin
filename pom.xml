@@ -29,8 +29,8 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.50</version>
-    <relativePath/>
+    <version>4.66</version>
+    <relativePath />
   </parent>
 
   <artifactId>subversion</artifactId>
@@ -60,10 +60,9 @@ THE SOFTWARE.
     <useBeta>true</useBeta>
     <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
-    <jenkins.version>2.332.1</jenkins.version>
+    <jenkins.version>2.361.4</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <spotbugs.threshold>High</spotbugs.threshold> <!-- TODO some violations remaining -->
-    <powermock.version>2.0.9</powermock.version>
   </properties>
 
   <repositories>
@@ -83,8 +82,8 @@ THE SOFTWARE.
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.332.x</artifactId>
-        <version>1289.v5c4b_1c43511b_</version>
+        <artifactId>bom-2.361.x</artifactId>
+        <version>2025.v816d28f1e04f</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
@@ -95,7 +94,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.tmatesoft.svnkit</groupId>
       <artifactId>svnkit</artifactId>
-      <version>1.10.9</version>
+      <version>1.10.10</version>
       <exclusions>
         <exclusion>
           <groupId>com.trilead</groupId>
@@ -110,7 +109,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.tmatesoft.svnkit</groupId>
       <artifactId>svnkit-cli</artifactId>
-      <version>1.10.9</version>
+      <version>1.10.10</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -124,6 +123,10 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>ssh-credentials</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>trilead-api</artifactId>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -168,18 +171,6 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.powermock</groupId>
-      <artifactId>powermock-module-junit4</artifactId>
-      <version>${powermock.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.powermock</groupId>
-      <artifactId>powermock-api-mockito2</artifactId>
-      <version>${powermock.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>

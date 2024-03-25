@@ -29,10 +29,10 @@ import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
-import com.gargoylesoftware.htmlunit.*;
-import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
-import com.gargoylesoftware.htmlunit.html.HtmlForm;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import org.htmlunit.*;
+import org.htmlunit.html.HtmlAnchor;
+import org.htmlunit.html.HtmlForm;
+import org.htmlunit.html.HtmlPage;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Functions;
@@ -116,6 +116,8 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         r.assertBuildStatus(Result.SUCCESS,b);
 
         final SubversionTagAction action = b.getAction(SubversionTagAction.class);
+        // Avoid https://github.com/jenkinsci/plugin-pom/pull/693
+        r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
         r.executeOnServer(() -> {
             assertFalse("Shouldn't be accessible to anonymous user",b.hasPermission(action.getPermission()));
             return null;
