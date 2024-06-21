@@ -60,7 +60,7 @@ THE SOFTWARE.
     <useBeta>true</useBeta>
     <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
-    <jenkins.version>2.361.4</jenkins.version>
+    <jenkins.version>2.426.3</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <spotbugs.threshold>High</spotbugs.threshold> <!-- TODO some violations remaining -->
   </properties>
@@ -82,8 +82,8 @@ THE SOFTWARE.
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.361.x</artifactId>
-        <version>2102.v854b_fec19c92</version>
+        <artifactId>bom-2.426.x</artifactId>
+        <version>2555.v3190a_8a_c60c6</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
@@ -91,6 +91,11 @@ THE SOFTWARE.
   </dependencyManagement>
 
   <dependencies>
+    <dependency>
+      <groupId>io.jenkins.plugins</groupId>
+      <artifactId>eddsa-api</artifactId>
+      <version>0.3.0-4.v84c6f0f4969e</version>
+    </dependency>
     <dependency>
       <groupId>org.tmatesoft.svnkit</groupId>
       <artifactId>svnkit</artifactId>
@@ -103,6 +108,11 @@ THE SOFTWARE.
         <exclusion>
           <groupId>net.java.dev.jna</groupId>
           <artifactId>jna-platform</artifactId>
+        </exclusion>
+        <exclusion>
+          <!-- Provided by eddsa-api plugin -->
+          <groupId>net.i2p.crypto</groupId>
+          <artifactId>eddsa</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
