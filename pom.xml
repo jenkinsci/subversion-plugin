@@ -88,10 +88,11 @@ THE SOFTWARE.
         <scope>import</scope>
         <type>pom</type>
       </dependency>
+      <!-- TODO until in BOM -->
       <dependency>
         <groupId>org.jenkins-ci.plugins.workflow</groupId>
         <artifactId>workflow-multibranch</artifactId>
-        <version>794.v4dce43d6a_a_19</version> <!-- TODO https://github.com/jenkinsci/workflow-multibranch-plugin/pull/314 -->
+        <version>795.ve0cb_1f45ca_9a_</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
