@@ -91,7 +91,7 @@ THE SOFTWARE.
       <dependency>
         <groupId>org.jenkins-ci.plugins.workflow</groupId>
         <artifactId>workflow-multibranch</artifactId>
-        <version>999999-SNAPSHOT</version> <!-- TODO https://github.com/jenkinsci/workflow-multibranch-plugin/pull/314 -->
+        <version>794.v4dce43d6a_a_19</version> <!-- TODO https://github.com/jenkinsci/workflow-multibranch-plugin/pull/314 -->
       </dependency>
     </dependencies>
   </dependencyManagement>
