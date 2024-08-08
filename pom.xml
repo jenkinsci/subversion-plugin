@@ -61,7 +61,7 @@ THE SOFTWARE.
     <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <jenkins.baseline>2.462</jenkins.baseline>
-    <jenkins.version>${jenkins.baseline}</jenkins.version>
+    <jenkins.version>${jenkins.baseline}.1</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <spotbugs.threshold>High</spotbugs.threshold> <!-- TODO some violations remaining -->
   </properties>
