@@ -64,6 +64,7 @@ THE SOFTWARE.
     <jenkins.version>${jenkins.baseline}.1</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <spotbugs.threshold>High</spotbugs.threshold> <!-- TODO some violations remaining -->
+    <svnkit.version>1.10.11</svnkit.version>
   </properties>
 
   <repositories>
@@ -84,15 +85,9 @@ THE SOFTWARE.
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-${jenkins.baseline}.x</artifactId>
-        <version>3221.ve8f7b_fdd149d</version>
+        <version>3258.vcdcf15936a_fd</version>
         <scope>import</scope>
         <type>pom</type>
-      </dependency>
-      <!-- TODO until in BOM -->
-      <dependency>
-        <groupId>org.jenkins-ci.plugins.workflow</groupId>
-        <artifactId>workflow-multibranch</artifactId>
-        <version>795.ve0cb_1f45ca_9a_</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -113,7 +108,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.tmatesoft.svnkit</groupId>
       <artifactId>svnkit</artifactId>
-      <version>1.10.11</version>
+      <version>${svnkit.version}</version>
       <exclusions>
         <exclusion>
           <groupId>com.trilead</groupId>
@@ -153,7 +148,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.tmatesoft.svnkit</groupId>
       <artifactId>svnkit-cli</artifactId>
-      <version>1.10.11</version>
+      <version>${svnkit.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -242,7 +237,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>envinject</artifactId>
-      <version>2.908.v66a_774b_31d93</version>
+      <version>2.919.v009a_a_1067cd0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
