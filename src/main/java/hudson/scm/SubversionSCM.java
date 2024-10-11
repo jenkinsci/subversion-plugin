@@ -2352,23 +2352,25 @@ public class SubversionSCM extends SCM {
             }
         }
 
-        /**
-         * @deprecated retained for API compatibility only
-         */
-        @CheckForNull
-        @Deprecated
-        @RequirePOST
-        public FormValidation doCheckRemote(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value, @QueryParameter String credentialsId) {
-            Jenkins instance = Jenkins.getInstance();
-            if (instance != null) {
-                ModuleLocation.DescriptorImpl d = instance.getDescriptorByType(ModuleLocation.DescriptorImpl.class);
-                if (d != null) {
-                    return d.doCheckCredentialsId(req, context, value, credentialsId);
-                }
-            }
-
-            return FormValidation.warning("Unable to check remote.");
-        }
+//        /**
+//         * @deprecated retained for API compatibility only
+//         */
+//        @CheckForNull
+//        @Deprecated
+//        @RequirePOST
+//        public FormValidation doCheckRemote(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value, @QueryParameter String credentialsId) {
+//
+//            System.out.println("doCheckRemote NOT QHAT WE NEED");
+//            Jenkins instance = Jenkins.getInstance();
+//            if (instance != null) {
+//                ModuleLocation.DescriptorImpl d = instance.getDescriptorByType(ModuleLocation.DescriptorImpl.class);
+//                if (d != null) {
+//                    return d.doCheckCredentialsId(req, context, value, credentialsId);
+//                }
+//            }
+//
+//            return FormValidation.warning("Unable to check remote.");
+//        }
 
         /**
          * @deprecated use {@link #checkRepositoryPath(hudson.model.Job, org.tmatesoft.svn.core.SVNURL, com.cloudbees.plugins.credentials.common.StandardCredentials)}
@@ -2544,10 +2546,11 @@ public class SubversionSCM extends SCM {
          */
         @RequirePOST
         public FormValidation doCheckRevisionPropertiesSupported(@AncestorInPath Item context,
-                                                                 @QueryParameter String value,
-                                                                 @QueryParameter String credentialsId,
-                                                                 @QueryParameter String excludedRevprop) throws IOException, ServletException {
-              String v = Util.fixNull(value).trim();
+                                                                 @QueryParameter String excludedRevprop,
+                                                                 @QueryParameter("remoteLocation") String remoteLocation,
+                                                                 @QueryParameter("credentialsId") String credentialsId
+                                                                 ) throws IOException, ServletException {
+              String v = Util.fixNull(remoteLocation).trim();
             if (v.length() == 0)
                 return FormValidation.ok();
 
@@ -3200,10 +3203,10 @@ public class SubversionSCM extends SCM {
              */
             @RequirePOST
             public FormValidation doCheckRemote(/* TODO unused, delete */StaplerRequest req, @AncestorInPath Item context,
-                    @QueryParameter String remote) {
+                    @QueryParameter String value) {
 
                 // repository URL is required
-                String url = Util.fixEmptyAndTrim(remote);
+                String url = Util.fixEmptyAndTrim(value);
                 if (url == null) {
                     return FormValidation.error(Messages.SubversionSCM_doCheckRemote_required());
                 }
@@ -3228,7 +3231,7 @@ public class SubversionSCM extends SCM {
              */
             @RequirePOST
             public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath Item context,
-                    @QueryParameter String remote, @QueryParameter String value) {
+                    @QueryParameter("remoteLocation") String remote, @QueryParameter String value) {
 
                 // Test the connection only if we may use the credentials (cf. hudson.plugins.git.UserRemoteConfig.DescriptorImpl.doCheckUrl)
                 if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER) ||
