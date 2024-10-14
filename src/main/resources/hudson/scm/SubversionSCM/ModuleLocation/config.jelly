@@ -25,31 +25,10 @@ THE SOFTWARE.
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
 
-<!--   independent check to validate remote URL. No Other fields are required.-->
   <f:entry title="${%Repository URL}" field="remoteLocation" help="/scm/SubversionSCM/url-help">
     <f:textbox checkUrl="${rootURL}/descriptorByName/hudson.scm.SubversionSCM%24ModuleLocation/checkRemote" checkDependsOn=""/>
   </f:entry>
 
-<!--  <f:invisibleEntry>-->
-<!--    <f:textbox name="excludedRevprop" value="${it.scm.excludedRevprop}"  checkUrl="${rootURL}/descriptorByName/hudson.scm.SubversionSCM/checkRevisionPropertiesSupported" checkDependsOn="excludedRevProp remoteLocation credentialsId"/>-->
-<!--  </f:invisibleEntry>-->
-
-
-<!--  default behavior here does not trigger a request for excludedRevprop./-->
-
-<!--    <f:textbox checkMethod="post" id="svn.remote.loc" onchange="{ /* workaround for JENKINS-19124 */-->
-<!--            var self=this.targetElement ? this.targetElement : this;-->
-<!--            var r=findNextFormItem(self,'credentialsId');-->
-<!--            r.onchange(r);-->
-<!--            if (self===document.getElementById('svn.remote.loc')){-->
-<!--                r=findNextFormItem(self,'excludedRevprop');-->
-<!--                r.onchange(r);-->
-<!--            }-->
-<!--            self=null;-->
-<!--            r=null;-->
-<!--    }"/>-->
-
-<!--  The below works as if. If you check the html element we can see the proper checkUrl and checkDependsOn=remoteLocation-->
   <f:entry title="${%Credentials}" field="credentialsId">
     <c:select checkMethod="post"/>
   </f:entry>

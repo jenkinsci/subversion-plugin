@@ -54,6 +54,7 @@ import com.cloudbees.plugins.credentials.domains.SchemeSpecification;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.cloudbees.plugins.credentials.impl.CertificateCredentialsImpl;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
+import com.sun.tools.jconsole.JConsoleContext;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -2546,15 +2547,16 @@ public class SubversionSCM extends SCM {
          */
         @RequirePOST
         public FormValidation doCheckRevisionPropertiesSupported(@AncestorInPath Item context,
-                                                                 @QueryParameter String excludedRevprop,
-                                                                 @QueryParameter("remoteLocation") String remoteLocation,
-                                                                 @QueryParameter("credentialsId") String credentialsId
+                                                                 @QueryParameter String value,
+                                                                 @QueryParameter("svn.remote.loc") String remoteLocation,
+                                                                 @QueryParameter("svn.remote.cred") String credentialsId
                                                                  ) throws IOException, ServletException {
+
               String v = Util.fixNull(remoteLocation).trim();
             if (v.length() == 0)
                 return FormValidation.ok();
 
-            String revprop = Util.fixNull(excludedRevprop).trim();
+            String revprop = Util.fixNull(value).trim();
             if (revprop.length() == 0)
                 return FormValidation.ok();
 

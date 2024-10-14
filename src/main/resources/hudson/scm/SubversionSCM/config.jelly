@@ -57,17 +57,20 @@ THE SOFTWARE.
         <f:textarea />
     </f:entry>
 
-      <!--      findNearby() method in hudson-behavior.js is unable to find remoteLocation and credentialsId fields. even with "../ + ../ .. etc it is unable to find the fields.-->
-<!--      Not sure how to proceed from here. -->
+    <st:adjunct includes="hudson.scm.SubversionSCM.excludedRevprop-validation" />
+
+    <f:invisibleEntry>
+        <f:entry field="svn.remote.loc" >
+            <f:textbox />
+        </f:entry>
+        <f:entry field="svn.remote.cred" >
+            <f:textbox />
+      </f:entry>
+    </f:invisibleEntry>
+
     <f:entry title="${%Exclusion revprop name}" field="excludedRevprop">
-        <f:textbox checkUrl="${rootURL}/descriptorByName/hudson.scm.SubversionSCM/checkRevisionPropertiesSupported" checkDependsOn="remoteLocation credentialsId" />
+        <f:textbox checkUrl="${rootURL}/descriptorByName/hudson.scm.SubversionSCM/checkRevisionPropertiesSupported" checkDependsOn="svn.remote.loc svn.remote.cred" />
     </f:entry>
-
-
-
-<!--      <f:entry title="${%Exclusion revprop name}" field="excludedRevprop">-->
-<!--          <f:textbox checkMethod="post" checkUrl="'descriptorByName/hudson.scm.SubversionSCM/checkRevisionPropertiesSupported?value='+toValue(document.getElementById('remoteLocation'))+'&amp;credentialsId='+toValue(document.getElementById('svn.remote.cred'))+'&amp;excludedRevprop='+toValue(this)"/>-->
-<!--      </f:entry>-->
 
     <f:entry title="${%Filter changelog}" field="filterChangelog">
         <f:checkbox />
