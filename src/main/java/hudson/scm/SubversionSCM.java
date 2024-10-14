@@ -2352,25 +2352,24 @@ public class SubversionSCM extends SCM {
             }
         }
 
-//        /**
-//         * @deprecated retained for API compatibility only
-//         */
-//        @CheckForNull
-//        @Deprecated
-//        @RequirePOST
-//        public FormValidation doCheckRemote(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value, @QueryParameter String credentialsId) {
-//
-//            System.out.println("doCheckRemote NOT QHAT WE NEED");
-//            Jenkins instance = Jenkins.getInstance();
-//            if (instance != null) {
-//                ModuleLocation.DescriptorImpl d = instance.getDescriptorByType(ModuleLocation.DescriptorImpl.class);
-//                if (d != null) {
-//                    return d.doCheckCredentialsId(req, context, value, credentialsId);
-//                }
-//            }
-//
-//            return FormValidation.warning("Unable to check remote.");
-//        }
+        /**
+         * @deprecated retained for API compatibility only
+         */
+        @CheckForNull
+        @Deprecated
+        @RequirePOST
+        public FormValidation doCheckRemote(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value, @QueryParameter String credentialsId) {
+
+            Jenkins instance = Jenkins.getInstance();
+            if (instance != null) {
+                ModuleLocation.DescriptorImpl d = instance.getDescriptorByType(ModuleLocation.DescriptorImpl.class);
+                if (d != null) {
+                    return d.doCheckCredentialsId(req, context, value, credentialsId);
+                }
+            }
+
+            return FormValidation.warning("Unable to check remote.");
+        }
 
         /**
          * @deprecated use {@link #checkRepositoryPath(hudson.model.Job, org.tmatesoft.svn.core.SVNURL, com.cloudbees.plugins.credentials.common.StandardCredentials)}
