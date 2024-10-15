@@ -1,4 +1,4 @@
-Behaviour.specify("input[name='_.remoteLocation']", 'SubversionSCM.RemoteLocation', 0, function(element) {
+Behaviour.specify("input[name='_.remote']", 'SubversionSCM.RemoteLocation', 0, function(element) {
     element.addEventListener('blur', updateHiddenFields);
 });
 
@@ -8,13 +8,13 @@ Behaviour.specify("select[name='_.credentialsId'][filldependson='remote']", 'Sub
 
 function updateHiddenFields() {
 
-    var remoteLocationElement = document.querySelector("input[name='_.remoteLocation']");
+    var remoteLocationElement = document.querySelector("input[name='_.remote']");
     var credentialsIdElement = document.querySelector("select[name='_.credentialsId'][filldependson='remote']");
     var selectedOption = credentialsIdElement.options[credentialsIdElement.selectedIndex].value;
 
 
-    var remoteHidden = document.querySelector("input[name='_.svn.remote.loc']");
-    var credentialsHidden = document.querySelector("input[name='_.svn.remote.cred']");
+    var remoteHidden = document.querySelector("input[name='_.remoteLocation']");
+    var credentialsHidden = document.querySelector("input[name='_.remoteCredentialsId']");
 
     if (remoteHidden) {
         remoteHidden.value = remoteLocationElement.value;

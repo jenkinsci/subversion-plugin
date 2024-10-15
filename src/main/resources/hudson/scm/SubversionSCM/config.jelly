@@ -58,20 +58,17 @@ THE SOFTWARE.
     </f:entry>
 
     <st:adjunct includes="hudson.scm.SubversionSCM.excludedRevprop-validation" />
-
     <f:invisibleEntry>
-        <f:entry field="svn.remote.loc" >
+        <f:entry field="remoteLocation" >
             <f:textbox />
         </f:entry>
-        <f:entry field="svn.remote.cred" >
+        <f:entry field="remoteCredentialsId" >
             <f:textbox />
       </f:entry>
     </f:invisibleEntry>
-
     <f:entry title="${%Exclusion revprop name}" field="excludedRevprop">
-        <f:textbox checkUrl="${rootURL}/descriptorByName/hudson.scm.SubversionSCM/checkRevisionPropertiesSupported" checkDependsOn="svn.remote.loc svn.remote.cred" />
+        <f:textbox />
     </f:entry>
-
     <f:entry title="${%Filter changelog}" field="filterChangelog">
         <f:checkbox />
     </f:entry>

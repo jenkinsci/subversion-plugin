@@ -2544,10 +2544,10 @@ public class SubversionSCM extends SCM {
          * Validates the remote server supports custom revision properties
          */
         @RequirePOST
-        public FormValidation doCheckRevisionPropertiesSupported(@AncestorInPath Item context,
+        public FormValidation doCheckExcludedRevprop(@AncestorInPath Item context,
                                                                  @QueryParameter String value,
-                                                                 @QueryParameter("svn.remote.loc") String remoteLocation,
-                                                                 @QueryParameter("svn.remote.cred") String credentialsId
+                                                                 @QueryParameter String remoteLocation,
+                                                                 @QueryParameter String remoteCredentialsId
                                                                  ) throws IOException, ServletException {
 
               String v = Util.fixNull(remoteLocation).trim();
@@ -2564,7 +2564,7 @@ public class SubversionSCM extends SCM {
 
             try {
                 SVNURL repoURL = SVNURL.parseURIDecoded(new EnvVars(EnvVars.masterEnvVars).expand(v));
-                StandardCredentials credentials = lookupCredentials(context, credentialsId, repoURL);
+                StandardCredentials credentials = lookupCredentials(context, remoteCredentialsId, repoURL);
                 SVNNodeKind node = null;
                 try {
                     node = checkRepositoryPath(context,repoURL, credentials);
@@ -3231,7 +3231,7 @@ public class SubversionSCM extends SCM {
              */
             @RequirePOST
             public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath Item context,
-                    @QueryParameter("remoteLocation") String remote, @QueryParameter String value) {
+                    @QueryParameter String remote, @QueryParameter String value) {
 
                 // Test the connection only if we may use the credentials (cf. hudson.plugins.git.UserRemoteConfig.DescriptorImpl.doCheckUrl)
                 if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER) ||
