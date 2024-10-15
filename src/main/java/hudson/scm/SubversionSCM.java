@@ -2359,7 +2359,6 @@ public class SubversionSCM extends SCM {
         @Deprecated
         @RequirePOST
         public FormValidation doCheckRemote(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value, @QueryParameter String credentialsId) {
-
             Jenkins instance = Jenkins.getInstance();
             if (instance != null) {
                 ModuleLocation.DescriptorImpl d = instance.getDescriptorByType(ModuleLocation.DescriptorImpl.class);
