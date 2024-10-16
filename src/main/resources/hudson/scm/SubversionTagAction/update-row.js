@@ -1,4 +1,4 @@
 function updateRow(e, i) {
-    e.parentNode.parentNode.style.color = e.checked ? "red" : "blue";
+    e.parentNode.parentNode.style.color = e.checked ? "inherit" : "grey";
     document.getElementById("name" + i).disabled = !e.checked;
 }
