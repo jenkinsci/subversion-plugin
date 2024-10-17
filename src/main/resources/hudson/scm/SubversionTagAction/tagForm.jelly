@@ -68,6 +68,7 @@ THE SOFTWARE.
         <j:if test="${it.isTagged()}">
           <h2>${%Create more tags}</h2>
         </j:if>
+        <st:adjunct includes="hudson.scm.SubversionTagAction.svn-tagform-update-row"/>
         <form action="submit" method="post" enctype="multipart/form-data" name="tag">
           <table class="middle-align">
             <tr>
@@ -78,8 +79,8 @@ THE SOFTWARE.
             <j:forEach var="m" items="${tags.keySet()}" varStatus="loop">
               <tr>
                 <td><j:if test="${tags.size()!=1}">
-                  <input type="checkbox" name="tag${loop.index}" checked="true"
-                         id="tag${loop.index}" onchange="updateRow(this,${loop.index})" />
+                  <input type="checkbox" name="tag${loop.index}" checked="true" class="svn-tagform-tag-checkbox"
+                         id="tag${loop.index}" data-index="${loop.index}" />
                 </j:if></td>
                 <td style="white-space:nowrap;"><label for="tag${loop.index}">
                   ${m.url} (rev.${m.revision})
@@ -103,13 +104,6 @@ THE SOFTWARE.
             </f:entry>
           </table>
           <f:submit value="${%Tag}" />
-          <script>
-            <!-- update the visual feedback depending on the checkbox state -->
-            function updateRow(e,i) {
-              e.parentNode.parentNode.style.color = e.checked ? "inherit" : "grey";
-              $("name"+i).disabled = !e.checked;
-            }
-          </script>
         </form>
       </j:if>
     </l:main-panel>
