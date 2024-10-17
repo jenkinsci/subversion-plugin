@@ -8,7 +8,7 @@ function updateRow(changeEvent) {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-    document.querySelectorAll(".svn-tagform-tag-checkbox").forEach(checkbox => {
-        document.addEventListener("change", updateRow);
+    document.querySelectorAll(".svn-tagform-tag-checkbox").forEach((checkbox) => {
+        checkbox.addEventListener("change", updateRow);
     });
 });
