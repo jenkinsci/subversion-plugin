@@ -56,8 +56,18 @@ THE SOFTWARE.
     <f:entry title="${%Excluded Commit Messages}" field="excludedCommitMessages">
         <f:textarea />
     </f:entry>
+
+    <st:adjunct includes="hudson.scm.SubversionSCM.excludedRevprop-validation" />
+    <f:invisibleEntry>
+        <f:entry field="remoteLocation" >
+            <f:textbox />
+        </f:entry>
+        <f:entry field="remoteCredentialsId" >
+            <f:textbox />
+      </f:entry>
+    </f:invisibleEntry>
     <f:entry title="${%Exclusion revprop name}" field="excludedRevprop">
-        <f:textbox checkMethod="post" checkUrl="'descriptorByName/hudson.scm.SubversionSCM/checkRevisionPropertiesSupported?value='+toValue(document.getElementById('svn.remote.loc'))+'&amp;credentialsId='+toValue(document.getElementById('svn.remote.cred'))+'&amp;excludedRevprop='+toValue(this)"/>
+        <f:textbox />
     </f:entry>
     <f:entry title="${%Filter changelog}" field="filterChangelog">
         <f:checkbox />

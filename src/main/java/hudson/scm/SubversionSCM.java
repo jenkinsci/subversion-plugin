@@ -2543,15 +2543,17 @@ public class SubversionSCM extends SCM {
          * Validates the remote server supports custom revision properties
          */
         @RequirePOST
-        public FormValidation doCheckRevisionPropertiesSupported(@AncestorInPath Item context,
+        public FormValidation doCheckExcludedRevprop(@AncestorInPath Item context,
                                                                  @QueryParameter String value,
-                                                                 @QueryParameter String credentialsId,
-                                                                 @QueryParameter String excludedRevprop) throws IOException, ServletException {
-              String v = Util.fixNull(value).trim();
+                                                                 @QueryParameter String remoteLocation,
+                                                                 @QueryParameter String remoteCredentialsId
+                                                                 ) throws IOException, ServletException {
+
+              String v = Util.fixNull(remoteLocation).trim();
             if (v.length() == 0)
                 return FormValidation.ok();
 
-            String revprop = Util.fixNull(excludedRevprop).trim();
+            String revprop = Util.fixNull(value).trim();
             if (revprop.length() == 0)
                 return FormValidation.ok();
 
@@ -2561,7 +2563,7 @@ public class SubversionSCM extends SCM {
 
             try {
                 SVNURL repoURL = SVNURL.parseURIDecoded(new EnvVars(EnvVars.masterEnvVars).expand(v));
-                StandardCredentials credentials = lookupCredentials(context, credentialsId, repoURL);
+                StandardCredentials credentials = lookupCredentials(context, remoteCredentialsId, repoURL);
                 SVNNodeKind node = null;
                 try {
                     node = checkRepositoryPath(context,repoURL, credentials);
@@ -3200,10 +3202,10 @@ public class SubversionSCM extends SCM {
              */
             @RequirePOST
             public FormValidation doCheckRemote(/* TODO unused, delete */StaplerRequest req, @AncestorInPath Item context,
-                    @QueryParameter String remote) {
+                    @QueryParameter String value) {
 
                 // repository URL is required
-                String url = Util.fixEmptyAndTrim(remote);
+                String url = Util.fixEmptyAndTrim(value);
                 if (url == null) {
                     return FormValidation.error(Messages.SubversionSCM_doCheckRemote_required());
                 }
