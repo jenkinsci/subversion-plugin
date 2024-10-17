@@ -68,7 +68,7 @@ THE SOFTWARE.
         <j:if test="${it.isTagged()}">
           <h2>${%Create more tags}</h2>
         </j:if>
-        <st:adjunct includes="hudson.scm.SubversionTagAction.tagform"/>
+        <st:adjunct includes="hudson.scm.SubversionTagAction.svn-tagform-update-row"/>
         <form action="submit" method="post" enctype="multipart/form-data" name="tag">
           <table class="middle-align">
             <tr>
