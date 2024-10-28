@@ -59,12 +59,10 @@ THE SOFTWARE.
 
     <st:adjunct includes="hudson.scm.SubversionSCM.excludedRevprop-validation" />
     <f:invisibleEntry>
-        <f:entry field="remoteLocation" >
-            <f:textbox />
-        </f:entry>
-        <f:entry field="remoteCredentialsId" >
-            <f:textbox />
-      </f:entry>
+        <f:textbox field="remoteLocation" />
+    </f:invisibleEntry>
+    <f:invisibleEntry>
+        <f:textbox field="remoteCredentialsId"/>
     </f:invisibleEntry>
     <f:entry title="${%Exclusion revprop name}" field="excludedRevprop">
         <f:textbox />
