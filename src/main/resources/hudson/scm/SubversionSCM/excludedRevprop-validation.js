@@ -13,8 +13,8 @@ function updateHiddenFields() {
     var selectedOption = credentialsIdElement.options[credentialsIdElement.selectedIndex].value;
 
 
-    var remoteHidden = document.querySelector("input[name='_.remoteLocation']");
-    var credentialsHidden = document.querySelector("input[name='_.remoteCredentialsId']");
+    var remoteHidden = document.querySelector(".svn-remote-location-hidden");
+    var credentialsHidden = document.querySelector(".svn-credentials-id-hidden");
 
     if (remoteHidden) {
         remoteHidden.value = remoteLocationElement.value;

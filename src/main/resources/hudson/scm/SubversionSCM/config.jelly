@@ -58,12 +58,12 @@ THE SOFTWARE.
     </f:entry>
 
     <st:adjunct includes="hudson.scm.SubversionSCM.excludedRevprop-validation" />
-    <f:invisibleEntry>
-        <f:textbox field="remoteLocation" />
-    </f:invisibleEntry>
-    <f:invisibleEntry>
-        <f:textbox field="remoteCredentialsId"/>
-    </f:invisibleEntry>
+      <f:invisibleEntry>
+          <f:textbox field="remoteLocation" clazz="svn-remote-location-hidden"/>
+      </f:invisibleEntry>
+      <f:invisibleEntry>
+          <f:textbox field="remoteCredentialsId" clazz="svn-credentials-id-hidden"/>
+      </f:invisibleEntry>
     <f:entry title="${%Exclusion revprop name}" field="excludedRevprop">
         <f:textbox />
     </f:entry>
