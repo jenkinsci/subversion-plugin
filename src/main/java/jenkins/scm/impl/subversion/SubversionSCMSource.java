@@ -938,10 +938,7 @@ public class SubversionSCMSource extends SCMSource {
             } catch (SVNException e) {
                 LOGGER.log(Level.INFO, "Failed to access subversion repository "+url,e);
                 String message = hudson.scm.subversion.Messages.SubversionSCM_doCheckRemote_exceptionMsg1(
-                        Util.escape(url), Util.escape(e.getErrorMessage().getFullMessage()),
-                        "javascript:document.getElementById('svnerror').style.display='block';"
-                                + "document.getElementById('svnerrorlink').style.display='none';"
-                                + "return false;")
+                        Util.escape(url), Util.escape(e.getErrorMessage().getFullMessage()))
                   + "<br/><pre id=\"svnerror\" style=\"display:none\">"
                   + Util.xmlEscape(Functions.printThrowable(e)) + "</pre>";
                 return FormValidation.errorWithMarkup(message);
