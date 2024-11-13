@@ -3256,10 +3256,11 @@ public class SubversionSCM extends SCM {
                     return FormValidation.warning("The repository URL is parameterized, connection check skipped");
                 }
 
+                SVNRepository repo = null;
                 try {
                     SVNURL repoURL = SVNURL.parseURIEncoded(remote);
                     StandardCredentials credentials = lookupCredentials(context, value, repoURL);
-                    SVNRepository repo = descriptor().getRepository(context, repoURL, credentials, Collections.emptyMap(), null);
+                    repo = descriptor().getRepository(context, repoURL, credentials, Collections.emptyMap(), null);
                     String repoRoot = repo.getRepositoryRoot(true).toDecodedString();
                     String repoPath = repo.getLocation().toDecodedString().substring(repoRoot.length());
                     SVNPath path = new SVNPath(repoPath, true, true);
@@ -3270,6 +3271,12 @@ public class SubversionSCM extends SCM {
                 } catch (SVNException e) {
                     LOGGER.log(Level.SEVERE, e.getErrorMessage().getMessage());
                     return FormValidation.error("Unable to access the repository");
+                } finally {
+                    /* TODO: Quick and dirty fix (best to make SVNRepository implement AutoCloseable and remove this method as
+                     jenkins.scm.impl.subversion.SubversionSCMSource.DescriptorImpl.doCheckCredentialsId seems to be doing the exact same thing
+                     */
+                    if (repo != null)
+                        repo.closeSession();
                 }
                 return FormValidation.ok();
             }
