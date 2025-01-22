@@ -36,7 +36,6 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
-import javax.servlet.ServletException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
@@ -121,7 +120,7 @@ public class Sventon2 extends AbstractSventon {
         @RequirePOST
         public FormValidation doCheckUrl(@AncestorInPath Item project,
                                          @QueryParameter(fixEmpty=true) final String value)
-                throws IOException, ServletException {
+                throws IOException {
             if (project == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER) ||
                 project != null && !project.hasPermission(Item.EXTENDED_READ)) {
                 return FormValidation.ok();
@@ -130,7 +129,7 @@ public class Sventon2 extends AbstractSventon {
                 return FormValidation.ok();
 
             return new URLCheck() {
-                protected FormValidation check() throws IOException, ServletException {
+                protected FormValidation check() throws IOException {
                     String v = value;
                     if(!v.endsWith("/")) v+='/';
 
