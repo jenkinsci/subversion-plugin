@@ -39,7 +39,7 @@ import jenkins.model.Jenkins;
 import org.apache.commons.fileupload.FileItem;
 import org.kohsuke.putty.PuTTYKey;
 import org.kohsuke.stapler.HttpResponses;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNErrorMessage;
 import org.tmatesoft.svn.core.SVNException;
@@ -59,7 +59,7 @@ import java.io.Writer;
 import java.util.Arrays;
 import java.util.logging.Logger;
 
-import static javax.servlet.http.HttpServletResponse.SC_FORBIDDEN;
+import static jakarta.servlet.http.HttpServletResponse.SC_FORBIDDEN;
 import jenkins.util.JenkinsJVM;
 
 /**
@@ -97,7 +97,7 @@ public class UserProvidedCredential implements Closeable {
     /**
      * Parses the credential information from a form submission.
      */
-    public static UserProvidedCredential fromForm(StaplerRequest req, MultipartFormDataParser parser) throws IOException {
+    public static UserProvidedCredential fromForm(StaplerRequest2 req, MultipartFormDataParser parser) throws IOException {
         CrumbIssuer crumbIssuer = Jenkins.getInstance().getCrumbIssuer();
         if (crumbIssuer!=null && !crumbIssuer.validateCrumb(req, parser))
             throw HttpResponses.error(SC_FORBIDDEN,new IOException("No crumb found"));

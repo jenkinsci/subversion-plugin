@@ -3,7 +3,7 @@ package hudson.scm;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.FINER;
 import static java.util.logging.Level.WARNING;
-import static javax.servlet.http.HttpServletResponse.SC_OK;
+import static jakarta.servlet.http.HttpServletResponse.SC_OK;
 
 import hudson.Extension;
 import hudson.ExtensionList;
@@ -28,13 +28,13 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.servlet.ServletException;
+import jakarta.servlet.ServletException;
 
 import jenkins.model.Jenkins;
 import jenkins.triggers.SCMTriggerItem;
 import org.apache.commons.io.IOUtils;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerRequest2;
+import org.kohsuke.stapler.StaplerResponse2;
 
 import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.tmatesoft.svn.core.SVNCancelException;
@@ -89,7 +89,7 @@ public class SubversionRepositoryStatus {
      * don't protect this URL to simplify <code>post-commit</code> script set up.
      */
     @RequirePOST
-    public void doNotifyCommit(StaplerRequest req, StaplerResponse rsp) throws ServletException, IOException {
+    public void doNotifyCommit(StaplerRequest2 req, StaplerResponse2 rsp) throws ServletException, IOException {
         // compute the affected paths
         Set<String> affectedPath = new HashSet<>();
         String line;

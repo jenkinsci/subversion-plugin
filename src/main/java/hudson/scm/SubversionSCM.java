@@ -153,7 +153,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import javax.servlet.ServletException;
+import jakarta.servlet.ServletException;
 import javax.xml.transform.stream.StreamResult;
 
 import jenkins.scm.impl.subversion.RemotableSVNErrorMessage;
@@ -169,8 +169,8 @@ import org.apache.tools.ant.taskdefs.Chmod;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerRequest2;
+import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
 import org.kohsuke.stapler.verb.POST;
@@ -1920,7 +1920,11 @@ public class SubversionSCM extends SCM {
 
             @Override
             public StandardCredentials toCredentials(String description) {
-                return new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, null, description, userName, getPassword());
+                try {
+                    return new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, null, description, userName, getPassword());
+                } catch (Descriptor.FormException e) {
+                    throw new RuntimeException(e);
+                }
             }
 
             @Override
@@ -2176,7 +2180,7 @@ public class SubversionSCM extends SCM {
         }
 
         @Override
-        public SCM newInstance(StaplerRequest staplerRequest, JSONObject jsonObject) throws FormException {
+        public SCM newInstance(StaplerRequest2 staplerRequest, JSONObject jsonObject) throws FormException {
             return super.newInstance(staplerRequest, jsonObject);
         }
 
@@ -2225,7 +2229,7 @@ public class SubversionSCM extends SCM {
         }
 
         @Override
-        public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
+        public boolean configure(StaplerRequest2 req, JSONObject formData) throws FormException {
             globalExcludedRevprop = fixEmptyAndTrim(
                     req.getParameter("svn.global_excluded_revprop"));
             workspaceFormat = Integer.parseInt(req.getParameter("svn.workspaceFormat"));
@@ -2290,7 +2294,7 @@ public class SubversionSCM extends SCM {
          */
         // TODO: stapler should do multipart/form-data handling
         @POST
-        public void doPostCredential(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+        public void doPostCredential(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
             Jenkins.getInstance().checkPermission(Item.CONFIGURE);
 
             MultipartFormDataParser parser = new MultipartFormDataParser(req);
@@ -2358,7 +2362,7 @@ public class SubversionSCM extends SCM {
         @CheckForNull
         @Deprecated
         @RequirePOST
-        public FormValidation doCheckRemote(StaplerRequest req, @AncestorInPath AbstractProject context, @QueryParameter String value, @QueryParameter String credentialsId) {
+        public FormValidation doCheckRemote(StaplerRequest2 req, @AncestorInPath AbstractProject context, @QueryParameter String value, @QueryParameter String credentialsId) {
             Jenkins instance = Jenkins.getInstance();
             if (instance != null) {
                 ModuleLocation.DescriptorImpl d = instance.getDescriptorByType(ModuleLocation.DescriptorImpl.class);
@@ -3201,7 +3205,7 @@ public class SubversionSCM extends SCM {
              * Validate the value for a remote (repository) location.
              */
             @RequirePOST
-            public FormValidation doCheckRemote(/* TODO unused, delete */StaplerRequest req, @AncestorInPath Item context,
+            public FormValidation doCheckRemote(/* TODO unused, delete */StaplerRequest2 req, @AncestorInPath Item context,
                     @QueryParameter String value) {
 
                 // repository URL is required
@@ -3229,7 +3233,7 @@ public class SubversionSCM extends SCM {
              * Validate the value for a remote (repository) location.
              */
             @RequirePOST
-            public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath Item context,
+            public FormValidation doCheckCredentialsId(StaplerRequest2 req, @AncestorInPath Item context,
                     @QueryParameter String remote, @QueryParameter String value) {
 
                 // Test the connection only if we may use the credentials (cf. hudson.plugins.git.UserRemoteConfig.DescriptorImpl.doCheckUrl)
@@ -3243,7 +3247,7 @@ public class SubversionSCM extends SCM {
             /**
              * Validate the value for a remote (repository) location.
              */
-            public FormValidation checkCredentialsId(/* TODO unused, delete */StaplerRequest req, @NonNull Item context, String remote, String value) {
+            public FormValidation checkCredentialsId(/* TODO unused, delete */StaplerRequest2 req, @NonNull Item context, String remote, String value) {
 
                 // Ignore validation if repository URL is empty
                 String url = Util.fixEmptyAndTrim(remote);
