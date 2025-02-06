@@ -56,12 +56,11 @@ THE SOFTWARE.
   </scm>
 
   <properties>
-    <!-- To be removed once Jenkins.MANAGE gets out of beta -->
-    <useBeta>true</useBeta>
     <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <jenkins.baseline>2.479</jenkins.baseline>
-    <jenkins.version>${jenkins.baseline}.1</jenkins.version>
+    <!-- REMOVE -->
+    <jenkins.version>2.495</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <spotbugs.threshold>High</spotbugs.threshold> <!-- TODO some violations remaining -->
     <svnkit.version>1.10.11</svnkit.version>
