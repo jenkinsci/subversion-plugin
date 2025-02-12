@@ -753,7 +753,8 @@ public class SubversionSCMTest extends AbstractSubversionTest {
             "User-Name",
             "Do-Main\\User-Name",
             "", // this one is ignored
-            "DOmain12\\User34"};
+            "DOmain12\\User34",
+            "DOMAIN.user" };
 
         for (String validUsername : validUsernames) {
             assertEquals(
@@ -765,8 +766,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
         String[] invalidUsernames = new String[] {
             "\\user",
             "DOMAIN\\",
-            "DOMAIN@user",
-            "DOMAIN.user" };
+            "DOMAIN@user" };
 
         for (String invalidUsername : invalidUsernames) {
             assertEquals(
