@@ -31,7 +31,7 @@
     <div name="parameter">
       <st:adjunct includes="lib.form.select.select"/>
       <input type="hidden" name="name" value="${it.name}"/>
-      <select name="tag" class="select" fillUrl="${h.getCurrentDescriptorByNameUrl()}/${it.descriptor.descriptorUrl}/fillTagItems?param=${it.name}">
+      <select name="tag" class="jenkins-select__input" fillUrl="${h.getCurrentDescriptorByNameUrl()}/${it.descriptor.descriptorUrl}/fillTagItems?param=${it.name}">
         <option value="">${%Retrieving tags…}</option>
       </select>
     </div>
