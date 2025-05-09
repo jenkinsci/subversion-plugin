@@ -678,7 +678,7 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     
     @Test
     public void multipleRepositoriesSvn17() throws Exception {
-    	configureSvnWorkspaceFormat(SubversionWorkspaceSelector.WC_FORMAT_17);
+    	configureSvnWorkspaceFormat2(SubversionWorkspaceSelector.WC_FORMAT_17);
     	multipleRepositories();
     }
     
@@ -1804,14 +1804,14 @@ public class SubversionSCMTest extends AbstractSubversionTest {
     @Issue("JENKINS-20165")
     @Test
     public void pollingExternalsForFileSvn16() throws Exception {
-        configureSvnWorkspaceFormat(10 /* 1.6 (svn:externals to file) */);
+        configureSvnWorkspaceFormat2(10 /* 1.6 (svn:externals to file) */);
         invokeTestPollingExternalsForFile();
     }
 
     @Issue("JENKINS-20165")
     @Test
     public void pollingExternalsForFileSvn17() throws Exception {
-        configureSvnWorkspaceFormat(SubversionWorkspaceSelector.WC_FORMAT_17);
+        configureSvnWorkspaceFormat2(SubversionWorkspaceSelector.WC_FORMAT_17);
         invokeTestPollingExternalsForFile();
     }
 
