@@ -61,7 +61,7 @@ THE SOFTWARE.
     <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <jenkins.baseline>2.479</jenkins.baseline>
-    <jenkins.version>${jenkins.baseline}.1</jenkins.version>
+    <jenkins.version>${jenkins.baseline}.3</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <spotbugs.threshold>High</spotbugs.threshold> <!-- TODO some violations remaining -->
     <svnkit.version>1.10.11</svnkit.version>
@@ -241,7 +241,6 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>envinject</artifactId>
-      <version>2.922.v2274200dd258</version>
       <scope>test</scope>
     </dependency>
     <dependency>
