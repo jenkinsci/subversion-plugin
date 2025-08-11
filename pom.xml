@@ -241,7 +241,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>envinject</artifactId>
-      <version>2.922.v2274200dd258</version>
+      <version>2.926.v69c9b_3896a_96</version>
       <scope>test</scope>
     </dependency>
     <dependency>
