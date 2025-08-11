@@ -21,7 +21,7 @@ import hudson.util.Scrambler;
 import hudson.util.Secret;
 import jenkins.scm.impl.subversion.RemotableSVNErrorMessage;
 import org.apache.commons.beanutils.PropertyUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.tmatesoft.svn.core.SVNErrorCode;
 import org.tmatesoft.svn.core.SVNErrorMessage;
 import org.tmatesoft.svn.core.SVNURL;
