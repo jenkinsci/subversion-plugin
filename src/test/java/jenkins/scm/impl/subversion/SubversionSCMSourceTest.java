@@ -6,9 +6,11 @@ import hudson.scm.SubversionSCM;
 import hudson.scm.browsers.WebSVN;
 import hudson.scm.subversion.CheckoutUpdater;
 import hudson.scm.subversion.WorkspaceUpdater;
-import java.net.URL;
-import org.junit.Test;
+import jenkins.scm.api.SCMHead;
+import org.junit.jupiter.api.Test;
+import org.jvnet.hudson.test.Issue;
 
+import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -16,21 +18,19 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import jenkins.scm.api.SCMHead;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import org.jvnet.hudson.test.Issue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * @author Stephen Connolly
  */
-public class SubversionSCMSourceTest {
+class SubversionSCMSourceTest {
 
     @Test
-    public void isMatch() {
+    void isMatch() {
         assertThat(SubversionSCMSource.isMatch("trunk", "trunk"), is(true));
         assertThat(SubversionSCMSource.isMatch("trunk", "trunk*"), is(true));
         assertThat(SubversionSCMSource.isMatch("trunk", "*trunk"), is(true));
@@ -42,7 +42,7 @@ public class SubversionSCMSourceTest {
     }
 
     @Test
-    public void splitCludes() {
+    void splitCludes() {
         assertThat(SubversionSCMSource.splitCludes("trunk"),
                 is(new TreeSet<>(Collections.singletonList("trunk"))));
         assertThat(SubversionSCMSource.splitCludes("trunk,branches/*"),
@@ -59,6 +59,7 @@ public class SubversionSCMSourceTest {
         return Arrays.asList(values);
     }
 
+    @SafeVarargs
     private static SortedSet<List<String>> pathSet(List<String>... paths) {
         SortedSet<List<String>> result = new TreeSet<>(new SubversionSCMSource.StringListComparator());
         result.addAll(Arrays.asList(paths));
@@ -66,7 +67,7 @@ public class SubversionSCMSourceTest {
     }
 
     @Test
-    public void toPaths() {
+    void toPaths() {
         assertThat(SubversionSCMSource.toPaths(SubversionSCMSource.splitCludes("trunk")), is(pathSet(list("trunk"))));
         assertThat(SubversionSCMSource.toPaths(SubversionSCMSource.splitCludes("trunk,branches/*")), is(pathSet(
                 list("trunk"), list("branches", "*")
@@ -79,19 +80,19 @@ public class SubversionSCMSourceTest {
     }
 
     @Test
-    public void filterPaths() {
+    void filterPaths() {
         assertThat(SubversionSCMSource
-                .filterPaths(pathSet(list("trunk"), list("branches", "foo"), list("branches", "bar")),
-                        list("trunk")),
+                        .filterPaths(pathSet(list("trunk"), list("branches", "foo"), list("branches", "bar")),
+                                list("trunk")),
                 is(pathSet(list("trunk"))));
         assertThat(SubversionSCMSource
-                .filterPaths(pathSet(list("trunk"), list("branches", "foo"), list("branches", "bar")),
-                        list("branches")),
+                        .filterPaths(pathSet(list("trunk"), list("branches", "foo"), list("branches", "bar")),
+                                list("branches")),
                 is(pathSet(list("branches", "foo"), list("branches", "bar"))));
     }
 
     @Test
-    public void groupPaths() {
+    void groupPaths() {
         SortedMap<List<String>, SortedSet<List<String>>> result;
         SortedSet<List<String>> data = pathSet(
                 list("trunk"),
@@ -101,7 +102,7 @@ public class SubversionSCMSourceTest {
         );
         result = SubversionSCMSource.groupPaths(data, Collections.emptyList());
         assertThat(result.keySet(),
-                is((Set<List<String>>) pathSet(list("trunk"), list("branches"), list("tags"), list("sandbox"))));
+                is(pathSet(list("trunk"), list("branches"), list("tags"), list("sandbox"))));
         assertThat(result.get(list("trunk")), is(pathSet(list("trunk"))));
         assertThat(result.get(list("branches")), is(pathSet(list("branches", "*"))));
         data = pathSet(
@@ -116,11 +117,11 @@ public class SubversionSCMSourceTest {
         );
         result = SubversionSCMSource.groupPaths(data, Collections.emptyList());
         assertThat(result.keySet(),
-                is((Set<List<String>>) pathSet(list("trunk"), list("branches", "foo", "bar"), list("tags"),
+                is(pathSet(list("trunk"), list("branches", "foo", "bar"), list("tags"),
                         list("sandbox"))));
         result = SubversionSCMSource.groupPaths(result.get(list("sandbox")), list("sandbox", "*"));
         assertThat(result.keySet(),
-                is((Set<List<String>>) pathSet(list("sandbox", "*", "foo"), list("sandbox", "*", "bar", "bas"))));
+                is(pathSet(list("sandbox", "*", "foo"), list("sandbox", "*", "bar", "bas"))));
         data = pathSet(
                 list("trunk", "foo", "bar"),
                 list("trunk", "foo", "bas"),
@@ -133,19 +134,19 @@ public class SubversionSCMSourceTest {
         );
         result = SubversionSCMSource.groupPaths(data, Collections.emptyList());
         assertThat(result.keySet(),
-                is((Set<List<String>>) pathSet(list("trunk"), list("branches", "foo", "bar"), list("tags"),
+                is(pathSet(list("trunk"), list("branches", "foo", "bar"), list("tags"),
                         list("sandbox"))));
         assertThat(result.get(list("sandbox")),
                 is((Set<List<String>>) pathSet(list("sandbox", "joe-*", "foo", "bar", "*"),
                         list("sandbox", "jim-*", "foo", "bas", "*"), list("sandbox", "*", "bar", "bas", "*"))));
         result = SubversionSCMSource.groupPaths(result.get(list("sandbox")), list("sandbox"));
-        assertThat(result.keySet(), is((Set<List<String>>) pathSet(list("sandbox"))));
+        assertThat(result.keySet(), is(pathSet(list("sandbox"))));
         result = SubversionSCMSource.groupPaths(result.get(list("sandbox")), list("sandbox", "joe-*"));
-        assertThat(result.keySet(), is((Set<List<String>>) pathSet(list("sandbox", "joe-*", "foo", "bar"))));
+        assertThat(result.keySet(), is(pathSet(list("sandbox", "joe-*", "foo", "bar"))));
     }
 
     @Test
-    public void startsWith() {
+    void startsWith() {
         assertThat(SubversionSCMSource.startsWith(list(), list()), is(true));
         assertThat(SubversionSCMSource.startsWith(list("a", "b", "c"), list()), is(true));
         assertThat(SubversionSCMSource.startsWith(list("a", "b", "c"), list("a")), is(true));
@@ -158,7 +159,7 @@ public class SubversionSCMSourceTest {
     }
 
     @Test
-    public void wildcardStartsWith() {
+    void wildcardStartsWith() {
         assertThat(SubversionSCMSource.wildcardStartsWith(list(), list()), is(true));
         assertThat(SubversionSCMSource.wildcardStartsWith(list("a", "b", "c"), list()), is(true));
         assertThat(SubversionSCMSource.wildcardStartsWith(list("a", "b", "c"), list("a")), is(true));
@@ -192,33 +193,33 @@ public class SubversionSCMSourceTest {
         assertThat(SubversionSCMSource.wildcardStartsWith(list("a", "b", "c"), list("a", "d")), is(false));
         assertThat(SubversionSCMSource.wildcardStartsWith(list("a", "b", "c"), list("d")), is(false));
     }
-    
+
     @Issue("JENKINS-66777")
     @Test
-    public void scmFromSCMSourceConfiguredWithBrowser() throws Exception {
+    void scmFromSCMSourceConfiguredWithBrowser() throws Exception {
         final String browserUrl = "http://websvn.local/";
-        
+
         SubversionSCMSource source = new SubversionSCMSource(null, "svn://svn.example.com");
         source.setBrowser(new WebSVN(new URL(browserUrl)));
-        
+
         SCM scm = source.build(new SCMHead("trunk"));
         RepositoryBrowser browser = scm.getBrowser();
         assertNotNull(browser);
         assertEquals(WebSVN.class, browser.getClass());
-        assertEquals(browserUrl, ((WebSVN)browser).url.toString());
+        assertEquals(browserUrl, ((WebSVN) browser).url.toString());
     }
-    
+
     @Issue("JENKINS-41850")
     @Test
-    public void scmFromSCMSourceConfiguredWithWorkspaceUpdate() throws Exception {
+    void scmFromSCMSourceConfiguredWithWorkspaceUpdate() {
         final WorkspaceUpdater workspaceUpdater = new CheckoutUpdater();
-        
+
         SubversionSCMSource source = new SubversionSCMSource(null, "svn://svn.example.com");
         source.setWorkspaceUpdater(workspaceUpdater);
-        
+
         SubversionSCM scm = (SubversionSCM) source.build(new SCMHead("trunk"));
         assertNotNull(scm.getWorkspaceUpdater());
         assertEquals(workspaceUpdater.getClass(), scm.getWorkspaceUpdater().getClass());
     }
-    
+
 }

@@ -7,22 +7,25 @@ import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import hudson.Proc;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
+import org.junit.jupiter.api.Test;
+import org.jvnet.hudson.test.Issue;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 import java.util.Arrays;
 import java.util.Collections;
-import org.junit.Test;
-import org.jvnet.hudson.test.Issue;
 
 /**
  * @author Kohsuke Kawaguchi
  */
-public class PerJobCredentialStoreTest extends AbstractSubversionTest {
+@WithJenkins
+class PerJobCredentialStoreTest extends AbstractSubversionTest {
+
     /**
      * There was a bug that credentials stored in the remote call context was serialized wrongly.
      */
     @Issue("JENKINS-8061")
     @Test
-    public void remoteBuild() throws Exception {
+    void remoteBuild() throws Exception {
         Proc p = runSvnServe(SubversionSCMTest.class.getResource("HUDSON-1379.zip"));
         try {
             SystemCredentialsProvider.getInstance().setDomainCredentialsMap(Collections.singletonMap(Domain.global(),

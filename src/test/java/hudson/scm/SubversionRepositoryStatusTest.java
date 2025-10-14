@@ -1,42 +1,40 @@
 package hudson.scm;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import hudson.model.AbstractProject;
 import hudson.scm.SubversionRepositoryStatus.JobProvider;
+import org.junit.jupiter.api.Test;
+import org.jvnet.hudson.test.Issue;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
 
-import jakarta.servlet.ServletException;
-
-import org.junit.Test;
-import org.junit.Assert;
-import org.jvnet.hudson.test.Issue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * @author kutzi
  */
-public class SubversionRepositoryStatusTest {
-    
+class SubversionRepositoryStatusTest {
+
     @SuppressWarnings("rawtypes")
     @Test
     @Issue("JENKINS-15794")
-    public void shouldIgnoreDisabledJobs() throws ServletException, IOException {
+    void shouldIgnoreDisabledJobs() {
         SubversionRepositoryStatus.JobTriggerListenerImpl listener = new SubversionRepositoryStatus.JobTriggerListenerImpl();
 
         // GIVEN: a disabled project
         final AbstractProject project = mock(AbstractProject.class);
         when(project.isDisabled()).thenReturn(true);
-        
+
         JobProvider jobProvider = () -> Collections.singletonList(project);
-        
+
         listener.setJobProvider(jobProvider);
-        
+
         // WHEN: post-commit hook is triggered
         listener.onNotify(UUID.randomUUID(), -1, Collections.singleton("/somepath"));
 
@@ -45,50 +43,50 @@ public class SubversionRepositoryStatusTest {
     }
 
     @Test
-    public void testDoModuleLocationHasAPathFromAffectedPath_affectedPathIsInConfiguredRepo() {
-    	// Given
-    	SubversionRepositoryStatus.JobTriggerListenerImpl listener = new SubversionRepositoryStatus.JobTriggerListenerImpl();
-    	String configuredRepoFullPath = "https://svn.company.com/project/trunk";
-    	String rootRepoPath = "https://svn.company.com/project";
+    void testDoModuleLocationHasAPathFromAffectedPath_affectedPathIsInConfiguredRepo() {
+        // Given
+        SubversionRepositoryStatus.JobTriggerListenerImpl listener = new SubversionRepositoryStatus.JobTriggerListenerImpl();
+        String configuredRepoFullPath = "https://svn.company.com/project/trunk";
+        String rootRepoPath = "https://svn.company.com/project";
 
-    	Set<String> affectedPath = Collections.singleton("trunk/src/Test.java");
+        Set<String> affectedPath = Collections.singleton("trunk/src/Test.java");
 
-    	// When
-    	boolean containsAffectedPath = listener.doModuleLocationHasAPathFromAffectedPath(configuredRepoFullPath, rootRepoPath, affectedPath);
+        // When
+        boolean containsAffectedPath = listener.doModuleLocationHasAPathFromAffectedPath(configuredRepoFullPath, rootRepoPath, affectedPath);
 
-    	// Expect
-    	Assert.assertTrue("affected path should be true", containsAffectedPath);
+        // Expect
+        assertTrue(containsAffectedPath, "affected path should be true");
     }
 
     @Test
-    public void testDoModuleLocationHasAPathFromAffectedPath_affectedPathIsNotInConfiguredRepo() {
-    	// Given
-    	SubversionRepositoryStatus.JobTriggerListenerImpl listener = new SubversionRepositoryStatus.JobTriggerListenerImpl();
-    	String configuredRepoFullPath = "https://svn.company.com/project/trunk";
-    	String rootRepoPath = "https://svn.company.com/project";
+    void testDoModuleLocationHasAPathFromAffectedPath_affectedPathIsNotInConfiguredRepo() {
+        // Given
+        SubversionRepositoryStatus.JobTriggerListenerImpl listener = new SubversionRepositoryStatus.JobTriggerListenerImpl();
+        String configuredRepoFullPath = "https://svn.company.com/project/trunk";
+        String rootRepoPath = "https://svn.company.com/project";
 
-    	Set<String> affectedPath = Collections.singleton("tags/src/");
+        Set<String> affectedPath = Collections.singleton("tags/src/");
 
-    	// When
-    	boolean containsAffectedPath = listener.doModuleLocationHasAPathFromAffectedPath(configuredRepoFullPath, rootRepoPath, affectedPath);
+        // When
+        boolean containsAffectedPath = listener.doModuleLocationHasAPathFromAffectedPath(configuredRepoFullPath, rootRepoPath, affectedPath);
 
-    	// Expect
-    	Assert.assertFalse("affected path should be false", containsAffectedPath);
+        // Expect
+        assertFalse(containsAffectedPath, "affected path should be false");
     }
 
     @Test
-    public void testDoModuleLocationHasAPathFromAffectedPath_affectedPathIsNotInSameRepo() {
-    	// Given
-    	SubversionRepositoryStatus.JobTriggerListenerImpl listener = new SubversionRepositoryStatus.JobTriggerListenerImpl();
-    	String configuredRepoFullPath = "https://svn.company.com/project/trunk";
-    	String rootRepoPath = "https://svn.company.com/projecttwo";
+    void testDoModuleLocationHasAPathFromAffectedPath_affectedPathIsNotInSameRepo() {
+        // Given
+        SubversionRepositoryStatus.JobTriggerListenerImpl listener = new SubversionRepositoryStatus.JobTriggerListenerImpl();
+        String configuredRepoFullPath = "https://svn.company.com/project/trunk";
+        String rootRepoPath = "https://svn.company.com/projecttwo";
 
-    	Set<String> affectedPath = Collections.singleton("trunk/src/Test.java");
+        Set<String> affectedPath = Collections.singleton("trunk/src/Test.java");
 
-    	// When
-    	boolean containsAffectedPath = listener.doModuleLocationHasAPathFromAffectedPath(configuredRepoFullPath, rootRepoPath, affectedPath);
+        // When
+        boolean containsAffectedPath = listener.doModuleLocationHasAPathFromAffectedPath(configuredRepoFullPath, rootRepoPath, affectedPath);
 
-    	// Expect
-    	Assert.assertFalse("affected path should be false", containsAffectedPath);
+        // Expect
+        assertFalse(containsAffectedPath, "affected path should be false");
     }
 }

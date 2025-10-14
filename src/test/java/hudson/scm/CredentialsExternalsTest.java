@@ -29,49 +29,64 @@ import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
+import jenkins.scm.impl.subversion.SubversionSampleRepoExtension;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.jvnet.hudson.test.Issue;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
+
 import java.net.ServerSocket;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 import java.util.TreeSet;
-import jenkins.scm.impl.subversion.SubversionSampleRepoRule;
-import org.junit.ClassRule;
-import org.junit.Test;
-import static org.junit.Assert.*;
-import org.junit.Rule;
-import org.jvnet.hudson.test.BuildWatcher;
-import org.jvnet.hudson.test.Issue;
-import org.jvnet.hudson.test.JenkinsRule;
 
-public class CredentialsExternalsTest {
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-    @ClassRule
-    public static BuildWatcher buildWatcher = new BuildWatcher();
+@WithJenkins
+class CredentialsExternalsTest {
 
-    @Rule
-    public JenkinsRule r = new JenkinsRule();
+    @SuppressWarnings("unused")
+    @RegisterExtension
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
 
-    @Rule
-    public SubversionSampleRepoRule main = new SubversionSampleRepoRule();
+    private JenkinsRule r;
 
-    @Rule
-    public SubversionSampleRepoRule ext = new SubversionSampleRepoRule();
+    @RegisterExtension
+    private final SubversionSampleRepoExtension main = new SubversionSampleRepoExtension();
+
+    @RegisterExtension
+    private final SubversionSampleRepoExtension ext = new SubversionSampleRepoExtension();
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
 
     @Issue("JENKINS-32167")
     @Test
-    public void smokes() throws Exception {
+    void smokes() throws Exception {
         main.init();
         main.writeConf("svnserve.conf",
-            "[general]\n" +
-            "password-db = passwd\n" +
-            "authz-db = authz\n" +
-            "anon-access = none\n"); // https://bugzilla.redhat.com/show_bug.cgi?id=556712
+                """
+                        [general]
+                        password-db = passwd
+                        authz-db = authz
+                        anon-access = none
+                        """); // https://bugzilla.redhat.com/show_bug.cgi?id=556712
         main.writeConf("passwd",
-            "[users]\n" +
-            "alice = alice\n");
+                """
+                        [users]
+                        alice = alice
+                        """);
         main.writeConf("authz",
-            "[/]\n" +
-            "alice = rw\n");
+                """
+                        [/]
+                        alice = rw
+                        """);
         // Adapted from AbstractSubversionTest.runSvnServe:
         int mainPort;
         ServerSocket serverSocket = new ServerSocket(0);
@@ -86,16 +101,22 @@ public class CredentialsExternalsTest {
             System.err.println("Running svnserve on <svn://localhost:" + mainPort + "> " + main.uuid());
             ext.init();
             ext.writeConf("svnserve.conf",
-                "[general]\n" +
-                "password-db = passwd\n" +
-                "authz-db = authz\n" +
-                "anon-access = none\n");
+                    """
+                            [general]
+                            password-db = passwd
+                            authz-db = authz
+                            anon-access = none
+                            """);
             ext.writeConf("passwd",
-                "[users]\n" +
-                "bob = bob\n");
+                    """
+                            [users]
+                            bob = bob
+                            """);
             ext.writeConf("authz",
-                "[/]\n" +
-                "bob = rw\n");
+                    """
+                            [/]
+                            bob = rw
+                            """);
             int extPort;
             serverSocket = new ServerSocket(0);
             try {
@@ -111,12 +132,12 @@ public class CredentialsExternalsTest {
                 main.svnkit("commit", "--message=externals", main.wc());
                 FreeStyleProject p = r.createFreeStyleProject("p");
                 SystemCredentialsProvider.getInstance().setDomainCredentialsMap(Collections.singletonMap(Domain.global(), Arrays.asList(
-                    new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "main-creds", null, "alice", "alice"),
-                    new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "ext-creds", null, "bob", "bob"))));
+                        new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "main-creds", null, "alice", "alice"),
+                        new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "ext-creds", null, "bob", "bob"))));
                 p.setScm(new SubversionSCM(
-                    Collections.singletonList(new SubversionSCM.ModuleLocation("svn://localhost:" + mainPort + "/prj/trunk", "main-creds", ".", "", false)),
-                    null, null, null, null, null, null, null, false, false, // WTF was all that?
-                    Collections.singletonList(new SubversionSCM.AdditionalCredentials("<svn://localhost:" + extPort + "> " + ext.uuid(), "ext-creds"))));
+                        Collections.singletonList(new SubversionSCM.ModuleLocation("svn://localhost:" + mainPort + "/prj/trunk", "main-creds", ".", "", false)),
+                        null, null, null, null, null, null, null, false, false, // WTF was all that?
+                        Collections.singletonList(new SubversionSCM.AdditionalCredentials("<svn://localhost:" + extPort + "> " + ext.uuid(), "ext-creds"))));
                 FreeStyleBuild b = r.buildAndAssertSuccess(p);
                 assertEquals("", b.getWorkspace().child("file").readToString());
                 assertEquals("", b.getWorkspace().child("ext/file").readToString());

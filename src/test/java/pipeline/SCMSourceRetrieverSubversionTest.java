@@ -27,19 +27,12 @@ package pipeline;
 import com.cloudbees.hudson.plugins.folder.Folder;
 import hudson.Functions;
 import hudson.model.Result;
-import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.logging.Level;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitSampleRepoRule;
+import jenkins.plugins.git.junit.jupiter.WithGitSampleRepo;
 import jenkins.scm.impl.subversion.SubversionSCMSource;
-import jenkins.scm.impl.subversion.SubversionSampleRepoRule;
+import jenkins.scm.impl.subversion.SubversionSampleRepoExtension;
 import org.apache.commons.io.FileUtils;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.nullValue;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -48,28 +41,57 @@ import org.jenkinsci.plugins.workflow.libs.GlobalLibraries;
 import org.jenkinsci.plugins.workflow.libs.LibraryConfiguration;
 import org.jenkinsci.plugins.workflow.libs.SCMBasedRetriever;
 import org.jenkinsci.plugins.workflow.libs.SCMSourceRetriever;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assume.assumeFalse;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.BuildWatcher;
-import org.jvnet.hudson.test.FlagRule;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.LoggerRule;
+import org.jvnet.hudson.test.LogRecorder;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class SCMSourceRetrieverSubversionTest {
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.logging.Level;
 
-    @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
-    @Rule public JenkinsRule r = new JenkinsRule();
-    @Rule public GitSampleRepoRule sampleRepo = new GitSampleRepoRule();
-    @Rule public SubversionSampleRepoRule sampleRepoSvn = new SubversionSampleRepoRule();
-    @Rule public FlagRule<Boolean> includeSrcTest = new FlagRule<>(() -> SCMBasedRetriever.INCLUDE_SRC_TEST_IN_LIBRARIES, v -> SCMBasedRetriever.INCLUDE_SRC_TEST_IN_LIBRARIES = v);
-    @Rule public LoggerRule logging = new LoggerRule().record(SCMBasedRetriever.class, Level.FINE);
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+
+@WithJenkins
+@WithGitSampleRepo
+class SCMSourceRetrieverSubversionTest {
+
+    @SuppressWarnings("unused")
+    @RegisterExtension
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
+    private JenkinsRule r;
+    private GitSampleRepoRule sampleRepo;
+    @RegisterExtension
+    private final SubversionSampleRepoExtension sampleRepoSvn = new SubversionSampleRepoExtension();
+    private boolean includeSrcTest;
+    @SuppressWarnings("unused")
+    private final LogRecorder logging = new LogRecorder().record(SCMBasedRetriever.class, Level.FINE);
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule, GitSampleRepoRule repo) {
+        r = rule;
+        sampleRepo = repo;
+        includeSrcTest = SCMBasedRetriever.INCLUDE_SRC_TEST_IN_LIBRARIES;
+    }
+
+    @AfterEach
+    void afterEach() {
+        SCMBasedRetriever.INCLUDE_SRC_TEST_IN_LIBRARIES = includeSrcTest;
+    }
 
     @Issue("SECURITY-2441")
-    @Test public void libraryNamesAreNotUsedAsCheckoutDirectories() throws Exception {
+    @Test
+    void libraryNamesAreNotUsedAsCheckoutDirectories() throws Exception {
         sampleRepo.init();
         sampleRepo.write("vars/globalLibVar.groovy", "def call() { echo('global library') }");
         sampleRepo.git("add", "vars");
@@ -109,7 +131,8 @@ public class SCMSourceRetrieverSubversionTest {
     }
 
     @Issue("SECURITY-2463")
-    @Test public void checkoutDirectoriesAreNotReusedByDifferentScms() throws Exception {
+    @Test
+    void checkoutDirectoriesAreNotReusedByDifferentScms() throws Exception {
         assumeFalse(Functions.isWindows()); // Checkout hook is not cross-platform.
         sampleRepo.init();
         sampleRepo.write("vars/foo.groovy", "def call() { echo('using global lib') }");
@@ -131,7 +154,7 @@ public class SCMSourceRetrieverSubversionTest {
         Path postCheckoutHook = gitDirInSvnRepo.toPath().resolve("hooks/post-checkout");
         // Always create hooks directory for compatibility with https://github.com/jenkinsci/git-plugin/pull/1207.
         Files.createDirectories(postCheckoutHook.getParent());
-        Files.write(postCheckoutHook, ("#!/bin/sh\ntouch '" + jenkinsRootDir + "/hook-executed'\n").getBytes(StandardCharsets.UTF_8));
+        Files.writeString(postCheckoutHook, "#!/bin/sh\ntouch '" + jenkinsRootDir + "/hook-executed'\n");
         sampleRepoSvn.svnkit("add", sampleRepoSvn.wc() + "/vars");
         sampleRepoSvn.svnkit("add", sampleRepoSvn.wc() + "/.git");
         sampleRepoSvn.svnkit("propset", "svn:executable", "ON", sampleRepoSvn.wc() + "/.git/hooks/post-checkout");
@@ -149,6 +172,6 @@ public class SCMSourceRetrieverSubversionTest {
         // Delete the folder library, and rerun the build so the global library is used.
         f.getProperties().clear();
         WorkflowRun b2 = r.buildAndAssertSuccess(p);
-        assertFalse("Git checkout should not execute hooks from SVN repo", new File(r.jenkins.getRootDir(), "hook-executed").exists());
+        assertFalse(new File(r.jenkins.getRootDir(), "hook-executed").exists(), "Git checkout should not execute hooks from SVN repo");
     }
 }

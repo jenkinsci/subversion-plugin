@@ -29,7 +29,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>5.18</version>
+    <version>5.27</version>
     <relativePath />
   </parent>
 
@@ -63,6 +63,7 @@ THE SOFTWARE.
     <jenkins.version>${jenkins.baseline}.1</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <spotbugs.threshold>High</spotbugs.threshold> <!-- TODO some violations remaining -->
+    <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
     <svnkit.version>1.10.11</svnkit.version>
   </properties>
 
