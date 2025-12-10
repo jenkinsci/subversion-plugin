@@ -36,12 +36,12 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
-import javax.servlet.ServletException;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import jenkins.model.Jenkins;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
  * {@link RepositoryBrowser} for Sventon 1.x.
@@ -97,9 +97,10 @@ public class Sventon extends AbstractSventon {
         /**
          * Performs on-the-fly validation of the URL.
          */
+        @RequirePOST
         public FormValidation doCheckUrl(@AncestorInPath Item project,
                                          @QueryParameter(fixEmpty=true) final String value)
-                throws IOException, ServletException {
+                throws IOException {
             if (project == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER) ||
                 project != null && !project.hasPermission(Item.EXTENDED_READ)) {
                 return FormValidation.ok();
@@ -108,7 +109,7 @@ public class Sventon extends AbstractSventon {
                 return FormValidation.ok();
 
             return new URLCheck() {
-                protected FormValidation check() throws IOException, ServletException {
+                protected FormValidation check() throws IOException {
                     String v = value;
                     if(!v.endsWith("/")) v+='/';
 

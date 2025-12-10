@@ -26,12 +26,20 @@ package jenkins.scm.impl.subversion;
 
 import hudson.ExtensionList;
 import hudson.scm.SubversionRepositoryStatus;
+import jenkins.scm.impl.mock.AbstractSampleRepoRule;
+import org.apache.commons.io.FileUtils;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.tmatesoft.svn.cli.svn.SVN;
+import org.tmatesoft.svn.cli.svnadmin.SVNAdmin;
+import org.tmatesoft.svn.core.wc.SVNClientManager;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -39,15 +47,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import jenkins.scm.impl.mock.AbstractSampleRepoRule;
-import org.apache.commons.io.FileUtils;
-import static org.junit.Assert.assertEquals;
-import org.jvnet.hudson.test.JenkinsRule;
-import org.tmatesoft.svn.cli.svn.SVN;
-import org.tmatesoft.svn.cli.svnadmin.SVNAdmin;
-import org.tmatesoft.svn.core.wc.SVNClientManager;
 
-public final class SubversionSampleRepoRule extends AbstractSampleRepoRule {
+public class SubversionSampleRepoRule extends AbstractSampleRepoRule {
 
     private File repo;
     private File wc;
@@ -62,11 +63,11 @@ public final class SubversionSampleRepoRule extends AbstractSampleRepoRule {
     }
 
     public void write(String rel, String text) throws IOException {
-        FileUtils.write(new File(wc, rel), text);
+        FileUtils.write(new File(wc, rel), text, StandardCharsets.UTF_8);
     }
 
     public void writeConf(String rel, String text) throws IOException {
-        FileUtils.write(new File(new File(repo, "conf"), rel), text);
+        FileUtils.write(new File(new File(repo, "conf"), rel), text, StandardCharsets.UTF_8);
     }
 
     public File root() {
@@ -123,7 +124,7 @@ public final class SubversionSampleRepoRule extends AbstractSampleRepoRule {
         args.addAll(Arrays.asList(cmds));
         run(false, wc, args.toArray(new String[0]));
     }
-    
+
     public String wc() {
         return wc.getAbsolutePath();
     }
@@ -133,10 +134,12 @@ public final class SubversionSampleRepoRule extends AbstractSampleRepoRule {
             public void _run(String... cmds) {
                 super.run(cmds);
             }
+
             @Override
             public void success() {
                 // Unable to call setCompleted() so Cancellator will not work; probably irrelevant.
             }
+
             @Override
             public void failure() {
                 throw new AssertionError("svn command failed");
@@ -150,10 +153,12 @@ public final class SubversionSampleRepoRule extends AbstractSampleRepoRule {
             public void _run(String... cmds) {
                 run(cmds);
             }
+
             @Override
             public void success() {
                 // Unable to call setCompleted() so Cancellator will not work; probably irrelevant.
             }
+
             @Override
             public void failure() {
                 throw new AssertionError("svn command failed");
@@ -170,7 +175,7 @@ public final class SubversionSampleRepoRule extends AbstractSampleRepoRule {
         write("file", "");
         svnkit("add", wc() + "/file");
         svnkit("commit", "--message=init", wc());
-        assertEquals(2, revision());
+        org.junit.Assert.assertEquals(2, revision());
     }
 
     private String uuid(String url) throws Exception {

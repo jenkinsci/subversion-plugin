@@ -32,6 +32,8 @@ final class CompareAgainstBaselineCallable extends MasterToSlaveCallable<Polling
     private final ISVNAuthenticationProvider defaultAuthProvider;
     private final Map<String, ISVNAuthenticationProvider> authProviders;
     private final String nodeName;
+    private final boolean storeAuthToDisk = SubversionSCM.descriptor().isStoreAuthToDisk();
+    private final int workspaceFormat = SubversionSCM.descriptor().getWorkspaceFormat();
     private static final long serialVersionUID = 8200959096894789583L;
 
     CompareAgainstBaselineCallable(SVNRevisionState baseline, SVNLogHandler logHandler, String projectName,
@@ -112,7 +114,7 @@ final class CompareAgainstBaselineCallable extends MasterToSlaveCallable<Polling
     private ChangeState checkInternal(String url,ISVNAuthenticationProvider authProvider, long baseRev, Map<String,Long> revs) throws SVNException {
         ChangeState changes = new ChangeState();
         final SVNURL svnurl = SVNURL.parseURIDecoded(url);
-        long nowRev = new SvnInfo(SubversionSCM.parseSvnInfo(svnurl, authProvider)).revision;
+        long nowRev = new SvnInfo(SubversionSCM.parseSvnInfo(svnurl, authProvider, storeAuthToDisk, workspaceFormat)).revision;
 
         changes.changes |= (nowRev>baseRev);
 

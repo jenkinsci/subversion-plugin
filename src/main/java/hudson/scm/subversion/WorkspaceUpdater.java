@@ -32,6 +32,7 @@ import hudson.scm.SubversionSCM;
 import hudson.scm.SubversionSCM.External;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.scm.SvnClientManager;
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 import org.kohsuke.stapler.export.ExportedBean;
 import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNDepth;
@@ -41,7 +42,6 @@ import org.tmatesoft.svn.core.wc.SVNRevision;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
 
@@ -56,13 +56,13 @@ import java.util.List;
  * @since 1.23
  */
 @ExportedBean
-public abstract class WorkspaceUpdater extends AbstractDescribableImpl<WorkspaceUpdater> implements ExtensionPoint, Serializable {
+public abstract class WorkspaceUpdater extends AbstractDescribableImpl<WorkspaceUpdater> implements ExtensionPoint {
     private static final long serialVersionUID = 8902811304319899817L;
 
     /**
      * Creates the {@link UpdateTask} instance, which performs the actual check out / update.
      */
-    public abstract UpdateTask createTask();
+    public abstract UpdateTask createTask(int workspaceFormat);
 
     @Override
     public WorkspaceUpdaterDescriptor getDescriptor() {
@@ -86,14 +86,14 @@ public abstract class WorkspaceUpdater extends AbstractDescribableImpl<Workspace
     }
 
     /**
-     * This object gets instantiated on the master and then sent to the slave via remoting,
+     * This object gets instantiated on the controller and then sent to the agent via remoting,
      * then used to {@linkplain #perform() perform the actual checkout activity}.
      *
      * <p>
      * A number of contextual objects are defined as fields, to be used by the {@link #perform()} method.
      * These fields are set by {@link SubversionSCM} before the invocation.
      */
-    public static abstract class UpdateTask implements Serializable {
+    public static abstract class UpdateTask implements SerializableOnlyOverRemoting {
         // fields that are set by the caller as context for the perform method
 
         /**
@@ -108,7 +108,7 @@ public abstract class WorkspaceUpdater extends AbstractDescribableImpl<Workspace
         public SvnClientManager clientManager;
 
         /**
-         * Encapusulates the authentication. Connected back to Jenkins master. Never null.
+         * Encapusulates the authentication. Connected back to Jenkins controller. Never null.
          */
         public ISVNAuthenticationProvider authProvider;
 
@@ -172,8 +172,8 @@ public abstract class WorkspaceUpdater extends AbstractDescribableImpl<Workspace
          * Delegates the execution to another updater. This is most often useful to fall back to the fresh check out
          * by using {@link CheckoutUpdater}.
          */
-        protected final List<External> delegateTo(WorkspaceUpdater wu) throws IOException, InterruptedException {
-            return delegateTo(wu.createTask());
+        protected final List<External> delegateTo(WorkspaceUpdater wu, int workspaceFormat) throws IOException, InterruptedException {
+            return delegateTo(wu.createTask(workspaceFormat));
         }
 
         /**

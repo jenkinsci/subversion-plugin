@@ -29,7 +29,7 @@ import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import hudson.Extension;
@@ -91,7 +91,7 @@ public class VisualSVN extends SubversionRepositoryBrowser {
             throw new MalformedURLException(Messages.SubversionSCM_doCheckRemote_invalidUrl());
         }
 
-        URL test = new URL(url);
+        new URL(url);
 
         if(ret.endsWith("/")) {
             ret = ret.substring(0, ret.length() - 1);

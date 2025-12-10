@@ -26,33 +26,47 @@ package jenkins.scm.impl.subversion;
 import hudson.scm.ChangeLogSet;
 import hudson.scm.SCM;
 import hudson.scm.SubversionSCM;
+import hudson.scm.SubversionTagAction;
 import hudson.triggers.SCMTrigger;
-import java.util.Iterator;
-import java.util.List;
 import jenkins.util.VirtualFile;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import static org.junit.Assert.*;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.BuildWatcher;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class SubversionStepTest {
+import java.util.Iterator;
+import java.util.List;
 
-    @ClassRule
-    public static BuildWatcher buildWatcher = new BuildWatcher();
-    @Rule
-    public JenkinsRule r = new JenkinsRule();
-    @Rule
-    public SubversionSampleRepoRule sampleRepo = new SubversionSampleRepoRule();
-    @Rule
-    public SubversionSampleRepoRule otherRepo = new SubversionSampleRepoRule();
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@WithJenkins
+class SubversionStepTest {
+
+    @SuppressWarnings("unused")
+    @RegisterExtension
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
+    private JenkinsRule r;
+
+    @RegisterExtension
+    private final SubversionSampleRepoExtension sampleRepo = new SubversionSampleRepoExtension();
+    @RegisterExtension
+    private final SubversionSampleRepoExtension otherRepo = new SubversionSampleRepoExtension();
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
 
     @Test
-    public void multipleSCMs() throws Exception {
+    void multipleSCMs() throws Exception {
         sampleRepo.init();
         otherRepo.basicInit();
         otherRepo.svnkit("co", otherRepo.trunkUrl(), otherRepo.wc());
@@ -64,16 +78,16 @@ public class SubversionStepTest {
         p.setQuietPeriod(3); // so it only does one build
         p.setDefinition(new CpsFlowDefinition(
                 "node {\n" +
-                "    ws {\n" +
-                "        dir('main') {\n" +
-                "            svn(url: '" + sampleRepo.trunkUrl() + "')\n" +
-                "        }\n" +
-                "        dir('other') {\n" +
-                "            svn(url: '" + otherRepo.trunkUrl() + "')\n" +
-                "        }\n" +
-                "        archive '**'\n" +
-                "    }\n" +
-                "}"));
+                        "    ws {\n" +
+                        "        dir('main') {\n" +
+                        "            svn(url: '" + sampleRepo.trunkUrl() + "')\n" +
+                        "        }\n" +
+                        "        dir('other') {\n" +
+                        "            svn(url: '" + otherRepo.trunkUrl() + "')\n" +
+                        "        }\n" +
+                        "        archive '**'\n" +
+                        "    }\n" +
+                        "}"));
         WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
         VirtualFile artifacts = b.getArtifactManager().root();
         assertTrue(artifacts.child("main/file").isFile());
@@ -116,34 +130,72 @@ public class SubversionStepTest {
         assertFalse(iterator.hasNext());
     }
 
+    @Issue("JENKINS-38204")
+    @Test
+    void identicalSCMs() throws Exception {
+        sampleRepo.init();
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "demo");
+        p.setDefinition(new CpsFlowDefinition(
+                "node {\n" +
+                        "    dir('main') {\n" +
+                        "        svn(url: '" + sampleRepo.trunkUrl() + "')\n" +
+                        "    }\n" +
+                        "    dir('other') {\n" +
+                        "        svn(url: '" + sampleRepo.trunkUrl() + "')\n" +
+                        "    }\n" +
+                        "}", true));
+
+        WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+        assertEquals(1, b.getActions(SubversionTagAction.class).size());
+        assertEquals(0, b.getChangeSets().size());
+        assertEquals(1, p.getSCMs().size());
+
+        // add a file and commit
+        sampleRepo.write("otherfile", "");
+        sampleRepo.svnkit("add", sampleRepo.wc() + "/" + "otherfile");
+        sampleRepo.svnkit("commit", "--message=+otherfile", sampleRepo.wc());
+
+        WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+
+        // there should by only one tag action and changeset
+        assertEquals(1, b2.getActions(SubversionTagAction.class).size());
+        assertEquals(1, b2.getChangeSets().size());
+
+        // check items of the only changeset
+        ChangeLogSet changeSet = b2.getChangeSets().get(0);
+        assertFalse(changeSet.isEmptySet());
+        assertEquals(1, changeSet.getItems().length);
+
+        assertEquals(1, p.getSCMs().size());
+    }
 
     @Test
-    public void checkoutDepthAsItIsInfiniteTest() throws Exception {
+    void checkoutDepthAsItIsInfiniteTest() throws Exception {
         checkoutDepthTest("as-it-is-infinity");
     }
 
     @Test
-    public void checkoutDepthFilesTest() throws Exception {
+    void checkoutDepthFilesTest() throws Exception {
         checkoutDepthTest("files");
     }
 
     @Test
-    public void checkoutDepthUnknownTest() throws Exception {
+    void checkoutDepthUnknownTest() throws Exception {
         checkoutDepthTest("unknown");
     }
 
     @Test
-    public void checkoutDepthEmptyTest() throws Exception {
+    void checkoutDepthEmptyTest() throws Exception {
         checkoutDepthTest("empty");
     }
 
     @Test
-    public void checkoutDepthImmediatesTest() throws Exception {
+    void checkoutDepthImmediatesTest() throws Exception {
         checkoutDepthTest("immediates");
     }
 
     @Test
-    public void checkoutDepthInfinityTest() throws Exception {
+    void checkoutDepthInfinityTest() throws Exception {
         checkoutDepthTest("infinity");
     }
 
@@ -154,13 +206,13 @@ public class SubversionStepTest {
         p.setQuietPeriod(3); // so it only does one build
         p.setDefinition(new CpsFlowDefinition(
                 "node(){\n"
-                + "    ws {\n"
-                + "       dir('main'){\n"
-                + "           checkout([$class: 'SubversionSCM', locations: [[ depthOption: '" + depth + "', remote: '"
-                + sampleRepo.trunkUrl() + "']]])\n"
-                + "       } \n"
-                + "    }\n"
-                + "}"));
+                        + "    ws {\n"
+                        + "       dir('main'){\n"
+                        + "           checkout([$class: 'SubversionSCM', locations: [[ depthOption: '" + depth + "', remote: '"
+                        + sampleRepo.trunkUrl() + "']]])\n"
+                        + "       } \n"
+                        + "    }\n"
+                        + "}"));
         r.waitUntilNoActivity();
         WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
     }

@@ -26,13 +26,15 @@
  */
 package hudson.scm.subversion;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import hudson.Extension;
 import hudson.Util;
 import hudson.scm.SubversionSCM.External;
 import hudson.scm.SubversionWorkspaceSelector;
 import hudson.util.StreamCopyThread;
 
-import org.apache.commons.lang.time.FastDateFormat;
+import org.apache.commons.lang3.time.FastDateFormat;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNDepth;
@@ -66,8 +68,8 @@ public class CheckoutUpdater extends WorkspaceUpdater {
     public CheckoutUpdater() {}
 
     @Override
-    public UpdateTask createTask() {
-        return new SubversionUpdateTask();
+    public UpdateTask createTask(int workspaceFormat) {
+        return new SubversionUpdateTask(workspaceFormat);
     }
 
     @Extension
@@ -81,7 +83,14 @@ public class CheckoutUpdater extends WorkspaceUpdater {
     private static class SubversionUpdateTask extends UpdateTask {
         private static final long serialVersionUID = 8349986526712487762L;
 
+        private int workspaceFormat;
+
+        SubversionUpdateTask(int workspaceFormat) {
+            this.workspaceFormat = workspaceFormat;
+        }
+
         @Override
+        @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "TODO needs triage")
         public List<External> perform() throws IOException, InterruptedException {
             final SVNUpdateClient svnuc = clientManager.getUpdateClient();
             final List<External> externals = new ArrayList<>(); // store discovered externals to here
@@ -120,13 +129,13 @@ public class CheckoutUpdater extends WorkspaceUpdater {
                 checkout.setExternalsHandler(SvnCodec.externalsHandler(svnuc.getExternalsHandler()));
 
                 // Statement to guard against JENKINS-26458.
-                if (SubversionWorkspaceSelector.workspaceFormat == SubversionWorkspaceSelector.OLD_WC_FORMAT_17) {
-                    SubversionWorkspaceSelector.workspaceFormat = ISVNWCDb.WC_FORMAT_17;
+                if (workspaceFormat == SubversionWorkspaceSelector.OLD_WC_FORMAT_17) {
+                    workspaceFormat = ISVNWCDb.WC_FORMAT_17;
                 }
 
                 // Workaround for SVNKIT-430 is to set the working copy format when
                 // a checkout is performed.
-                checkout.setTargetWorkingCopyFormat(SubversionWorkspaceSelector.workspaceFormat);
+                checkout.setTargetWorkingCopyFormat(workspaceFormat);
                 checkout.run();
             } catch (SVNCancelException e) {
                 if (isAuthenticationFailedError(e)) {

@@ -45,8 +45,6 @@ import java.util.Set;
 
 import jenkins.triggers.SCMTriggerItem;
 
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
 import org.tmatesoft.svn.core.internal.util.SVNDate;
@@ -308,7 +306,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
         }
 
         @Exported
-        public String getUser() {// digester wants read/write property, even though it never reads. Duh.
+        public String getUser() {
             return author!=null ? author.getDisplayName() : "unknown";
         }
 
@@ -460,8 +458,7 @@ public final class SubversionChangeLogSet extends ChangeLogSet<LogEntry> {
 	          return localPath;
         }
 
-        @Restricted(NoExternalUse.class)
-        public void setLocalPath(String path) {
+        void setLocalPath(String path) {
             this.localPath = path;
         }
 

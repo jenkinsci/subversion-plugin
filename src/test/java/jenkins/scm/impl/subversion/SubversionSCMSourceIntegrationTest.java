@@ -30,25 +30,45 @@ import hudson.Launcher;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.scm.SCMRevisionState;
+import hudson.scm.browsers.WebSVN;
+import hudson.scm.subversion.CheckoutUpdater;
 import hudson.util.StreamTaskListener;
+import jenkins.branch.BranchSource;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
-import org.junit.Rule;
-import org.junit.Test;
+import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class SubversionSCMSourceIntegrationTest {
+import java.net.URL;
+import java.util.Collections;
+import java.util.List;
 
-    @Rule
-    public JenkinsRule r = new JenkinsRule();
-    @Rule
-    public SubversionSampleRepoRule sampleRepo = new SubversionSampleRepoRule();
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasItems;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+
+@WithJenkins
+class SubversionSCMSourceIntegrationTest {
+
+    private JenkinsRule r;
+
+    @RegisterExtension
+    private final SubversionSampleRepoExtension sampleRepo = new SubversionSampleRepoExtension();
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
 
     @Test
-    public void retrieve() throws Exception {
+    void retrieve() throws Exception {
         sampleRepo.init();
         sampleRepo.write("file", "trunk");
         sampleRepo.svnkit("commit", "--message=trunk", sampleRepo.wc());
@@ -60,7 +80,7 @@ public class SubversionSCMSourceIntegrationTest {
         sampleRepo.svnkit("commit", "--message=dev1", sampleRepo.wc());
         long dev1 = sampleRepo.revision();
         assertEquals(5, dev1);
-        sampleRepo.svnkit("copy",  "--message=tagging", sampleRepo.branchesUrl() + "/dev", sampleRepo.tagsUrl() + "/dev-1");
+        sampleRepo.svnkit("copy", "--message=tagging", sampleRepo.branchesUrl() + "/dev", sampleRepo.tagsUrl() + "/dev-1");
         sampleRepo.write("file", "dev2");
         sampleRepo.svnkit("commit", "--message=dev2", sampleRepo.wc());
         long dev2 = sampleRepo.revision();
@@ -70,7 +90,7 @@ public class SubversionSCMSourceIntegrationTest {
         // First check fetching of all heads. SCMHeadObserver.Collector.result is a TreeMap so order is predictable:
         assertEquals("[SCMHead{'branches/dev'}, SCMHead{'tags/dev-1'}, SCMHead{'trunk'}]", source.fetch(listener).toString());
         // SCM.checkout does not permit a null build argument, unfortunately.
-        Run<?,?> run = r.buildAndAssertSuccess(r.createFreeStyleProject());
+        Run<?, ?> run = r.buildAndAssertSuccess(r.createFreeStyleProject());
         // Retrieval of heads:
         assertRevision(source.fetch(new SCMHead("trunk"), listener), "trunk", source, run, listener);
         assertRevision(source.fetch(new SCMHead("branches/dev"), listener), "dev2", source, run, listener);
@@ -101,7 +121,8 @@ public class SubversionSCMSourceIntegrationTest {
         // Completions of revision:
         assertThat(source.fetchRevisions(listener), hasItems("trunk", "branches/dev", "tags/dev-1"));
     }
-    private void assertRevision(@CheckForNull SCMRevision rev, @CheckForNull String expectedFile, @NonNull SCMSource source, @NonNull Run<?,?> run, @NonNull TaskListener listener) throws Exception {
+
+    private void assertRevision(@CheckForNull SCMRevision rev, @CheckForNull String expectedFile, @NonNull SCMSource source, @NonNull Run<?, ?> run, @NonNull TaskListener listener) throws Exception {
         if (rev == null) {
             assertNull(expectedFile);
             return;
@@ -116,6 +137,33 @@ public class SubversionSCMSourceIntegrationTest {
         }
         FilePath file = ws.child("file");
         assertEquals(expectedFile, file.exists() ? file.readToString() : null);
+    }
+
+    @Issue("JENKINS-66777")
+    @Test
+    void testConfigRoundtripBrowserPreserved() throws Exception {
+        WorkflowMultiBranchProject p = r.createProject(WorkflowMultiBranchProject.class);
+        SubversionSCMSource source = new SubversionSCMSource(null, sampleRepo.prjUrl());
+        source.setBrowser(new WebSVN(new URL("http://websvn.local/")));
+
+        List<BranchSource> sourcesList = Collections.singletonList(new BranchSource(source));
+        p.setSourcesList(sourcesList);
+
+        r.configRoundtrip(p);
+        r.assertEqualDataBoundBeans(sourcesList, p.getSources());
+    }
+
+    @Issue("JENKINS-41850")
+    @Test
+    void testConfigWorkspaceUpdaterPreserved() throws Exception {
+        WorkflowMultiBranchProject p = r.createProject(WorkflowMultiBranchProject.class);
+        SubversionSCMSource source = new SubversionSCMSource(null, sampleRepo.prjUrl());
+        source.setWorkspaceUpdater(new CheckoutUpdater());
+        List<BranchSource> sourcesList = Collections.singletonList(new BranchSource(source));
+        p.setSourcesList(sourcesList);
+
+        r.configRoundtrip(p);
+        r.assertEqualDataBoundBeans(sourcesList, p.getSources());
     }
 
 }

@@ -24,6 +24,7 @@
 
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
+  <st:adjunct includes="jenkins.scm.impl.subversion.SubversionSCMSource.resource"/>
   <f:entry title="${%Project Repository Base}" field="remoteBase">
     <f:textbox/>
   </f:entry>
@@ -35,5 +36,8 @@
   </f:entry>
   <f:entry title="${%Exclude branches}" field="excludes">
     <f:textbox default="${descriptor.DEFAULT_EXCLUDES}"/>
-  </f:entry>
+  </f:entry>  
+  <f:dropdownDescriptorSelector title="${%Check-out Strategy}" field="workspaceUpdater" descriptors="${descriptor.getWorkspaceUpdaterDescriptors()}"/>
+  <j:set var="scm" value="${instance}"/>
+  <t:listScmBrowsers name="svn.browser"/>
 </j:jelly>

@@ -50,17 +50,17 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.jvnet.localizer.ResourceBundleHolder;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNDirEntry;
@@ -126,7 +126,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
 
   // This method is invoked from a GET or POST HTTP request
   @Override
-  public ParameterValue createValue(StaplerRequest req) {
+  public ParameterValue createValue(StaplerRequest2 req) {
     String[] values = req.getParameterValues(getName());
     if(values == null || values.length != 1) {
         return this.getDefaultParameterValue(); 
@@ -138,7 +138,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
 
   // This method is invoked when the user clicks on the "Build" button of Hudon's GUI
   @Override
-  public ParameterValue createValue(StaplerRequest req, JSONObject formData) {
+  public ParameterValue createValue(StaplerRequest2 req, JSONObject formData) {
     ListSubversionTagsParameterValue value = req.bindJSON(ListSubversionTagsParameterValue.class, formData);
     value.setTagsDir(getTagsDir());
     // here, we could have checked for the value of the "tag" attribute of the
@@ -182,7 +182,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
    * <p>This method never returns {@code null}. In case an error happens, the
    * returned list contains an error message prefixed by {@code !}.</p>
    */
-  @Nonnull public List<String> getTags(@Nullable Job context) {
+  @NonNull public List<String> getTags(@Nullable Job context) {
     List<String> dirs = new ArrayList<>();
 
     SVNRepository repo = null;
@@ -378,7 +378,8 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
     }
 
     @CheckForNull
-    public FormValidation doCheckTagsDir(StaplerRequest req, @AncestorInPath Item context, @QueryParameter String value) {
+    @RequirePOST
+    public FormValidation doCheckTagsDir(StaplerRequest2 req, @AncestorInPath Item context, @QueryParameter String value) {
         Jenkins instance = Jenkins.getInstance();
         if (instance != null) {
             SubversionSCM.ModuleLocation.DescriptorImpl desc = instance.getDescriptorByType(SubversionSCM.ModuleLocation.DescriptorImpl.class);
@@ -400,7 +401,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
 
     // used from config.jelly
     @RequirePOST
-    public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath Item context, @QueryParameter String tagsDir, @QueryParameter String value) {
+    public FormValidation doCheckCredentialsId(StaplerRequest2 req, @AncestorInPath Item context, @QueryParameter String tagsDir, @QueryParameter String value) {
       if (context == null || !context.hasPermission(CredentialsProvider.USE_ITEM)) {
         return FormValidation.ok();
       }

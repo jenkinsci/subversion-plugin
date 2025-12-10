@@ -47,7 +47,7 @@ public class NoopUpdater extends WorkspaceUpdater {
     }
 
     @Override
-    public UpdateTask createTask() {
+    public UpdateTask createTask(int workspaceFormat) {
         return new TaskImpl();
     }
 

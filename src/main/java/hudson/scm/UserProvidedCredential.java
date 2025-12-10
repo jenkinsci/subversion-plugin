@@ -25,6 +25,8 @@
  */
 package hudson.scm;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import hudson.model.AbstractProject;
 import hudson.model.TaskListener;
 import hudson.scm.SubversionSCM.DescriptorImpl.Credential;
@@ -37,7 +39,7 @@ import jenkins.model.Jenkins;
 import org.apache.commons.fileupload.FileItem;
 import org.kohsuke.putty.PuTTYKey;
 import org.kohsuke.stapler.HttpResponses;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNErrorMessage;
 import org.tmatesoft.svn.core.SVNException;
@@ -57,7 +59,8 @@ import java.io.Writer;
 import java.util.Arrays;
 import java.util.logging.Logger;
 
-import static javax.servlet.http.HttpServletResponse.SC_FORBIDDEN;
+import static jakarta.servlet.http.HttpServletResponse.SC_FORBIDDEN;
+import jenkins.util.JenkinsJVM;
 
 /**
  * Represents the SVN authentication credential given by the user via the {@code <enterCredential>} form fragment.
@@ -84,6 +87,7 @@ public class UserProvidedCredential implements Closeable {
     }
 
     public UserProvidedCredential(String username, String password, File keyFile, AbstractProject inContextOf) {
+        JenkinsJVM.checkJenkinsJVM();
         this.username = username;
         this.password = password;
         this.keyFile = keyFile;
@@ -93,7 +97,7 @@ public class UserProvidedCredential implements Closeable {
     /**
      * Parses the credential information from a form submission.
      */
-    public static UserProvidedCredential fromForm(StaplerRequest req, MultipartFormDataParser parser) throws IOException {
+    public static UserProvidedCredential fromForm(StaplerRequest2 req, MultipartFormDataParser parser) throws IOException {
         CrumbIssuer crumbIssuer = Jenkins.getInstance().getCrumbIssuer();
         if (crumbIssuer!=null && !crumbIssuer.validateCrumb(req, parser))
             throw HttpResponses.error(SC_FORBIDDEN,new IOException("No crumb found"));
@@ -161,6 +165,7 @@ public class UserProvidedCredential implements Closeable {
 
         public AuthenticationManagerImpl(PrintWriter logWriter) {
             super(SVNWCUtil.getDefaultConfigurationDirectory(), true, username, password, keyFile, password);
+            JenkinsJVM.checkJenkinsJVM();
             this.logWriter = logWriter;
             SVNAuthStoreHandlerImpl.install(this);
         }
@@ -169,6 +174,7 @@ public class UserProvidedCredential implements Closeable {
             this(new PrintWriter(w));
         }
 
+        @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "TODO needs triage")
         public AuthenticationManagerImpl(TaskListener listener) {
             this(new PrintWriter(listener.getLogger(),true));
         }

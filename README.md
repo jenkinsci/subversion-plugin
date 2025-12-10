@@ -35,8 +35,8 @@ in C:/Users/\<user\>/AppData/Roaming/Subversion/servers (Windows)  or
 
 > There's a tension between doing this in Jenkins vs following the
 > existing Subversion convention — the former has a benefit of being
-> available on all the slaves. In this case, the proxy is a system
-> dependent setting, which might be different between different slaves,
+> available on all the agents. In this case, the proxy is a system
+> dependent setting, which might be different between different agents,
 > so I think it makes sense to keep it in \~/.subversion/servers.
 > (See <https://issues.jenkins-ci.org/browse/JENKINS-4041>)
 
@@ -149,13 +149,14 @@ example.
 
         # Check if "[X] Prevent Cross Site Request Forgery exploits" is activated
         # so we can present a valid crumb or a proper header
-        HEADER="Content-Type:text/plain;charset=UTF-8"
+        CONTENT_TYPE_HEADER="--header Content-Type:text/plain;charset=UTF-8"
         CRUMB=`$WGET --auth-no-challenge --output-document - ${CISERVER}/${CRUMB_ISSUER_URL}`
-        if [ "$CRUMB" != "" ]; then HEADER=$CRUMB; fi
+        if [ "$CRUMB" != "" ]; then CRUMB_HEADER="--header $CRUMB"; fi
 
         $WGET \
             --auth-no-challenge \
-            --header $HEADER \
+            $CONTENT_TYPE_HEADER \
+            $CRUMB_HEADER \
             --post-data "`$SVNLOOK changed --revision $REV $REPOS`" \
             --output-document "-"\
             --timeout=2 \
@@ -254,12 +255,12 @@ file designated by the `VBSCRIPT` variable above:
       Wscript.Echo "Error. HTTP Status: " & http.status & ". Body: " & http.responseText
     end if
 
-## Perform Polling from the Master
+## Perform Polling from the Controller
 
 JIRA [JENKINS-5413](https://issues.jenkins-ci.org/browse/JENKINS-5413)
-documents problems with running the SCM polling trigger on slaves.
+documents problems with running the SCM polling trigger on agents.
 Version 1.21 of the Subversion plugin can perform the polling on the
-Jenkins master if the hudson.scm.SubversionSCM.pollFromMaster system
+Jenkins controller if the hudson.scm.SubversionSCM.pollFromMaster system
 property is set to true.
 
 ## Subversion Revision and URL information as Environment Variables

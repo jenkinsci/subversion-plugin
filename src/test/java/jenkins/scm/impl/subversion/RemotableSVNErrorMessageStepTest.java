@@ -25,11 +25,12 @@ package jenkins.scm.impl.subversion;
 
 import hudson.slaves.DumbSlave;
 import jenkins.security.MasterToSlaveCallable;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.For;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.tmatesoft.svn.core.SVNErrorCode;
 import org.tmatesoft.svn.core.SVNErrorMessage;
 import org.tmatesoft.svn.core.SVNException;
@@ -38,19 +39,24 @@ import org.tmatesoft.svn.core.SVNException;
  * @author Oleg Nenashev
  */
 @For(SVNErrorMessage.class)
-public class RemotableSVNErrorMessageStepTest {
+@WithJenkins
+class RemotableSVNErrorMessageStepTest {
 
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+    private JenkinsRule r;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
 
     @Test
     @Issue("JENKINS-50339")
-    public void shouldSerializeException() throws Exception {
-        DumbSlave agent = j.createOnlineSlave();
+    void shouldSerializeException() throws Exception {
+        DumbSlave agent = r.createOnlineSlave();
         try {
             agent.getChannel().call(new ErrorCallable());
         } catch (SVNException e) {
-            return; // fine
+            // fine
         }
     }
 

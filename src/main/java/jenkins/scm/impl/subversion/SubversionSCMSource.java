@@ -39,13 +39,19 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.Functions;
 import hudson.Util;
+import hudson.model.Descriptor;
 import hudson.model.Item;
 import hudson.model.TaskListener;
 import hudson.scm.CredentialsSVNAuthenticationProviderImpl;
 import hudson.scm.FilterSVNAuthenticationManager;
+import hudson.scm.RepositoryBrowser;
+import hudson.scm.SubversionRepositoryBrowser;
 import hudson.scm.SubversionRepositoryStatus;
 import hudson.scm.SubversionSCM;
 import hudson.scm.subversion.SvnHelper;
+import hudson.scm.subversion.UpdateUpdater;
+import hudson.scm.subversion.WorkspaceUpdater;
+import hudson.scm.subversion.WorkspaceUpdaterDescriptor;
 import hudson.security.ACL;
 import hudson.util.EditDistance;
 import hudson.util.FormValidation;
@@ -63,11 +69,11 @@ import org.acegisecurity.Authentication;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOCase;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 import org.tmatesoft.svn.core.SVNDirEntry;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNNodeKind;
@@ -106,6 +112,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMHeadEvent;
+import jenkins.util.JenkinsJVM;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
@@ -127,6 +136,10 @@ public class SubversionSCMSource extends SCMSource {
     private String includes = DescriptorImpl.DEFAULT_INCLUDES;
 
     private String excludes = DescriptorImpl.DEFAULT_EXCLUDES;
+    
+    private SubversionRepositoryBrowser browser;
+    
+    private WorkspaceUpdater workspaceUpdater = new UpdateUpdater();
 
     @GuardedBy("this")
     private transient String uuid;
@@ -190,6 +203,36 @@ public class SubversionSCMSource extends SCMSource {
     @DataBoundSetter
     public void setIncludes(String includes) {
         this.includes = includes;
+    }
+    
+    /**
+     * Gets the repository browser.
+     *
+     * @return the repository browser to use.
+     */
+    @SuppressWarnings("unused") // by stapler
+    public SubversionRepositoryBrowser getBrowser() {
+        return browser;
+    }
+
+    @DataBoundSetter
+    public void setBrowser(SubversionRepositoryBrowser browser) {
+        this.browser = browser;
+    }
+    
+    /**
+     * Gets the workspace updater strategy.
+     *
+     * @return the workspace updater to use.
+     */
+    @SuppressWarnings("unused") // by stapler
+    public WorkspaceUpdater getWorkspaceUpdater() {
+        return workspaceUpdater;
+    }
+
+    @DataBoundSetter
+    public void setWorkspaceUpdater(WorkspaceUpdater workspaceUpdater) {
+        this.workspaceUpdater = workspaceUpdater;
     }
 
     /**
@@ -686,7 +729,7 @@ public class SubversionSCMSource extends SCMSource {
             // name contains an @ so need to ensure there is an @ at the end of the name
             remote.append('@');
         }
-        return new SubversionSCM(remote.toString(), credentialsId, ".");
+        return new SubversionSCM(remote.toString(), credentialsId, ".", workspaceUpdater, browser);
     }
 
     /**
@@ -818,7 +861,7 @@ public class SubversionSCMSource extends SCMSource {
          * validate the value for a remote (repository) location.
          */
         @RequirePOST
-        public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath Item context, @QueryParameter String remoteBase, @QueryParameter String value) {
+        public FormValidation doCheckCredentialsId(StaplerRequest2 req, @AncestorInPath Item context, @QueryParameter String remoteBase, @QueryParameter String value) {
             // TODO suspiciously similar to SubversionSCM.ModuleLocation.DescriptorImpl.checkCredentialsId; refactor into shared method?
             // Test the connection only if we may use the credentials
             if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER) ||
@@ -895,10 +938,7 @@ public class SubversionSCMSource extends SCMSource {
             } catch (SVNException e) {
                 LOGGER.log(Level.INFO, "Failed to access subversion repository "+url,e);
                 String message = hudson.scm.subversion.Messages.SubversionSCM_doCheckRemote_exceptionMsg1(
-                        Util.escape(url), Util.escape(e.getErrorMessage().getFullMessage()),
-                        "javascript:document.getElementById('svnerror').style.display='block';"
-                                + "document.getElementById('svnerrorlink').style.display='none';"
-                                + "return false;")
+                        Util.escape(url), Util.escape(e.getErrorMessage().getFullMessage()))
                   + "<br/><pre id=\"svnerror\" style=\"display:none\">"
                   + Util.xmlEscape(Functions.printThrowable(e)) + "</pre>";
                 return FormValidation.errorWithMarkup(message);
@@ -935,6 +975,7 @@ public class SubversionSCMSource extends SCMSource {
 
         protected SVNRepository getRepository(SVNURL repoURL, StandardCredentials credentials,
                                               Map<String, Credentials> additionalCredentials, ISVNSession session) throws SVNException {
+            JenkinsJVM.checkJenkinsJVM();
             SVNRepository repository = SVNRepositoryFactory.create(repoURL, session);
 
             ISVNAuthenticationManager sam = SubversionSCM.createSvnAuthenticationManager(
@@ -951,7 +992,7 @@ public class SubversionSCMSource extends SCMSource {
                     return r;
                 }
             };
-            repository.setTunnelProvider(SubversionSCM.createDefaultSVNOptions());
+            repository.setTunnelProvider(SubversionSCM.createDefaultSVNOptions(SubversionSCM.descriptor().isStoreAuthToDisk()));
             repository.setAuthenticationManager(sam);
 
             return repository;
@@ -978,6 +1019,25 @@ public class SubversionSCMSource extends SCMSource {
             }
 
             return null;
+        }
+        
+        /**
+         * Expose the {@link WorkspaceUpdater} instances to stapler.
+         *
+         * @return the {@link WorkspaceUpdater} instances
+         */
+        public List<WorkspaceUpdaterDescriptor> getWorkspaceUpdaterDescriptors() {
+            return WorkspaceUpdaterDescriptor.all();
+        }
+        
+        /**
+         * Expose the {@link SubversionRepositoryBrowser} instances to stapler.
+         *
+         * @return the {@link SubversionRepositoryBrowser} instances
+         */
+        @Restricted(NoExternalUse.class) // stapler
+        public List<Descriptor<RepositoryBrowser<?>>> getBrowserDescriptors() {
+            return Jenkins.get().getDescriptorByType(SubversionSCM.DescriptorImpl.class).getBrowserDescriptors();
         }
 
     }

@@ -23,75 +23,74 @@
  */
 package hudson.scm;
 
-import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
-import com.gargoylesoftware.htmlunit.HttpMethod;
-import com.gargoylesoftware.htmlunit.WebRequest;
-import com.gargoylesoftware.htmlunit.WebResponse;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import org.junit.Rule;
-import org.junit.Test;
+import org.htmlunit.FailingHttpStatusCodeException;
+import org.htmlunit.HttpMethod;
+import org.htmlunit.WebRequest;
+import org.htmlunit.WebResponse;
+import org.htmlunit.html.HtmlPage;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 import java.net.URL;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class SubversionStatusTest {
-    
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
-    
+@WithJenkins
+class SubversionStatusTest {
+
+    private JenkinsRule r;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
+
     @Test
     @Issue("SECURITY-724")
-    public void shouldNotBeAbleToSearch() throws Exception {
-        JenkinsRule.WebClient wc = j.createWebClient();
+    void shouldNotBeAbleToSearch() {
+        JenkinsRule.WebClient wc = r.createWebClient();
         checkUrl(wc, "subversion/search/");
         checkUrl(wc, "subversion/search/?q=a");
     }
-    
+
     @Test
     @Issue("SECURITY-724")
-    public void shouldNotBeAbleToSearchUsingDynamic() throws Exception {
+    void shouldNotBeAbleToSearchUsingDynamic() {
         String uuid = "12345678-1234-1234-1234-123456789012";
-        JenkinsRule.WebClient wc = j.createWebClient();
+        JenkinsRule.WebClient wc = r.createWebClient();
         checkUrl(wc, "subversion/" + uuid + "/search/");
         checkUrl(wc, "subversion/" + uuid + "/search/?q=a");
     }
-    
+
     @Test
-    public void canStillProvideTheCommitNotifyAction() throws Exception {
-        j.jenkins.setCrumbIssuer(null);
-        
+    void canStillProvideTheCommitNotifyAction() throws Exception {
+        r.jenkins.setCrumbIssuer(null);
+
         String uuid = "12345678-1234-1234-1234-123456789012";
-        JenkinsRule.WebClient wc = j.createWebClient();
-        
+        JenkinsRule.WebClient wc = r.createWebClient();
+
         String relativeUrl = "subversion/" + uuid + "/notifyCommit/";
-        
-        try {
-            // protected against GET request
-            wc.goTo(relativeUrl);
-            fail();
-        } catch (FailingHttpStatusCodeException e) {
-            assertEquals(405, e.getStatusCode());
-        }
-        
-        WebRequest request = new WebRequest(new URL(j.getURL() + relativeUrl), HttpMethod.POST);
+
+        // protected against GET request
+        FailingHttpStatusCodeException e = assertThrows(FailingHttpStatusCodeException.class, () -> wc.goTo(relativeUrl));
+        assertEquals(405, e.getStatusCode());
+
+        WebRequest request = new WebRequest(new URL(r.getURL() + relativeUrl), HttpMethod.POST);
         HtmlPage page = wc.getPage(request);
-        j.assertGoodStatus(page);
+        r.assertGoodStatus(page);
     }
 
-    private void checkUrl(JenkinsRule.WebClient wc, String url) throws Exception {
-        try {
-            wc.goTo(url);
-            fail();
-        } catch (FailingHttpStatusCodeException e) {
-            WebResponse response = e.getResponse();
-            assertEquals(404, response.getStatusCode());
-            String content = response.getContentAsString();
-            assertFalse(content.contains("Search for"));
-        }
+    private void checkUrl(JenkinsRule.WebClient wc, String url) {
+        FailingHttpStatusCodeException e = assertThrows(FailingHttpStatusCodeException.class, () -> wc.goTo(url));
+
+        WebResponse response = e.getResponse();
+        assertEquals(404, response.getStatusCode());
+        String content = response.getContentAsString();
+        assertFalse(content.contains("Search for"));
     }
 }

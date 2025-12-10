@@ -32,7 +32,7 @@ import hudson.scm.SubversionSCM.External;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.triggers.SCMTrigger;
 import jenkins.model.Jenkins;
-import org.apache.commons.lang.time.FastDateFormat;
+import org.apache.commons.lang3.time.FastDateFormat;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.tmatesoft.svn.core.*;
 import org.tmatesoft.svn.core.wc.SVNInfo;
@@ -60,8 +60,8 @@ public class UpdateUpdater extends WorkspaceUpdater {
     }
 
     @Override
-    public UpdateTask createTask() {
-        return new TaskImpl();
+    public UpdateTask createTask(int workspaceFormat) {
+        return new TaskImpl(workspaceFormat);
     }
 
     public static class TaskImpl extends UpdateTask {
@@ -69,6 +69,12 @@ public class UpdateUpdater extends WorkspaceUpdater {
          * 
          */
         private static final long serialVersionUID = -5766470969352844330L;
+
+        private final int workspaceFormat;
+
+        public TaskImpl(int workspaceFormat) {
+            this.workspaceFormat = workspaceFormat;
+        }
 
         /**
          * Returns whether we can do a "svn update" or a "svn switch" or a "svn checkout"
@@ -129,7 +135,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
             SvnCommandToUse svnCommand = getSvnCommandToUse();
             
             if (svnCommand == SvnCommandToUse.CHECKOUT) {
-                return delegateTo(new CheckoutUpdater());
+                return delegateTo(new CheckoutUpdater(), workspaceFormat);
             }
 
             final SVNUpdateClient svnuc = clientManager.getUpdateClient();
@@ -182,20 +188,20 @@ public class UpdateUpdater extends WorkspaceUpdater {
                     if (errorCode == SVNErrorCode.WC_LOCKED) {
                         // work space locked. try fresh check out
                         listener.getLogger().println("Workspace appear to be locked, so getting a fresh workspace");
-                        return delegateTo(new CheckoutUpdater());
+                        return delegateTo(new CheckoutUpdater(), workspaceFormat);
                     }
                     if (errorCode == SVNErrorCode.WC_OBSTRUCTED_UPDATE) {
                         // HUDSON-1882. If existence of local files cause an update to fail,
                         // revert to fresh check out
                         listener.getLogger().println(e.getMessage()); // show why this happened. Sometimes this is caused by having a build artifact in the repository.
                         listener.getLogger().println("Updated failed due to local files. Getting a fresh workspace");
-                        return delegateTo(new CheckoutUpdater());
+                        return delegateTo(new CheckoutUpdater(), workspaceFormat);
                     }
                     if (errorCode == SVNErrorCode.WC_CORRUPT_TEXT_BASE || errorCode == SVNErrorCode.WC_CORRUPT || errorCode == SVNErrorCode.WC_UNWIND_EMPTY) {
                         // JENKINS-14550. if working copy is corrupted, revert to fresh check out
                         listener.getLogger().println(e.getMessage()); // show why this happened. Sometimes this is caused by having a build artifact in the repository.
                         listener.getLogger().println("Updated failed due to working copy corruption. Getting a fresh workspace");
-                        return delegateTo(new CheckoutUpdater());
+                        return delegateTo(new CheckoutUpdater(), workspaceFormat);
                     }
                     // trouble-shooting probe for #591
                     if (errorCode == SVNErrorCode.WC_NOT_LOCKED) {
@@ -203,7 +209,7 @@ public class UpdateUpdater extends WorkspaceUpdater {
                         if (instance != null) {
                             listener.getLogger().println("Polled jobs are " + instance.getDescriptorByType(SCMTrigger.DescriptorImpl.class).getItemsBeingPolled());
                         }
-                        return delegateTo(new CheckoutUpdater());
+                        return delegateTo(new CheckoutUpdater(), workspaceFormat);
                     }
 
                   // recurse as long as we encounter nested SVNException

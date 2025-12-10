@@ -1,0 +1,4 @@
+<?jelly escape-by-default='true'?>
+<div>
+    This plugin adds <a href="https://subversion.apache.org/" target="_blank" rel="noopener noreferrer">Apache Subversion</a> support (via SVNKit) to Jenkins.
+</div>
