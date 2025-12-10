@@ -26,37 +26,52 @@ package pipeline;
 
 import hudson.Functions;
 import hudson.scm.SubversionSCM;
-import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.plugins.git.GitStep;
-import jenkins.scm.impl.subversion.SubversionSampleRepoRule;
+import jenkins.plugins.git.junit.jupiter.WithGitSampleRepo;
+import jenkins.scm.impl.subversion.SubversionSampleRepoExtension;
 import org.apache.commons.io.FileUtils;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.io.FileMatchers.anExistingFile;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import static org.junit.Assume.assumeFalse;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.BuildWatcher;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public final class CpsScmFlowDefinitionSubversionTest {
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
-    @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
-    @Rule public JenkinsRule r = new JenkinsRule();
-    @Rule public GitSampleRepoRule sampleRepo = new GitSampleRepoRule();
-    @Rule public SubversionSampleRepoRule sampleRepoSvn = new SubversionSampleRepoRule();
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.io.FileMatchers.anExistingFile;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+
+@WithJenkins
+@WithGitSampleRepo
+class CpsScmFlowDefinitionSubversionTest {
+
+    @SuppressWarnings("unused")
+    @RegisterExtension
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
+    private JenkinsRule r;
+    private GitSampleRepoRule sampleRepo;
+    @RegisterExtension
+    private final SubversionSampleRepoExtension sampleRepoSvn = new SubversionSampleRepoExtension();
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule, GitSampleRepoRule repo) {
+        r = rule;
+        sampleRepo = repo;
+    }
 
     @Issue("SECURITY-2463")
-    @Test public void checkoutDirectoriesAreNotReusedByDifferentScms() throws Exception {
+    @Test
+    void checkoutDirectoriesAreNotReusedByDifferentScms() throws Exception {
         assumeFalse(Functions.isWindows()); // Checkout hook is not cross-platform.
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile", "echo('git library')");
@@ -72,7 +87,7 @@ public final class CpsScmFlowDefinitionSubversionTest {
         Path postCheckoutHook = gitDirInSvnRepo.toPath().resolve("hooks/post-checkout");
         // Always create hooks directory for compatibility with https://github.com/jenkinsci/git-plugin/pull/1207.
         Files.createDirectories(postCheckoutHook.getParent());
-        Files.write(postCheckoutHook, ("#!/bin/sh\ntouch '" + jenkinsRootDir + "/hook-executed'\n").getBytes(StandardCharsets.UTF_8));
+        Files.writeString(postCheckoutHook, "#!/bin/sh\ntouch '" + jenkinsRootDir + "/hook-executed'\n");
         sampleRepoSvn.svnkit("add", sampleRepoSvn.wc() + "/Jenkinsfile");
         sampleRepoSvn.svnkit("add", sampleRepoSvn.wc() + "/.git");
         sampleRepoSvn.svnkit("propset", "svn:executable", "ON", sampleRepoSvn.wc() + "/.git/hooks/post-checkout");

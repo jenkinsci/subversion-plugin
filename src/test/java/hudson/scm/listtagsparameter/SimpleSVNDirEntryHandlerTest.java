@@ -24,106 +24,97 @@
 
 package hudson.scm.listtagsparameter;
 
-import java.text.ParseException;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.tmatesoft.svn.core.SVNDirEntry;
+
 import java.text.SimpleDateFormat;
 import java.util.List;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.tmatesoft.svn.core.SVNDirEntry;
-import org.tmatesoft.svn.core.SVNException;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class SimpleSVNDirEntryHandlerTest {
-    
-    private SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+class SimpleSVNDirEntryHandlerTest {
+
+    private final SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
 
     @Test
-    public void testSortByName() {
+    void testSortByName() throws Exception {
         SimpleSVNDirEntryHandler handler = new SimpleSVNDirEntryHandler(null);
         addEntries2(handler);
-        
+
         // TODO: the semantics of using both parameters for handler.getDirs(boolean,boolean)
         // doesn't seem to have been defined properly
         // Actually, giving false,false seems to mean to sort by name ascending
-        
+
         List<String> dirs = handler.getDirs(false, false);
-        
-        Assert.assertEquals(4, dirs.size());
-        Assert.assertEquals("trunk/a", dirs.get(0));
-        Assert.assertEquals("trunk/b", dirs.get(1));
-        Assert.assertEquals("trunk/c", dirs.get(2));
-        Assert.assertEquals("trunk/x", dirs.get(3));
+
+        assertEquals(4, dirs.size());
+        assertEquals("trunk/a", dirs.get(0));
+        assertEquals("trunk/b", dirs.get(1));
+        assertEquals("trunk/c", dirs.get(2));
+        assertEquals("trunk/x", dirs.get(3));
     }
-    
+
     @Test
-    public void testReverseSortByDate() {
+    void testReverseSortByDate() throws Exception {
         SimpleSVNDirEntryHandler handler = new SimpleSVNDirEntryHandler(null);
         addEntries(handler);
         List<String> dirs = handler.getDirs(true, false);
-        
-        Assert.assertEquals(4, dirs.size());
-        Assert.assertEquals("trunk/a", dirs.get(0));
-        Assert.assertEquals("trunk/b", dirs.get(1));
-        Assert.assertEquals("trunk/x", dirs.get(2));
-        Assert.assertEquals("trunk/c", dirs.get(3));
+
+        assertEquals(4, dirs.size());
+        assertEquals("trunk/a", dirs.get(0));
+        assertEquals("trunk/b", dirs.get(1));
+        assertEquals("trunk/x", dirs.get(2));
+        assertEquals("trunk/c", dirs.get(3));
     }
-    
+
     @Test
-    public void testReverseSortByName() {
+    void testReverseSortByName() throws Exception {
         SimpleSVNDirEntryHandler handler = new SimpleSVNDirEntryHandler(null);
         addEntries2(handler);
         List<String> dirs = handler.getDirs(false, true);
-        
-        Assert.assertEquals(4, dirs.size());
-        Assert.assertEquals("trunk/x", dirs.get(0));
-        Assert.assertEquals("trunk/c", dirs.get(1));
-        Assert.assertEquals("trunk/b", dirs.get(2));
-        Assert.assertEquals("trunk/a", dirs.get(3));
+
+        assertEquals(4, dirs.size());
+        assertEquals("trunk/x", dirs.get(0));
+        assertEquals("trunk/c", dirs.get(1));
+        assertEquals("trunk/b", dirs.get(2));
+        assertEquals("trunk/a", dirs.get(3));
     }
-    
+
     @Test
-    public void testFilter() {
+    void testFilter() throws Exception {
         SimpleSVNDirEntryHandler handler = new SimpleSVNDirEntryHandler(".*a.*");
         addEntries2(handler);
         List<String> dirs = handler.getDirs();
-        
-        Assert.assertEquals(1, dirs.size());
-        Assert.assertEquals("trunk/a", dirs.get(0));
+
+        assertEquals(1, dirs.size());
+        assertEquals("trunk/a", dirs.get(0));
     }
-    
-    private void addEntries(SimpleSVNDirEntryHandler handler) {
-        try {
-            handler.handleDirEntry(getEntry("2011-11-01", "trunk/a"));
-            handler.handleDirEntry(getEntry("2011-11-01", "trunk/b"));
-            handler.handleDirEntry(getEntry("2011-10-01", "trunk/x"));
-            handler.handleDirEntry(getEntry("2011-09-01", "trunk/c"));
-        } catch (ParseException | SVNException e) {
-            Assert.fail(e.toString());
-        }
+
+    private void addEntries(SimpleSVNDirEntryHandler handler) throws Exception {
+        handler.handleDirEntry(getEntry("2011-11-01", "trunk/a"));
+        handler.handleDirEntry(getEntry("2011-11-01", "trunk/b"));
+        handler.handleDirEntry(getEntry("2011-10-01", "trunk/x"));
+        handler.handleDirEntry(getEntry("2011-09-01", "trunk/c"));
     }
-    
-    private SVNDirEntry getEntry(String lastChanged, String directoryName) throws ParseException {
+
+    private SVNDirEntry getEntry(String lastChanged, String directoryName) throws Exception {
         SVNDirEntry entry = Mockito.mock(SVNDirEntry.class);
         Mockito.when(entry.getDate()).thenReturn(df.parse(lastChanged));
         Mockito.when(entry.getName()).thenReturn(directoryName);
         return entry;
     }
 
-    private SVNDirEntry getEntry2(String lastChanged, String directoryName) throws ParseException {
+    private SVNDirEntry getEntry2(String lastChanged, String directoryName) {
         SVNDirEntry entry = Mockito.mock(SVNDirEntry.class);
         Mockito.when(entry.getName()).thenReturn(directoryName);
         return entry;
     }
 
-    private void addEntries2(SimpleSVNDirEntryHandler handler) {
-        try {
-            handler.handleDirEntry(getEntry2("2011-11-01", "trunk/a"));
-            handler.handleDirEntry(getEntry2("2011-11-01", "trunk/b"));
-            handler.handleDirEntry(getEntry2("2011-10-01", "trunk/x"));
-            handler.handleDirEntry(getEntry2("2011-09-01", "trunk/c"));
-        } catch (ParseException | SVNException e) {
-            Assert.fail(e.toString());
-        }
+    private void addEntries2(SimpleSVNDirEntryHandler handler) throws Exception {
+        handler.handleDirEntry(getEntry2("2011-11-01", "trunk/a"));
+        handler.handleDirEntry(getEntry2("2011-11-01", "trunk/b"));
+        handler.handleDirEntry(getEntry2("2011-10-01", "trunk/x"));
+        handler.handleDirEntry(getEntry2("2011-09-01", "trunk/c"));
     }
 }
