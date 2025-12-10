@@ -2502,9 +2502,9 @@ public class SubversionSCM extends SCM {
 
         /**
          * Regular expression for matching one username. Matches 'windows' names ('DOMAIN&#92;user') and
-         * 'normal' names ('user'). Where user (and DOMAIN) has one or more characters in 'a-zA-Z0-9_-')
+         * 'normal' names ('user'). Where user (and DOMAIN) has one or more characters in 'a-zA-Z0-9_.-')
          */
-        private static final Pattern USERNAME_PATTERN = Pattern.compile("([a-zA-Z0-9_-]+\\\\)?+([a-zA-Z0-9_-]+)");
+        private static final Pattern USERNAME_PATTERN = Pattern.compile("([a-zA-Z0-9_.-]+\\\\)?+([a-zA-Z0-9_.-]+)");
 
         /**
          * Validates the excludeUsers field
