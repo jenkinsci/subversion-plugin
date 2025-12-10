@@ -29,12 +29,12 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.66</version>
+    <version>5.28</version>
     <relativePath />
   </parent>
 
   <artifactId>subversion</artifactId>
-  <version>${revision}${changelist}</version>
+  <version>${changelist}</version>
   <packaging>hpi</packaging>
 
   <name>Jenkins Subversion Plug-in</name>
@@ -48,86 +48,6 @@ THE SOFTWARE.
     </license>
   </licenses>
 
-  <developers>
-    <developer>
-      <id>kohsuke</id>
-      <name>Kohsuke Kawaguchi</name>
-      <roles>
-        <role>Maintainer (retired)</role>
-      </roles>
-    </developer>
-    <developer>
-      <id>stephenconnolly</id>
-      <name>Stephen Connolly</name>
-      <roles>
-        <role>Maintainer (retired)</role>
-      </roles>
-    </developer>
-    <developer>
-      <id>oleg_nenashev</id>
-      <name>Oleg Nenashev</name>
-      <roles>
-        <role>Maintainer (retired)</role>
-      </roles>
-    </developer>
-    <developer>
-      <id>abayer</id>
-      <name>Andrew Bayer</name>
-      <roles>
-        <role>Maintainer (retired)</role>
-      </roles>
-    </developer>
-    <developer>
-      <id>dodok1</id>
-      <name>dodok1</name>
-      <roles>
-        <role>Maintainer (retired)</role>
-      </roles>
-    </developer>
-    <developer>
-      <id>dty</id>
-      <name>dty</name>
-      <roles>
-        <role>Maintainer (retired)</role>
-      </roles>
-    </developer>
-    <developer>
-      <id>huybrechts</id>
-      <name>Tom Huybrechts</name>
-      <roles>
-        <role>Maintainer (retired)</role>
-      </roles>
-    </developer>
-    <developer>
-      <id>pgweiss</id>
-      <name>pgweiss</name>
-      <roles>
-        <role>Maintainer (retired)</role>
-      </roles>
-    </developer>
-    <developer>
-      <id>rseguy</id>
-      <name>rseguy</name>
-      <roles>
-        <role>Maintainer (retired)</role>
-      </roles>
-    </developer>
-    <developer>
-      <id>kutzi</id>
-      <name>kutzi</name>
-      <roles>
-        <role>Maintainer (retired)</role>
-      </roles>
-    </developer>
-    <developer>
-      <id>ifernandezcalvo</id>
-      <name>Ivan Fernandez Calvo</name>
-      <roles>
-        <role>Maintainer (retired)</role>
-      </roles>
-    </developer>
-  </developers>
-  
   <scm>
     <connection>scm:git:https://github.com/${gitHubRepo}.git</connection>
     <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
@@ -136,14 +56,14 @@ THE SOFTWARE.
   </scm>
 
   <properties>
-    <!-- To be removed once Jenkins.MANAGE gets out of beta -->
-    <useBeta>true</useBeta>
-    <revision>2.17.4</revision>
-    <changelist>-SNAPSHOT</changelist>
+    <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
-    <jenkins.version>2.361.4</jenkins.version>
+    <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
+    <jenkins.baseline>2.504</jenkins.baseline>
+    <jenkins.version>${jenkins.baseline}.1</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <spotbugs.threshold>High</spotbugs.threshold> <!-- TODO some violations remaining -->
+    <svnkit.version>1.10.11</svnkit.version>
   </properties>
 
   <repositories>
@@ -163,8 +83,8 @@ THE SOFTWARE.
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.361.x</artifactId>
-        <version>2025.v816d28f1e04f</version>
+        <artifactId>bom-${jenkins.baseline}.x</artifactId>
+        <version>5054.v620b_5d2b_d5e6</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
@@ -173,24 +93,65 @@ THE SOFTWARE.
 
   <dependencies>
     <dependency>
+      <groupId>io.jenkins.plugins</groupId>
+      <artifactId>commons-lang3-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.jenkins.plugins</groupId>
+      <artifactId>eddsa-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.jenkins.plugins.mina-sshd-api</groupId>
+      <artifactId>mina-sshd-api-common</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.jenkins.plugins.mina-sshd-api</groupId>
+      <artifactId>mina-sshd-api-core</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.tmatesoft.svnkit</groupId>
       <artifactId>svnkit</artifactId>
-      <version>1.10.10</version>
+      <version>${svnkit.version}</version>
       <exclusions>
         <exclusion>
           <groupId>com.trilead</groupId>
           <artifactId>trilead-ssh2</artifactId>
         </exclusion>
+        <!-- Provided by Jenkins core -->
+        <exclusion>
+          <groupId>net.java.dev.jna</groupId>
+          <artifactId>jna</artifactId>
+        </exclusion>
         <exclusion>
           <groupId>net.java.dev.jna</groupId>
           <artifactId>jna-platform</artifactId>
+        </exclusion>
+        <exclusion>
+          <!-- Provided by eddsa-api plugin -->
+          <groupId>net.i2p.crypto</groupId>
+          <artifactId>eddsa</artifactId>
+        </exclusion>
+        <!-- Provided by mina-sshd-api-common plugin -->
+        <exclusion>
+          <groupId>org.apache.sshd</groupId>
+          <artifactId>sshd-common</artifactId>
+        </exclusion>
+        <!-- Provided by mina-sshd-api-core plugin -->
+        <exclusion>
+          <groupId>org.apache.sshd</groupId>
+          <artifactId>sshd-core</artifactId>
+        </exclusion>
+        <!-- Provided by Jenkins core -->
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-api</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
     <dependency>
       <groupId>org.tmatesoft.svnkit</groupId>
       <artifactId>svnkit-cli</artifactId>
-      <version>1.10.10</version>
+      <version>${svnkit.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -204,6 +165,10 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>ssh-credentials</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>trilead-api</artifactId>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -225,6 +190,18 @@ THE SOFTWARE.
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-multibranch</artifactId>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-support</artifactId>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-durable-task-step</artifactId>
       <scope>test</scope>
     </dependency>
@@ -234,14 +211,24 @@ THE SOFTWARE.
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>io.jenkins.plugins</groupId>
+      <artifactId>pipeline-groovy-lib</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>matrix-project</artifactId>
       <scope>test</scope>
     </dependency>
 
     <dependency>
-      <groupId>org.jenkins-ci.plugins.workflow</groupId>
-      <artifactId>workflow-cps</artifactId>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>git</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>git</artifactId>
+      <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
 
@@ -253,7 +240,6 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>envinject</artifactId>
-      <version>2.4.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>

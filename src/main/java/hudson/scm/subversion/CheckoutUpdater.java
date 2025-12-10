@@ -34,7 +34,7 @@ import hudson.scm.SubversionSCM.External;
 import hudson.scm.SubversionWorkspaceSelector;
 import hudson.util.StreamCopyThread;
 
-import org.apache.commons.lang.time.FastDateFormat;
+import org.apache.commons.lang3.time.FastDateFormat;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNDepth;

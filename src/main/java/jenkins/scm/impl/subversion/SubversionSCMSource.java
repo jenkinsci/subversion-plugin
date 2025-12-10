@@ -69,11 +69,11 @@ import org.acegisecurity.Authentication;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOCase;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 import org.tmatesoft.svn.core.SVNDirEntry;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNNodeKind;
@@ -861,7 +861,7 @@ public class SubversionSCMSource extends SCMSource {
          * validate the value for a remote (repository) location.
          */
         @RequirePOST
-        public FormValidation doCheckCredentialsId(StaplerRequest req, @AncestorInPath Item context, @QueryParameter String remoteBase, @QueryParameter String value) {
+        public FormValidation doCheckCredentialsId(StaplerRequest2 req, @AncestorInPath Item context, @QueryParameter String remoteBase, @QueryParameter String value) {
             // TODO suspiciously similar to SubversionSCM.ModuleLocation.DescriptorImpl.checkCredentialsId; refactor into shared method?
             // Test the connection only if we may use the credentials
             if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER) ||
@@ -938,10 +938,7 @@ public class SubversionSCMSource extends SCMSource {
             } catch (SVNException e) {
                 LOGGER.log(Level.INFO, "Failed to access subversion repository "+url,e);
                 String message = hudson.scm.subversion.Messages.SubversionSCM_doCheckRemote_exceptionMsg1(
-                        Util.escape(url), Util.escape(e.getErrorMessage().getFullMessage()),
-                        "javascript:document.getElementById('svnerror').style.display='block';"
-                                + "document.getElementById('svnerrorlink').style.display='none';"
-                                + "return false;")
+                        Util.escape(url), Util.escape(e.getErrorMessage().getFullMessage()))
                   + "<br/><pre id=\"svnerror\" style=\"display:none\">"
                   + Util.xmlEscape(Functions.printThrowable(e)) + "</pre>";
                 return FormValidation.errorWithMarkup(message);

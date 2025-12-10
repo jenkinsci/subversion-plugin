@@ -52,8 +52,8 @@ import hudson.util.MultipartFormDataParser;
 import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
 import org.kohsuke.stapler.AncestorInPath;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerRequest2;
+import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
 import org.kohsuke.stapler.verb.POST;
@@ -66,7 +66,7 @@ import org.tmatesoft.svn.core.wc.SVNRevision;
 import org.tmatesoft.svn.core.wc.SVNCopySource;
 import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
-import javax.servlet.ServletException;
+import jakarta.servlet.ServletException;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -215,7 +215,7 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
      * Invoked to actually tag the workspace.
      */
     @POST
-    public synchronized void doSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+    public synchronized void doSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
         getACL().checkPermission(getPermission());
 
         MultipartFormDataParser parser = new MultipartFormDataParser(req);
