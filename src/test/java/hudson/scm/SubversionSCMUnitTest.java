@@ -107,7 +107,31 @@ public class SubversionSCMUnitTest {
         assertThat(envVars.get("SVN_URL_2"), is("/remotepath2"));
         assertThat(envVars.get("SVN_REVISION_2"), is("42"));
     }
-    
+
+    @SuppressWarnings("deprecation")
+    @Test
+    public void shouldSetEnvironmentVariablesMaximumRevision() throws IOException {
+        // GIVEN an scm with a 2 module locations
+        SubversionSCM scm = mockSCMForBuildEnvVars();
+
+        ModuleLocation[] singleLocation = new ModuleLocation[] {new ModuleLocation("/remotepath", "")};
+        when(scm.getLocations(any(EnvVars.class), any(AbstractBuild.class))).thenReturn(singleLocation);
+
+        Map<String, Long> revisions = new HashMap<String, Long>();
+        revisions.put("/remotepath", 4711L);
+        revisions.put("/remotepath2", 42L);
+        revisions.put("/remotepath3", 9920L);
+        when(scm.parseSvnRevisionFile(any(AbstractBuild.class))).thenReturn(revisions);
+
+        // WHEN envVars are build
+        AbstractBuild<?,?> build = mock(AbstractBuild.class);
+        Map<String, String> envVars = new HashMap<String, String>();
+        scm.buildEnvVars(build, envVars);
+
+        // THEN: we have the SVN_MAX_REVISION var
+        assertThat(envVars.get("SVN_MAX_REVISION"), is("9920"));
+    }
+
     private SubversionSCM mockSCMForBuildEnvVars() {
         SubversionSCM scm = mock(SubversionSCM.class);
         doCallRealMethod().when(scm).buildEnvVars(any(AbstractBuild.class), anyMap());
