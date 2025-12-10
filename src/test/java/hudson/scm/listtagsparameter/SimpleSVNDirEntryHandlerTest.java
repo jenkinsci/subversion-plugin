@@ -40,7 +40,7 @@ class SimpleSVNDirEntryHandlerTest {
     @Test
     void testSortByName() throws Exception {
         SimpleSVNDirEntryHandler handler = new SimpleSVNDirEntryHandler(null);
-        addEntries(handler);
+        addEntries2(handler);
 
         // TODO: the semantics of using both parameters for handler.getDirs(boolean,boolean)
         // doesn't seem to have been defined properly
@@ -71,7 +71,7 @@ class SimpleSVNDirEntryHandlerTest {
     @Test
     void testReverseSortByName() throws Exception {
         SimpleSVNDirEntryHandler handler = new SimpleSVNDirEntryHandler(null);
-        addEntries(handler);
+        addEntries2(handler);
         List<String> dirs = handler.getDirs(false, true);
 
         assertEquals(4, dirs.size());
@@ -84,7 +84,7 @@ class SimpleSVNDirEntryHandlerTest {
     @Test
     void testFilter() throws Exception {
         SimpleSVNDirEntryHandler handler = new SimpleSVNDirEntryHandler(".*a.*");
-        addEntries(handler);
+        addEntries2(handler);
         List<String> dirs = handler.getDirs();
 
         assertEquals(1, dirs.size());
@@ -103,5 +103,18 @@ class SimpleSVNDirEntryHandlerTest {
         Mockito.when(entry.getDate()).thenReturn(df.parse(lastChanged));
         Mockito.when(entry.getName()).thenReturn(directoryName);
         return entry;
+    }
+
+    private SVNDirEntry getEntry2(String lastChanged, String directoryName) {
+        SVNDirEntry entry = Mockito.mock(SVNDirEntry.class);
+        Mockito.when(entry.getName()).thenReturn(directoryName);
+        return entry;
+    }
+
+    private void addEntries2(SimpleSVNDirEntryHandler handler) throws Exception {
+        handler.handleDirEntry(getEntry2("2011-11-01", "trunk/a"));
+        handler.handleDirEntry(getEntry2("2011-11-01", "trunk/b"));
+        handler.handleDirEntry(getEntry2("2011-10-01", "trunk/x"));
+        handler.handleDirEntry(getEntry2("2011-09-01", "trunk/c"));
     }
 }
