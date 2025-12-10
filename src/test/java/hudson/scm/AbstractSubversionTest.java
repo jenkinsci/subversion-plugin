@@ -10,7 +10,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import net.sf.json.JSONObject;
 
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 
 import java.io.File;
 import java.io.IOException;
@@ -48,12 +48,22 @@ public abstract class AbstractSubversionTest {
      * @param format one of the WC constants form SVNAdminAreaFactory or SubversionWorkspaceSelector.WC_FORMAT_17
      */
     protected void configureSvnWorkspaceFormat(int format) throws Exception {
-    	StaplerRequest req = mock(StaplerRequest.class);
+    	StaplerRequest2 req = mock(StaplerRequest2.class);
     	when(req.getParameter("svn.workspaceFormat")).thenReturn(""+format);
     	
     	JSONObject formData = new JSONObject();
     	
     	r.jenkins.getDescriptorByType(SubversionSCM.DescriptorImpl.class).configure(req, formData);
+    }
+
+    protected void configureSvnWorkspaceFormat2(int format) throws Exception {
+        StaplerRequest2 req = mock(StaplerRequest2.class);
+        when(req.getParameter("svn.global_excluded_revprop")).thenReturn(null);
+        when(req.getParameter("svn.workspaceFormat")).thenReturn(""+format);
+
+        JSONObject formData = new JSONObject();
+
+        r.jenkins.getDescriptorByType(SubversionSCM.DescriptorImpl.class).configure(req, formData);
     }
 
     public static void checkForSvnServe() throws InterruptedException {
