@@ -266,6 +266,7 @@ public class SubversionSCM extends SCM {
     private boolean ignoreDirPropChanges;
     private boolean filterChangelog;
     private boolean quietOperation;
+    private boolean cleanupOnLockedWorkspace;
 
     /**
      * A cache of the svn:externals (keyed by project).
@@ -369,8 +370,20 @@ public class SubversionSCM extends SCM {
             String excludedRevprop, String excludedCommitMessages,
             String includedRegions, boolean ignoreDirPropChanges, boolean filterChangelog,
             List<AdditionalCredentials> additionalCredentials) {
-        this(locations, workspaceUpdater, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages, 
+        this(locations, workspaceUpdater, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages,
             includedRegions, ignoreDirPropChanges, filterChangelog, additionalCredentials, false);
+    }
+
+    /**
+     *  @deprecated by cleanupOnLockedWorkspace
+     */
+    public SubversionSCM(List<ModuleLocation> locations, WorkspaceUpdater workspaceUpdater,
+                         SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers,
+                         String excludedRevprop, String excludedCommitMessages,
+                         String includedRegions, boolean ignoreDirPropChanges, boolean filterChangelog,
+                         List<AdditionalCredentials> additionalCredentials, boolean quietOperation) {
+        this(locations, workspaceUpdater, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages,
+                includedRegions, ignoreDirPropChanges, filterChangelog, additionalCredentials, quietOperation, false);
     }
 
     @DataBoundConstructor
@@ -378,7 +391,8 @@ public class SubversionSCM extends SCM {
                          SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers,
                          String excludedRevprop, String excludedCommitMessages,
                          String includedRegions, boolean ignoreDirPropChanges, boolean filterChangelog,
-                         List<AdditionalCredentials> additionalCredentials, boolean quietOperation) {
+                         List<AdditionalCredentials> additionalCredentials, boolean quietOperation,
+                         boolean cleanupOnLockedWorkspace) {
         for (Iterator<ModuleLocation> itr = locations.iterator(); itr.hasNext(); ) {
             ModuleLocation ml = itr.next();
             String remote = Util.fixEmptyAndTrim(ml.remote);
@@ -403,6 +417,7 @@ public class SubversionSCM extends SCM {
         this.ignoreDirPropChanges = ignoreDirPropChanges;
         this.filterChangelog = filterChangelog;
         this.quietOperation = quietOperation;
+        this.cleanupOnLockedWorkspace = cleanupOnLockedWorkspace;
     }
 
     /**
@@ -714,6 +729,11 @@ public class SubversionSCM extends SCM {
       return quietOperation;
     }
 
+    @Exported
+    public boolean isCleanupOnLockedWorkspace() {
+        return cleanupOnLockedWorkspace;
+    }
+
     /**
      * Convenience method solely for testing.
      */
@@ -965,7 +985,8 @@ public class SubversionSCM extends SCM {
         Set<String> unauthenticatedRealms = new LinkedHashSet<>();
         for (ModuleLocation location : getLocations(env, build)) {
             CheckOutTask checkOutTask =
-                    new CheckOutTask(new CheckOutUpdateTask(build, this, location, build.getTimestamp().getTime(), listener, env, quietOperation));
+                    new CheckOutTask(new CheckOutUpdateTask(build, this, location, build.getTimestamp().getTime(),
+                            listener, env, quietOperation, cleanupOnLockedWorkspace));
             List<External> externals = new ArrayList<>(workspace.act(checkOutTask));
             // save location <---> externals maps
             externalsMap.put(location.remote, externals);
@@ -1046,8 +1067,9 @@ public class SubversionSCM extends SCM {
         private final boolean storeAuthToDisk = descriptor().isStoreAuthToDisk();
         private final int workspaceFormat = descriptor().getWorkspaceFormat();
 
-        CheckOutUpdateTask(Run<?, ?> build, SubversionSCM parent, ModuleLocation location, Date timestamp,
-                            TaskListener listener, EnvVars env, boolean quietOperation) {
+        CheckOutUpdateTask(Run<?, ?> build, SubversionSCM parent, ModuleLocation location, Date timestamp, 
+                           TaskListener listener, EnvVars env, boolean quietOperation,
+                           boolean cleanupOnLockedWorkspace) {
             this.authProvider = parent.createAuthenticationProvider(build.getParent(), location, listener);
             this.timestamp = timestamp;
             this.listener = listener;
@@ -1055,6 +1077,7 @@ public class SubversionSCM extends SCM {
             this.revisions = build.getAction(RevisionParameterAction.class);
             this.task = parent.getWorkspaceUpdater().createTask(workspaceFormat);
             this.quietOperation = quietOperation;
+            this.cleanupOnLockedWorkspace = cleanupOnLockedWorkspace;
         }
 
         List<External> run(File ws) throws IOException {
