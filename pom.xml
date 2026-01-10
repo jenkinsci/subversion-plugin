@@ -58,6 +58,8 @@ THE SOFTWARE.
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
+    <hpi.bundledArtifacts>antlr-runtime,jsch.agentproxy.connector-factory,jsch.agentproxy.core,jsch.agentproxy.pageant,jsch.agentproxy.sshagent,jsch.agentproxy.svnkit-trilead-ssh2,jsch.agentproxy.usocket-jna,jsch.agentproxy.usocket-nc,lz4-java,sequence-library,sqljet,svnkit</hpi.bundledArtifacts>
+    <hpi.strictBundledArtifacts>true</hpi.strictBundledArtifacts>
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
     <jenkins.baseline>2.504</jenkins.baseline>
     <jenkins.version>${jenkins.baseline}.3</jenkins.version>
