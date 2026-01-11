@@ -318,6 +318,12 @@ log level again to ERROR or INFO.
 ![](docs/images/logger.png){.confluence-embedded-image
 height="250"}
 
+## Post-commit hook not working
+
+Starting from Jenkins 2.176, the post-commit hook based on crumb headers
+can stop working as default behavior on crumb usage from scripts has changed. 
+If you run into HTTP 403 errors in the hook, see #SECURITY-626 for a fix:
+https://www.jenkins.io/doc/upgrade-guide/2.176/#SECURITY-626
   
 
 ## lightweight checkout capability for Subversion on Multibranch Pipeline projects and Externals support
