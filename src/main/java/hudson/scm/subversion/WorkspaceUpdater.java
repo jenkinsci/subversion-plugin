@@ -138,6 +138,8 @@ public abstract class WorkspaceUpdater extends AbstractDescribableImpl<Workspace
          */
         public boolean quietOperation;
 
+        public boolean cleanupOnLockedWorkspace;
+
         /**
          * If the build parameter is specified with specific version numbers, this field captures that. Can be null.
          */
@@ -164,6 +166,7 @@ public abstract class WorkspaceUpdater extends AbstractDescribableImpl<Workspace
             t.revisions = this.revisions;
             t.ws = this.ws;
             t.quietOperation = this.quietOperation;
+            t.cleanupOnLockedWorkspace = this.cleanupOnLockedWorkspace;
 
             return t.perform();
         }

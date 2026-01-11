@@ -39,6 +39,11 @@ import org.tmatesoft.svn.core.wc.SVNInfo;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 import org.tmatesoft.svn.core.wc.SVNUpdateClient;
 import org.tmatesoft.svn.core.wc.SVNWCClient;
+import org.tmatesoft.svn.core.wc2.SvnCleanup;
+import org.tmatesoft.svn.core.wc2.SvnGetStatus;
+import org.tmatesoft.svn.core.wc2.SvnOperationFactory;
+import org.tmatesoft.svn.core.wc2.SvnStatus;
+import org.tmatesoft.svn.core.wc2.SvnTarget;
 
 import java.io.File;
 import java.io.IOException;
@@ -155,6 +160,9 @@ public class UpdateUpdater extends WorkspaceUpdater {
                 		fmt.format(r.getDate()) : r.toString();
                 
                 svnuc.setIgnoreExternals(location.isIgnoreExternalsOption());
+                if (cleanupOnLockedWorkspace) {
+                    cleanupWorkspaceIfLocked(local);
+                }
                 preUpdate(location, local);
                 SVNDepth svnDepth = location.getSvnDepthForUpdate();
                 
@@ -186,6 +194,9 @@ public class UpdateUpdater extends WorkspaceUpdater {
                 do {
                     SVNErrorCode errorCode = cause.getErrorMessage().getErrorCode();
                     if (errorCode == SVNErrorCode.WC_LOCKED) {
+                        if (cleanupOnLockedWorkspace) {
+                            throw new IOException(new UpdaterException("failed to perform svn cleanup, workspace is still locked", e));
+                        }
                         // work space locked. try fresh check out
                         listener.getLogger().println("Workspace appear to be locked, so getting a fresh workspace");
                         return delegateTo(new CheckoutUpdater(), workspaceFormat);
@@ -245,6 +256,37 @@ public class UpdateUpdater extends WorkspaceUpdater {
          */
         protected void preUpdate(ModuleLocation module, File local) throws SVNException, IOException {
             // noop by default
+        }
+
+        private void cleanupWorkspaceIfLocked(File local) throws IOException, SVNException {
+            if (!isWorkspaceLocked(local)) {
+                return;
+            }
+            listener.getLogger().println("Workspace appears to be locked, attempting to run 'svn cleanup'...");
+            SvnOperationFactory operationFactory = new SvnOperationFactory();
+            try {
+                SvnCleanup svnCleanup = operationFactory.createCleanup();
+                svnCleanup.setSingleTarget(SvnTarget.fromFile(local.getCanonicalFile()));
+                svnCleanup.setBreakLocks(true);
+                svnCleanup.run();
+            } finally {
+                operationFactory.dispose();
+            }
+            listener.getLogger().println("Cleanup completed.");
+        }
+
+        private boolean isWorkspaceLocked(File local) throws IOException, SVNException {
+            SvnOperationFactory operationFactory = new SvnOperationFactory();
+            try {
+                SvnGetStatus statusOp = operationFactory.createGetStatus();
+                statusOp.setSingleTarget(SvnTarget.fromFile(local.getCanonicalFile()));
+                statusOp.setDepth(SVNDepth.EMPTY); // avoid recursion
+                statusOp.setRemote(false);
+                SvnStatus status = statusOp.run();
+                return status != null && status.isWcLocked();
+            } finally {
+                operationFactory.dispose();
+            }
         }
     }
 
