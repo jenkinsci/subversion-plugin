@@ -36,7 +36,6 @@ import jenkins.model.Jenkins;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
-import javax.servlet.ServletException;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -132,7 +131,7 @@ public class FishEyeSVN extends SubversionRepositoryBrowser {
          * Performs on-the-fly validation of the URL.
          */
         @RequirePOST
-        public FormValidation doCheckUrl(@QueryParameter(fixEmpty=true) String value) throws IOException, ServletException {
+        public FormValidation doCheckUrl(@QueryParameter(fixEmpty=true) String value) throws IOException {
             if(value==null) // nothing entered yet
                 return FormValidation.ok();
 
@@ -147,7 +146,7 @@ public class FishEyeSVN extends SubversionRepositoryBrowser {
             final String finalValue = value;
             return new URLCheck() {
                 @Override
-                protected FormValidation check() throws IOException, ServletException {
+                protected FormValidation check() throws IOException {
                     try {
                         if(findText(open(new URL(finalValue)),"FishEye")) {
                             return FormValidation.ok();

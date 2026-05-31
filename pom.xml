@@ -29,7 +29,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.88</version>
+    <version>6.2189.v695a_c41f5249</version>
     <relativePath />
   </parent>
 
@@ -56,14 +56,16 @@ THE SOFTWARE.
   </scm>
 
   <properties>
-    <!-- To be removed once Jenkins.MANAGE gets out of beta -->
-    <useBeta>true</useBeta>
     <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
-    <jenkins.baseline>2.462</jenkins.baseline>
-    <jenkins.version>${jenkins.baseline}.1</jenkins.version>
+    <hpi.bundledArtifacts>antlr-runtime,jsch.agentproxy.connector-factory,jsch.agentproxy.core,jsch.agentproxy.pageant,jsch.agentproxy.sshagent,jsch.agentproxy.svnkit-trilead-ssh2,jsch.agentproxy.usocket-jna,jsch.agentproxy.usocket-nc,lz4-java,sequence-library,sqljet,svnkit</hpi.bundledArtifacts>
+    <hpi.strictBundledArtifacts>true</hpi.strictBundledArtifacts>
+    <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
+    <jenkins.baseline>2.504</jenkins.baseline>
+    <jenkins.version>${jenkins.baseline}.3</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <spotbugs.threshold>High</spotbugs.threshold> <!-- TODO some violations remaining -->
+    <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
     <svnkit.version>1.10.11</svnkit.version>
   </properties>
 
@@ -85,7 +87,7 @@ THE SOFTWARE.
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-${jenkins.baseline}.x</artifactId>
-        <version>3258.vcdcf15936a_fd</version>
+        <version>5983.v443959746f1f</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
@@ -93,6 +95,10 @@ THE SOFTWARE.
   </dependencyManagement>
 
   <dependencies>
+    <dependency>
+      <groupId>io.jenkins.plugins</groupId>
+      <artifactId>commons-lang3-api</artifactId>
+    </dependency>
     <dependency>
       <groupId>io.jenkins.plugins</groupId>
       <artifactId>eddsa-api</artifactId>
@@ -237,7 +243,6 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>envinject</artifactId>
-      <version>2.919.v009a_a_1067cd0</version>
       <scope>test</scope>
     </dependency>
     <dependency>

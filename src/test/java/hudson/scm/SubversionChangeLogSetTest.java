@@ -23,13 +23,14 @@
  */
 package hudson.scm;
 
-import static hudson.scm.SubversionChangeLogUtil.*;
+import org.junit.jupiter.api.Test;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.Assert;
-import org.junit.Test;
+import static hudson.scm.SubversionChangeLogUtil.buildChangeLogEntry;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * SubversionChangeLogSet test cases.
@@ -38,10 +39,11 @@ import org.junit.Test;
  *
  * @author Nikita Levyankov
  */
-public class SubversionChangeLogSetTest {
+@WithJenkins
+class SubversionChangeLogSetTest {
 
     @Test
-    public void testRemoveDuplicateEntries() throws Exception{
+    void testRemoveDuplicateEntries() {
         //One duplicated entry. 7 unique, 8 total entries.
         List<SubversionChangeLogSet.LogEntry> items = new ArrayList<>();
         items.add(buildChangeLogEntry(1, "Test msg"));
@@ -52,9 +54,9 @@ public class SubversionChangeLogSetTest {
         items.add(buildChangeLogEntry(5, "Test msg"));
         items.add(buildChangeLogEntry(6, "Test msg"));
         items.add(buildChangeLogEntry(1, "Test msg1"));
-        Assert.assertEquals("Items size is not equals to expected", items.size(), 8);
+        assertEquals(8, items.size(), "Items size is not equals to expected");
         List<SubversionChangeLogSet.LogEntry> resultItems = SubversionChangeLogSet.removeDuplicatedEntries(items);
-        Assert.assertEquals(resultItems.size(), 7);
+        assertEquals(7, resultItems.size());
 
         //No duplicated entries. Total 7
         items = new ArrayList<>();
@@ -65,8 +67,8 @@ public class SubversionChangeLogSetTest {
         items.add(buildChangeLogEntry(5, "Test msg"));
         items.add(buildChangeLogEntry(6, "Test msg"));
         items.add(buildChangeLogEntry(1, "Test msg1"));
-        Assert.assertEquals("Items size is not equals to expected", items.size(), 7);
+        assertEquals(7, items.size(), "Items size is not equals to expected");
         resultItems = SubversionChangeLogSet.removeDuplicatedEntries(items);
-        Assert.assertEquals(resultItems.size(), 7);
+        assertEquals(7, resultItems.size());
     }
 }

@@ -32,7 +32,7 @@ import hudson.scm.SubversionSCM.External;
 import hudson.scm.SubversionSCM.ModuleLocation;
 import hudson.triggers.SCMTrigger;
 import jenkins.model.Jenkins;
-import org.apache.commons.lang.time.FastDateFormat;
+import org.apache.commons.lang3.time.FastDateFormat;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.tmatesoft.svn.core.*;
 import org.tmatesoft.svn.core.wc.SVNInfo;

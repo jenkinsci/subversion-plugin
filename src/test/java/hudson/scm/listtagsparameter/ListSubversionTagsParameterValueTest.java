@@ -1,60 +1,62 @@
 package hudson.scm.listtagsparameter;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 /**
  * Created by schristou88 on 6/24/14.
  */
-public class ListSubversionTagsParameterValueTest {
-    String expectedName = "name";
-    String expectedTag = "tag";
-    String expectedTagsDir = "/tmp";
+class ListSubversionTagsParameterValueTest {
+
+    private static final String EXPECTED_NAME = "name";
+    private static final String EXPECTED_TAG = "tag";
+    private static final String EXPECTED_TAGS_DIR = "/tmp";
+
     /**
      * Since we are overriding the equals method, we should write a test unit.
      */
     @Test
     @Issue("JENKINS-18534")
-    public void testEquality() {
-        ListSubversionTagsParameterValue parameterValue = new ListSubversionTagsParameterValue(expectedName,
-                expectedTag,
-                expectedTagsDir);
+    void testEquality() {
+        ListSubversionTagsParameterValue parameterValue = new ListSubversionTagsParameterValue(EXPECTED_NAME,
+                EXPECTED_TAG,
+                EXPECTED_TAGS_DIR);
 
         assertEquals(parameterValue, parameterValue);
 
         // When name is different
         ListSubversionTagsParameterValue otherParameterValue = new ListSubversionTagsParameterValue("different",
-                expectedTag,
-                expectedTagsDir);
-        assertNotEquals("Two parameter values should NOT be equal if the only difference is the name.",
-                parameterValue,
-                otherParameterValue);
+                EXPECTED_TAG,
+                EXPECTED_TAGS_DIR);
+        assertNotEquals(parameterValue,
+                otherParameterValue,
+                "Two parameter values should NOT be equal if the only difference is the name.");
 
         // When tag is different
-        otherParameterValue = new ListSubversionTagsParameterValue(expectedName,
+        otherParameterValue = new ListSubversionTagsParameterValue(EXPECTED_NAME,
                 "tag2",
-                expectedTagsDir);
-        assertNotEquals("Two parameter values should NOT be equal if the difference is the tag.",
-                parameterValue,
-                otherParameterValue);
+                EXPECTED_TAGS_DIR);
+        assertNotEquals(parameterValue,
+                otherParameterValue,
+                "Two parameter values should NOT be equal if the difference is the tag.");
 
         // When tagsdir is different
-        otherParameterValue = new ListSubversionTagsParameterValue(expectedName,
-                expectedTag,
+        otherParameterValue = new ListSubversionTagsParameterValue(EXPECTED_NAME,
+                EXPECTED_TAG,
                 "/tmp1");
-        assertNotEquals("Two parameter values should NOT be equal if the difference is the tagsDir.",
-                parameterValue,
-                otherParameterValue);
+        assertNotEquals(parameterValue,
+                otherParameterValue,
+                "Two parameter values should NOT be equal if the difference is the tagsDir.");
 
-        otherParameterValue = new ListSubversionTagsParameterValue(expectedName,
-                expectedTag,
-                expectedTagsDir);
-        assertEquals("Two parameters with the same value should also be equal.",
-                parameterValue,
-                otherParameterValue);
+        otherParameterValue = new ListSubversionTagsParameterValue(EXPECTED_NAME,
+                EXPECTED_TAG,
+                EXPECTED_TAGS_DIR);
+        assertEquals(parameterValue,
+                otherParameterValue,
+                "Two parameters with the same value should also be equal.");
     }
 
     /**
@@ -62,16 +64,16 @@ public class ListSubversionTagsParameterValueTest {
      */
     @Test
     @Issue("JENKINS-18534")
-    public void testHashCode() {
-        ListSubversionTagsParameterValue parameterValue = new ListSubversionTagsParameterValue(expectedName,
-                expectedTag,
-                expectedTagsDir);
+    void testHashCode() {
+        ListSubversionTagsParameterValue parameterValue = new ListSubversionTagsParameterValue(EXPECTED_NAME,
+                EXPECTED_TAG,
+                EXPECTED_TAGS_DIR);
 
         assertEquals(parameterValue.hashCode(), parameterValue.hashCode());
 
-        ListSubversionTagsParameterValue otherParameterValue = new ListSubversionTagsParameterValue(expectedName,
-                expectedTag,
-                expectedTagsDir);
+        ListSubversionTagsParameterValue otherParameterValue = new ListSubversionTagsParameterValue(EXPECTED_NAME,
+                EXPECTED_TAG,
+                EXPECTED_TAGS_DIR);
 
         assertEquals(parameterValue.hashCode(), otherParameterValue.hashCode());
     }

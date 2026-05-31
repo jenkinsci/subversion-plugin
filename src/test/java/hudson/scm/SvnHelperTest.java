@@ -24,51 +24,53 @@
 package hudson.scm;
 
 import hudson.scm.subversion.SvnHelper;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Contains tests for {@link SvnHelper}.
+ *
  * @author Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
  * @since TODO
  */
-public class SvnHelperTest {
-    
+class SvnHelperTest {
+
     private static final String URL_PREFIX = "http://very/complex/path/to/SVN";
-       
+
     private void testGetUrlWithoutRevision(String serverURL, String expected) {
         String value = SvnHelper.getUrlWithoutRevision(serverURL);
-        Assert.assertEquals("URL w/o revision differs from expected value", expected, value);
+        assertEquals(expected, value, "URL w/o revision differs from expected value");
     }
-    
+
     private void testGetUrlWithoutRevision(String serverUrl) {
         testGetUrlWithoutRevision(serverUrl, URL_PREFIX);
     }
-    
+
     @Test
-    public void testGetUrlWithoutRevision_minimal() {
+    void testGetUrlWithoutRevision_minimal() {
         testGetUrlWithoutRevision(URL_PREFIX);
     }
-     
+
     @Test
-    public void testGetUrlWithoutRevision_withSuffix() {
-        testGetUrlWithoutRevision(URL_PREFIX+"@HEAD");
-        testGetUrlWithoutRevision(URL_PREFIX+"@100500");
-        testGetUrlWithoutRevision(URL_PREFIX+"@LABEL",URL_PREFIX+"@LABEL"); // Actually, it is not a revision  
+    void testGetUrlWithoutRevision_withSuffix() {
+        testGetUrlWithoutRevision(URL_PREFIX + "@HEAD");
+        testGetUrlWithoutRevision(URL_PREFIX + "@100500");
+        testGetUrlWithoutRevision(URL_PREFIX + "@LABEL", URL_PREFIX + "@LABEL"); // Actually, it is not a revision
     }
-    
+
     @Test
-    public void testGetUrlWithoutRevision_withEndingSlash() {
-        testGetUrlWithoutRevision(URL_PREFIX+"/");
-        testGetUrlWithoutRevision(URL_PREFIX+"//");  
-        testGetUrlWithoutRevision(URL_PREFIX+"////////");   
+    void testGetUrlWithoutRevision_withEndingSlash() {
+        testGetUrlWithoutRevision(URL_PREFIX + "/");
+        testGetUrlWithoutRevision(URL_PREFIX + "//");
+        testGetUrlWithoutRevision(URL_PREFIX + "////////");
     }
-    
+
     @Test
     @Issue("JENKINS-20344")
-    public void testGetUrlWithoutRevision_withSlashAndSuffix() {
-        testGetUrlWithoutRevision(URL_PREFIX+"/@HEAD");
-        testGetUrlWithoutRevision(URL_PREFIX+"//@HEAD");       
+    void testGetUrlWithoutRevision_withSlashAndSuffix() {
+        testGetUrlWithoutRevision(URL_PREFIX + "/@HEAD");
+        testGetUrlWithoutRevision(URL_PREFIX + "//@HEAD");
     }
 }

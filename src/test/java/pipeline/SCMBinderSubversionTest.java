@@ -25,57 +25,72 @@
 package pipeline;
 
 import hudson.scm.ChangeLogSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.TreeSet;
 import jenkins.branch.BranchSource;
 import jenkins.scm.impl.subversion.SubversionSCMFileSystem;
 import jenkins.scm.impl.subversion.SubversionSCMSource;
-import jenkins.scm.impl.subversion.SubversionSampleRepoRule;
+import jenkins.scm.impl.subversion.SubversionSampleRepoExtension;
 import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProjectTest;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.BuildWatcher;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class SCMBinderSubversionTest {
+import java.util.Iterator;
+import java.util.List;
+import java.util.TreeSet;
 
-    @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
-    @Rule public JenkinsRule r = new JenkinsRule();
-    @Rule public SubversionSampleRepoRule sampleSvnRepo = new SubversionSampleRepoRule();
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@WithJenkins
+class SCMBinderSubversionTest {
+
+    @SuppressWarnings("unused")
+    @RegisterExtension
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
+    private JenkinsRule r;
+
+    @RegisterExtension
+    private final SubversionSampleRepoExtension sampleRepo = new SubversionSampleRepoExtension();
 
     static {
         System.setProperty(SubversionSCMFileSystem.DISABLE_PROPERTY, "true");
     }
-    @Test public void exactRevisionSubversion() throws Exception {
-        sampleSvnRepo.init();
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
+
+    @Test
+    void exactRevisionSubversion() throws Exception {
+        sampleRepo.init();
         ScriptApproval sa = ScriptApproval.get();
         sa.approveSignature("staticField hudson.model.Items XSTREAM2");
         sa.approveSignature("method com.thoughtworks.xstream.XStream toXML java.lang.Object");
-        sampleSvnRepo.write("Jenkinsfile", "echo hudson.model.Items.XSTREAM2.toXML(scm); semaphore 'wait'; node {checkout scm; echo readFile('file')}");
-        sampleSvnRepo.write("file", "initial content");
-        sampleSvnRepo.svnkit("add", sampleSvnRepo.wc() + "/Jenkinsfile");
-        sampleSvnRepo.svnkit("commit", "--message=flow", sampleSvnRepo.wc());
+        sampleRepo.write("Jenkinsfile", "echo hudson.model.Items.XSTREAM2.toXML(scm); semaphore 'wait'; node {checkout scm; echo readFile('file')}");
+        sampleRepo.write("file", "initial content");
+        sampleRepo.svnkit("add", sampleRepo.wc() + "/Jenkinsfile");
+        sampleRepo.svnkit("commit", "--message=flow", sampleRepo.wc());
         WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
-        mp.getSourcesList().add(new BranchSource(new SubversionSCMSource(null, sampleSvnRepo.prjUrl())));
+        mp.getSourcesList().add(new BranchSource(new SubversionSCMSource(null, sampleRepo.prjUrl())));
         WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "trunk");
         SemaphoreStep.waitForStart("wait/1", null);
         WorkflowRun b1 = p.getLastBuild();
         assertNotNull(b1);
         assertEquals(1, b1.getNumber());
-        sampleSvnRepo.write("Jenkinsfile", "node {checkout scm; echo readFile('file').toUpperCase()}");
-        sampleSvnRepo.write("file", "subsequent content");
-        sampleSvnRepo.svnkit("commit", "--message=tweaked", sampleSvnRepo.wc());
+        sampleRepo.write("Jenkinsfile", "node {checkout scm; echo readFile('file').toUpperCase()}");
+        sampleRepo.write("file", "subsequent content");
+        sampleRepo.svnkit("commit", "--message=tweaked", sampleRepo.wc());
         SemaphoreStep.success("wait/1", null);
         WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
         assertEquals(2, b2.getNumber());

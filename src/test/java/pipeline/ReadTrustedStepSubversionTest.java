@@ -26,46 +26,67 @@ package pipeline;
 
 import hudson.Functions;
 import hudson.scm.SubversionSCM;
-import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import jenkins.branch.BranchSource;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.plugins.git.GitStep;
+import jenkins.plugins.git.junit.jupiter.WithGitSampleRepo;
 import jenkins.scm.impl.subversion.SubversionSCMSource;
-import jenkins.scm.impl.subversion.SubversionSampleRepoRule;
+import jenkins.scm.impl.subversion.SubversionSampleRepoExtension;
 import org.apache.commons.io.FileUtils;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.io.FileMatchers.anExistingFile;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.multibranch.SCMBinder;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProjectTest;
-import static org.junit.Assume.assumeFalse;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.BuildWatcher;
-import org.jvnet.hudson.test.FlagRule;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class ReadTrustedStepSubversionTest {
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
-    @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
-    @Rule public JenkinsRule r = new JenkinsRule();
-    @Rule public GitSampleRepoRule sampleRepo = new GitSampleRepoRule();
-    @Rule public SubversionSampleRepoRule sampleRepoSvn = new SubversionSampleRepoRule();
-    @Rule public FlagRule<Boolean> heavyweightCheckoutFlag = new FlagRule<>(() -> SCMBinder.USE_HEAVYWEIGHT_CHECKOUT, v -> { SCMBinder.USE_HEAVYWEIGHT_CHECKOUT = v; });
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.io.FileMatchers.anExistingFile;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+
+@WithJenkins
+@WithGitSampleRepo
+class ReadTrustedStepSubversionTest {
+
+    @SuppressWarnings("unused")
+    @RegisterExtension
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
+    private JenkinsRule r;
+    private GitSampleRepoRule sampleRepo;
+    @RegisterExtension
+    private final SubversionSampleRepoExtension sampleRepoSvn = new SubversionSampleRepoExtension();
+    private boolean heavyweightCheckoutFlag;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule, GitSampleRepoRule repo) {
+        r = rule;
+        sampleRepo = repo;
+        heavyweightCheckoutFlag = SCMBinder.USE_HEAVYWEIGHT_CHECKOUT;
+    }
+
+    @AfterEach
+    void afterEach() {
+        SCMBinder.USE_HEAVYWEIGHT_CHECKOUT = heavyweightCheckoutFlag;
+    }
 
     @Issue("SECURITY-2463")
-    @Test public void multibranchCheckoutDirectoriesAreNotReusedByDifferentScms() throws Exception {
+    @Test
+    void multibranchCheckoutDirectoriesAreNotReusedByDifferentScms() throws Exception {
         SCMBinder.USE_HEAVYWEIGHT_CHECKOUT = true;
         assumeFalse(Functions.isWindows()); // Checkout hook is not cross-platform.
         sampleRepo.init();
@@ -83,7 +104,7 @@ public class ReadTrustedStepSubversionTest {
         Path postCheckoutHook = gitDirInSvnRepo.toPath().resolve("hooks/post-checkout");
         // Always create hooks directory for compatibility with https://github.com/jenkinsci/git-plugin/pull/1207.
         Files.createDirectories(postCheckoutHook.getParent());
-        Files.write(postCheckoutHook, ("#!/bin/sh\ntouch '" + jenkinsRootDir + "/hook-executed'\n").getBytes(StandardCharsets.UTF_8));
+        Files.writeString(postCheckoutHook, "#!/bin/sh\ntouch '" + jenkinsRootDir + "/hook-executed'\n");
         sampleRepoSvn.svnkit("add", sampleRepoSvn.wc() + "/Jenkinsfile");
         sampleRepoSvn.svnkit("add", sampleRepoSvn.wc() + "/.git");
         sampleRepoSvn.svnkit("propset", "svn:executable", "ON", sampleRepoSvn.wc() + "/.git/hooks/post-checkout");
@@ -103,7 +124,8 @@ public class ReadTrustedStepSubversionTest {
     }
 
     @Issue("SECURITY-2463")
-    @Test public void checkoutDirectoriesAreNotReusedByDifferentScms() throws Exception {
+    @Test
+    void checkoutDirectoriesAreNotReusedByDifferentScms() throws Exception {
         SCMBinder.USE_HEAVYWEIGHT_CHECKOUT = true;
         assumeFalse(Functions.isWindows()); // Checkout hook is not cross-platform.
         sampleRepo.init();
@@ -120,7 +142,7 @@ public class ReadTrustedStepSubversionTest {
         Path postCheckoutHook = gitDirInSvnRepo.toPath().resolve("hooks/post-checkout");
         // Always create hooks directory for compatibility with https://github.com/jenkinsci/git-plugin/pull/1207.
         Files.createDirectories(postCheckoutHook.getParent());
-        Files.write(postCheckoutHook, ("#!/bin/sh\ntouch '" + jenkinsRootDir + "/hook-executed'\n").getBytes(StandardCharsets.UTF_8));
+        Files.writeString(postCheckoutHook, "#!/bin/sh\ntouch '" + jenkinsRootDir + "/hook-executed'\n");
         sampleRepoSvn.svnkit("add", sampleRepoSvn.wc() + "/Jenkinsfile");
         sampleRepoSvn.svnkit("add", sampleRepoSvn.wc() + "/.git");
         sampleRepoSvn.svnkit("propset", "svn:executable", "ON", sampleRepoSvn.wc() + "/.git/hooks/post-checkout");
