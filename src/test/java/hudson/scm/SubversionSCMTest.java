@@ -870,20 +870,58 @@ class SubversionSCMTest extends AbstractSubversionTest {
     }
 
     /**
-     * Makes sure that Subversion doesn't check out workspace in 1.6
+     * Makes sure we can use at least WC_FORMAT_16 by default.
+     * 
+     * We want to be able to checkout SVN1.6 by default,
+     * The test repo should include some SVN 1.6 features like Support for files in `svn:externals`:
+     * https://subversion.apache.org/docs/release-notes/1.6.html#externals
      */
-    @Email("http://www.nabble.com/SVN-1.6-td24081571.html")
     @Test
-    void workspaceVersion() throws Exception {
-        FreeStyleProject p = r.createFreeStyleProject();
-        p.setScm(loadSvnRepo());
-        FreeStyleBuild b = p.scheduleBuild2(0).get();
+    void workspaceVersionAndExternalFiles() throws Exception {
+        File testRepo = new CopyExisting(getClass().getResource("svn-externals.zip")).allocate();
+        // file:///D:/Jenkins-plugins/subversion-plugin/target/tmp/j h1849784217265900740/repo/trunk
+        var repoUrl = "file://" + testRepo.toURI().toURL().getPath() + "repo/trunk";
+        System.out.println(repoUrl);
+        String localPath = "repo-dir";
+        SubversionSCM scm = new SubversionSCM(repoUrl, localPath);
 
+        // build should do the svn checkout
+        FreeStyleProject p = r.createFreeStyleProject();
+        p.setScm(scm);
+        var b = p.scheduleBuild2(0).get();
+
+        // check and show workspace dir
+        var workspaceDir = b.getWorkspace();
+        assertNotNull(workspaceDir);
+        System.out.println(workspaceDir);
+
+        // local path of the checkout
+        String repoDir = workspaceDir.getRemote() + "/" + localPath;
+        System.out.println(repoDir);
+
+        // check the working copy (checkout) version
         SvnClientManager wc = SubversionSCM.createClientManager((AbstractProject) null);
-        SVNStatus st = wc.getStatusClient().doStatus(new File(b.getWorkspace().getRemote() + "/a"), false);
+        SVNStatus st = wc.getStatusClient().doStatus(new File(repoDir), false);
         int wcf = st.getWorkingCopyFormat();
         System.out.println(wcf);
-        assertEquals(SVNAdminAreaFactory.WC_FORMAT_14, wcf);
+        assertTrue(
+            wcf >= SVNAdminAreaFactory.WC_FORMAT_16,
+            "SVN working copy format is: " + wcf
+                + " and should be at least SVN 1.6 which is: "
+                + SVNAdminAreaFactory.WC_FORMAT_16
+        );
+
+        // check that svn:externals worked
+        var testExternalFile = new File(repoDir + "/dest1/test.md");
+        assertTrue(
+            testExternalFile.isFile(),
+            "SVN external ../source/test.md test.md should be loaded to dest1: " + testExternalFile
+        );
+        var testExternalRename = new File(repoDir + "/dest2/test-global.md");
+        assertTrue(
+            testExternalRename.isFile(),
+            "SVN external ../source/test.md test-global.md should be loaded to dest2 with a new name: " + testExternalRename
+        );
     }
 
     private static String readFileAsString(File file)

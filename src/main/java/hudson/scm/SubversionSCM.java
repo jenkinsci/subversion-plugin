@@ -184,6 +184,7 @@ import org.tmatesoft.svn.core.internal.wc.DefaultSVNOptions;
 import org.tmatesoft.svn.core.internal.wc.SVNPath;
 import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminAreaFactory;
 import org.tmatesoft.svn.core.internal.wc.admin.SVNAdminArea14;
+import org.tmatesoft.svn.core.internal.wc17.db.ISVNWCDb;
 import org.tmatesoft.svn.core.io.SVNCapability;
 import org.tmatesoft.svn.core.io.SVNRepository;
 import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
@@ -222,6 +223,16 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 @SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "TODO needs triage")
 @SuppressWarnings("rawtypes")
 public class SubversionSCM extends SCM {
+    /**
+     * Default workspace format for new checkouts.
+     * 
+     * Was SVNAdminAreaFactory.WC_FORMAT_14 until 2026-08 in this Jenkins plugin.
+     * Note that some major features like svn:externals will not fully work in an old checkout format.
+     * 
+     * See also: src\main\resources\hudson\scm\SubversionSCM\global.jelly
+     */
+    private static final int defaultWorkspaceFormat = ISVNWCDb.WC_FORMAT_18;
+
     /**
      * the locations field is used to store all configured SVN locations (with
      * their local and remote part). Direct access to this field should be
@@ -1140,7 +1151,7 @@ public class SubversionSCM extends SCM {
         } else {
             // E.g. https://github.com/jenkinsci/svnmerge-plugin/blob/fc97c3da525099c97b4d7dc2672377711640472b/src/main/java/jenkins/plugins/svnmerge/FeatureBranchProperty.java#L188
             // No way to know for sure what values to use, so fall back to descriptor defaults.
-            return createClientManager(authProvider, true, SVNAdminAreaFactory.WC_FORMAT_14);
+            return createClientManager(authProvider, true, defaultWorkspaceFormat);
         }
     }
 
@@ -1726,7 +1737,7 @@ public class SubversionSCM extends SCM {
          */
         private String globalExcludedRevprop = null;
 
-        private int workspaceFormat = SVNAdminAreaFactory.WC_FORMAT_14;
+        private int workspaceFormat = defaultWorkspaceFormat;
 
         /**
          * When set to true, repository URLs will be validated up to the first
@@ -2212,7 +2223,7 @@ public class SubversionSCM extends SCM {
 
         public int getWorkspaceFormat() {
             if (workspaceFormat == 0)
-                return SVNAdminAreaFactory.WC_FORMAT_14; // default
+                return defaultWorkspaceFormat; // default
             return workspaceFormat;
         }
 
