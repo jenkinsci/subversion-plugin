@@ -1,5 +1,7 @@
 /bin
 /work*
+*.priv.*
+*.priv
 
 # Maven build files
 target/
