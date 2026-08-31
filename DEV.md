@@ -5,6 +5,23 @@ However, there is also a special process for running a plugin.
 
 Note: HPI = Hudson Plugin Interface.
 
+**Table of contents**:
+<!-- TOC -->
+
+- [(1) Building the plugin](#1-building-the-plugin)
+    - [Environment config](#environment-config)
+    - [Build](#build)
+- [(2) Testing](#2-testing)
+    - [Automated tests](#automated-tests)
+    - [Test Jenkins instance](#test-jenkins-instance)
+    - [Testing in an existing Jenkins instance](#testing-in-an-existing-jenkins-instance)
+- [(3) Clean up after testing](#3-clean-up-after-testing)
+- [Adding automated tests](#adding-automated-tests)
+- [Debug an automated test](#debug-an-automated-test)
+- [Summary](#summary)
+
+<!-- /TOC -->
+
 ## (1) Building the plugin
 
 Building should be possible both on Windows and Linux. You only need Maven and Java installed.
