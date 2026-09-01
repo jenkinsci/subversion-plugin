@@ -7,6 +7,32 @@ Jenkins Subversion Plugin
 
 This plugin adds the Subversion support (via SVNKit) to Jenkins.
 
+For [building and testing see DEV.md](DEV.md)
+
+**Table of contents**:
+<!-- TOC -->
+
+- [Jenkins Subversion Plugin](#jenkins-subversion-plugin)
+- [Basic Usage](#basic-usage)
+        - [Usage with Server Certificates](#usage-with-server-certificates)
+- [Advanced Features/Configurations](#advanced-featuresconfigurations)
+    - [Proxy](#proxy)
+    - [Post-commit hook](#post-commit-hook)
+        - [Considerations](#considerations)
+        - [More robust *nix post-commit hook example](#more-robust-nix-post-commit-hook-example)
+        - [Windows specific post-commit hook](#windows-specific-post-commit-hook)
+    - [Perform Polling from the Controller](#perform-polling-from-the-controller)
+    - [Subversion Revision and URL information as Environment Variables](#subversion-revision-and-url-information-as-environment-variables)
+    - [Kerberos authentication](#kerberos-authentication)
+- [TroubleShooting](#troubleshooting)
+    - [lightweight checkout capability for Subversion on Multibranch Pipeline projects and Externals support](#lightweight-checkout-capability-for-subversion-on-multibranch-pipeline-projects-and-externals-support)
+- [Change Log](#change-log)
+    - [Version 2.12.2 and newer](#version-2122-and-newer)
+    - [Older](#older)
+- [Trademarks](#trademarks)
+
+<!-- /TOC -->
+
 # Basic Usage
 
 Once this plugin is installed, you'll see Subversion as one of the

@@ -1,0 +1,18 @@
+{
+    "git.repositoryScanMaxDepth": 0,
+    "spellright.language": [
+        "en"
+    ],
+    "spellright.documentTypes": [
+        "markdown",
+        "latex",
+        "plaintext"
+    ],
+    "search.exclude": {
+        "**/target": true,
+        "**/work": true
+    },
+    "editor.useTabStops": false,
+    "editor.insertSpaces": true,
+    "svn.enabled": false
+}
