@@ -65,8 +65,8 @@ import jenkins.scm.api.SCMSourceDescriptor;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.scm.api.SCMSourceOwners;
 import net.jcip.annotations.GuardedBy;
-import org.acegisecurity.Authentication;
-import org.acegisecurity.context.SecurityContextHolder;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOCase;
 import org.apache.commons.lang3.StringUtils;
@@ -375,8 +375,8 @@ public class SubversionSCMSource extends SCMSource {
 
     private SVNRepositoryView openSession(SVNURL repoURL, Item context) throws SVNException, IOException {
         return new SVNRepositoryView(repoURL, credentialsId == null ? null : CredentialsMatchers
-                .firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class, context,
-                        ACL.SYSTEM, URIRequirementBuilder.fromUri(repoURL.toString()).build()),
+                .firstOrNull(CredentialsProvider.lookupCredentialsInItem(StandardCredentials.class, context,
+                        ACL.SYSTEM2, URIRequirementBuilder.fromUri(repoURL.toString()).build()),
                         CredentialsMatchers.allOf(CredentialsMatchers.withId(credentialsId),
                                 CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(StandardCredentials.class),
                                         CredentialsMatchers.instanceOf(SSHUserPrivateKey.class)))));
@@ -850,9 +850,9 @@ public class SubversionSCMSource extends SCMSource {
                                     CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
                                     CredentialsMatchers.instanceOf(SSHUserPrivateKey.class)
                             ),
-                            CredentialsProvider.lookupCredentials(StandardCredentials.class,
+                            CredentialsProvider.lookupCredentialsInItem(StandardCredentials.class,
                                     context,
-                                    ACL.SYSTEM,
+                                    ACL.SYSTEM2,
                                     domainRequirements)
                     );
         }
@@ -884,7 +884,7 @@ public class SubversionSCMSource extends SCMSource {
 
                 StandardCredentials credentials = value == null ? null :
                         CredentialsMatchers.firstOrNull(CredentialsProvider
-                                .lookupCredentials(StandardCredentials.class, context, ACL.SYSTEM,
+                                .lookupCredentialsInItem(StandardCredentials.class, context, ACL.SYSTEM2,
                                         URIRequirementBuilder.fromUri(repoURL.toString()).build()),
                                 CredentialsMatchers.withId(value));
                 if (checkRepositoryPath(repoURL, credentials)!=SVNNodeKind.NONE) {
@@ -1088,7 +1088,7 @@ public class SubversionSCMSource extends SCMSource {
             // this is safe because when we actually schedule a build, it's a build that can
             // happen at some random time anyway.
             Authentication old = SecurityContextHolder.getContext().getAuthentication();
-            SecurityContextHolder.getContext().setAuthentication(ACL.SYSTEM);
+            SecurityContextHolder.getContext().setAuthentication(ACL.SYSTEM2);
             try {
                 for (SCMSourceOwner owner : SCMSourceOwners.all()) {
                     for (SCMSource source : owner.getSCMSources()) {

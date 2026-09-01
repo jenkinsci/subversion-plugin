@@ -50,7 +50,7 @@ import hudson.security.Permission;
 import hudson.util.ListBoxModel;
 import hudson.util.MultipartFormDataParser;
 import jenkins.model.Jenkins;
-import org.acegisecurity.Authentication;
+import org.springframework.security.core.Authentication;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.StaplerResponse2;
@@ -235,12 +235,12 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
         if (credentialsId != null) {
             Item context = req.findAncestorObject(Item.class);
             final List<Authentication> authentications = new ArrayList<>(2);
-            authentications.add(Jenkins.getAuthentication());
+            authentications.add(Jenkins.getAuthentication2());
             if (context.hasPermission(Item.CONFIGURE)) { // TODO should this check EXTENDED_READ?
-                authentications.add(ACL.SYSTEM);
+                authentications.add(ACL.SYSTEM2);
             }
             for (Authentication a : authentications) {
-                upc = CredentialsMatchers.firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class,
+                upc = CredentialsMatchers.firstOrNull(CredentialsProvider.lookupCredentialsInItem(StandardCredentials.class,
                         context,
                         a,
                         Collections.emptyList()),
@@ -357,15 +357,15 @@ public class SubversionTagAction extends AbstractScmTagAction implements Describ
                     break;
                 }
             }
-            c.addAll(CredentialsProvider.lookupCredentials(StandardCredentials.class,
+            c.addAll(CredentialsProvider.lookupCredentialsInItem(StandardCredentials.class,
                     context,
-                    Jenkins.getAuthentication(),
+                    Jenkins.getAuthentication2(),
                     domainRequirements)
             );
             if (context.hasPermission(Item.EXTENDED_READ)) {
-                c.addAll(CredentialsProvider.lookupCredentials(StandardCredentials.class,
+                c.addAll(CredentialsProvider.lookupCredentialsInItem(StandardCredentials.class,
                                 context,
-                                ACL.SYSTEM,
+                                ACL.SYSTEM2,
                                 domainRequirements)
                 );
             }

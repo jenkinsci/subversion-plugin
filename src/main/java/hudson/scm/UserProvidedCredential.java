@@ -36,7 +36,7 @@ import hudson.scm.SubversionSCM.DescriptorImpl.SslClientCertificateCredential;
 import hudson.security.csrf.CrumbIssuer;
 import hudson.util.MultipartFormDataParser;
 import jenkins.model.Jenkins;
-import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload2.core.FileItem;
 import org.kohsuke.putty.PuTTYKey;
 import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.StaplerRequest2;
@@ -117,11 +117,11 @@ public class UserProvidedCredential implements Closeable {
             keyFile = null;
             item = null;
         } else {
-            item = parser.getFileItem(kind.equals("publickey")?"privateKey":"certificate");
+            item = parser.getFileItem2(kind.equals("publickey")?"privateKey":"certificate");
             keyFile = File.createTempFile("hudson","key");
             if(item!=null) {
                 try {
-                    item.write(keyFile);
+                    item.write(keyFile.toPath());
                 } catch (Exception e) {
                     throw new IOException(e);
                 }
@@ -191,7 +191,7 @@ public class UserProvidedCredential implements Closeable {
                 // from OS user name? In any case, we need to return the same user name.
                 // I don't set the cred field here, so that the 1st credential for ssh
                 // won't get clobbered.
-                return new SVNUserNameAuthentication(username, false);
+                return SVNUserNameAuthentication.newInstance(username, false, null, false);
             if (kind.equals(ISVNAuthenticationManager.PASSWORD)) {
                 logWriter.println("Passing user name " + username + " and password you entered");
                 cred = new PasswordCredential(username, password);

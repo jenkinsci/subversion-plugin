@@ -114,7 +114,7 @@ public class SubversionSCMFileSystem extends SCMFileSystem {
 				SVNURL repoURL = moduleLocation.getSVNURL();
 				if (moduleLocation.credentialsId != null) {
 					credentials = CredentialsMatchers.firstOrNull(
-							CredentialsProvider.lookupCredentials(StandardCredentials.class, owner, ACL.SYSTEM,
+							CredentialsProvider.lookupCredentialsInItem(StandardCredentials.class, owner, ACL.SYSTEM2,
 									URIRequirementBuilder.fromUri(repoURL.toString()).build()),
 							CredentialsMatchers.allOf(CredentialsMatchers.withId(moduleLocation.credentialsId),
 									CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(StandardCredentials.class),

@@ -85,8 +85,8 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
             defaultCredentials = null;
         } else {
             defaultCredentials = CredentialsMatchers
-                    .firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class, context,
-                            ACL.SYSTEM, URIRequirementBuilder.fromUri(remote).build()),
+                    .firstOrNull(CredentialsProvider.lookupCredentialsInItem(StandardCredentials.class, context,
+                            ACL.SYSTEM2, URIRequirementBuilder.fromUri(remote).build()),
                             CredentialsMatchers.allOf(idMatcher(credentialsId),
                                     CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(
                                             StandardCredentials.class), CredentialsMatchers.instanceOf(
@@ -97,8 +97,8 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
             for (Map.Entry<String,String> c : additionalCredentialIds.entrySet()) {
                 if (c.getValue() != null) {
                     StandardCredentials cred = CredentialsMatchers
-                            .firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class, context,
-                                    ACL.SYSTEM, Collections.emptyList()),
+                            .firstOrNull(CredentialsProvider.lookupCredentialsInItem(StandardCredentials.class, context,
+                                    ACL.SYSTEM2, Collections.emptyList()),
                                     CredentialsMatchers.allOf(idMatcher(c.getValue()),
                                             CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(
                                                     StandardCredentials.class), CredentialsMatchers.instanceOf(
@@ -126,8 +126,8 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
             defaultCredentials = null;
         } else {
             defaultCredentials = CredentialsMatchers
-                    .firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class, context,
-                            ACL.SYSTEM, URIRequirementBuilder.fromUri(location.remote).build()),
+                    .firstOrNull(CredentialsProvider.lookupCredentialsInItem(StandardCredentials.class, context,
+                            ACL.SYSTEM2, URIRequirementBuilder.fromUri(location.remote).build()),
                             CredentialsMatchers.allOf(idMatcher(location.credentialsId),MATCHER));
         }
         Map<String, Credentials> additional = new HashMap<>();
@@ -135,8 +135,8 @@ public class CredentialsSVNAuthenticationProviderImpl implements ISVNAuthenticat
             for (SubversionSCM.AdditionalCredentials c : scm.getAdditionalCredentials()) {
                 if (c.getCredentialsId() != null) {
                     StandardCredentials cred = CredentialsMatchers
-                            .firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class, context,
-                                    ACL.SYSTEM, Collections.emptyList()),
+                            .firstOrNull(CredentialsProvider.lookupCredentialsInItem(StandardCredentials.class, context,
+                                    ACL.SYSTEM2, Collections.emptyList()),
                                     CredentialsMatchers.allOf(idMatcher(c.getCredentialsId()),MATCHER));
                     if (cred != null) {
                         additional.put(c.getRealm(), cred);

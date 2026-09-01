@@ -1772,7 +1772,7 @@ public class SubversionSCM extends SCM {
         public void load() {
             super.load();
             if (credentials != null && !credentials.isEmpty()) {
-                try (ACLContext oldContext = ACL.as(ACL.SYSTEM)) {
+                try (ACLContext oldContext = ACL.as2(ACL.SYSTEM2)) {
                     BulkChange bc = new BulkChange(this);
                     try {
                         mayHaveLegacyPerJobCredentials = true;
@@ -1957,10 +1957,10 @@ public class SubversionSCM extends SCM {
 
             @Override
             public StandardCredentials toCredentials(ModelObject context, String description) throws IOException {
-                for (StandardUsernamePasswordCredentials c : CredentialsProvider.lookupCredentials(
+                for (StandardUsernamePasswordCredentials c : CredentialsProvider.lookupCredentialsInItemGroup(
                         StandardUsernamePasswordCredentials.class,
                         findItemGroup(context),
-                        ACL.SYSTEM,
+                        ACL.SYSTEM2,
                         Collections.emptyList())) {
                     if (userName.equals(c.getUsername()) && getPassword().equals(c.getPassword().getPlainText())) {
                         return c;
@@ -2075,10 +2075,10 @@ public class SubversionSCM extends SCM {
             @Override
             public StandardCredentials toCredentials(ModelObject context, String description) throws IOException {
                 String key = FileUtils.readFileToString(getKeyFile(), "iso-8859-1");
-                for (SSHUserPrivateKey c : CredentialsProvider.lookupCredentials(
+                for (SSHUserPrivateKey c : CredentialsProvider.lookupCredentialsInItemGroup(
                         SSHUserPrivateKey.class,
                         findItemGroup(context),
-                        ACL.SYSTEM,
+                        ACL.SYSTEM2,
                         Collections.emptyList())) {
                     if (userName.equals(c.getUsername()) && c.getPrivateKeys().contains(key)) {
                         return c;
@@ -2125,10 +2125,10 @@ public class SubversionSCM extends SCM {
             @Override
             public StandardCredentials toCredentials(ModelObject context, String description) throws IOException {
                 StandardCertificateCredentials result = toCredentials(description);
-                for (StandardCertificateCredentials c : CredentialsProvider.lookupCredentials(
+                for (StandardCertificateCredentials c : CredentialsProvider.lookupCredentialsInItemGroup(
                         StandardCertificateCredentials.class,
                         findItemGroup(context),
-                        ACL.SYSTEM,
+                        ACL.SYSTEM2,
                         Collections.emptyList())) {
                     if (c.getPassword().equals(result.getPassword())) {
                         // now for the more complex Keystore comparison
@@ -2931,8 +2931,8 @@ public class SubversionSCM extends SCM {
                     String credentialsId = c.getCredentialsId();
                     if (credentialsId != null) {
                         StandardCredentials cred = CredentialsMatchers
-                                .firstOrNull(CredentialsProvider.lookupCredentials(StandardCredentials.class, context,
-                                        ACL.SYSTEM, Collections.emptyList()),
+                                .firstOrNull(CredentialsProvider.lookupCredentialsInItem(StandardCredentials.class, context,
+                                        ACL.SYSTEM2, Collections.emptyList()),
                                         CredentialsMatchers.allOf(CredentialsMatchers.withId(credentialsId),
                                                 CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(
                                                         StandardCredentials.class), CredentialsMatchers.instanceOf(
@@ -2948,14 +2948,18 @@ public class SubversionSCM extends SCM {
                 return descriptor().getRepository(context, repoURL, creds, additional, null);
             }
             return descriptor().getRepository(context, repoURL, creds, additional, new ISVNSession() {
+				@Override
                 public boolean keepConnection(SVNRepository repository) {
                     return false;
                 }
+				@Override
                 public void saveCommitMessage(SVNRepository repository, long revision, String message) {
                 }
+				@Override
                 public String getCommitMessage(SVNRepository repository, long revision) {
                     return null;
                 }
+				@Override
                 public boolean hasCommitMessage(SVNRepository repository, long revision) {
                     return false;
                 }
@@ -3227,9 +3231,9 @@ public class SubversionSCM extends SCM {
                                         CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
                                         CredentialsMatchers.instanceOf(SSHUserPrivateKey.class)
                                 ),
-                                CredentialsProvider.lookupCredentials(StandardCredentials.class,
+                                CredentialsProvider.lookupCredentialsInItem(StandardCredentials.class,
                                         context,
-                                        ACL.SYSTEM,
+                                        ACL.SYSTEM2,
                                         domainRequirements)
                         );
             }
@@ -3425,7 +3429,7 @@ public class SubversionSCM extends SCM {
     private static StandardCredentials lookupCredentials(Item context, String credentialsId, SVNURL repoURL) {
         return credentialsId == null ? null :
                 CredentialsMatchers.firstOrNull(CredentialsProvider
-                        .lookupCredentials(StandardCredentials.class, context, ACL.SYSTEM,
+                        .lookupCredentialsInItem(StandardCredentials.class, context, ACL.SYSTEM2,
                                 URIRequirementBuilder.fromUri(repoURL.toString()).build()),
                         CredentialsMatchers.withId(credentialsId));
     }
@@ -3516,9 +3520,9 @@ public class SubversionSCM extends SCM {
                                         CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
                                         CredentialsMatchers.instanceOf(SSHUserPrivateKey.class)
                                 ),
-                                CredentialsProvider.lookupCredentials(StandardCredentials.class,
+                                CredentialsProvider.lookupCredentialsInItem(StandardCredentials.class,
                                         context,
-                                        ACL.SYSTEM,
+                                        ACL.SYSTEM2,
                                         domainRequirements)
                         );
             }
