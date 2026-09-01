@@ -290,6 +290,7 @@ public class SubversionSCM extends SCM {
     /**
      * @deprecated as of 1.286
      */
+    @Deprecated
     public SubversionSCM(String[] remoteLocations, String[] localLocations,
                          boolean useUpdate, SubversionRepositoryBrowser browser) {
         this(remoteLocations,localLocations, useUpdate, browser, null, null, null);
@@ -298,6 +299,7 @@ public class SubversionSCM extends SCM {
     /**
      * @deprecated as of 1.311
      */
+    @Deprecated
     public SubversionSCM(String[] remoteLocations, String[] localLocations,
                          boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions) {
         this(ModuleLocation.parse(remoteLocations,localLocations,null,null), useUpdate, false, browser, excludedRegions, null, null, null);
@@ -306,6 +308,7 @@ public class SubversionSCM extends SCM {
     /**
      * @deprecated as of 1.315
      */
+    @Deprecated
      public SubversionSCM(String[] remoteLocations, String[] localLocations,
                          boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop) {
         this(ModuleLocation.parse(remoteLocations,localLocations,null,null), useUpdate, false, browser, excludedRegions, excludedUsers, excludedRevprop, null);
@@ -314,6 +317,7 @@ public class SubversionSCM extends SCM {
    /**
      * @deprecated as of 1.315
      */
+    @Deprecated
     public SubversionSCM(List<ModuleLocation> locations,
                          boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions) {
         this(locations, useUpdate, false, browser, excludedRegions, null, null, null);
@@ -322,6 +326,7 @@ public class SubversionSCM extends SCM {
     /**
      * @deprecated as of 1.324
      */
+    @Deprecated
     public SubversionSCM(List<ModuleLocation> locations,
             boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop) {
         this(locations, useUpdate, false, browser, excludedRegions, excludedUsers, excludedRevprop, null);
@@ -330,14 +335,16 @@ public class SubversionSCM extends SCM {
     /**
      * @deprecated as of 1.328
      */
+    @Deprecated
     public SubversionSCM(List<ModuleLocation> locations,
             boolean useUpdate, SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages) {
     	this(locations, useUpdate, false, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages);
     }
 
     /**
-     * @deprecated as of 1.xxx
+     * @deprecated as of 2010
      */
+    @Deprecated
     public SubversionSCM(List<ModuleLocation> locations,
                          boolean useUpdate, boolean doRevert, SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages) {
         this(locations, useUpdate, doRevert, browser, excludedRegions, excludedUsers, excludedRevprop, excludedCommitMessages, null);
@@ -346,6 +353,7 @@ public class SubversionSCM extends SCM {
     /**
      * @deprecated  as of 1.23
      */
+    @Deprecated
     public SubversionSCM(List<ModuleLocation> locations,
                          boolean useUpdate, boolean doRevert, SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages,
                          String includedRegions) {
@@ -354,9 +362,9 @@ public class SubversionSCM extends SCM {
     }
 
     /**
-     *
-     * @deprecated as of ...
+     * @deprecated as of 2012
      */
+    @Deprecated
     public SubversionSCM(List<ModuleLocation> locations, WorkspaceUpdater workspaceUpdater,
                          SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages,
                          String includedRegions) {
@@ -364,8 +372,9 @@ public class SubversionSCM extends SCM {
     }
 
     /**
-     *  @deprecated
+     * @deprecated as of 2012
      */
+    @Deprecated
     public SubversionSCM(List<ModuleLocation> locations, WorkspaceUpdater workspaceUpdater,
             SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers, String excludedRevprop, String excludedCommitMessages,
             String includedRegions, boolean ignoreDirPropChanges) {
@@ -373,8 +382,9 @@ public class SubversionSCM extends SCM {
     }
 
     /**
-     *  @deprecated by quietOperation
+     *  @deprecated by quietOperation as of 2017
      */
+    @Deprecated
     public SubversionSCM(List<ModuleLocation> locations, WorkspaceUpdater workspaceUpdater,
             SubversionRepositoryBrowser browser, String excludedRegions, String excludedUsers,
             String excludedRevprop, String excludedCommitMessages,
@@ -462,6 +472,7 @@ public class SubversionSCM extends SCM {
      * @deprecated
      *      as of 1.91. Use {@link #getLocations()} instead.
      */
+    @Deprecated
     public String getModules() {
         return null;
     }
@@ -515,6 +526,7 @@ public class SubversionSCM extends SCM {
      *             expansion to be performed on all env vars rather than just
      *             build parameters.
      */
+    @Deprecated
     public ModuleLocation[] getLocations(AbstractBuild<?,?> build) {
         return getLocations(null, build);
     }
@@ -1117,10 +1129,10 @@ public class SubversionSCM extends SCM {
     }
 
     /**
-     *
      * @deprecated as of 1.40
      *      Use {@link #createClientManager(ISVNAuthenticationProvider, boolean, int)}
      */
+    @Deprecated
     public static SVNClientManager createSvnClientManager(ISVNAuthenticationProvider authProvider) {
         return createClientManager(authProvider, descriptor().isStoreAuthToDisk(), descriptor().getWorkspaceFormat()).getCore();
     }
@@ -1135,6 +1147,9 @@ public class SubversionSCM extends SCM {
      *      The value obtained from {@link #createAuthenticationProvider(Job,ModuleLocation, TaskListener)}.
      *      If the operation runs on slaves,
      *      (and properly remoted, if the svn operations run on slaves.)
+     * @param storeAuthToDisk See {@link DefaultSVNOptions#setAuthStorageEnabled(boolean)}.
+     * @param workspaceFormat WC format.
+     * @return
      */
     public static SvnClientManager createClientManager(ISVNAuthenticationProvider authProvider, boolean storeAuthToDisk, int workspaceFormat) {
         ISVNAuthenticationManager sam = createSvnAuthenticationManager(authProvider);
@@ -1158,6 +1173,7 @@ public class SubversionSCM extends SCM {
     /**
      * Creates the {@link DefaultSVNOptions}.
      *
+     * @param storeAuthToDisk See {@link DefaultSVNOptions#setAuthStorageEnabled(boolean)}.
      * @return the {@link DefaultSVNOptions}.
      */
     public static DefaultSVNOptions createDefaultSVNOptions(boolean storeAuthToDisk) {
@@ -1186,6 +1202,7 @@ public class SubversionSCM extends SCM {
      *      Use {@link #createClientManager(AbstractProject)}
      *
      */
+    @Deprecated
     public static SVNClientManager createSvnClientManager(AbstractProject context) {
         return createClientManager(context).getCore();
     }
@@ -2330,6 +2347,7 @@ public class SubversionSCM extends SCM {
          * @deprecated as of 1.18
          *      Use {@link #postCredential(AbstractProject, String, String, String, File, PrintWriter)}
          */
+        @Deprecated
         public void postCredential(String url, String username, String password, File keyFile, PrintWriter logWriter) throws SVNException, IOException {
             postCredential(null,url,username,password,keyFile,logWriter);
         }
@@ -2643,6 +2661,7 @@ public class SubversionSCM extends SCM {
     /**
      * @deprecated 1.34
      */
+    @Deprecated
     public boolean repositoryLocationsNoLongerExist(AbstractBuild<?,?> build, TaskListener listener) {
         return repositoryLocationsNoLongerExist(build, listener, null);
     }
@@ -2746,6 +2765,7 @@ public class SubversionSCM extends SCM {
          * @deprecated
          *      Code should use {@link #getLocalDir()}. This field is only intended for form binding.
          */
+        @Deprecated
         @Exported
         public final String local;
 
@@ -2982,6 +3002,7 @@ public class SubversionSCM extends SCM {
          *             which is deprecated since it expands variables only based
          *             on build parameters.
          */
+        @Deprecated
         private String getExpandedLocalDir(AbstractBuild<?,?> build) {
             String outLocalDir = getLocalDir();
 
@@ -3082,6 +3103,7 @@ public class SubversionSCM extends SCM {
          * @deprecated Use {@link #getExpandedLocation(EnvVars)} for vars expansion
          *             to be performed on all env vars rather than just build parameters.
          */
+        @Deprecated
         public ModuleLocation getExpandedLocation(AbstractBuild<?, ?> build) {
             EnvVars env = new EnvVars(EnvVars.masterEnvVars);
             env.putAll(build.getBuildVariables());
@@ -3339,6 +3361,7 @@ public class SubversionSCM extends SCM {
      * @deprecated
      *      Logging all goes to JDK java.util.logging
      */
+    @Deprecated
     public static void enableSshDebug(Level level) {
         if(level==null)     level= Level.FINEST; // default
 

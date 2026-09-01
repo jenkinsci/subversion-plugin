@@ -82,6 +82,7 @@ public final class SubversionChangeLogBuilder {
     /**
      * @deprecated 1.34
      */
+    @Deprecated
     public SubversionChangeLogBuilder(AbstractBuild<?,?> build, BuildListener listener, SubversionSCM scm) throws IOException {
         this(build, build.getWorkspace(), build.getPreviousBuild().getAction(SVNRevisionState.class), null, listener, scm);
     }

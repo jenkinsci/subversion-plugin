@@ -82,6 +82,7 @@ public class UserProvidedCredential implements Closeable {
      * @deprecated as of 1.18
      *      Use {@link #UserProvidedCredential(String, String, File, AbstractProject)}
      */
+    @Deprecated
     public UserProvidedCredential(String username, String password, File keyFile) {
         this(username,password,keyFile,null);
     }

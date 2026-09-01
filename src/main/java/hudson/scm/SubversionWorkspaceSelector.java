@@ -96,12 +96,14 @@ public class SubversionWorkspaceSelector implements ISVNAdminAreaFactorySelector
      *
      * @deprecated Use {@link org.tmatesoft.svn.core.internal.wc17.db.ISVNWCDb#WC_FORMAT_17}
      */
+    @Deprecated
     public static final int WC_FORMAT_17 = ISVNWCDb.WC_FORMAT_17;
 
     /**
      * @deprecated Pre (non-inclusive) 2.5 the working copy format for 1.7 was 100, however
      * that has been changed to the official {@link ISVNWCDb#WC_FORMAT_17}.
      */
+    @Deprecated
     public static final int OLD_WC_FORMAT_17 = 100;
 
 }

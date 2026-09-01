@@ -100,6 +100,7 @@ public abstract class WorkspaceUpdater extends AbstractDescribableImpl<Workspace
          * @deprecated as of 1.40
          *      Use {@link #clientManager}
          */
+        @Deprecated
         public SVNClientManager manager;
 
         /**
