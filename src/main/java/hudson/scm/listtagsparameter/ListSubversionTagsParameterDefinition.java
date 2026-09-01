@@ -380,7 +380,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
     @CheckForNull
     @RequirePOST
     public FormValidation doCheckTagsDir(StaplerRequest2 req, @AncestorInPath Item context, @QueryParameter String value) {
-        Jenkins instance = Jenkins.getInstance();
+        Jenkins instance = Jenkins.getInstanceOrNull();
         if (instance != null) {
             SubversionSCM.ModuleLocation.DescriptorImpl desc = instance.getDescriptorByType(SubversionSCM.ModuleLocation.DescriptorImpl.class);
             if (desc != null) {
@@ -395,7 +395,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
       if (context == null || !context.hasPermission(Item.EXTENDED_READ)) {
         return new StandardListBoxModel();
       }
-      return Jenkins.getInstance().getDescriptorByType(
+      return Jenkins.get().getDescriptorByType(
               SubversionSCM.ModuleLocation.DescriptorImpl.class).fillCredentialsIdItems(context, tagsDir);
     }
 
@@ -405,7 +405,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
       if (context == null || !context.hasPermission(CredentialsProvider.USE_ITEM)) {
         return FormValidation.ok();
       }
-      return Jenkins.getInstance().getDescriptorByType(
+      return Jenkins.get().getDescriptorByType(
               SubversionSCM.ModuleLocation.DescriptorImpl.class).checkCredentialsId(req, context, tagsDir, value);
     }
 
@@ -452,7 +452,7 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
      */
     public SubversionSCM.DescriptorImpl getSubversionSCMDescriptor() {
       if(scmDescriptor == null) {
-        scmDescriptor = (SubversionSCM.DescriptorImpl) Jenkins.getInstance().getDescriptor(SubversionSCM.class);
+        scmDescriptor = (SubversionSCM.DescriptorImpl) Jenkins.get().getDescriptor(SubversionSCM.class);
       }
       return scmDescriptor;
     }

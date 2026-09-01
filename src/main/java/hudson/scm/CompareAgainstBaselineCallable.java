@@ -49,7 +49,7 @@ final class CompareAgainstBaselineCallable extends MasterToSlaveCallable<Polling
     }
 
     public ClassLoader getClassLoader() {
-        return Jenkins.getInstance().getPluginManager().uberClassLoader;
+        return Jenkins.get().getPluginManager().uberClassLoader;
     }
 
     /**

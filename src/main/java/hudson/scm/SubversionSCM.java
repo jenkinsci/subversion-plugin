@@ -1507,9 +1507,9 @@ public class SubversionSCM extends SCM {
 
         Node node;
         if (nodeName.equals("master")) {
-            node = Jenkins.getInstance();
+            node = Jenkins.get();
         } else {
-            node = Jenkins.getInstance().getNode(nodeName);
+            node = Jenkins.get().getNode(nodeName);
         }
 
         // Reference: https://github.com/jenkinsci/subversion-plugin/pull/131
@@ -1776,7 +1776,7 @@ public class SubversionSCM extends SCM {
                     BulkChange bc = new BulkChange(this);
                     try {
                         mayHaveLegacyPerJobCredentials = true;
-                        CredentialsStore store = CredentialsProvider.lookupStores(Jenkins.getInstance()).iterator().next();
+                        CredentialsStore store = CredentialsProvider.lookupStores(Jenkins.get()).iterator().next();
                         for (Map.Entry<String, Credential> e : credentials.entrySet()) {
                             migrateCredentials(store, e.getKey(), e.getValue());
                         }
@@ -1798,7 +1798,7 @@ public class SubversionSCM extends SCM {
             }
             boolean allOk = true;
 
-            for (AbstractProject<?, ?> job : Jenkins.getInstance().getAllItems(AbstractProject.class)) {
+            for (AbstractProject<?, ?> job : Jenkins.get().getAllItems(AbstractProject.class)) {
                 File jobCredentials = new File(job.getRootDir(), "subversion.credentials");
                 if (jobCredentials.isFile()) {
                     try {
@@ -1917,7 +1917,7 @@ public class SubversionSCM extends SCM {
             protected ItemGroup findItemGroup(ModelObject context) {
                 if (context instanceof ItemGroup) return (ItemGroup) context;
                 if (context instanceof Item) return ((Item) context).getParent();
-                return Jenkins.getInstance();
+                return Jenkins.get();
             }
         }
 
@@ -2020,7 +2020,7 @@ public class SubversionSCM extends SCM {
                 if (id.contains("/") || id.contains("\\")) {
                     throw new SecurityException();
                 }
-                File dir = new File(Jenkins.getInstance().getRootDir(),"subversion-credentials");
+                File dir = new File(Jenkins.get().getRootDir(),"subversion-credentials");
                 if(dir.mkdirs()) {
                     // make sure the directory exists. if we created it, try to set the permission to 600
                     // since this is sensitive information
@@ -2323,7 +2323,7 @@ public class SubversionSCM extends SCM {
         // TODO: stapler should do multipart/form-data handling
         @POST
         public void doPostCredential(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-            Jenkins.getInstance().checkPermission(Item.CONFIGURE);
+            Jenkins.get().checkPermission(Item.CONFIGURE);
 
             MultipartFormDataParser parser = new MultipartFormDataParser(req);
 
@@ -2339,7 +2339,7 @@ public class SubversionSCM extends SCM {
                 req.setAttribute("message",log.toString());
                 req.setAttribute("pre",true);
                 req.setAttribute("exception",e);
-                rsp.forward(Jenkins.getInstance(),"error",req);
+                rsp.forward(Jenkins.get(),"error",req);
             }
         }
 
@@ -2392,7 +2392,7 @@ public class SubversionSCM extends SCM {
         @Deprecated
         @RequirePOST
         public FormValidation doCheckRemote(StaplerRequest2 req, @AncestorInPath AbstractProject context, @QueryParameter String value, @QueryParameter String credentialsId) {
-            Jenkins instance = Jenkins.getInstance();
+            Jenkins instance = Jenkins.getInstanceOrNull();
             if (instance != null) {
                 ModuleLocation.DescriptorImpl d = instance.getDescriptorByType(ModuleLocation.DescriptorImpl.class);
                 if (d != null) {
@@ -2591,7 +2591,7 @@ public class SubversionSCM extends SCM {
                 return FormValidation.ok();
 
             // Test the connection only if we have admin permission
-            if (!Jenkins.getInstance().hasPermission(Jenkins.ADMINISTER))
+            if (!Jenkins.get().hasPermission(Jenkins.ADMINISTER))
                 return FormValidation.ok();
 
             try {

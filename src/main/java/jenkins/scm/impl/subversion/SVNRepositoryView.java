@@ -93,7 +93,7 @@ public class SVNRepositoryView {
             if (uuid == null) { // TODO is this even possible? Javadoc is unclear.
                 throw new IOException("Could not find UUID for " + repoURL);
             }
-            File cacheFile = new File(new File(Jenkins.getInstance().getRootDir(), "caches"), "svn-" + uuid + ".db");
+            File cacheFile = new File(new File(Jenkins.get().getRootDir(), "caches"), "svn-" + uuid + ".db");
 
             cacheFile.getParentFile().mkdirs();
             DB cache = null;

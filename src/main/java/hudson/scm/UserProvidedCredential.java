@@ -99,7 +99,7 @@ public class UserProvidedCredential implements Closeable {
      * Parses the credential information from a form submission.
      */
     public static UserProvidedCredential fromForm(StaplerRequest2 req, MultipartFormDataParser parser) throws IOException {
-        CrumbIssuer crumbIssuer = Jenkins.getInstance().getCrumbIssuer();
+        CrumbIssuer crumbIssuer = Jenkins.get().getCrumbIssuer();
         if (crumbIssuer!=null && !crumbIssuer.validateCrumb(req, parser))
             throw HttpResponses.error(SC_FORBIDDEN,new IOException("No crumb found"));
 
@@ -127,7 +127,7 @@ public class UserProvidedCredential implements Closeable {
                 }
                 if(PuTTYKey.isPuTTYKeyFile(keyFile)) {
                     // TODO: we need a passphrase support
-                    LOGGER.info("Converting "+keyFile+" from PuTTY format to OpenSSH format");
+                    LOGGER.info(() -> "Converting "+keyFile+" from PuTTY format to OpenSSH format");
                     new PuTTYKey(keyFile,null).toOpenSSH(keyFile);
                 }
             }
@@ -144,6 +144,7 @@ public class UserProvidedCredential implements Closeable {
         };
     }
 
+	@Override
     public void close() throws IOException {}
 
     /**
