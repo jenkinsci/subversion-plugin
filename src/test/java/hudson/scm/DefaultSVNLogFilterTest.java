@@ -191,4 +191,38 @@ class DefaultSVNLogFilterTest extends AbstractSubversionTest {
         assertFalse(filter.isIncluded(e));
     }
 
+    @Issue("JENKINS-45199")
+    @Test
+    void includedAndExcludedRegionsMatchEntirePath() {
+        String path = "/trunk/myapp/src/main/Foo.java";
+        Map<String, SVNLogEntryPath> paths = new HashMap<>();
+        paths.put(path, new SVNLogEntryPath(path, SVNLogEntryPath.TYPE_MODIFIED, null, -1));
+        SVNLogEntry entry = new SVNLogEntry(paths, 1L, new SVNProperties(), false);
+
+        DefaultSVNLogFilter relativeInclude = new DefaultSVNLogFilter(
+                noPatterns, compile("src/main/.*"), noUsers, null, noPatterns, false);
+        assertFalse(relativeInclude.isIncluded(entry),
+                "a relative include pattern must not match a repository path");
+
+        DefaultSVNLogFilter fullInclude = new DefaultSVNLogFilter(
+                noPatterns, compile("/trunk/myapp/src/main/.*"), noUsers, null, noPatterns, false);
+        assertTrue(fullInclude.isIncluded(entry),
+                "a pattern covering the whole path must match");
+
+        DefaultSVNLogFilter prefixInclude = new DefaultSVNLogFilter(
+                noPatterns, compile(".*/src/main/.*"), noUsers, null, noPatterns, false);
+        assertTrue(prefixInclude.isIncluded(entry),
+                "a leading .* include pattern must match");
+
+        DefaultSVNLogFilter relativeExclude = new DefaultSVNLogFilter(
+                compile("src/main/.*"), noPatterns, noUsers, null, noPatterns, false);
+        assertTrue(relativeExclude.isIncluded(entry),
+                "a relative exclude pattern must not filter out a repository path");
+
+        DefaultSVNLogFilter fullExclude = new DefaultSVNLogFilter(
+                compile("/trunk/myapp/src/main/.*"), noPatterns, noUsers, null, noPatterns, false);
+        assertFalse(fullExclude.isIncluded(entry),
+                "a pattern covering the whole path must exclude the change");
+    }
+
 }
