@@ -4,6 +4,12 @@
   <p/>
   Each inclusion uses regular expression pattern matching, and must be separated by a new line.
   <p/>
+  Each pattern is matched against the <b>entire</b> Subversion path of the changed file
+  (Java <code>Matcher.matches()</code>), not as a substring search.
+  A relative path such as <code>c/library1/.*</code> will not match
+  <code>/trunk/myapp/c/library1/Foo.c</code>. Write a pattern that covers the whole path,
+  for example <code>/trunk/myapp/c/library1/.*</code> or <code>.*/c/library1/.*</code>.
+  <p/>
   This is useful when you need to check out an entire resource for building, but only want to do
   the build when a subset has changed.
   <p/>
