@@ -55,9 +55,9 @@ public abstract class AbstractSubversionTest {
      */
     protected void configureSvnWorkspaceFormat(int format) throws Exception {
         StaplerRequest2 req = mock(StaplerRequest2.class);
-        when(req.getParameter("svn.workspaceFormat")).thenReturn("" + format);
 
         JSONObject formData = new JSONObject();
+        formData.put("workspaceFormat", format);
 
         r.jenkins.getDescriptorByType(SubversionSCM.DescriptorImpl.class).configure(req, formData);
     }
@@ -65,9 +65,9 @@ public abstract class AbstractSubversionTest {
     protected void configureSvnWorkspaceFormat2(int format) throws Exception {
         StaplerRequest2 req = mock(StaplerRequest2.class);
         when(req.getParameter("svn.global_excluded_revprop")).thenReturn(null);
-        when(req.getParameter("svn.workspaceFormat")).thenReturn(""+format);
 
         JSONObject formData = new JSONObject();
+        formData.put("workspaceFormat", format);
 
         r.jenkins.getDescriptorByType(SubversionSCM.DescriptorImpl.class).configure(req, formData);
     }

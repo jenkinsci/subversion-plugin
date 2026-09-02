@@ -23,33 +23,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -->
 
-<!--
-Note that SVNKit define its versions in two places:
-
-`svnkit\src\main\java\org\tmatesoft\svn\core\internal\wc17\db\ISVNWCDb.java`
-    int WC_FORMAT_17 = 29;
-    int WC_FORMAT_18 = 31;
-
-`svnkit\src\main\java\org\tmatesoft\svn\core\internal\wc\admin\SVNAdminAreaFactory.java`
-    public static final int WC_FORMAT_13 = 4;
-    public static final int WC_FORMAT_14 = 8;
-    public static final int WC_FORMAT_15 = 9;
-    public static final int WC_FORMAT_16 = 10;
-
-Also note that `workspaceFormat==100` is a hack described (and deprecated) in:
-`src\main\java\hudson\scm\SubversionWorkspaceSelector.java`
--->
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
     <f:section title="${%Subversion}">
-        <f:entry title="${%Subversion Workspace Version}" help="/descriptor/hudson.scm.SubversionSCM/help/workspaceFormat">
-          <select name="svn.workspaceFormat">
-            <f:option value="8"   selected="${descriptor.workspaceFormat==8}"  >1.4</f:option>
-            <f:option value="9"   selected="${descriptor.workspaceFormat==9}"  >1.5</f:option>
-            <f:option value="10"  selected="${descriptor.workspaceFormat==10}" >1.6 (svn:externals to file)</f:option>
-            <f:option value="29"  selected="${descriptor.workspaceFormat==100||descriptor.workspaceFormat==29}">1.7</f:option>
-            <f:option value="31"  selected="${descriptor.workspaceFormat==31}" >1.8</f:option>
-          </select>
+        <f:entry title="${%Subversion Workspace Version}" help="/descriptor/hudson.scm.SubversionSCM/help/workspaceFormat"
+            field="workspaceFormat">
+          <f:select />
         </f:entry>
         <f:entry title="${%Exclusion revprop name}" help="/descriptor/hudson.scm.SubversionSCM/help/excludedRevprop">
             <f:textbox name="svn.global_excluded_revprop" value="${descriptor.globalExcludedRevprop}"/>

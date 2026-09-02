@@ -25,15 +25,12 @@
 <!-- this is the page fragment displayed when triggering a new build -->
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:st="jelly:stapler">
-  <j:set var="escapeEntryTitleAndDescription" value="false"/>
-  <f:entry title="${h.escape(it.name)}" description="${it.formattedDescription}">
-    <!-- this div is required because of ParametersDefinitionProperty.java#117 -->
-    <div name="parameter">
-      <st:adjunct includes="lib.form.select.select"/>
-      <input type="hidden" name="name" value="${it.name}"/>
-      <select name="tag" class="select" fillUrl="${h.getCurrentDescriptorByNameUrl()}/${it.descriptor.descriptorUrl}/fillTagItems?param=${it.name}">
-        <option value="">${%Retrieving tags…}</option>
-      </select>
-    </div>
-  </f:entry>
+    <j:set var="escapeEntryTitleAndDescription" value="false" />
+    <f:entry title="${h.escape(it.name)}" description="${it.formattedDescription}">
+        <!-- this div is required because of ParametersDefinitionProperty.java#117 -->
+        <div name="parameter">
+            <input type="hidden" name="name" value="${it.name}" />
+            <f:select name="tag" fillUrl="${h.getCurrentDescriptorByNameUrl()}/${it.descriptor.descriptorUrl}/fillTagItems?param=${it.name}" />
+        </div>
+    </f:entry>
 </j:jelly>

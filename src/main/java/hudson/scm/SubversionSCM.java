@@ -1791,6 +1791,40 @@ public class SubversionSCM extends SCM {
             }
         }
 
+        /**
+         * Fill Subversion Workspace Version (global setting).
+         * 
+         * Note that SVNKit define its versions in two places:
+         * `svnkit\src\main\java\org\tmatesoft\svn\core\internal\wc\admin\SVNAdminAreaFactory.java`
+         * <pre>
+            int WC_FORMAT_13 = 4;
+            int WC_FORMAT_14 = 8;
+            int WC_FORMAT_15 = 9;
+            int WC_FORMAT_16 = 10;
+         * </pre>
+         * <pre>
+         * `svnkit\src\main\java\org\tmatesoft\svn\core\internal\wc17\db\ISVNWCDb.java`
+            int WC_FORMAT_17 = 29;
+            int WC_FORMAT_18 = 31;
+         * </pre>
+         */
+        public ListBoxModel doFillWorkspaceFormatItems() {
+            ListBoxModel items = new ListBoxModel();
+            items.add("1.4", "8");
+            items.add("1.5", "9");
+            items.add("1.6 (svn:externals to file)", "10");
+            items.add("1.7", "29");
+            items.add("1.8", "31");
+
+            // Note that `workspaceFormat==100` is a hack described (and deprecated) in:
+            // `src\main\java\hudson\scm\SubversionWorkspaceSelector.java`
+            if (workspaceFormat == 100) {
+                items.get(3).selected = true; // select 1.7
+            }
+
+            return items;
+        }
+
         /*package*/ void migratePerJobCredentials() {
             if (credentials == null && !mayHaveLegacyPerJobCredentials ) {
                 // nothing to do here
@@ -2260,7 +2294,8 @@ public class SubversionSCM extends SCM {
         public boolean configure(StaplerRequest2 req, JSONObject formData) throws FormException {
             globalExcludedRevprop = fixEmptyAndTrim(
                     req.getParameter("svn.global_excluded_revprop"));
-            workspaceFormat = Integer.parseInt(req.getParameter("svn.workspaceFormat"));
+
+            workspaceFormat = formData.getInt("workspaceFormat");
             validateRemoteUpToVar = formData.containsKey("validateRemoteUpToVar");
             storeAuthToDisk = formData.containsKey("storeAuthToDisk");
 
@@ -3207,6 +3242,20 @@ public class SubversionSCM extends SCM {
             public String getDisplayName() {
                 return null;
             }
+
+            /**
+             * Fill depthOption drop-down menu.
+             */
+            public ListBoxModel doFillDepthOptionItems() {
+                ListBoxModel items = new ListBoxModel();
+                items.add("infinity"); // selected="${instance == null || instance.depthOption=='infinity'}"
+                items.add("empty");
+                items.add("files");
+                items.add("immediates");
+                items.add("as-it-is(checkout depth files)", "unknown");
+                items.add("as-it-is(checkout depth infinity)", "as-it-is-infinity");
+                return items;
+            }            
 
             public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context, @QueryParameter String remote) {
                 if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER) ||

@@ -1526,10 +1526,10 @@ class SubversionSCMTest extends AbstractSubversionTest {
     void externalsToFile() throws Exception {
         Proc server = runSvnServe(getClass().getResource("HUDSON-7539.zip"));
         try {
-            // enable 1.6 mode
-            HtmlForm f = r.createWebClient().goTo("configure").getFormByName("config");
-            f.getSelectByName("svn.workspaceFormat").setSelectedAttribute("10", true);
-            r.submit(f);
+//            // enable 1.6 mode (should not be required anymore)
+//            HtmlForm f = r.createWebClient().goTo("configure").getFormByName("config");
+//            f.getSelectByName("_.workspaceFormat").setSelectedAttribute("10", true);
+//            r.submit(f);
 
             FreeStyleProject p = r.createFreeStyleProject();
             p.setScm(new SubversionSCM("svn://localhost/dir1"));
@@ -1782,10 +1782,10 @@ class SubversionSCMTest extends AbstractSubversionTest {
         Proc p = runSvnServe(getClass().getResource("JENKINS-777.zip"));
 
         try {
-            // enable 1.6 mode
-            HtmlForm f = r.createWebClient().goTo("configure").getFormByName("config");
-            f.getSelectByName("svn.workspaceFormat").setSelectedAttribute("10", true);
-            r.submit(f);
+//            // enable 1.6 mode (should not be required anymore)
+//            HtmlForm f = r.createWebClient().goTo("configure").getFormByName("config");
+//            f.getSelectByName("_.workspaceFormat").setSelectedAttribute("10", true);
+//            r.submit(f);
 
             FreeStyleProject b = r.createFreeStyleProject();
 
@@ -1819,10 +1819,10 @@ class SubversionSCMTest extends AbstractSubversionTest {
         Proc p = runSvnServe(getClass().getResource("JENKINS-777.zip"));
 
         try {
-            // enable 1.6 mode
-            HtmlForm f = r.createWebClient().goTo("configure").getFormByName("config");
-            f.getSelectByName("svn.workspaceFormat").setSelectedAttribute("10", true);
-            r.submit(f);
+//            // enable 1.6 mode (should not be required anymore)
+//            HtmlForm f = r.createWebClient().goTo("configure").getFormByName("config");
+//            f.getSelectByName("_.workspaceFormat").setSelectedAttribute("10", true);
+//            r.submit(f);
 
             FreeStyleProject b = r.createFreeStyleProject();
 
