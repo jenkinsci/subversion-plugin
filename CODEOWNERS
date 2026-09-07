@@ -1,0 +1,7 @@
+# Docs:
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners#example-of-a-codeowners-file
+
+# Each line is a file pattern followed by one or more owners.
+
+# default owners (for PRs to all files)
+*       @MarkEWaite @Eccenux
