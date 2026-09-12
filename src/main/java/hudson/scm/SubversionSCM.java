@@ -774,33 +774,53 @@ public class SubversionSCM extends SCM {
 
         try {
             Map<String,Long> revisions = parseSvnRevisionFile(build);
-            Set<String> knownURLs = revisions.keySet();
-            if(svnLocations.length==1) {
-                // for backwards compatibility if there's only a single modulelocation, we also set
-                // SVN_REVISION and SVN_URL without '_n'
-                String url = svnLocations[0].getURL();
-                Long rev = revisions.get(url);
-                if(rev!=null) {
-                    env.put("SVN_REVISION",rev.toString());
-                    env.put("SVN_URL",url);
-                } else if (!knownURLs.isEmpty()) {
-                    LOGGER.log(WARNING, "no revision found corresponding to {0}; known: {1}", new Object[] {url, knownURLs});
-                }
-            }
-
-            for(int i=0;i<svnLocations.length;i++) {
-                String url = svnLocations[i].getURL();
-                Long rev = revisions.get(url);
-                if(rev!=null) {
-                    env.put("SVN_REVISION_"+(i+1),rev.toString());
-                    env.put("SVN_URL_"+(i+1),url);
-                } else if (!knownURLs.isEmpty()) {
-                    LOGGER.log(WARNING, "no revision found corresponding to {0}; known: {1}", new Object[] {url, knownURLs});
-                }
-            }
-
+            envSetup(revisions, svnLocations, env);
         } catch (IOException e) {
             LOGGER.log(WARNING, "error building environment variables", e);
+        }
+    }
+
+    /**
+     * Setup environment variables during the build.
+     * @param revisions Revisions read from the build.
+     * @param svnLocations Locations read from the build.
+     * @param env [OUT] Environment to setup.
+     */
+    protected void envSetup(Map<String, Long> revisions, ModuleLocation[] svnLocations, Map<String, String> env) {
+        Set<String> knownURLs = revisions.keySet();
+        if(svnLocations.length==1) {
+            // for backwards compatibility if there's only a single modulelocation, we also set
+            // SVN_REVISION and SVN_URL without '_n'
+            String url = svnLocations[0].getURL();
+            Long rev = revisions.get(url);
+            if(rev!=null) {
+                env.put("SVN_REVISION",rev.toString());
+                env.put("SVN_URL",url);
+            } else if (!knownURLs.isEmpty()) {
+                LOGGER.log(WARNING, "no revision found corresponding to {0}; known: {1}", new Object[] {url, knownURLs});
+            }
+        }
+
+        int maxRevIndex = -1;
+        Long maxRev = 0L;
+        for(int i=0;i<svnLocations.length;i++) {
+            String url = svnLocations[i].getURL();
+            Long rev = revisions.get(url);
+            if(rev!=null) {
+                env.put("SVN_REVISION_"+(i+1),rev.toString());
+                env.put("SVN_URL_"+(i+1),url);
+                if (rev > maxRev) {
+                    maxRev = rev;
+                    maxRevIndex = i;
+                }
+            } else if (!knownURLs.isEmpty()) {
+                LOGGER.log(WARNING, "no revision found corresponding to {0}; known: {1}", new Object[] {url, knownURLs});
+            }
+        }
+
+        if (maxRevIndex >= 0) {
+            env.put("SVN_REVISION_MAX",maxRev.toString());
+            env.put("SVN_URL_MAX",svnLocations[maxRevIndex].getURL());
         }
     }
 
