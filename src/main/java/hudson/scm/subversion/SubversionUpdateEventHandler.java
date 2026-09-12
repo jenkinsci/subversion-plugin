@@ -32,6 +32,7 @@ import jenkins.scm.impl.subversion.RemotableSVNErrorMessage;
 import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNErrorCode;
 import org.tmatesoft.svn.core.SVNException;
+import org.tmatesoft.svn.core.SVNErrorMessage;
 import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.wc.ISVNExternalsHandler;
 import org.tmatesoft.svn.core.wc.SVNEvent;
@@ -139,10 +140,10 @@ final class SubversionUpdateEventHandler extends SubversionEventHandlerImpl impl
                   + " failed!");
             }
 
-            if (cancelProcessOnExternalsFailed) {
-              throw new SVNException(new RemotableSVNErrorMessage(SVNErrorCode.CL_ERROR_PROCESSING_EXTERNALS,
-                  SVNErrorCode.CL_ERROR_PROCESSING_EXTERNALS.getDescription() + ": <" + file.getName() + ">"));
-            }
+            SVNErrorMessage error = new RemotableSVNErrorMessage(SVNErrorCode.CL_ERROR_PROCESSING_EXTERNALS,
+                  SVNErrorCode.CL_ERROR_PROCESSING_EXTERNALS.getDescription() + ": <" + file.getName() + ">");
+
+            throw new SVNException(error, new SVNException(event.getErrorMessage()));
         }
 
         super.handleEvent(event, progress);
