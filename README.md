@@ -53,11 +53,11 @@ for more details.
 ## Proxy
 
 You can set the proxy
-in C:/Users/\<user\>/AppData/Roaming/Subversion/servers (Windows)  or
-\~/.subversion/servers (Linux)
+in `C:/Users/<user>/AppData/Roaming/Subversion/servers` (Windows)  or
+`~/.subversion/servers` (Linux)
 
 *(Jenkins as a service on Windows
-: C:\\Windows\\SysWOW64\\config\\systemprofile\\AppData\\Roaming\\Subversion\\servers)*
+: `C:\\Windows\\SysWOW64\\config\\systemprofile\\AppData\\Roaming\\Subversion\\servers`)*
 
 > There's a tension between doing this in Jenkins vs following the
 > existing Subversion convention — the former has a benefit of being
@@ -74,7 +74,7 @@ you may still have to wait a full minute before Jenkins detects a
 change.
 
 To reduce this delay, you can set up [a post commit
-hook](http://svnbook.red-bean.com/en/1.5/svn.reposadmin.create.html#svn.reposadmin.create.hooks)
+hook](https://svnbook.red-bean.com/en/1.5/svn.reposadmin.create.html#svn.reposadmin.create.hooks)
 so the Subversion repository can notify Jenkins whenever a change is
 made to that repository. To do this, put the following script in your
 `post-commit` file (in the $REPOSITORY/hooks directory):
@@ -89,13 +89,13 @@ made to that repository. To do this, put the following script in your
       --timeout=2 \
       http://server/subversion/${UUID}/notifyCommit?rev=$REV
 
-Notice the rev=$REV parameter, this tells Jenkins to check out exactly
-the revision which was reported by the hook. If your job has multiple
+Notice the `rev=$REV` parameter. This tells Jenkins to check out exactly
+the revision that was reported by the hook. If your job has multiple
 Subversion module locations defined, this may lead to inconsistent
-checkouts - so it's recommended to leave out '?rev=$REV' in that case.  
-You may also want to leave out the '?rev=$REV' parameter if you are
+checkouts, so it's recommended to leave out `?rev=$REV` in that case.  
+You may also want to leave out the `?rev=$REV` parameter if you are
 using Maven to release your projects and do not want Jenkins to build
-the intermediate prepare-release commit (ie: the released artifacts).  
+the intermediate prepare-release commit (i.e., the released artifacts).  
 See [JENKINS-14254](https://issues.jenkins-ci.org/browse/JENKINS-14254)
 for details.
 
@@ -197,14 +197,14 @@ The script above takes care of the Prevent Cross Site Request Forgery
 exploits option if you have it enabled on your server. If you do not
 have that option enabled, the extra wget call is harmless, but feel free
 to remove it if you do not need it. The script above also requires that
-you set up a .netrc file in the home directory of the user you are
-running subversion as (either the svnserve process or httpd). For more
-info on .netrc file syntax, look
+you set up a `.netrc` file in the home directory of the user you are
+running subversion as (either the `svnserve` process or httpd). For more
+info on `.netrc` file syntax, look
 [here](http://www.mavetju.org/unix/netrc.php). The
 script above makes it easy to notify multiple Jenkins servers of the
-same SVN commit. If you have a .netrc file, it keeps it easy even if
+same SVN commit. If you have a `.netrc` file, it keeps it easy even if
 they have different admin users set up. If you don't want to mess with a
-.netrc file, you could just hard-code the user and password (or API
+`.netrc` file, you could just hard-code the user and password (or API
 Token) info in the file and add --username=user and --password="pass"
 flags to the wget calls. 
 
@@ -286,7 +286,7 @@ file designated by the `VBSCRIPT` variable above:
 JIRA [JENKINS-5413](https://issues.jenkins-ci.org/browse/JENKINS-5413)
 documents problems with running the SCM polling trigger on agents.
 Version 1.21 of the Subversion plugin can perform the polling on the
-Jenkins controller if the hudson.scm.SubversionSCM.pollFromMaster system
+Jenkins controller if the `hudson.scm.SubversionSCM.pollFromMaster` system
 property is set to true.
 
 ## Subversion Revision and URL information as Environment Variables
@@ -302,7 +302,7 @@ are also exported as $SVN\_REVISION and $SVN\_URL.
 Note that the revision number exposed is the 'last-changed' revision
 number of the particular directory and not the current revision of the
 repository. (See [What are these two revision numbers in svn
-info?](http://stackoverflow.com/questions/9354877/what-are-these-two-revision-numbers-in-svn-info))
+info?](https://stackoverflow.com/questions/9354877/what-are-these-two-revision-numbers-in-svn-info))
 
 ## Kerberos authentication
 
@@ -314,7 +314,7 @@ page.
 # TroubleShooting
 
 Someone suggested in the Jenkins IRC channel that if you are getting an
-error and a long svnkit stack trace that looks like:
+error and a long `svnkit` stack trace that looks like:
 
      ERROR: svn: authentication cancelled
 
@@ -336,10 +336,10 @@ to do that add a logger to those loggers with log level ALL , it is
 really verbose so just after configure it make the test and change the
 log level again to ERROR or INFO.
 
--   svnkit
--   svnkit-network
--   svnkit-wc
--   hudson.scm.SubversionSCM
+-   `svnkit`
+-   `svnkit-network`
+-   `svnkit-wc`
+-   `hudson.scm.SubversionSCM`
 
 ![](docs/images/logger.png){.confluence-embedded-image
 height="250"}
