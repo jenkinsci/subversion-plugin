@@ -1,0 +1,17 @@
+<div>
+  設定後，Jenkins 在輪詢變更判斷是否要觸發建置時，會略過列出的檔案或目錄。
+
+  <p>
+  每一筆排除設定都是要用來比對的正規表示式，一行一筆。
+
+  <p>
+  <pre>
+    /trunk/myapp/src/main/web/.*\.html
+    /trunk/myapp/src/main/web/.*\.jpeg
+    /trunk/myapp/src/main/web/.*\.gif
+  </pre>
+  上述例子示範在只有 Commit html, jpeg 及 gif 這些檔進 SCM 時不要觸發新建置。
+
+  <p>
+  <a href="http://www.regular-expressions.info/" target="_blank">這裡</a>有更多正規表示式的資訊。
+</div>
