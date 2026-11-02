@@ -27,9 +27,6 @@ import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.scm.*;
-import jenkins.model.Jenkins;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
 import org.tmatesoft.svn.core.ISVNDirEntryHandler;
 import org.tmatesoft.svn.core.SVNDirEntry;
 import org.tmatesoft.svn.core.SVNException;
@@ -48,20 +45,27 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
+ * Access to an SVN repository backed by a persistent local cache of the repository structure.
+ * <p>
+ * The cache database is managed by {@link SVNRepositoryViewCache}: every view of the same
+ * repository shares one reference counted MapDB instance which is opened when the first view needs
+ * it and closed when the last one releases it. The shared instance is safe for concurrent use, so
+ * views of the same repository can be used by several jobs at the same time without waiting for
+ * each other.
+ *
  * @author Stephen Connolly
  */
 public class SVNRepositoryView {
     public static final int DIRENTS =
             SVNDirEntry.DIRENT_CREATED_REVISION | SVNDirEntry.DIRENT_KIND | SVNDirEntry.DIRENT_TIME;
-    private static final Logger LOGGER = Logger.getLogger(SVNRepositoryView.class.getName());
-    private final DB cache;
+
+    private final SVNRepositoryViewCache cache;
     private final SVNRepository repository;
     private final ConcurrentMap<String, NodeEntry> data;
     private final String uuid;
+    private boolean closed;
 
     public SVNRepositoryView(SVNURL repoURL, StandardCredentials credentials) throws SVNException, IOException {
         repository = SVNRepositoryFactory.create(repoURL);
@@ -93,25 +97,7 @@ public class SVNRepositoryView {
             if (uuid == null) { // TODO is this even possible? Javadoc is unclear.
                 throw new IOException("Could not find UUID for " + repoURL);
             }
-            File cacheFile = new File(new File(Jenkins.get().getRootDir(), "caches"), "svn-" + uuid + ".db");
-
-            cacheFile.getParentFile().mkdirs();
-            DB cache = null;
-            int count = 0;
-            while (cache == null) {
-                try {
-                    cache = DBMaker.newFileDB(cacheFile)
-                            .cacheWeakRefEnable()
-                            .make();
-                } catch (Throwable t) { // this library seems to have nonstandard exception handling
-                    cacheFile.delete();
-                    LOGGER.log(Level.WARNING, "failing to make/load " + cacheFile, t);
-                    if (++count >= 10) {
-                        throw new IOException("failed to make/load " + cacheFile + ": " + t, t);
-                    }
-                }
-            }
-            this.cache = cache;
+            this.cache = SVNRepositoryViewCache.acquire(uuid);
             this.data = this.cache.getHashMap(credentials == null ? "data" : "data-" + credentials.getId());
             cache.commit();
             success = true;
@@ -132,15 +118,16 @@ public class SVNRepositoryView {
     }
 
     public boolean isClosed() {
-        return cache.isClosed();
+        return closed;
     }
 
     public void close() {
         if (isClosed()) {
             return;
         }
+        closed = true;
         repository.closeSession();
-        cache.close();
+        cache.release();
     }
 
     public SVNNodeKind checkPath(String path, long revision) throws SVNException {
