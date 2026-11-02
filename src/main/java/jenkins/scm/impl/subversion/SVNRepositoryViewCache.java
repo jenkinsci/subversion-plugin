@@ -2,7 +2,7 @@
  * The MIT License
  *
  * Copyright (c) 2013, CloudBees, Inc., Stephen Connolly.
- * Copyright (c) 2026 Hilscher Gesellschaft für Systemautomation.
+ * Copyright (c) 2026, Hilscher Gesellschaft für Systemautomation mbH.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
