@@ -71,7 +71,7 @@ final class SVNRepositoryViewCache {
      * Returns the cache file holding the cache database of the repository with the given UUID.
      */
     static File cacheFile(String uuid) {
-        return new File(new File(Jenkins.get().getRootDir(), "caches"), "svn-" + uuid + ".db");
+        return new File(new File(Jenkins.get().getRootDir(), "caches"), "svn-" + uuid.replace('/', '_').replace('\\', '_') + ".db");
     }
 
     /**
