@@ -47,6 +47,10 @@ public class SVNAuthenticationManager extends DefaultSVNAuthenticationManager {
   @CheckForNull
   public SVNAuthentication getFirstAuthentication(String kind, String realm, SVNURL url) throws SVNException {
     // SVNKIT DefaultAuthenticationManager ignores any credentials that are added to the manager.
-    return super.getAuthenticationProvider().requestClientAuthentication(kind, url, realm, null, null, false);
+    SVNAuthentication authentication = super.getAuthenticationProvider().requestClientAuthentication(kind, url, realm, null, null, false);
+    if (authentication == null) {
+      authentication = super.getFirstAuthentication(kind, realm, url);
+    }
+    return authentication;
   }
 }
