@@ -23,12 +23,19 @@
  */
 package jenkins.scm.impl.subversion;
 
+import hudson.ExtensionList;
+import hudson.FilePath;
+import hudson.model.Run;
+import hudson.model.TaskListener;
+import hudson.model.listeners.SCMListener;
 import hudson.scm.ChangeLogSet;
 import hudson.scm.SCM;
+import hudson.scm.SCMRevisionState;
 import hudson.scm.SubversionSCM;
 import hudson.scm.SubversionTagAction;
 import hudson.triggers.SCMTrigger;
 import jenkins.util.VirtualFile;
+import org.apache.commons.io.FileUtils;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -37,11 +44,19 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
+import java.io.File;
+import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -167,6 +182,91 @@ class SubversionStepTest {
         assertEquals(1, changeSet.getItems().length);
 
         assertEquals(1, p.getSCMs().size());
+    }
+
+    @Issue("JENKINS-58068")
+    @Test
+    void parallelCheckouts() throws Exception {
+        int modules = 8;
+        sampleRepo.init();
+        for (int i = 0; i < modules; i++) {
+            sampleRepo.write("m" + i + "/file", "");
+            sampleRepo.svnkit("add", sampleRepo.wc() + "/m" + i);
+        }
+        sampleRepo.svnkit("commit", "--message=modules", sampleRepo.wc());
+        StringBuilder branches = new StringBuilder();
+        for (int i = 0; i < modules; i++) {
+            branches.append("        m").append(i).append(": {\n")
+                    .append("            dir('m").append(i).append("') {\n")
+                    .append("                def vars = svn(url: '").append(sampleRepo.trunkUrl()).append("/m").append(i).append("')\n")
+                    .append("                echo \"m").append(i).append(" at ${vars.SVN_REVISION}\"\n")
+                    .append("            }\n")
+                    .append("        },\n");
+        }
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "demo");
+        p.setDefinition(new CpsFlowDefinition(
+                "node {\n" +
+                        "    parallel(\n" +
+                        branches +
+                        "    )\n" +
+                        "}", true));
+
+        long[] revisions = new long[modules];
+        Arrays.fill(revisions, sampleRepo.revision());
+        WorkflowRun b1 = r.buildAndAssertSuccess(p);
+        assertCheckouts(b1, revisions);
+
+        Set<String> expectedCommits = new HashSet<>();
+        for (int i = 0; i < modules; i++) {
+            sampleRepo.write("m" + i + "/file2", "");
+            sampleRepo.svnkit("add", sampleRepo.wc() + "/m" + i + "/file2");
+            sampleRepo.svnkit("commit", "--message=+m" + i + "/file2", sampleRepo.wc());
+            revisions[i] = sampleRepo.revision();
+            expectedCommits.add(String.valueOf(revisions[i]));
+        }
+
+        WorkflowRun b2 = r.buildAndAssertSuccess(p);
+        assertCheckouts(b2, revisions);
+        r.assertLogNotContains("No revision found", b2);
+        // each checkout has the change of its own module only
+        List<ChangeLogSet<? extends ChangeLogSet.Entry>> changeSets = b2.getChangeSets();
+        assertEquals(modules, changeSets.size());
+        Set<String> commits = new HashSet<>();
+        for (ChangeLogSet<? extends ChangeLogSet.Entry> changeSet : changeSets) {
+            Object[] items = changeSet.getItems();
+            assertEquals(1, items.length);
+            commits.add(((ChangeLogSet.Entry) items[0]).getCommitId());
+        }
+        assertEquals(expectedCommits, commits);
+    }
+
+    /**
+     * Checks that each checkout of {@link #parallelCheckouts} recorded its own revision, and only that one.
+     */
+    private void assertCheckouts(WorkflowRun b, long[] revisions) throws Exception {
+        Set<String> expectedLines = new HashSet<>();
+        for (int i = 0; i < revisions.length; i++) {
+            String url = sampleRepo.trunkUrl() + "/m" + i;
+            expectedLines.add(url + "/" + revisions[i]);
+            r.assertLogContains("m" + i + " at " + revisions[i], b);
+            SCMRevisionState pollingBaseline = ExtensionList.lookupSingleton(PollingBaselines.class).get(b, url);
+            assertEquals("SVNRevisionState{" + url + "=" + revisions[i] + "}", String.valueOf(pollingBaseline));
+        }
+        assertEquals(expectedLines, new HashSet<>(FileUtils.readLines(SubversionSCM.getRevisionFile(b), Charset.defaultCharset())));
+    }
+
+    @TestExtension("parallelCheckouts")
+    public static final class PollingBaselines extends SCMListener {
+        private final Map<String, SCMRevisionState> pollingBaselines = new ConcurrentHashMap<>();
+
+        @Override
+        public void onCheckout(Run<?, ?> build, SCM scm, FilePath workspace, TaskListener listener, File changelogFile, SCMRevisionState pollingBaseline) {
+            pollingBaselines.put(build.getExternalizableId() + " " + ((SubversionSCM) scm).getLocations()[0].getURL(), pollingBaseline);
+        }
+
+        SCMRevisionState get(Run<?, ?> build, String url) {
+            return pollingBaselines.get(build.getExternalizableId() + " " + url);
+        }
     }
 
     @Test

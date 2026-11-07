@@ -91,8 +91,17 @@ public final class SubversionChangeLogBuilder {
      * @since  1.34
      */
     public SubversionChangeLogBuilder(Run<?,?> build, FilePath workspace, @NonNull SVNRevisionState baseline, EnvVars env, TaskListener listener, SubversionSCM scm) throws IOException {
+        this(build, workspace, baseline, scm.parseSvnRevisionFile(build), env, listener, scm);
+    }
+
+    /**
+     * @param thisRevisions
+     *      Revisions of the workspace after the update/checkout. Unlike the revision file of the build, which is
+     *      shared by all checkouts into the build, these only belong to the checkout the changelog is computed for.
+     */
+    SubversionChangeLogBuilder(Run<?,?> build, FilePath workspace, @NonNull SVNRevisionState baseline, @NonNull Map<String,Long> thisRevisions, EnvVars env, TaskListener listener, SubversionSCM scm) {
         previousRevisions = baseline.revisions;
-        thisRevisions     = scm.parseSvnRevisionFile(build);
+        this.thisRevisions = thisRevisions;
         this.listener = listener;
         this.scm = scm;
         this.build = build;
