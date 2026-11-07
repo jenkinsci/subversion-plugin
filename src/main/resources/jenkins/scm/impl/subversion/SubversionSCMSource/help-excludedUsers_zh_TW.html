@@ -1,0 +1,13 @@
+<div>
+  設定後，Jenkins 在輪詢判斷是否要觸發建置時，會略過由指定使用者所 Commit 的修訂版次。
+  要是建置伺服器是使用其他 SCM 帳號 Commit 變更，就可以排除建置過程自己 Commit 的版次，避免重複建置。
+
+  <p>
+  每一行輸入一個要排除的使用者名稱。
+
+  <p>
+  <pre>
+     auto_build_user
+  </pre>
+  上例示範在只有 "auto_build_user" Commit 的修訂版本時不會觸發建置。
+</div>
