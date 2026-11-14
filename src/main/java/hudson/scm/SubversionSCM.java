@@ -68,6 +68,7 @@ import hudson.Util;
 import hudson.init.InitMilestone;
 
 import java.io.ByteArrayOutputStream;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
 import java.security.KeyStore;
@@ -107,6 +108,7 @@ import hudson.scm.subversion.UpdateWithRevertUpdater;
 import hudson.scm.subversion.WorkspaceUpdater;
 import hudson.scm.subversion.WorkspaceUpdater.UpdateTask;
 import hudson.scm.subversion.WorkspaceUpdaterDescriptor;
+import hudson.util.AtomicFileWriter;
 import hudson.util.FormValidation;
 import hudson.util.LogTaskListener;
 import hudson.util.MultipartFormDataParser;
@@ -117,7 +119,6 @@ import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
@@ -126,6 +127,7 @@ import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Files;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -283,6 +285,14 @@ public class SubversionSCM extends SCM {
      * A cache of the svn:externals (keyed by project).
      */
     private transient Map<Job, List<External>> projectExternalsCache;
+
+    /**
+     * The revisions recorded by the last {@link #checkout} into a build (keyed by build) done by this instance.
+     * A build may contain several checkouts (e.g. in parallel Pipeline branches) which all share the same
+     * {@link #getRevisionFile revision file}, so the changelog, polling baseline and environment of a checkout
+     * are computed from these rather than from that file.
+     */
+    private transient Map<Run<?,?>, List<SvnInfoP>> checkoutRevisionsCache;
 
     private transient boolean pollFromMaster = POLL_FROM_MASTER;
 
@@ -773,7 +783,10 @@ public class SubversionSCM extends SCM {
         ModuleLocation[] svnLocations = getLocations(new EnvVars(env), build);
 
         try {
-            Map<String,Long> revisions = parseSvnRevisionFile(build);
+            List<SvnInfoP> checkoutRevisions = getCheckoutRevisions(build);
+            Map<String,Long> revisions = checkoutRevisions != null
+                    ? toRevisionMap(checkoutRevisions, false)
+                    : parseSvnRevisionFile(build);
             envSetup(revisions, svnLocations, env);
         } catch (IOException e) {
             LOGGER.log(WARNING, "error building environment variables", e);
@@ -827,7 +840,7 @@ public class SubversionSCM extends SCM {
     /**
      * Called after checkout/update has finished to compute the changelog.
      */
-    private void calcChangeLog(Run<?,?> build, FilePath workspace, File changelogFile, SCMRevisionState baseline, TaskListener listener, Map<String, List<SubversionSCM.External>> externalsMap, EnvVars env) throws IOException, InterruptedException {
+    private void calcChangeLog(Run<?,?> build, FilePath workspace, File changelogFile, SCMRevisionState baseline, TaskListener listener, Map<String, List<SubversionSCM.External>> externalsMap, EnvVars env, Map<String,Long> thisRevisions) throws IOException, InterruptedException {
         if (baseline == null) {
             // nothing to compare against
             createEmptyChangeLog(changelogFile, listener, "log");
@@ -839,7 +852,7 @@ public class SubversionSCM extends SCM {
         // so let's do it by ourselves to be really sure that the stream gets closed.
         boolean created;
         try (OutputStream os = new BufferedOutputStream(new FileOutputStream(changelogFile))) {
-            created = new SubversionChangeLogBuilder(build, workspace, (SVNRevisionState) baseline, env, listener, this).run(externalsMap, new StreamResult(os));
+            created = new SubversionChangeLogBuilder(build, workspace, (SVNRevisionState) baseline, thisRevisions, env, listener, this).run(externalsMap, new StreamResult(os));
         }
         if(!created)
             createEmptyChangeLog(changelogFile, listener, "log");
@@ -866,10 +879,7 @@ public class SubversionSCM extends SCM {
      *      map from {@link SvnInfo#url Subversion URL} to its revision.  If there is more than one, choose
      *      the one with the smallest revision number
      */
-    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "TODO needs triage")
     static Map<String,Long> parseRevisionFile(Run<?,?> build, boolean findClosest, boolean prunePinnedExternals) throws IOException {
-        Map<String,Long> revisions = new HashMap<>(); // module -> revision
-        Map<String,Long> pinnedRevisions = new HashMap<>(); // module -> revision
         if (findClosest) {
             for (Run<?,?> b=build; b!=null; b=b.getPreviousBuild()) {
                 if(getRevisionFile(b).exists()) {
@@ -879,61 +889,128 @@ public class SubversionSCM extends SCM {
             }
         }
 
-        {// read the revision file of the build
-            File file = getRevisionFile(build);
-            if(!file.exists())
-                // nothing to compare against
-                return revisions;
+        return toRevisionMap(readRevisionFile(getRevisionFile(build)), prunePinnedExternals);
+    }
 
-            try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-                String line;
-                while((line=br.readLine())!=null) {
-                	boolean isPinned = false;
-                	int indexLast = line.length();
-                	if (line.lastIndexOf("::p") == indexLast-3) {
-                		isPinned = true;
-                		indexLast -= 3;
-                	}
-                	int index = line.lastIndexOf('/');
-                    if(index<0) {
-                        continue;   // invalid line?
-                    }
-                    try {
-                    	String url = line.substring(0, index);
-                    	long revision = Long.parseLong(line.substring(index+1,indexLast));
-                    	if (isPinned) {
-                    		if (!prunePinnedExternals) {
-                                Long oldRevision = pinnedRevisions.get(url);
-                    			if (oldRevision == null)
-                                    // take minimum
-                                    pinnedRevisions.put(url, revision);
-                    		}
-                    	} else {
-                            Long oldRevision = revisions.get(url);
-                    		// unpinned
-                        	if (oldRevision == null || oldRevision > revision) {
-                                // take minimum
-                                revisions.put(url, revision);
-                            }
-                    	}
-                	} catch (NumberFormatException e) {
-                	    // perhaps a corrupted line.
-                	    LOGGER.log(WARNING, "Error parsing line " + line, e);
-                	}
+    /**
+     * Computes the revision of each module from the entries of a revision file.
+     *
+     * @param prunePinnedExternals
+     *      If true, svn:externals with a fixed revision are excluded.
+     * @return
+     *      map from {@link SvnInfo#url Subversion URL} to its revision.  If there is more than one, choose
+     *      the one with the smallest revision number
+     */
+    private static Map<String,Long> toRevisionMap(List<SvnInfoP> entries, boolean prunePinnedExternals) {
+        Map<String,Long> revisions = new HashMap<>(); // module -> revision
+        Map<String,Long> pinnedRevisions = new HashMap<>(); // module -> revision
+        for (SvnInfoP entry : entries) {
+            String url = entry.info.url;
+            long revision = entry.info.revision;
+            if (entry.pinned) {
+                if (!prunePinnedExternals) {
+                    pinnedRevisions.putIfAbsent(url, revision);
                 }
-                // now add pinned revision if there are no unpinned ones
-                for( Map.Entry<String,Long> rev : pinnedRevisions.entrySet() ){
-                    if(!revisions.containsKey(rev.getKey())){
-                        revisions.put(rev.getKey(),rev.getValue());
-                    }
+            } else {
+                Long oldRevision = revisions.get(url);
+                if (oldRevision == null || oldRevision > revision) {
+                    // take minimum
+                    revisions.put(url, revision);
                 }
             }
         }
-
+        // now add pinned revision if there are no unpinned ones
+        for (Map.Entry<String,Long> rev : pinnedRevisions.entrySet()) {
+            revisions.putIfAbsent(rev.getKey(), rev.getValue());
+        }
         return revisions;
     }
 
-    
+    /**
+     * Reads the entries of a revision file.
+     *
+     * @return
+     *      the valid entries of the file, empty if the file does not exist.
+     */
+    private static List<SvnInfoP> readRevisionFile(File file) throws IOException {
+        List<SvnInfoP> entries = new ArrayList<>();
+        if (!file.exists()) {
+            // nothing to compare against
+            return entries;
+        }
+
+        try (BufferedReader br = Files.newBufferedReader(file.toPath(), Charset.defaultCharset())) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                SvnInfoP entry = SvnInfoP.fromRevisionFileLine(line);
+                if (entry != null) {
+                    entries.add(entry);
+                }
+            }
+        }
+        return entries;
+    }
+
+    /**
+     * Records the revisions of a checkout in the {@link #getRevisionFile revision file} of the build.
+     *
+     * <p>
+     * A build may contain several checkouts, possibly running concurrently (e.g. in parallel Pipeline branches),
+     * so entries of the other checkouts are kept and only the entries for the URLs of this checkout are replaced.
+     * The file is replaced atomically, so that readers never see a partially written file.
+     */
+    private static void writeRevisionFile(Run<?,?> build, List<SvnInfoP> revisions) throws IOException {
+        File file = getRevisionFile(build);
+        Set<String> urls = new HashSet<>();
+        for (SvnInfoP p : revisions) {
+            urls.add(p.info.url);
+        }
+
+        // serialize the updates of the build's revision file, so that concurrent checkouts do not lose each other's entries
+        synchronized (build) {
+            List<SvnInfoP> entries = new ArrayList<>();
+            for (SvnInfoP entry : readRevisionFile(file)) {
+                if (!urls.contains(entry.info.url)) {
+                    entries.add(entry);
+                }
+            }
+            entries.addAll(revisions);
+
+            AtomicFileWriter w = new AtomicFileWriter(file.toPath(), Charset.defaultCharset());
+            try {
+                for (SvnInfoP entry : entries) {
+                    w.write(entry.toRevisionFileLine());
+                    w.write(System.lineSeparator());
+                }
+                w.commit();
+            } finally {
+                w.abort();
+            }
+        }
+    }
+
+    /**
+     * Gets the revisions recorded by the last {@link #checkout} into the given build done by this instance.
+     *
+     * @return
+     *      null if this instance did not check out anything into the build (e.g. after a restart),
+     *      in which case the {@link #getRevisionFile revision file} has to be used instead.
+     */
+    @CheckForNull
+    private List<SvnInfoP> getCheckoutRevisions(Run<?,?> build) {
+        Map<Run<?,?>, List<SvnInfoP>> checkoutRevisions = getCheckoutRevisionsCache();
+        synchronized (checkoutRevisions) {
+            return checkoutRevisions.get(build);
+        }
+    }
+
+    private synchronized Map<Run<?,?>, List<SvnInfoP>> getCheckoutRevisionsCache() {
+        if (checkoutRevisionsCache == null) {
+            checkoutRevisionsCache = new WeakHashMap<>();
+        }
+
+        return checkoutRevisionsCache;
+    }
 
     /**
      * Polling can happen on the master and does not require a workspace.
@@ -965,14 +1042,10 @@ public class SubversionSCM extends SCM {
         List<SvnInfo> revList = pList.stream().map(svnInfoP -> svnInfoP.info).collect(toList());
 
         // write out the revision file
-        try (PrintWriter w = new PrintWriter(new FileOutputStream(getRevisionFile(build)))) {
-            for (SvnInfoP p: pList) {
-                if (p.pinned) {
-                    w.println( p.info.url +'/'+ p.info.revision + "::p");
-                } else {
-                    w.println( p.info.url +'/'+ p.info.revision);
-                }                        
-            }
+        writeRevisionFile(build, pList);
+        Map<Run<?,?>, List<SvnInfoP>> checkoutRevisions = getCheckoutRevisionsCache();
+        synchronized (checkoutRevisions) {
+            checkoutRevisions.put(build, pList);
         }
 
         // write out the externals info
@@ -991,7 +1064,7 @@ public class SubversionSCM extends SCM {
             // add the tag action
             build.addAction(new SubversionTagAction(build,revList));            
             // write out the changelog file
-            calcChangeLog(build, workspace, changelogFile, baseline, listener, externalsMap, env);         
+            calcChangeLog(build, workspace, changelogFile, baseline, listener, externalsMap, env, toRevisionMap(pList, false));
         }
     }
 
@@ -1355,6 +1428,43 @@ public class SubversionSCM extends SCM {
             this.info = info;
             this.pinned = pinned;
         }
+
+        /**
+         * Formats this entry as a line of the {@link #getRevisionFile revision file}.
+         */
+        String toRevisionFileLine() {
+            return info.url + '/' + info.revision + (pinned ? "::p" : "");
+        }
+
+        /**
+         * Parses a line of the {@link #getRevisionFile revision file}.
+         *
+         * @return
+         *      null if the line is invalid.
+         */
+        @CheckForNull
+        static SvnInfoP fromRevisionFileLine(String line) {
+            boolean isPinned = false;
+            int indexLast = line.length();
+            if (line.lastIndexOf("::p") == indexLast-3) {
+                isPinned = true;
+                indexLast -= 3;
+            }
+            int index = line.lastIndexOf('/');
+            if(index<0) {
+                return null;   // invalid line?
+            }
+            try {
+                String url = line.substring(0, index);
+                long revision = Long.parseLong(line.substring(index+1,indexLast));
+                return new SvnInfoP(new SvnInfo(url, revision), isPinned);
+            } catch (NumberFormatException e) {
+                // perhaps a corrupted line.
+                LOGGER.log(WARNING, "Error parsing line " + line, e);
+                return null;
+            }
+        }
+
         private static final long serialVersionUID = 1L;
     }
 
@@ -1504,7 +1614,11 @@ public class SubversionSCM extends SCM {
     @Override
     public SCMRevisionState calcRevisionsFromBuild(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
         // exclude locations that are svn:external-ed with a fixed revision.
-        Map<String,Long> wsRev = parseRevisionFile(build,true,true);
+        // use the revisions of this checkout, the revision file may contain those of other checkouts into the build.
+        List<SvnInfoP> checkoutRevisions = getCheckoutRevisions(build);
+        Map<String,Long> wsRev = checkoutRevisions != null
+                ? toRevisionMap(checkoutRevisions, true)
+                : parseRevisionFile(build,true,true);
         return new SVNRevisionState(wsRev);
     }
 
