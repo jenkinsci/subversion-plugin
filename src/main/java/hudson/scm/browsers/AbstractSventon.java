@@ -88,6 +88,9 @@ public abstract class AbstractSventon extends SubversionRepositoryBrowser {
                     || uri.getHost() == null) {
                 throw new InvalidUrlException("Invalid URL, HTTP(S) required.");
             }
+            if (uri.getRawQuery() != null || uri.getRawFragment() != null) {
+                throw new InvalidUrlException("URL must not contain query parameters.");
+            }
 
             return uri.toURL();
         } catch (URISyntaxException | MalformedURLException e) {
