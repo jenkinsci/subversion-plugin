@@ -27,10 +27,16 @@ import hudson.scm.SubversionRepositoryBrowser;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 /**
  * Common part of {@link Sventon} and {@link Sventon2}
+ * 
+ * https://github.com/sventonsvn/sventon
+ * 
  * @author Kohsuke Kawaguchi
+ * @author Maciej Nux
  */
 public abstract class AbstractSventon extends SubversionRepositoryBrowser {
     private static final long serialVersionUID = 3514464895743639935L;
@@ -64,5 +70,41 @@ public abstract class AbstractSventon extends SubversionRepositoryBrowser {
 
     public String getRepositoryInstance() {
         return repositoryInstance;
+    }
+
+    /**
+     * Does basic pre-validation of a Sventon browser URL.
+     *
+     * @param value the URL string to validate (not null)
+     * @return the validated URL
+     * @throws InvalidUrlException if the URL is malformed or uses an unsupported protocol
+     */
+    protected static URL preValidateUrl(String value) throws InvalidUrlException {
+        try {
+            URI uri = new URI(value);
+            String scheme = uri.getScheme();
+
+            if ((!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme))
+                    || uri.getHost() == null) {
+                throw new InvalidUrlException("Invalid URL, HTTP(S) required.");
+            }
+
+            return uri.toURL();
+        } catch (URISyntaxException | MalformedURLException e) {
+            throw new InvalidUrlException("Invalid URL syntax.", e);
+        }
+    }
+
+    /**
+     * Indicates that a repository browser URL is invalid or unsupported.
+     */
+    protected static class InvalidUrlException extends Exception {
+        private static final long serialVersionUID = 1L;
+        public InvalidUrlException(String message) {
+            super(message);
+        }
+        public InvalidUrlException(String message, Throwable cause) {
+            super(message, cause);
+        }
     }
 }

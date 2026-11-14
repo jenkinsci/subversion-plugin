@@ -25,14 +25,12 @@ package hudson.scm.browsers;
 
 import hudson.Extension;
 import hudson.model.Descriptor;
-import hudson.model.Item;
 import hudson.scm.EditType;
 import hudson.scm.RepositoryBrowser;
 import hudson.scm.SubversionChangeLogSet.LogEntry;
 import hudson.scm.SubversionChangeLogSet.Path;
 import hudson.util.FormValidation;
 import hudson.util.FormValidation.URLCheck;
-import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
@@ -74,7 +72,7 @@ public class Sventon2 extends AbstractSventon {
     }
 
     /**
-     * Trims off the root module portion to compute the path within FishEye.
+     * Trims off the root module portion to compute the path within Sventon.
      */
     private String getPath(Path path) {
         return trimHeadSlash(path.getValue());
@@ -118,31 +116,36 @@ public class Sventon2 extends AbstractSventon {
          * Performs on-the-fly validation of the URL.
          */
         @RequirePOST
-        public FormValidation doCheckUrl(@AncestorInPath Item project,
-                                         @QueryParameter(fixEmpty=true) final String value)
-                throws IOException {
-            if (project == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER) ||
-                project != null && !project.hasPermission(Item.EXTENDED_READ)) {
-                return FormValidation.ok();
-            }
+        public FormValidation doCheckUrl(@QueryParameter(fixEmpty=true) String value) throws IOException {
             if(value==null) // nothing entered yet
                 return FormValidation.ok();
 
+            // Connect to URL and check content only if we have admin permission
+            if (!Jenkins.get().hasPermission(Jenkins.ADMINISTER))
+                return FormValidation.ok();
+
             return new URLCheck() {
+                @Override
                 protected FormValidation check() throws IOException {
-                    String v = value;
-                    if(!v.endsWith("/")) v+='/';
+                    String v = value.endsWith("/") ? value : value + "/";
+
+                    URL url;
+                    try {
+                        url = AbstractSventon.preValidateUrl(v);
+                    } catch (InvalidUrlException e) {
+                        return FormValidation.error(e.getMessage());
+                    }
 
                     try {
-                        if (findText(open(new URL(v)),"sventon 2")) {
+                        if (findText(open(url), "sventon 2"))
                             return FormValidation.ok();
-                        } else if (findText(open(new URL(v)),"sventon")) {
+
+                        if (findText(open(url), "sventon"))
                             return FormValidation.error("This is a valid Sventon URL but it doesn't look like Sventon 2.x");
-                        } else{
-                            return FormValidation.error("This is a valid URL but it doesn't look like Sventon");
-                        }
+
+                        return FormValidation.error("This is a valid URL but it doesn't look like Sventon");
                     } catch (IOException e) {
-                        return handleIOException(v,e);
+                        return handleIOException(v, e);
                     }
                 }
             }.check();
