@@ -144,6 +144,9 @@ public class ListSubversionTagsParameterDefinition extends ParameterDefinition {
     // here, we could have checked for the value of the "tag" attribute of the
     // parameter value, but it's of no use because if we return null the build
     // still goes on...
+    if (value.getTag().isEmpty()) {
+      return this.getDefaultParameterValue();
+    }
     return value;
   }
   
