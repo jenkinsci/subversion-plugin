@@ -116,6 +116,7 @@ import jenkins.util.JenkinsJVM;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
@@ -138,7 +139,15 @@ public class SubversionSCMSource extends SCMSource {
     private String excludes = DescriptorImpl.DEFAULT_EXCLUDES;
     
     private SubversionRepositoryBrowser browser;
-    
+
+    private String excludedRegions = "";
+    private String includedRegions = "";
+    private String excludedUsers = "";
+    private String excludedCommitMessages = "";
+    private boolean ignoreDirPropChanges;
+    private boolean filterChangelog;
+    private boolean quietOperation;
+
     private WorkspaceUpdater workspaceUpdater = new UpdateUpdater();
 
     @GuardedBy("this")
@@ -233,6 +242,77 @@ public class SubversionSCMSource extends SCMSource {
     @DataBoundSetter
     public void setWorkspaceUpdater(WorkspaceUpdater workspaceUpdater) {
         this.workspaceUpdater = workspaceUpdater;
+    }
+
+    @DataBoundSetter
+    public void setExcludedRegions(String excludedRegions) {
+        this.excludedRegions = excludedRegions;
+    }
+
+    @Exported
+    public String getExcludedRegions() {
+        return excludedRegions;
+    }
+
+    @DataBoundSetter
+    public void setIncludedRegions(String includedRegions) {
+        this.includedRegions = includedRegions;
+    }
+
+    @Exported
+    public String getIncludedRegions() {
+        return includedRegions;
+    }
+
+
+    @DataBoundSetter
+    public void setExcludedUsers(String excludedUsers) {
+        this.excludedUsers = excludedUsers;
+    }
+
+    @Exported
+    public String getExcludedUsers() {
+        return excludedUsers;
+    }
+
+    @DataBoundSetter
+    public void setExcludedCommitMessages(String excludedCommitMessages) {
+        this.excludedCommitMessages = excludedCommitMessages;
+    }
+
+    @Exported
+    public String getExcludedCommitMessages() {
+        return excludedCommitMessages;
+    }
+
+    @DataBoundSetter
+    public void setIgnoreDirPropChanges(boolean ignoreDirPropChanges) {
+        this.ignoreDirPropChanges = ignoreDirPropChanges;
+    }
+
+    @Exported
+    public boolean isIgnoreDirPropChanges() {
+      return ignoreDirPropChanges;
+    }
+
+    @DataBoundSetter
+    public void setFilterChangelog(boolean filterChangelog) {
+        this.filterChangelog = filterChangelog;
+    }
+
+    @Exported
+    public boolean isFilterChangelog() {
+      return filterChangelog;
+    }
+
+    @DataBoundSetter
+    public void setQuietOperation(boolean quietOperation) {
+        this.quietOperation = quietOperation;
+    }
+
+    @Exported
+    public boolean isQuietOperation() {
+      return quietOperation;
     }
 
     /**
@@ -729,7 +809,19 @@ public class SubversionSCMSource extends SCMSource {
             // name contains an @ so need to ensure there is an @ at the end of the name
             remote.append('@');
         }
-        return new SubversionSCM(remote.toString(), credentialsId, ".", workspaceUpdater, browser);
+
+        return new SubversionSCM(
+            SubversionSCM.ModuleLocation.parse(
+                new String[]{remote.toString()},
+                new String[]{credentialsId},
+                new String[]{"."},
+                null,
+                null,
+                null),
+            workspaceUpdater,
+            browser,
+            excludedRegions, excludedUsers, null, excludedCommitMessages, includedRegions, ignoreDirPropChanges, filterChangelog,
+            null, quietOperation);
     }
 
     /**
