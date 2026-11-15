@@ -14,5 +14,6 @@
     },
     "editor.useTabStops": false,
     "editor.insertSpaces": true,
+	"java.autobuild.enabled": false,
     "svn.enabled": false
 }

@@ -38,6 +38,8 @@ import org.kohsuke.stapler.QueryParameter;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.regex.Pattern;
 import org.kohsuke.stapler.interceptor.RequirePOST;
@@ -148,11 +150,13 @@ public class FishEyeSVN extends SubversionRepositoryBrowser {
                 @Override
                 protected FormValidation check() throws IOException {
                     try {
-                        if(findText(open(new URL(finalValue)),"FishEye")) {
+                        if(findText(open(new URI(finalValue)),"FishEye")) {
                             return FormValidation.ok();
                         } else {
                             return FormValidation.error("This is a valid URL but it doesn't look like FishEye");
                         }
+                    } catch (URISyntaxException e) {
+                        return FormValidation.error("Invalid URI");
                     } catch (IOException e) {
                         return handleIOException(finalValue,e);
                     }

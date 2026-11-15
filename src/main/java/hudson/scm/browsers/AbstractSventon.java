@@ -73,13 +73,13 @@ public abstract class AbstractSventon extends SubversionRepositoryBrowser {
     }
 
     /**
-     * Does basic pre-validation of a Sventon browser URL.
+     * Does basic pre-validation and uniformization of a Sventon browser URL.
      *
      * @param value the URL string to validate (not null)
      * @return the validated URL
      * @throws InvalidUrlException if the URL is malformed or uses an unsupported protocol
      */
-    protected static URL preValidateUrl(String value) throws InvalidUrlException {
+    protected static URI preValidateUrl(String value) throws InvalidUrlException {
         try {
             URI uri = new URI(value);
             String scheme = uri.getScheme();
@@ -92,8 +92,8 @@ public abstract class AbstractSventon extends SubversionRepositoryBrowser {
                 throw new InvalidUrlException("URL must not contain query parameters.");
             }
 
-            return uri.toURL();
-        } catch (URISyntaxException | MalformedURLException e) {
+            return value.endsWith("/") ? uri : new URI(value + "/");
+        } catch (URISyntaxException e) {
             throw new InvalidUrlException("Invalid URL syntax.", e);
         }
     }

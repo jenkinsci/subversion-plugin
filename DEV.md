@@ -51,9 +51,21 @@ target/subversion.hpi
 
 ### Automated tests
 
+All tests (about 15 minutes):
 ```bash
 build-full.sh
 ```
+
+Single test class from bash (or Git bash):
+```bash
+. ./__setup_env.priv.sh
+
+mvn -Dtest=ListSubversionTagsParameterDefinitionTest clean test
+```
+
+You can also run tests in IDE.
+
+Note that if you use *VS Code*, you might need to disable auto-compile as it and might try to re-compile mid-testing.
 
 ### Test Jenkins instance
 

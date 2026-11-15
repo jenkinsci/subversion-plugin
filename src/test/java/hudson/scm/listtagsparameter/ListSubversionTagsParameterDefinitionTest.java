@@ -19,14 +19,11 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.InetSocketAddress;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -34,6 +31,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
+import com.sun.net.httpserver.HttpServer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -100,82 +98,73 @@ class ListSubversionTagsParameterDefinitionTest {
     }
 
     private void assertSniff(String user, String sniffed, boolean ok) throws Exception {
-        AuthSniffer sniffer = new AuthSniffer();
-        URL sniffURL = sniffer.start();
+        try (AuthSniffer sniffer = new AuthSniffer()) {
+            URL sniffUrl = sniffer.getUrl();
+            JenkinsRule.WebClient wc = r.createWebClient().login(user);
+            String checkUrl = "job/p/descriptorByName/hudson.scm.listtagsparameter."
+                    + "ListSubversionTagsParameterDefinition/checkCredentialsId?value=svncreds&tagsDir="
+                    + URLEncoder.encode(sniffUrl.toString(), StandardCharsets.UTF_8);
+            System.err.println("Connecting to " + checkUrl + " as " + user);
 
-        JenkinsRule.WebClient wc = r.createWebClient().login(user);
-        String checkUrl = "job/p/descriptorByName/hudson.scm.listtagsparameter.ListSubversionTagsParameterDefinition/checkCredentialsId?value=svncreds&tagsDir=" + URLEncoder.encode(sniffURL.toString(), StandardCharsets.UTF_8);
-        System.err.println("Connecting to " + checkUrl + " as " + user);
-        // TODO createCrumbedUrl does not work as it does not notice the existing query string
-        String formValidation = wc.getPage(wc.addCrumb(new WebRequest(new URL(r.getURL(), checkUrl), HttpMethod.POST))).getWebResponse().getContentAsString();
-        System.err.println("Response: " + formValidation);
-        if (ok) {
-            assertEquals("<div/>", formValidation);
-        } else {
-            assertNotEquals("<div/>", formValidation);
+            // createCrumbedUrl does not handle the existing query string.
+            WebRequest request = new WebRequest(new URL(r.getURL(), checkUrl), HttpMethod.POST);
+            String formValidation = wc.getPage(wc.addCrumb(request))
+                    .getWebResponse().getContentAsString();
+            System.err.println("Response: " + formValidation);
+            if (ok) {
+                assertEquals("<div/>", formValidation);
+            } else {
+                assertNotEquals("<div/>", formValidation);
+            }
+
+            wc.assertFails(checkUrl, HttpURLConnection.HTTP_BAD_METHOD);
+            assertEquals(sniffed, sniffer.getSniffed());
         }
-        // GET accesses not permitted in any event:
-        wc.assertFails(checkUrl, HttpURLConnection.HTTP_BAD_METHOD);
-
-        assertEquals(sniffed, sniffer.stop());
     }
 
-    private static class AuthSniffer {
-        String sniffed;
-        Thread thread;
+    private static final class AuthSniffer implements AutoCloseable {
+        private static final String BASIC_PREFIX = "Basic ";
 
-        /**
-         * Starts listening on a new HTTP service.
-         *
-         * @return the URL it is serving
-         */
-        URL start() throws Exception {
-            final ServerSocket serverSocket = new ServerSocket(0);
-            thread = new Thread("AuthSniffer") {
-                @Override
-                public void run() {
-                    while (true) {
-                        try {
-                            Socket socket = serverSocket.accept();
-                            BufferedReader r = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                            String line;
-                            while ((line = r.readLine()) != null && !line.isEmpty()) {
-                                System.err.println("Received: " + line);
-                                String magic = "Authorization: Basic ";
-                                if (line.startsWith(magic)) {
-                                    sniffed = new String(Base64.getDecoder().decode(line.substring(magic.length())));
-                                    System.err.println("decoded to: " + sniffed);
-                                }
-                            }
-                            PrintWriter w = new PrintWriter(socket.getOutputStream());
-                            if (sniffed == null) {
-                                w.println("HTTP/1.0 401 Unauthorized");
-                                w.println("WWW-Authenticate: Basic realm=\"gotcha\"");
-                            } else {
-                                w.println("HTTP/1.0 200 OK");
-                                w.println("Content-Length: 0");
-                            }
-                            w.println();
-                            w.close();
-                        } catch (IOException x) {
-                            x.printStackTrace();
-                        }
+        private final HttpServer server;
+        private volatile String sniffed;
+
+        AuthSniffer() throws IOException {
+            server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+            server.createContext("/", exchange -> {
+                try {
+                    // SVNKit sends a body with OPTIONS. Read it before replying.
+                    exchange.getRequestBody().transferTo(OutputStream.nullOutputStream());
+
+                    String authorization = exchange.getRequestHeaders().getFirst("Authorization");
+                    if (authorization == null
+                            || !authorization.regionMatches(true, 0, BASIC_PREFIX, 0, BASIC_PREFIX.length())) {
+                        exchange.getResponseHeaders().set("WWW-Authenticate", "Basic realm=\"gotcha\"");
+                        exchange.sendResponseHeaders(HttpURLConnection.HTTP_UNAUTHORIZED, -1);
+                        return;
                     }
+
+                    byte[] credentials = Base64.getDecoder().decode(authorization.substring(BASIC_PREFIX.length()));
+                    sniffed = new String(credentials, StandardCharsets.UTF_8);
+                    exchange.sendResponseHeaders(HttpURLConnection.HTTP_OK, -1);
+                } finally {
+                    exchange.close();
                 }
-            };
-            thread.start();
-            return new URL("http://" + /*serverSocket.getInetAddress()*/"localhost" + ":" + serverSocket.getLocalPort() + "/");
+            });
+            server.start();
         }
 
-        /**
-         * Stops listening.
-         *
-         * @return HTTP Basic authentication {@code username:password} it grabbed, if any
-         */
+        URL getUrl() throws IOException {
+            return new URL("http", "127.0.0.1", server.getAddress().getPort(), "/");
+        }
+
         @CheckForNull
-        String stop() {
-            thread.interrupt(); // probably ineffective but at least we tried
+        String getSniffed() {
             return sniffed;
+        }
+
+        @Override
+        public void close() {
+            server.stop(0);
         }
     }
 

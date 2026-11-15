@@ -36,6 +36,7 @@ import org.kohsuke.stapler.QueryParameter;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 import jenkins.model.Jenkins;
@@ -107,11 +108,9 @@ public class Sventon extends AbstractSventon {
             return new URLCheck() {
                 @Override
                 protected FormValidation check() throws IOException {
-                    String v = value.endsWith("/") ? value : value + "/";
-
-                    URL url;
+                    URI url;
                     try {
-                        url = AbstractSventon.preValidateUrl(v);
+                        url = AbstractSventon.preValidateUrl(value);
                     } catch (InvalidUrlException e) {
                         return FormValidation.error(e.getMessage());
                     }
@@ -119,13 +118,13 @@ public class Sventon extends AbstractSventon {
                     try {
                         if (findText(open(url),"sventon 1")) {
                             return FormValidation.ok();
-                        } else if (findText(open(url),"sventon")) {
-                            return FormValidation.error("This is a valid Sventon URL but it doesn't look like Sventon 1.x");
-                        } else{
-                            return FormValidation.error("This is a valid URL but it doesn't look like Sventon");
                         }
+                        if (findText(open(url),"sventon")) {
+                            return FormValidation.error("This is a valid Sventon URL but it doesn't look like Sventon 1.x");
+                        }
+                        return FormValidation.error("This is a valid URL but it doesn't look like Sventon");
                     } catch (IOException e) {
-                        return handleIOException(v,e);
+                        return handleIOException(value, e);
                     }
                 }
             }.check();
